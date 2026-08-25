@@ -81,6 +81,10 @@ app.post("/api/ai/cry-analyzer", async (req: Request, res: Response) => {
               "Swaddle or place in sleep sack in a dim, white-noise environment.",
               "Offer gentle rhythmic rocking and shushing at 60-80 BPM.",
               "Avoid eye contact or bright screens to lower cortisol levels.",
+            ]
+          : [
+              "Gently bicycle legs and rub tummy in clockwise motion.",
+              "Apply warm compress or offer quiet soothing cuddle.",
             ],
         recommendedAction: {
           actionType: isHungry ? "feeding" : "sleep",
@@ -352,7 +356,7 @@ app.post("/api/sync/backup", (req: Request, res: Response) => {
 
 app.get("/api/sync/restore/:syncKey", (req: Request, res: Response) => {
   try {
-    const { syncKey } = req.params;
+    const syncKey = String(req.params.syncKey);
     const snapshot = inMemorySyncStore.get(syncKey);
     if (!snapshot) {
       return res.status(404).json({ error: "Sync snapshot not found or expired." });
