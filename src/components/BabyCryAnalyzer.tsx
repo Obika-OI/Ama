@@ -158,17 +158,44 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
 
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const audioCtx = new AudioContextClass();
       audioContextRef.current = audioCtx;
 
       const source = audioCtx.createMediaStreamSource(stream);
+
+      // Web Audio API Noise Filtering Pipeline:
+      // 1. Highpass filter: Eliminates low-frequency rumbles, HVAC hum, and wind noise below 250 Hz
+      const highpass = audioCtx.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.value = 250;
+
+      // 2. Lowpass filter: Eliminates high-frequency static, hiss, and clicks above 3800 Hz
+      const lowpass = audioCtx.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.value = 3800;
+
+      // 3. Gain node: Normalizes signal gain and amplifies infant cry formants
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.value = 1.25;
+
+      // Connect filtering pipeline
+      source.connect(highpass);
+      highpass.connect(lowpass);
+      lowpass.connect(gainNode);
+
+      // 4. Analyser node for real-time waveform visualization
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 64;
-      source.connect(analyser);
+      gainNode.connect(analyser);
       analyserRef.current = analyser;
 
-      // Setup recorder
-      const mediaRecorder = new MediaRecorder(stream);
+      // 5. MediaStreamDestination to route filtered stream directly to MediaRecorder
+      const destination = audioCtx.createMediaStreamDestination();
+      gainNode.connect(destination);
+
+      // Setup recorder using filtered audio stream
+      const mediaRecorder = new MediaRecorder(destination.stream);
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -401,6 +428,12 @@ Return ONLY valid JSON matching:
                 <span>Microphone Standby</span>
               </div>
             )}
+          </div>
+
+          {/* Web Audio API Bandpass Noise Filter Active Indicator */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800/90 border border-slate-700 text-[10px] font-bold text-sky-300 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
+            <span>⚡ Web Audio Noise Filter Active (250Hz–3.8kHz Bandpass + Gain Boost)</span>
           </div>
 
           {/* Record / Stop Button */}

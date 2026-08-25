@@ -3986,9 +3986,22 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
       audioContextRef.current = audioCtx;
 
       const source = audioCtx.createMediaStreamSource(stream);
+
+      // Filter out low ambient room hums (<300Hz) and high static hiss (>3500Hz)
+      const highpass = audioCtx.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.value = 300;
+
+      const lowpass = audioCtx.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.value = 3500;
+
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
-      source.connect(analyser);
+
+      source.connect(highpass);
+      highpass.connect(lowpass);
+      lowpass.connect(analyser);
 
       setIsListening(true);
 
@@ -9428,6 +9441,24 @@ export default function App() {
     return saved ? saved.replace(' Old', '') : '6 Months';
   });
 
+  const [onboardingMicStatus, setOnboardingMicStatus] = useState<'idle' | 'granted' | 'denied'>('idle');
+  const [isOnboardingMicTesting, setIsOnboardingMicTesting] = useState(false);
+
+  const handleTestOnboardingMic = async () => {
+    setIsOnboardingMicTesting(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setOnboardingMicStatus('granted');
+      addAuditLog('Microphone Permission Verified', 'Audio hardware & web permissions verified during onboarding test.', 'SECURITY');
+      stream.getTracks().forEach(track => track.stop());
+    } catch (err) {
+      console.warn("Microphone test permission blocked:", err);
+      setOnboardingMicStatus('denied');
+    } finally {
+      setIsOnboardingMicTesting(false);
+    }
+  };
+
   const [allergenMatrix, setAllergenMatrix] = useState<any[]>(() => {
     const defaultMatrix = [
       { id: 'peanuts', name: 'Peanuts', status: 'Not Introduced', progressDay: 0 },
@@ -11083,6 +11114,44 @@ export default function App() {
                 <p className="text-[9px] text-gray-400 pl-1 leading-normal">
                   Guardian Verification Notice: Ama is designed for adult parent or guardian tracking only.
                 </p>
+              </div>
+
+              {/* 1-Step Microphone Access Verification */}
+              <div className="space-y-2 pt-2 border-t border-gray-100">
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
+                  Microphone Access (Cry Analysis & Care Notes)
+                </label>
+                <div className="p-3 bg-slate-50 rounded-2xl border border-gray-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Mic className="w-4 h-4 text-primary" />
+                      <span className="text-xs font-bold text-gray-800">
+                        {onboardingMicStatus === 'granted' ? 'Mic Access Granted' : onboardingMicStatus === 'denied' ? 'Mic Permission Blocked' : 'Check Mic Hardware'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleTestOnboardingMic}
+                      disabled={isOnboardingMicTesting}
+                      className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-black uppercase tracking-wider transition-all border-none cursor-pointer"
+                    >
+                      {isOnboardingMicTesting ? 'Testing...' : onboardingMicStatus === 'granted' ? 'Re-test' : 'Test Mic'}
+                    </button>
+                  </div>
+
+                  {onboardingMicStatus === 'granted' && (
+                    <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 text-[10px] text-emerald-800 font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Web audio permission verified! Ready for noise-filtered cry analysis.</span>
+                    </div>
+                  )}
+
+                  {onboardingMicStatus === 'denied' && (
+                    <div className="p-2 bg-amber-50 rounded-xl border border-amber-100 text-[10px] text-amber-800 font-medium leading-relaxed">
+                      ⚠️ Permission blocked. You can still use manual care logging and enable microphone permissions anytime in your browser.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
