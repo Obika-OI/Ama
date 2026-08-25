@@ -1,0 +1,158 @@
+{
+  "entities": {
+    "UserData": {
+      "title": "UserData",
+      "description": "The complete baby-care logging and configuration state of a parent.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The unique Firebase Authentication UID of the parent."
+        },
+        "babyName": {
+          "type": "string",
+          "description": "Name of the baby."
+        },
+        "parentName": {
+          "type": "string",
+          "description": "Name of the parent."
+        },
+        "fluidMl": {
+          "type": "number",
+          "description": "Fluid intake in milliliters for today."
+        },
+        "fluidTarget": {
+          "type": "number",
+          "description": "Target fluid intake in milliliters."
+        },
+        "allTimePoints": {
+          "type": "number",
+          "description": "Accumulated gamification points."
+        },
+        "dailyStreak": {
+          "type": "number",
+          "description": "Consecutive days of quests completed."
+        },
+        "lastQuestDate": {
+          "type": "string",
+          "description": "ISO date string of last quest completion."
+        },
+        "lastStreakDate": {
+          "type": "string",
+          "description": "ISO date string of last streak update."
+        },
+        "userLocation": {
+          "type": "string",
+          "description": "Location setting of the user."
+        },
+        "userCurrency": {
+          "type": "string",
+          "description": "Currency setting of the user."
+        },
+        "tummyTimeToday": {
+          "type": "number",
+          "description": "Tummy time duration logged for today in minutes."
+        },
+        "sunlightToday": {
+          "type": "number",
+          "description": "Sunlight exposure logged for today in minutes."
+        },
+        "allergenMatrix": {
+          "type": "array",
+          "description": "List of allergen introduction progress states."
+        },
+        "weeklyPlan": {
+          "type": "object",
+          "description": "Weekly meal planner configuration."
+        },
+        "groceryChecked": {
+          "type": "array",
+          "description": "Checked grocery item IDs."
+        },
+        "diaperLogs": {
+          "type": "array",
+          "description": "Diaper change log entries."
+        },
+        "notifications": {
+          "type": "array",
+          "description": "User notifications list."
+        },
+        "growthLogs": {
+          "type": "array",
+          "description": "Baby growth history logs."
+        },
+        "activities": {
+          "type": "array",
+          "description": "List of today's gamified milestones and activities."
+        },
+        "loggedMeals": {
+          "type": "array",
+          "description": "Logged solid food meals."
+        },
+        "observationLogs": {
+          "type": "array",
+          "description": "Logged clinical observations and symptoms."
+        },
+        "loggedMoods": {
+          "type": "array",
+          "description": "History of logged baby moods."
+        },
+        "personalRecipes": {
+          "type": "array",
+          "description": "Custom recipes added by the parent."
+        },
+        "scheduledMeals": {
+          "type": "array",
+          "description": "Scheduled meal timers."
+        },
+        "scheduledActivities": {
+          "type": "array",
+          "description": "Scheduled activity timers."
+        },
+        "scheduledMeds": {
+          "type": "array",
+          "description": "Scheduled medicine timers."
+        },
+        "reminders": {
+          "type": "array",
+          "description": "Custom reminders list."
+        },
+        "readingLogs": {
+          "type": "array",
+          "description": "Reading session logs."
+        },
+        "hygieneLog": {
+          "type": "object",
+          "description": "Hygiene and bath checklist tracker state."
+        },
+        "milestoneCompletions": {
+          "type": "object",
+          "description": "Standard milestones completed."
+        },
+        "teethingMap": {
+          "type": "object",
+          "description": "Map of emerging teeth and symptoms."
+        },
+        "vaccineSchedule": {
+          "type": "array",
+          "description": "Vaccination and side-effects schedule."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp representing the last save."
+        }
+      },
+      "required": [
+        "userId",
+        "babyName",
+        "parentName"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserData",
+      "description": "Document containing user-specific baby care profile and tracking logs."
+    }
+  }
+}
