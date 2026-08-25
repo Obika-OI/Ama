@@ -8391,6 +8391,8 @@ const SettingsScreen = ({
   setBabyName,
   babyAge,
   setBabyAge,
+  babyDob,
+  setBabyDob,
   parentName,
   setParentName,
   parentDob,
@@ -8412,6 +8414,8 @@ const SettingsScreen = ({
   setBabyName: (name: string) => void;
   babyAge: string;
   setBabyAge: (age: string) => void;
+  babyDob: string;
+  setBabyDob: (dob: string) => void;
   parentName: string;
   setParentName: (name: string) => void;
   parentDob: string;
@@ -8672,20 +8676,27 @@ const SettingsScreen = ({
 
           <div className="space-y-1.5">
             <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest block pl-1">
-              Baby's Age
+              Baby's Date of Birth
             </label>
             <input
-              type="text"
-              value={babyAge}
+              type="date"
+              value={babyDob}
               onChange={(e) => {
-                const val = e.target.value;
-                setBabyAge(val);
-                localStorage.setItem('babyAge', val);
+                const dob = e.target.value;
+                setBabyDob(dob);
+                localStorage.setItem('babyDob', dob);
+                const calculatedAge = calculateBabyAge(dob);
+                setBabyAge(calculatedAge);
+                localStorage.setItem('babyAge', calculatedAge);
               }}
               disabled={userRole !== 'admin'}
-              placeholder="e.g. 6 Months"
-              className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-rose-500 transition-all disabled:opacity-50"
+              className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-rose-500 transition-all disabled:opacity-50"
             />
+            {babyAge && (
+              <p className="text-[10px] text-rose-500 font-bold pl-1 mt-1">
+                Calculated Age: {babyAge}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -9448,6 +9459,50 @@ const SettingsScreen = ({
   );
 };
 
+const calculateBabyAge = (dobString: string): string => {
+  if (!dobString) return '';
+  const birthDate = new Date(dobString);
+  const today = new Date();
+  if (isNaN(birthDate.getTime())) return '';
+  
+  const diffTime = today.getTime() - birthDate.getTime();
+  if (diffTime < 0) return 'Newborn';
+  
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 7) {
+    return diffDays <= 1 ? '1 Day' : `${diffDays} Days`;
+  }
+  
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks < 4) {
+    return diffWeeks === 1 ? '1 Week' : `${diffWeeks} Weeks`;
+  }
+  
+  let years = today.getFullYear() - birthDate.getFullYear();
+  let months = today.getMonth() - birthDate.getMonth();
+  let days = today.getDate() - birthDate.getDate();
+  
+  if (days < 0) {
+    months--;
+  }
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  const totalMonths = years * 12 + months;
+  
+  if (totalMonths < 24) {
+    return totalMonths === 1 ? '1 Month' : `${totalMonths} Months`;
+  } else {
+    if (months === 0) {
+      return `${years} Years`;
+    }
+    return `${years} Years ${months} ${months === 1 ? 'Month' : 'Months'}`;
+  }
+};
+
 const drawThreeRandomQuests = (): Activity[] => {
   const shuffled = [...QUEST_POOL].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, 3).map(q => ({
@@ -9469,7 +9524,15 @@ export default function App() {
   const [parentName, setParentName] = useState<string>(() => {
     return localStorage.getItem('parentName') || 'Mom';
   });
+  const [babyDob, setBabyDob] = useState<string>(() => {
+    return localStorage.getItem('babyDob') || '';
+  });
   const [babyAge, setBabyAge] = useState<string>(() => {
+    const savedDob = localStorage.getItem('babyDob');
+    if (savedDob) {
+      const calculated = calculateBabyAge(savedDob);
+      if (calculated) return calculated;
+    }
     const savedAge = localStorage.getItem('babyAge');
     if (savedAge) return savedAge;
     try {
@@ -9563,7 +9626,15 @@ export default function App() {
   });
   const [onboardingBabyName, setOnboardingBabyName] = useState(localStorage.getItem('babyName') || '');
   const [onboardingParentName, setOnboardingParentName] = useState(localStorage.getItem('parentName') || '');
+  const [onboardingBabyDob, setOnboardingBabyDob] = useState(() => {
+    return localStorage.getItem('babyDob') || '';
+  });
   const [onboardingBabyAge, setOnboardingBabyAge] = useState(() => {
+    const savedDob = localStorage.getItem('babyDob');
+    if (savedDob) {
+      const calculated = calculateBabyAge(savedDob);
+      if (calculated) return calculated;
+    }
     const saved = localStorage.getItem('babyAge');
     return saved ? saved.replace(' Old', '') : '6 Months';
   });
@@ -9737,12 +9808,14 @@ export default function App() {
     localStorage.setItem('parentDob', onboardingParentDob);
     localStorage.setItem('babyName', finalBabyName);
     localStorage.setItem('babyAge', finalBabyAge);
+    localStorage.setItem('babyDob', onboardingBabyDob);
     localStorage.setItem('ama_onboarded', 'true');
     
     setParentName(onboardingParentName.trim());
     setParentDob(onboardingParentDob);
     setBabyName(finalBabyName);
     setBabyAge(finalBabyAge);
+    setBabyDob(onboardingBabyDob);
     
     // Update or seed growthLogs
     const currentLogs = [...growthLogs];
@@ -10996,6 +11069,8 @@ export default function App() {
               setBabyName={setBabyName}
               babyAge={babyAge}
               setBabyAge={setBabyAge}
+              babyDob={babyDob}
+              setBabyDob={setBabyDob}
               parentName={parentName}
               setParentName={setParentName}
               parentDob={parentDob}
@@ -11271,17 +11346,24 @@ export default function App() {
 
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Baby's Age
+                  Baby's Date of Birth
                 </label>
                 <input
-                  type="text"
-                  value={onboardingBabyAge}
+                  type="date"
+                  value={onboardingBabyDob}
                   onChange={(e) => {
-                    setOnboardingBabyAge(e.target.value);
+                    const dob = e.target.value;
+                    setOnboardingBabyDob(dob);
+                    const calculated = calculateBabyAge(dob);
+                    setOnboardingBabyAge(calculated);
                   }}
-                  placeholder="e.g. 6 Months"
-                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
+                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
                 />
+                {onboardingBabyAge && (
+                  <p className="text-[11px] text-emerald-600 font-bold pl-1 mt-1">
+                    Calculated Age: {onboardingBabyAge}
+                  </p>
+                )}
               </div>
 
               {/* 1-Step Microphone Access Verification */}
