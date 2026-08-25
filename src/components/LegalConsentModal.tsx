@@ -227,7 +227,7 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                         <li><strong>Child Profile:</strong> Baby name, developmental age, milestones, and tooth emergence.</li>
                         <li><strong>Feeding & Nutrition:</strong> Solid foods introduced, breastfeeding/bottle logs, hydration, and allergen reaction history.</li>
                         <li><strong>Care Logs:</strong> Diaper observations, sleep intervals, and medication schedules.</li>
-                        <li><strong>Acoustic Cry Analysis:</strong> Recorded cry audio samples are processed strictly for real-time diagnostic guidance and are not retained.</li>
+                        <li><strong>Acoustic Cry Analysis:</strong> Recorded cry audio samples are processed strictly for real-time routine care guidance and are not retained.</li>
                       </ul>
                     </section>
 

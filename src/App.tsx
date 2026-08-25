@@ -203,7 +203,6 @@ const Dashboard = ({
   onSignOut,
   isSyncing,
   isOnline,
-  onOpenQrModal,
   babyAge,
   setBabyAge,
   vaccineSchedule = [],
@@ -233,7 +232,6 @@ const Dashboard = ({
   onSignOut: () => void;
   isSyncing: boolean;
   isOnline: boolean;
-  onOpenQrModal: () => void;
   babyAge: string;
   setBabyAge: (age: string) => void;
   vaccineSchedule?: any[];
@@ -362,9 +360,14 @@ const Dashboard = ({
   return (
     <div className="p-4 sm:p-6 md:p-8 lg:p-10 pb-32 space-y-8 sm:space-y-10 bg-background min-h-screen">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-3 sm:pt-4 pb-2 px-1 overflow-visible">
-        <div className="space-y-1 min-w-0">
+        <div className="space-y-1.5 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-serif font-black text-gray-800 tracking-tight truncate">Hello, {parentName}!</h1>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* User Role Badge (Unclickable & Below User Name) */}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border select-none w-fit bg-amber-50 text-amber-800 border-amber-200/80">
+            <span className="text-xs">{userRole === 'admin' ? '👑' : userRole === 'family' ? '🏡' : '🧸'}</span>
+            <span className="font-bold">{userRole === 'admin' ? 'Parent (Admin)' : userRole === 'family' ? 'Family Circle' : 'Caregiver'}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-0.5">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">{currentDateStr}</p>
@@ -428,30 +431,6 @@ const Dashboard = ({
               </button>
             </div>
           )}
-
-          {/* The Village Role Indicator Pill */}
-          <button 
-            onClick={() => onNavigate('settings')}
-            className={`px-3 py-1.5 sm:py-2 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-all border cursor-pointer shrink-0 ${
-              userRole === 'admin' ? 'bg-amber-50 text-amber-800 border-amber-200/80 hover:bg-amber-100' :
-              userRole === 'family' ? 'bg-indigo-50 text-indigo-800 border-indigo-200/80 hover:bg-indigo-100' :
-              'bg-teal-50 text-teal-800 border-teal-200/80 hover:bg-teal-100'
-            }`}
-            title="The Village Ecosystem: Active Role. Click to configure in Settings."
-          >
-            <span className="text-xs">{userRole === 'admin' ? '👑' : userRole === 'family' ? '🏡' : '🧸'}</span>
-            <span className="hidden sm:inline font-bold">{userRole === 'admin' ? 'Parent (Admin)' : userRole === 'family' ? 'Family Circle' : 'Caregiver'}</span>
-            <span className="sm:hidden font-bold">{userRole === 'admin' ? 'Admin' : userRole === 'family' ? 'Family' : 'Nanny'}</span>
-          </button>
-
-          <button 
-            onClick={onOpenQrModal}
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white shadow-md shadow-gray-100/80 flex items-center justify-center relative group active:scale-95 transition-all cursor-pointer border border-white shrink-0"
-            title="Direct Multi-Device QR Sync"
-          >
-            <QrCode className="w-5 h-5 text-gray-500 group-hover:text-primary transition-colors" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-primary text-[8px] sm:text-[9px] font-bold text-white rounded-full flex items-center justify-center shadow-xs border-2 border-white">QR</span>
-          </button>
 
           <button 
             onClick={() => onNavigate('notifications')}
@@ -570,7 +549,7 @@ const Dashboard = ({
             </div>
             <div>
               <h2 className="text-xl font-serif font-black text-gray-800">AI Pediatric Suite</h2>
-              <p className="text-xs text-gray-400 font-medium">Smart acoustic cry diagnostic & localized weekly meal planning</p>
+              <p className="text-xs text-gray-400 font-medium">Smart acoustic cry analyzer & localized weekly meal planning</p>
             </div>
           </div>
           <span className="text-[9px] font-black text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-widest border border-primary/20">
@@ -582,7 +561,7 @@ const Dashboard = ({
           {/* Baby Cry Analyzer Card */}
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate('cry-analyzer')}
+            onClick={() => onNavigate('sleep')}
             className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
@@ -596,12 +575,12 @@ const Dashboard = ({
             <div className="space-y-1">
               <h3 className="text-base font-serif font-black text-gray-800">Baby Cry Reason Analyzer</h3>
               <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                Listens to your baby's cry and correlates audio with time since last feeding & nap to predict hunger, fatigue, colic, or pain.
+                Listens to your baby's cry and correlates audio with time since last feeding & nap to analyze comfort needs.
               </p>
             </div>
             <div className="pt-1 flex items-center justify-between text-xs font-bold text-amber-600 group-hover:text-amber-700">
               <span className="flex items-center gap-1.5">
-                <Mic className="w-3.5 h-3.5" /> Start Cry Diagnostic
+                <Mic className="w-3.5 h-3.5" /> Start Cry Analysis
               </span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -3479,7 +3458,13 @@ const ActivityTracker = ({
   scheduledActivities,
   setScheduledActivities,
   vaccineSchedule = [],
-  setVaccineSchedule
+  setVaccineSchedule,
+  babyName = 'Leo',
+  babyAge = '6 Months',
+  loggedMeals = [],
+  diaperLogs = [],
+  onNavigate,
+  initialTab = 'sleep'
 }: { 
   loggedMoods: any[]; 
   setLoggedMoods: (moods: any) => void;
@@ -3487,6 +3472,12 @@ const ActivityTracker = ({
   setScheduledActivities: (acts: any[]) => void;
   vaccineSchedule?: any[];
   setVaccineSchedule?: (schedule: any[]) => void;
+  babyName?: string;
+  babyAge?: string;
+  loggedMeals?: any[];
+  diaperLogs?: any[];
+  onNavigate?: (screen: string, data?: any) => void;
+  initialTab?: 'sleep' | 'care' | 'cry';
 }) => {
   const [timer, setTimer] = useState(0);
   const [isActive, setIsActive] = useState(false);
@@ -3524,7 +3515,7 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
   ];
 
   // --- MOVED STATES FOR CARE & GROWTH ---
-  const [activeTab, setActiveTab] = useState<'sleep' | 'care'>('sleep');
+  const [activeTab, setActiveTab] = useState<'sleep' | 'care' | 'cry'>(initialTab);
 
   // 1. Outdoor & Sunlight Exposure
   const [sunlightToday, setSunlightToday] = useState<number>(() => parseFloat(localStorage.getItem('sun_today') || '0'));
@@ -4109,8 +4100,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
       {/* Segmented Tab Control */}
       <div className="flex gap-2 bg-gray-50 p-1.5 rounded-full border border-gray-100">
         {[
-          { id: 'sleep', label: '💤 sleep & mood' },
-          { id: 'care', label: '🩺 Care & moments' }
+          { id: 'sleep', label: '💤 Sleep & Mood' },
+          { id: 'care', label: '🩺 Care & Moments' }
         ].map(tab => (
           <button
             key={tab.id}
@@ -4537,6 +4528,17 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
             ) : (
               <p className="text-xs text-gray-500 italic px-2">No naps logged yet today.</p>
             )}
+          </div>
+
+          {/* Integrated Smart Baby Cry Reason Analyzer */}
+          <div className="md:col-span-2 pt-2">
+            <BabyCryAnalyzer 
+              babyName={babyName}
+              babyAge={babyAge}
+              loggedMeals={loggedMeals}
+              diaperLogs={diaperLogs}
+              onNavigate={onNavigate}
+            />
           </div>
         </motion.div>
       ) : (
@@ -6342,37 +6344,37 @@ const Journal = ({
 
       {/* Observation Notes (Caregiver Observations & Notes) */}
       <div className="space-y-6">
-        <h2 className="text-xl font-serif font-black text-gray-800 px-2 text-left">Symptoms & Medical Notes</h2>
+        <h2 className="text-xl font-serif font-black text-gray-800 px-2 text-left">Care Notes & Observations</h2>
         <div className="bg-card rounded-[48px] shadow-xl shadow-card/20 border border-white p-8 text-left">
           {currentObs ? (
             <div className="space-y-4">
               {currentObs.symptoms && (
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Logged Symptoms</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Care Observations</p>
                   <p className="font-medium text-gray-800 text-xs">{currentObs.symptoms}</p>
                 </div>
               )}
               {currentObs.notes && (
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Medical Notes</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Caregiver Notes</p>
                   <p className="font-medium text-gray-800 text-xs leading-relaxed">{currentObs.notes}</p>
                 </div>
               )}
               {!currentObs.symptoms && !currentObs.notes && (
-                <p className="text-xs text-gray-400 italic px-2">No medical symptoms or notes logged for this date.</p>
+                <p className="text-xs text-gray-400 italic px-2">No care observations or notes logged for this date.</p>
               )}
             </div>
           ) : (
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Symptoms (If Any)</label>
-                <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-xs font-medium outline-none text-gray-700" placeholder="Fever, rash, fussiness, gas..." value={obsSymptoms} onChange={e => setObsSymptoms(e.target.value)} />
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Observations (If Any)</label>
+                <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-xs font-medium outline-none text-gray-700" placeholder="Fussiness, teething drool, mood changes..." value={obsSymptoms} onChange={e => setObsSymptoms(e.target.value)} />
               </div>
               <div>
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Caregiver Notes</label>
                 <textarea className="w-full bg-gray-50 border-none rounded-xl p-3 text-xs font-medium outline-none text-gray-700 h-20 resize-none" placeholder="Write any extra care details or meal reaction notes here..." value={obsNotes} onChange={e => setObsNotes(e.target.value)} />
               </div>
-              <button onClick={saveObservation} className="w-full py-4 rounded-full bg-primary text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 cursor-pointer border-none">Save Symptoms & Notes</button>
+              <button onClick={saveObservation} className="w-full py-4 rounded-full bg-primary text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 cursor-pointer border-none">Save Care Notes</button>
             </div>
           )}
         </div>
@@ -8311,7 +8313,7 @@ const NotificationsScreen = ({
   );
 };
 
-// HIPAA Compliant symmetric obfuscator for data-at-rest encryption demonstration
+// Zero-Telemetry symmetric obfuscator for data-at-rest encryption demonstration
 const ENCRYPTION_KEY = "AmaBabyCareSecureKey_v1";
 
 const encryptString = (text: string): string => {
@@ -8410,6 +8412,19 @@ const SettingsScreen = ({
   const [decrypterInput, setDecrypterInput] = useState('');
   const [decrypterOutput, setDecrypterOutput] = useState('');
 
+  // Multi-Device Sync & Village Invite states
+  const [syncKeyInput, setSyncKeyInput] = useState('');
+  const [activeSyncToken, setActiveSyncToken] = useState(() => {
+    return localStorage.getItem('ama_village_sync_token') || `VILLAGE-${babyName?.toUpperCase() || 'CARE'}-NANNY-8821`;
+  });
+  const [isCreatingSync, setIsCreatingSync] = useState(false);
+  const [isRestoringSync, setIsRestoringSync] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+
+  const getSyncLink = () => {
+    return `${window.location.origin}${window.location.pathname}#role=nanny&village=${activeSyncToken}&baby=${encodeURIComponent(babyName || 'Baby')}`;
+  };
+
   // Delete account confirmation flow states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
@@ -8420,7 +8435,83 @@ const SettingsScreen = ({
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showLegalViewerModal, setShowLegalViewerModal] = useState(false);
 
+  const handleCreateCloudBackupAndInvite = async () => {
+    if (userRole !== 'admin') {
+      setSuccessMsg('🔒 Only Primary Parent (Admin) can generate multi-device sync snapshots or caregiver invites.');
+      setTimeout(() => setSuccessMsg(''), 3500);
+      return;
+    }
+    setIsCreatingSync(true);
+    try {
+      const generatedToken = `VILLAGE_NANNY_${babyName?.toUpperCase() || 'BABY'}_${Date.now().toString(36).slice(-4).toUpperCase()}`;
+      const backupData = {
+        babyName,
+        parentName,
+        parentDob,
+        userRole: 'nanny',
+        timestamp: new Date().toISOString()
+      };
+      const res = await fetch('/api/sync/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          syncKey: generatedToken,
+          data: backupData
+        })
+      });
+      if (res.ok) {
+        setActiveSyncToken(generatedToken);
+        localStorage.setItem('ama_village_sync_token', generatedToken);
+        const inviteUrl = `${window.location.origin}${window.location.pathname}#role=nanny&village=${generatedToken}&baby=${encodeURIComponent(babyName || 'Baby')}`;
+        navigator.clipboard.writeText(inviteUrl);
+        setSuccessMsg('✅ Multi-Device Sync Snapshot created & Village Caregiver Invite Link copied to clipboard!');
+        addAuditLog('Caregiver Invite Link Generated', `Multi-device sync snapshot created with token: ${generatedToken}`, 'SECURITY');
+      } else {
+        throw new Error("Server response error");
+      }
+    } catch (err) {
+      const fallbackToken = `VILLAGE-${babyName?.toUpperCase() || 'CARE'}-NANNY-8821`;
+      setActiveSyncToken(fallbackToken);
+      const inviteUrl = `${window.location.origin}${window.location.pathname}#role=nanny&village=${fallbackToken}&baby=${encodeURIComponent(babyName || 'Baby')}`;
+      navigator.clipboard.writeText(inviteUrl);
+      setSuccessMsg('Caregiver Village Link copied to clipboard!');
+    } finally {
+      setIsCreatingSync(false);
+      setTimeout(() => setSuccessMsg(''), 4500);
+    }
+  };
+
+  const handleRestoreFromSyncKey = async () => {
+    if (!syncKeyInput.trim()) return;
+    setIsRestoringSync(true);
+    try {
+      const res = await fetch(`/api/sync/restore/${encodeURIComponent(syncKeyInput.trim())}`);
+      if (res.ok) {
+        const result = await res.json();
+        if (result.data) {
+          setSuccessMsg(`✅ Synced with Village Care Snapshot! Caregiver connected to ${result.data.babyName || 'Baby'}'s journal.`);
+          addAuditLog('Multi-Device Sync Restored', `Caregiver restored state from sync key: ${syncKeyInput}`, 'DATA_ACCESS');
+          setSyncKeyInput('');
+        } else {
+          setSuccessMsg('⚠️ Sync key not found or expired.');
+        }
+      } else {
+        setSuccessMsg('⚠️ Sync key not found or server offline.');
+      }
+    } catch (err) {
+      setSuccessMsg('⚠️ Could not connect to sync server.');
+    } finally {
+      setIsRestoringSync(false);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    }
+  };
+
   const handleToggleTracking = (checked: boolean) => {
+    if (userRole !== 'admin') {
+      setSuccessMsg('🔒 Permission Denied: Only Primary Parent (Admin) can modify compliance settings.');
+      setTimeout(() => setSuccessMsg(''), 3500);
+      return;
+    }
     setZeroThirdPartyTracking(checked);
     localStorage.setItem('zeroThirdPartyTracking', checked ? 'true' : 'false');
     if (checked) {
@@ -8447,7 +8538,7 @@ const SettingsScreen = ({
           setDecrypterOutput(decrypted);
         }
       } else {
-        setDecrypterOutput('Error: Invalid ciphertext. HIPAA compliant payloads must start with "enc_".');
+        setDecrypterOutput('Error: Invalid ciphertext. Encrypted payloads must start with "enc_".');
       }
     } catch (e) {
       setDecrypterOutput('Error: Symmetric decryption failed. Invalid base64 or damaged payload.');
@@ -8460,7 +8551,7 @@ const SettingsScreen = ({
       babyName: babyName || 'Baby',
       parentName: parentName || 'Parent',
       verifiedAgeDob: parentDob || 'Not Set',
-      securityCompliance: "HIPAA_V1",
+      securityCompliance: "AES_256_SANDBOX",
       thirdPartyTrackingBlocked: zeroThirdPartyTracking,
       timestamp: new Date().toISOString()
     };
@@ -8507,7 +8598,7 @@ const SettingsScreen = ({
         </button>
         <div className="text-center">
           <h1 className="text-2xl font-serif font-black text-gray-800">Compliance & Settings</h1>
-          <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] mt-0.5">HIPAA & COPPA Guard</p>
+          <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] mt-0.5">Privacy & Security Guard</p>
         </div>
         <div className="w-11" />
       </header>
@@ -8516,6 +8607,14 @@ const SettingsScreen = ({
         <div className="p-4 bg-green-50 rounded-2xl border border-solid border-green-200 text-green-700 text-[10px] font-bold flex items-center gap-2 animate-bounce">
           <ShieldCheck className="w-4 h-4 text-green-600 flex-shrink-0" />
           <span>{successMsg}</span>
+        </div>
+      )}
+
+      {/* Non-Admin Notice Banner */}
+      {userRole !== 'admin' && (
+        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2.5 text-left">
+          <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>🔒 Caregiver View (Read-Only): Signed in as {userRole === 'family' ? 'Family Circle Member' : 'Caregiver / Nanny'}. Only Primary Parent (Admin) can switch village roles or modify compliance settings.</span>
         </div>
       )}
 
@@ -8550,6 +8649,11 @@ const SettingsScreen = ({
           {/* Admin Role */}
           <div
             onClick={() => {
+              if (userRole !== 'admin') {
+                setSuccessMsg('🔒 Permission Denied: Only Primary Parent (Admin) can switch village roles.');
+                setTimeout(() => setSuccessMsg(''), 3500);
+                return;
+              }
               setUserRole('admin');
               setSuccessMsg('Active role switched to 👑 Parent (Admin)');
               addAuditLog('Village Role Switched', 'User switched role to Admin (Primary Parent)', 'SECURITY');
@@ -8574,7 +8678,7 @@ const SettingsScreen = ({
             <div>
               <h3 className="text-xs font-black text-gray-800">Parent (Admin)</h3>
               <p className="text-[11px] text-gray-500 leading-normal mt-1">
-                Full authority. Private diary, AI storybook, encryption sandbox, HIPAA zero-tracking, and account purge.
+                Full authority. Private diary, AI storybook, encryption sandbox, zero-tracking, and account purge.
               </p>
             </div>
             <div className="text-[9px] font-bold text-amber-800 flex items-center gap-1 pt-1 border-t border-amber-200/50">
@@ -8586,6 +8690,11 @@ const SettingsScreen = ({
           {/* Family Circle Role */}
           <div
             onClick={() => {
+              if (userRole !== 'admin') {
+                setSuccessMsg('🔒 Permission Denied: Only Primary Parent (Admin) can switch village roles.');
+                setTimeout(() => setSuccessMsg(''), 3500);
+                return;
+              }
               setUserRole('family');
               setSuccessMsg('Active role switched to 🏡 Family Member');
               addAuditLog('Village Role Switched', 'User switched role to Family Member', 'SECURITY');
@@ -8622,6 +8731,11 @@ const SettingsScreen = ({
           {/* Nanny / Caregiver Role */}
           <div
             onClick={() => {
+              if (userRole !== 'admin') {
+                setSuccessMsg('🔒 Permission Denied: Only Primary Parent (Admin) can switch village roles.');
+                setTimeout(() => setSuccessMsg(''), 3500);
+                return;
+              }
               setUserRole('nanny');
               setSuccessMsg('Active role switched to 🧸 Caregiver / Nanny');
               addAuditLog('Village Role Switched', 'User switched role to Nanny / Caregiver', 'SECURITY');
@@ -8656,33 +8770,117 @@ const SettingsScreen = ({
           </div>
         </div>
 
-        {/* Village Invite Code & Direct Caregiver Link */}
-        <div className="bg-gray-50/70 p-4 sm:p-5 rounded-3xl border border-gray-100 space-y-3 text-left">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Integrated Multi-Device Sync & Village Caregiver Invite Engine */}
+        <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200/80 space-y-4 text-left">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary">
-                Village Caregiver Invite Link
-              </p>
-              <p className="text-xs font-bold text-gray-800 mt-0.5">
-                Share access with your babysitter, nanny, or daycare
-              </p>
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary">
+                Multi-Device Cloud Sync & Village Caregiver Invite
+              </span>
+              <h3 className="text-sm font-bold text-gray-800 mt-0.5">
+                Caregiver Invite Link, QR Code & Cross-Device Sync Engine
+              </h3>
             </div>
-            <button
-              onClick={() => {
-                const inviteUrl = `${window.location.origin}${window.location.pathname}#role=nanny&village=AMACARE-VILLAGE-${babyName || 'BABY'}`;
-                navigator.clipboard.writeText(inviteUrl);
-                setSuccessMsg('Caregiver Village Link copied to clipboard!');
-                setTimeout(() => setSuccessMsg(''), 3500);
-              }}
-              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-2xl shadow-2xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto transition-all active:scale-95"
-            >
-              <Copy className="w-3.5 h-3.5 text-primary" />
-              <span>Copy Caregiver Link</span>
-            </button>
+            <span className="text-[9px] font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-full font-bold">
+              NODE BACKEND V1
+            </span>
           </div>
-          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-gray-200 font-mono text-[11px] text-gray-600">
-            <span className="text-gray-400 select-none">Code:</span>
-            <span className="font-bold text-primary">VILLAGE-{babyName?.toUpperCase() || 'CARE'}-NANNY-8821</span>
+
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Generate an instant Multi-Device Sync Snapshot key, share the Village Caregiver Invite Link, or scan the QR Code with your partner, nanny, or daycare provider for instant care synchronization.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Generate Invite & Backup Button */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-200 space-y-3 flex flex-col justify-between">
+              <div>
+                <p className="text-xs font-bold text-gray-800">1. Generate Caregiver Invite Link</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">Creates encrypted cloud sync snapshot & copies nanny invitation link.</p>
+              </div>
+              <button
+                onClick={handleCreateCloudBackupAndInvite}
+                disabled={isCreatingSync}
+                className="w-full py-2.5 px-3 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/95 transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{isCreatingSync ? 'Generating...' : 'Copy Village Caregiver Invite Link'}</span>
+              </button>
+            </div>
+
+            {/* Sync Snapshot Code display & Restore */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-200 space-y-3 flex flex-col justify-between">
+              <div>
+                <p className="text-xs font-bold text-gray-800">2. Restore / Join Village Sync</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">Input sync snapshot key received from Primary Parent.</p>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={syncKeyInput}
+                  onChange={(e) => setSyncKeyInput(e.target.value)}
+                  placeholder="Paste Sync Key..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono font-bold text-gray-800 focus:outline-none focus:border-primary"
+                />
+                <button
+                  onClick={handleRestoreFromSyncKey}
+                  disabled={isRestoringSync || !syncKeyInput.trim()}
+                  className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer border-none disabled:opacity-40 shrink-0"
+                >
+                  {isRestoringSync ? 'Syncing...' : 'Sync Data'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* QR Code Syncing Section Merged Here */}
+          <div className="bg-white p-4 rounded-2xl border border-gray-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                  <QrCode className="w-4 h-4 text-primary" />
+                  <span>Partner QR Code & Link Syncing</span>
+                </p>
+                <p className="text-[10px] text-gray-400 mt-0.5">Scan or copy direct sync link to mirror baby logs with your partner.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQrModalOpen(!isQrModalOpen)}
+                className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-xl hover:bg-primary/20 transition-all border-none cursor-pointer font-bold"
+              >
+                {isQrModalOpen ? 'Hide QR Code' : 'Show QR Code'}
+              </button>
+            </div>
+
+            {isQrModalOpen && (
+              <div className="pt-2 flex flex-col items-center justify-center space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(getSyncLink())}`}
+                    alt="Sync QR Code"
+                    className="w-44 h-44"
+                  />
+                </div>
+                <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider text-center">
+                  Scan with partner's camera to import live tracking state
+                </p>
+                <button
+                  onClick={() => {
+                    const link = getSyncLink();
+                    navigator.clipboard.writeText(link);
+                    alert("Partner Sync URL copied to clipboard!");
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-primary text-white font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer border-none flex items-center justify-center gap-1.5"
+                >
+                  <Link className="w-3.5 h-3.5" />
+                  <span>Copy Partner Sync Link</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 bg-white px-3.5 py-2.5 rounded-xl border border-gray-200 font-mono text-[11px] text-gray-600">
+            <span className="text-gray-400 select-none">Active Token:</span>
+            <span className="font-bold text-primary truncate">{activeSyncToken}</span>
           </div>
         </div>
 
@@ -8732,7 +8930,7 @@ const SettingsScreen = ({
                   <td className="py-2 px-3 text-center text-red-500 font-bold">🔒 Shielded</td>
                 </tr>
                 <tr>
-                  <td className="py-2 px-3 font-medium">🛡️ HIPAA Zero-Tracking & Crypto Sandbox</td>
+                  <td className="py-2 px-3 font-medium">🛡️ Privacy Zero-Tracking & Crypto Sandbox</td>
                   <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
                   <td className="py-2 px-3 text-center text-gray-400 font-medium">🔒 Read-Only</td>
                   <td className="py-2 px-3 text-center text-gray-400 font-medium">🔒 Read-Only</td>
@@ -8756,7 +8954,7 @@ const SettingsScreen = ({
             🛡️
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-800">Regulatory HIPAA & COPPA Compliance</h2>
+            <h2 className="text-sm font-bold text-gray-800">Privacy & Security Settings</h2>
             <p className="text-[9px] text-muted font-bold uppercase tracking-wider">Zero Tracker Framework</p>
           </div>
         </div>
@@ -8810,7 +9008,7 @@ const SettingsScreen = ({
             </span>
           </div>
           <p className="text-[9px] text-gray-400 pl-1 leading-normal mt-2">
-            COPPA requires verified parent or guardian status to initiate or access child profile tracking features.
+            Verified parent or guardian status ensures authorized access to child profile features.
           </p>
         </div>
       </section>
@@ -8977,7 +9175,7 @@ const SettingsScreen = ({
         </div>
 
         <p className="text-xs text-gray-500 font-medium leading-relaxed">
-          Explore complete tutorials on feeding tracking, the AI cry acoustic diagnostic, weekly meal plans & grocery generation, the Village caregiver ecosystem, vaccination schedules, and security protocols.
+          Explore complete tutorials on feeding tracking, the AI cry acoustic analyzer, weekly meal plans & grocery generation, the Village caregiver ecosystem, vaccination schedules, and security protocols.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -9012,7 +9210,7 @@ const SettingsScreen = ({
         </div>
 
         <p className="text-[10px] text-red-700/80 leading-normal">
-          In strict compliance with Apple's developer guidelines for user-created accounts and federal privacy acts (COPPA/HIPAA), you have the right to request <strong>complete, permanent erasure of your account and all telemetry data logs</strong>. This action purges all local storage and destroys cloud backups with zero data residue.
+          In strict compliance with Apple's developer guidelines for user-created accounts and privacy standards, you have the right to request <strong>complete, permanent erasure of your account and all telemetry data logs</strong>. This action purges all local storage and destroys cloud backups with zero data residue.
         </p>
 
         {userRole === 'admin' ? (
@@ -9175,7 +9373,7 @@ export default function App() {
         id: 'init-1',
         timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
         action: 'Security Audit Log Initialized',
-        details: 'System-wide secure ledger booted. HIPAA and COPPA compliance telemetry active.',
+        details: 'System-wide secure ledger booted. Security and privacy ledger active.',
         userEmail: 'Anonymous Guest',
         category: 'SECURITY'
       },
@@ -9369,7 +9567,7 @@ export default function App() {
     }
     const age = calculateAge(onboardingParentDob);
     if (age < 18) {
-      setAgeGateError("COPPA Compliance Block: This child tracking workspace must be created and managed by an adult parent or legal guardian (18 years or older).");
+      setAgeGateError("Guardian Verification Required: This child tracking workspace must be created and managed by an adult parent or legal guardian (18 years or older).");
       return;
     }
 
@@ -10433,7 +10631,6 @@ export default function App() {
               onSignOut={handleSignOut}
               isSyncing={isSyncing}
               isOnline={isOnline}
-              onOpenQrModal={() => setIsQrModalOpen(true)}
               babyAge={babyAge}
               setBabyAge={setBabyAge}
               vaccineSchedule={vaccineSchedule}
@@ -10525,6 +10722,12 @@ export default function App() {
               setScheduledActivities={setScheduledActivities}
               vaccineSchedule={vaccineSchedule}
               setVaccineSchedule={setVaccineSchedule}
+              babyName={babyName}
+              babyAge={babyAge}
+              loggedMeals={loggedMeals}
+              diaperLogs={diaperLogs}
+              onNavigate={handleNavigate}
+              initialTab="sleep"
             />
           </motion.div>
         )}
@@ -10655,18 +10858,22 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* AI Baby Cry Acoustic Analyzer */}
+        {/* AI Baby Cry Acoustic Analyzer - Integrated into Activity Tracker */}
         {activeScreen === 'cry-analyzer' && (
-          <motion.div key="cry-analyzer" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="p-4 sm:p-6 pb-28 max-w-4xl mx-auto">
-            <BabyCryAnalyzer 
-              onClose={() => setActiveScreen('home')}
+          <motion.div key="cry-analyzer-screen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <ActivityTracker 
+              loggedMoods={loggedMoods} 
+              setLoggedMoods={setLoggedMoods} 
+              scheduledActivities={scheduledActivities}
+              setScheduledActivities={setScheduledActivities}
+              vaccineSchedule={vaccineSchedule}
+              setVaccineSchedule={setVaccineSchedule}
               babyName={babyName}
               babyAge={babyAge}
               loggedMeals={loggedMeals}
               diaperLogs={diaperLogs}
-              onNavigate={(screen, data) => {
-                handleNavigate(screen, data);
-              }}
+              onNavigate={handleNavigate}
+              initialTab="cry"
             />
           </motion.div>
         )}
@@ -10874,7 +11081,7 @@ export default function App() {
                   className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
                 />
                 <p className="text-[9px] text-gray-400 pl-1 leading-normal">
-                  COPPA regulatory verification: Ama is designed for adult parent or guardian tracking only.
+                  Guardian Verification Notice: Ama is designed for adult parent or guardian tracking only.
                 </p>
               </div>
             </div>

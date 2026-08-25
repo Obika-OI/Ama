@@ -48,7 +48,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       title: '1. Getting Started & Baby Profile',
       category: 'BASICS',
       icon: '👶',
-      summary: 'Set up your baby profile, verify adult parent/guardian eligibility (COPPA requirement), and personalize the dashboard.',
+      summary: 'Set up your baby profile, verify parent/guardian adult access, and personalize the dashboard.',
       steps: [
         'Complete initial onboarding by providing the baby’s name, birth date / developmental age, and your verified adult date of birth.',
         'Choose your preferred measurement units (ml or oz for fluids, kg or lbs for weight).',
@@ -61,7 +61,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       faqs: [
         {
           question: 'Why do I need to enter my parent birthdate?',
-          answer: 'Under COPPA regulations, child health and routine tracking workspaces must be created by a verified adult parent or legal guardian (18+).'
+          answer: 'Parent or legal guardian authorization ensures secure, adult-managed child care workspaces (18+).'
         }
       ]
     },
@@ -75,7 +75,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
         'Tap "Meal Log" on the navigation bar to access fluid intake and solid food logs.',
         'Use the Left/Right Nursing Timer for breastfeeding sessions, or quickly tap the +50ml button to log hydration.',
         'When introducing a new solid food, record acceptance, taste, appetite, and any suspected reactions.',
-        'Use the Smart Diaper Analyzer camera tool to photograph stool and automatically evaluate it against the clinical Bristol Stool Scale.'
+        'Use the Smart Diaper Analyzer camera tool to photograph stool and automatically evaluate it against the Bristol Stool Scale.'
       ],
       tips: [
         'Set daily fluid goals to ensure baby stays adequately hydrated throughout weather changes.',
@@ -110,7 +110,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
         'Allow microphone permissions and hold your phone near the baby for 4-8 seconds while they cry.',
         'The acoustic engine analyzes pitch, frequency, and pause patterns (Dunstan Baby Language acoustic reflex indicators: "Neh", "Owh", "Eh", "Eairh").',
         'The system cross-references the audio with the time elapsed since the baby’s last feeding, nap, and diaper change.',
-        'View the diagnosed cause, confidence score, and immediate soothing step-by-step guidance.'
+        'View the suggested comfort reason, confidence score, and immediate soothing step-by-step guidance.'
       ],
       tips: [
         'If background noise is loud, move closer to the baby or use the test audio cry samples to understand typical sound profiles.',
@@ -137,7 +137,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       title: '6. Allergen Matrix, Teething Map & Vaccines',
       category: 'HEALTH',
       icon: '🛡️',
-      summary: 'Safely introduce major allergens over 3-day protocols, record tooth emergence, and track pediatric immunization milestones.',
+      summary: 'Safely introduce major allergens over 3-day protocols, record tooth emergence, and track immunization milestones.',
       steps: [
         'Under Feeding -> Allergen Matrix, track the introduction of common allergens (Peanuts, Eggs, Dairy, Soy, Tree Nuts, Sesame, Wheat, Shellfish).',
         'Use the 3-day exposure protocol with low doses before marking an allergen as "Cleared".',
@@ -165,16 +165,16 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       ]
     },
     {
-      id: 'privacy-hipaa',
-      title: '8. Privacy, Security & HIPAA Compliance',
+      id: 'privacy-security',
+      title: '8. Privacy, Security & Data Protection',
       category: 'SECURITY',
       icon: '🔒',
-      summary: 'Learn about our zero-telemetry local sandboxing, HIPAA-grade symmetric encryption, immutable audit ledger, and complete data purge capabilities.',
+      summary: 'Learn about our zero-telemetry local sandboxing, symmetric encryption, immutable audit ledger, and complete data purge capabilities.',
       steps: [
         'All logs are stored locally by default with offline-first support.',
         'Optional cloud sync encrypts your baby’s data payload with symmetric cryptographic obfuscation before saving.',
         'Every sensitive action is logged to the immutable Security Audit Ledger viewable in Settings.',
-        'You have the legal right under GDPR and COPPA to download your audit records or permanently delete all cloud and local data.'
+        'You have the privacy right to download your audit records or permanently delete all cloud and local data.'
       ],
       tips: [
         'Keep "Zero Third-Party Tracking" enabled in Settings for maximum privacy protection.'

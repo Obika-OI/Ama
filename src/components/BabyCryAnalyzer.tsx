@@ -253,7 +253,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
             : "Recorded live acoustic cry sample: fundamental pitch ~460Hz, rhythmic intermittent pauses, initial moderate intensity transitioning to persistent wailing.";
 
           const prompt = `
-You are an expert pediatric cry acoustic specialist and infant care diagnostics AI.
+You are an infant care acoustic specialist and soothing assistant AI.
 Analyze the acoustic characteristics of this baby's cry:
 - Baby Name: ${babyName}
 - Age: ${babyAge}
@@ -433,50 +433,6 @@ Return ONLY valid JSON matching:
         </div>
       </div>
 
-      {/* Simulated Acoustic Cry Profiles for Quick Testing */}
-      <div className="space-y-2.5">
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-1">
-          Or Test with Acoustic Sample Profiles (Dunstan Reflexes)
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <button
-            type="button"
-            onClick={() => handleRunDemoCry('hungry', 'Rhythmic sucking crying pattern with "Neh" tongue-palate reflex. Elapsed feed ~3 hours.')}
-            className="p-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200/60 text-left transition-all cursor-pointer"
-          >
-            <p className="text-xs font-bold text-amber-900">🍼 Hungry ("Neh")</p>
-            <p className="text-[9px] text-amber-700 font-medium">Sucking cadence</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleRunDemoCry('tired', 'Overtired crying with yawning breath sound "Owh", persistent rhythmic whimper, wake window exceeded.')}
-            className="p-3 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 text-left transition-all cursor-pointer"
-          >
-            <p className="text-xs font-bold text-indigo-900">😴 Tired ("Owh")</p>
-            <p className="text-[9px] text-indigo-700 font-medium">Yawning / rubbed eyes</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleRunDemoCry('gassy', 'Strained grunting abdominal reflex sound "Eh", legs lifting, upper gas tension.')}
-            className="p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 text-left transition-all cursor-pointer"
-          >
-            <p className="text-xs font-bold text-emerald-900">💨 Gassy ("Eh")</p>
-            <p className="text-[9px] text-emerald-700 font-medium">Burp / gas pressure</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleRunDemoCry('pain', 'Sharp, high-pitched shrieking cry "Eairh", intense sudden onset, abdominal cramping.')}
-            className="p-3 rounded-2xl bg-rose-50 hover:bg-rose-100 border border-rose-200/60 text-left transition-all cursor-pointer"
-          >
-            <p className="text-xs font-bold text-rose-900">⚡ Pain ("Eairh")</p>
-            <p className="text-[9px] text-rose-700 font-medium">Colic / sharp cramp</p>
-          </button>
-        </div>
-      </div>
-
       {errorMsg && (
         <div className="p-4 rounded-2xl bg-red-50 text-red-700 text-xs font-bold flex items-center gap-2 border border-red-100">
           <AlertCircle className="w-4 h-4 shrink-0" />
@@ -579,6 +535,14 @@ Return ONLY valid JSON matching:
           )}
         </motion.div>
       )}
+
+      {/* Routine Care Disclaimer Notice */}
+      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-[10px] text-gray-500 font-medium leading-relaxed flex items-start gap-2.5">
+        <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+        <p>
+          <strong>Routine Care Notice:</strong> Ama is an infant care routine tracking assistant. Ama is not a medical device and does not provide medical diagnoses or advice. Always consult a qualified pediatrician or healthcare provider for medical concerns or infant distress.
+        </p>
+      </div>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 {
   "name": "Ama",
-  "description": "A comprehensive baby care companion with AI acoustic cry diagnostics, 7-day nutritional meal & local grocery planning, role-based Village caregiver permissions, and interactive user guides.",
+  "description": "A comprehensive baby care companion with AI acoustic cry analyzer, 7-day nutritional meal & local grocery planning, role-based Village caregiver permissions, and interactive user guides.",
   "requestFramePermissions": ["microphone", "geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

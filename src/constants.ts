@@ -524,7 +524,12 @@ export const DEFAULT_REMINDERS = [
   }
 ];
 
-// Aliases for compatibility
+// Default Standard Reference Libraries
+export const STANDARD_MEALS = STANDARD_RECIPES;
+export const DEFAULT_ACTIVITIES_LIST = DEFAULT_ACTIVITIES;
+export const DEFAULT_REMINDERS_LIST = DEFAULT_REMINDERS;
+
+// Backward-compatible exports
 export const MOCK_MEALS = STANDARD_RECIPES;
 export const MOCK_ACTIVITIES = DEFAULT_ACTIVITIES;
 export const MOCK_REMINDERS = DEFAULT_REMINDERS;

@@ -96,7 +96,7 @@ app.post("/api/ai/cry-analyzer", async (req: Request, res: Response) => {
     const acousticProfileHint = demoType || acousticInput || "Recorded live acoustic cry sample: fundamental pitch ~460Hz, rhythmic intermittent pauses, initial moderate intensity transitioning to persistent wailing.";
 
     const prompt = `
-You are an expert pediatric cry acoustic specialist and infant care diagnostics AI.
+You are an infant care acoustic specialist and soothing assistant AI.
 Analyze the acoustic characteristics of this baby's cry, cross-referencing it with the baby's feeding and sleep log patterns.
 
 BABY & LOG CONTEXT:
@@ -107,7 +107,7 @@ BABY & LOG CONTEXT:
 - Current Estimated Wake Window: Awake for ~${elapsedContext.estimatedAwakeMinutes || 90} mins (Normal age wake window: ${elapsedContext.estimatedWakeWindow || "1.5 - 2.5 hours"})
 - Acoustic Input Characteristics: "${acousticProfileHint}"
 
-DIAGNOSTIC GUIDELINES (DUNSTAN BABY REFLEX ACOUSTICS):
+COMFORT GUIDELINES (DUNSTAN BABY REFLEX ACOUSTICS):
 1. "Hungry" ("Neh"): Rhythmic cry with sucking tongue reflex sound, starts low and builds. Especially likely if elapsed feeding > 2.5 hours.
 2. "Tired / Overtired" ("Owh"): Yawning sound, rhythmic wailing, accompanied by eye rubbing. Especially likely if awake window exceeds normal span (>2 hours).
 3. "In Pain / Colic" ("Eairh"): Sudden, high-pitched shrieking cry with sharp onset, tense abdomen, knees pulling up.

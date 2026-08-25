@@ -23,13 +23,13 @@ export const DiaperAnalyzer: React.FC<DiaperAnalyzerProps> = ({ onAnalyze }) => 
         const base64data = (reader.result as string).split(',')[1];
         
         const prompt = `
-          You are an expert pediatric AI assistant.
+          You are an infant care AI assistant.
           Analyze this diaper stool image.
           Return ONLY valid JSON with no markdown block formatting.
           Fields needed:
           - stoolType (number 1-7 based on Bristol Stool Scale, where 1 is hard lumps, 4 is normal, 7 is watery)
           - color (string, e.g., "Yellow", "Brown", "Green", "Red", "Black")
-          - concerns (string: list any flagged issues like dehydration, iron imbalances, or allergic reactions based on clinical guidelines. If none, say "Normal stool")
+          - concerns (string: list any flagged observations like hydration or digestion notes based on general infant care guidelines. If none, say "Normal stool")
         `;
 
         const result = await model.generateContent([
