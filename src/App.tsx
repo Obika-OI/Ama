@@ -540,7 +540,7 @@ const Dashboard = ({
         </motion.div>
       </section>
 
-      {/* AI Intelligence & Pediatric Wellness Suite */}
+      {/* AI Intelligence & AI Suite */}
       <section className="space-y-4">
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
@@ -548,7 +548,7 @@ const Dashboard = ({
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-xl font-serif font-black text-gray-800">AI Pediatric Suite</h2>
+              <h2 className="text-xl font-serif font-black text-gray-800">AI Suite</h2>
               <p className="text-xs text-gray-400 font-medium">Smart acoustic cry analyzer & localized weekly meal planning</p>
             </div>
           </div>
@@ -5587,7 +5587,7 @@ const Journal = ({
     : 4;
 
   const handleSaveBabyName = () => {
-    setBabyName(tempBabyName || 'Leo');
+    setBabyName(tempBabyName || 'Baby');
     if (setParentName) setParentName(tempParentName || 'Mom');
     localStorage.setItem('parentName', tempParentName || 'Mom');
     setIsEditingName(false);
@@ -5668,7 +5668,7 @@ const Journal = ({
             activeTab === 'daily' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'
           }`}
         >
-          Care Log
+          Daily Logs
         </button>
         <button 
           onClick={() => setActiveTab('diary')}
@@ -5687,7 +5687,7 @@ const Journal = ({
             activeTab === 'weekly' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'
           }`}
         >
-          Weekly 🛒
+          Weekly Menu 🛒
         </button>
       </div>
 
@@ -6425,7 +6425,7 @@ const Journal = ({
                 <span>Active Caregiver Privileges:</span>
               </p>
               <ul className="space-y-1.5 pl-4 text-[11px] list-disc list-outside text-gray-600">
-                <li>Log bottle feeds, breast pumps, and solid meals in <strong>Care Log</strong></li>
+                <li>Log bottle feeds, breast pumps, and solid meals in <strong>Daily Logs</strong></li>
                 <li>Record diaper changes, wetness checks, and diaper photo AI analysis</li>
                 <li>Track daily fluid & hydration milestones in real time</li>
                 <li>Set alarms and track scheduled medications and nap timers</li>
@@ -6437,7 +6437,7 @@ const Journal = ({
                 onClick={() => setActiveTab('daily')}
                 className="px-6 py-3.5 bg-primary text-white rounded-full text-xs font-black uppercase tracking-wider shadow-md hover:bg-primary/90 transition-all cursor-pointer border-none"
               >
-                Open Care Log 🍼
+                Open Daily Logs 🍼
               </button>
               {setUserRole && (
                 <button
@@ -6800,7 +6800,7 @@ const Journal = ({
             <div className="bg-card p-6 rounded-[48px] shadow-xl shadow-card/15 border border-white space-y-6 text-left">
               <div className="flex justify-between items-center px-2">
                 <div>
-                  <h3 className="font-serif font-black text-gray-800 text-lg">Weekly Planner</h3>
+                  <h3 className="font-serif font-black text-gray-800 text-lg">Weekly Menu</h3>
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Plan Whole-Week Solid Foods</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -8388,7 +8388,11 @@ const SettingsScreen = ({
   onGoogleSignIn,
   onSignOut,
   babyName,
+  setBabyName,
+  babyAge,
+  setBabyAge,
   parentName,
+  setParentName,
   parentDob,
   setParentDob,
   zeroThirdPartyTracking,
@@ -8405,7 +8409,11 @@ const SettingsScreen = ({
   onGoogleSignIn: () => void;
   onSignOut: () => void;
   babyName: string;
+  setBabyName: (name: string) => void;
+  babyAge: string;
+  setBabyAge: (age: string) => void;
   parentName: string;
+  setParentName: (name: string) => void;
   parentDob: string;
   setParentDob: React.Dispatch<React.SetStateAction<string>>;
   zeroThirdPartyTracking: boolean;
@@ -8630,6 +8638,81 @@ const SettingsScreen = ({
           <span>🔒 Caregiver View (Read-Only): Signed in as {userRole === 'family' ? 'Family Circle Member' : 'Caregiver / Nanny'}. Only Primary Parent (Admin) can switch village roles or modify compliance settings.</span>
         </div>
       )}
+
+      {/* Baby & Parent Profile Customization Panel */}
+      <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-6 text-left">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shadow-xs">
+            👶
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-gray-800">Unique Child & Parent Profile</h2>
+            <p className="text-[9px] text-rose-600 font-bold uppercase tracking-wider">Configure Name & Age</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest block pl-1">
+              Baby's Unique Name
+            </label>
+            <input
+              type="text"
+              value={babyName}
+              onChange={(e) => {
+                const val = e.target.value;
+                setBabyName(val);
+                localStorage.setItem('babyName', val);
+              }}
+              disabled={userRole !== 'admin'}
+              placeholder="e.g. Leo"
+              className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-rose-500 transition-all disabled:opacity-50"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest block pl-1">
+              Baby's Age
+            </label>
+            <input
+              type="text"
+              value={babyAge}
+              onChange={(e) => {
+                const val = e.target.value;
+                setBabyAge(val);
+                localStorage.setItem('babyAge', val);
+              }}
+              disabled={userRole !== 'admin'}
+              placeholder="e.g. 6 Months"
+              className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-rose-500 transition-all disabled:opacity-50"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest block pl-1">
+              Parent Name
+            </label>
+            <input
+              type="text"
+              value={parentName}
+              onChange={(e) => {
+                const val = e.target.value;
+                setParentName(val);
+                localStorage.setItem('parentName', val);
+              }}
+              disabled={userRole !== 'admin'}
+              placeholder="e.g. Mom"
+              className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-rose-500 transition-all disabled:opacity-50"
+            />
+          </div>
+        </div>
+        
+        {userRole === 'admin' && (
+          <p className="text-[10px] text-gray-400 pl-1">
+            ✨ Changes saved automatically to your offline storage and synchronized instantly.
+          </p>
+        )}
+      </section>
 
       {/* ========================================================================= */}
       {/* The Village: Multi-User Care Circle & Role Permissions Ecosystem         */}
@@ -9210,6 +9293,50 @@ const SettingsScreen = ({
         </div>
       </section>
 
+      {/* Project Contributors Section */}
+      <section className="bg-card p-6 rounded-[36px] shadow-sm border border-white space-y-5 text-left">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-gray-800">Project Contributors</h2>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100 flex items-start gap-3">
+            <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-indigo-600 shrink-0">
+              EO
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-800">Ekenedilichukwu Okoli</p>
+              <p className="text-[10px] text-gray-500 font-medium">Software Developer and engineer</p>
+            </div>
+          </div>
+
+          <div className="bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100 flex items-start gap-3">
+            <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-indigo-600 shrink-0">
+              OO
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-800">Ogochukwu Okoli</p>
+              <p className="text-[10px] text-gray-500 font-medium">Nutraceuticals/functional foods scientist and Developer</p>
+            </div>
+          </div>
+
+          <div className="bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100 flex items-start gap-3">
+            <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-indigo-600 shrink-0">
+              NN
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-800">Ngozi Obika-Ndiri</p>
+              <p className="text-[10px] text-gray-500 font-medium">Maternal and child health Nurse</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Purge / Account Deletion Section */}
       <section className="bg-red-50/50 p-6 rounded-[36px] border border-red-100 space-y-6">
         <div className="flex items-center gap-3">
@@ -9337,7 +9464,7 @@ export default function App() {
 
   // --- NEW INTEGRATED STATES PERSISTED IN LOCALSTORAGE (No Mock Data Preloaded) ---
   const [babyName, setBabyName] = useState<string>(() => {
-    return localStorage.getItem('babyName') || 'Leo';
+    return localStorage.getItem('babyName') || 'Baby';
   });
   const [parentName, setParentName] = useState<string>(() => {
     return localStorage.getItem('parentName') || 'Mom';
@@ -9603,12 +9730,19 @@ export default function App() {
     }
 
     setAgeGateError('');
+    const finalBabyName = onboardingBabyName.trim() || 'Baby';
+    const finalBabyAge = onboardingBabyAge.trim() || '6 Months';
+    
     localStorage.setItem('parentName', onboardingParentName.trim());
     localStorage.setItem('parentDob', onboardingParentDob);
+    localStorage.setItem('babyName', finalBabyName);
+    localStorage.setItem('babyAge', finalBabyAge);
     localStorage.setItem('ama_onboarded', 'true');
     
     setParentName(onboardingParentName.trim());
     setParentDob(onboardingParentDob);
+    setBabyName(finalBabyName);
+    setBabyAge(finalBabyAge);
     
     // Update or seed growthLogs
     const currentLogs = [...growthLogs];
@@ -10859,7 +10993,11 @@ export default function App() {
               onGoogleSignIn={handleGoogleSignIn}
               onSignOut={handleSignOut}
               babyName={babyName}
+              setBabyName={setBabyName}
+              babyAge={babyAge}
+              setBabyAge={setBabyAge}
               parentName={parentName}
+              setParentName={setParentName}
               parentDob={parentDob}
               setParentDob={setParentDob}
               zeroThirdPartyTracking={zeroThirdPartyTracking}
@@ -11116,6 +11254,36 @@ export default function App() {
                 </p>
               </div>
 
+              <div className="space-y-1.5 pt-2 border-t border-gray-100/50">
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
+                  Baby's Name
+                </label>
+                <input
+                  type="text"
+                  value={onboardingBabyName}
+                  onChange={(e) => {
+                    setOnboardingBabyName(e.target.value);
+                  }}
+                  placeholder="e.g. Leo"
+                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
+                  Baby's Age
+                </label>
+                <input
+                  type="text"
+                  value={onboardingBabyAge}
+                  onChange={(e) => {
+                    setOnboardingBabyAge(e.target.value);
+                  }}
+                  placeholder="e.g. 6 Months"
+                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
+                />
+              </div>
+
               {/* 1-Step Microphone Access Verification */}
               <div className="space-y-2 pt-2 border-t border-gray-100">
                 <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
@@ -11185,7 +11353,7 @@ export default function App() {
 
       {isInitialLoadComplete && (
         <VoiceAssistant 
-          babyName={babyName || 'Leo'}
+          babyName={babyName || 'Baby'}
           babyAge={babyAge || '6 Months'}
           stage="Purees & Finger Foods"
           lastFeedStr={loggedMeals.length > 0 ? (loggedMeals[loggedMeals.length - 1].date ? new Date(loggedMeals[loggedMeals.length - 1].date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '2 hours ago') : 'No feed logged today'}
@@ -11202,6 +11370,12 @@ export default function App() {
             const newMood = { id: `d-${Date.now()}`, date: new Date().toISOString(), mood: 'Neutral', notes: note };
             setLoggedMoods(prev => [...prev, newMood]);
           }}
+          loggedMeals={loggedMeals}
+          observationLogs={observationLogs}
+          loggedMoods={loggedMoods}
+          diaperLogs={diaperLogs}
+          vaccineSchedule={vaccineSchedule}
+          memories={memories}
         />
       )}
 

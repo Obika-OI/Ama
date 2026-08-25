@@ -31,6 +31,45 @@ function getGenAI(): GoogleGenAI | null {
   return aiClient;
 }
 
+// Resilient wrapper to call generateContent with automatic model fallback during high-demand/outage spikes
+async function generateContentWithFallback(
+  ai: GoogleGenAI,
+  options: {
+    contents: string;
+    config?: any;
+  }
+) {
+  const models = [
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-3.1-pro",
+    "gemini-2.5-pro",
+    "gemini-2.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-flash-latest"
+  ];
+  let lastError: any = null;
+
+  for (const model of models) {
+    try {
+      console.log(`[Gemini API] Attempting generateContent with model: ${model}`);
+      const response = await ai.models.generateContent({
+        model,
+        contents: options.contents,
+        config: options.config,
+      });
+      console.log(`[Gemini API] Success using model: ${model}`);
+      return response;
+    } catch (err: any) {
+      lastError = err;
+      console.log(`[Gemini API] Model ${model} busy. Trying next model...`);
+    }
+  }
+
+  throw lastError || new Error("All Gemini models failed to generate content.");
+}
+
 // ============================================================================
 // API ROUTES
 // ============================================================================
@@ -138,8 +177,7 @@ Return ONLY valid JSON with no surrounding markdown formatting, matching this ex
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
+    const response = await generateContentWithFallback(ai, {
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -167,7 +205,7 @@ app.post("/api/ai/meal-planner", async (req: Request, res: Response) => {
     if (!ai) {
       // Deterministic regional fallback
       return res.json({
-        planTitle: `7-Day Pediatric Nutrient Solid Meal Plan for ${babyName} (${babyAge})`,
+        planTitle: `7-Day Nutrient Solid Meal Plan for ${babyName} (${babyAge})`,
         summary: `Customized for ${babyAge} developmental stage in ${region}. Emphasizes bioavailable Iron, Zinc, Healthy Fats, and Texture Progression while omitting allergens (${allergenExclusions.join(", ") || "None"}).`,
         currencySymbol: currency.includes("NGN") ? "₦" : currency.includes("USD") ? "$" : currency.includes("GBP") ? "£" : "€",
         days: [
@@ -239,7 +277,7 @@ app.post("/api/ai/meal-planner", async (req: Request, res: Response) => {
     }
 
     const prompt = `
-You are a leading pediatric nutritionist specializing in infant feeding, baby-led weaning, and localized whole-food meal planning.
+You are a leading baby nutritionist specializing in infant feeding, baby-led weaning, and localized whole-food meal planning.
 Create a complete, nutritionally balanced 7-Day Solid Food Plan and categorized Grocery Shopping List for:
 - Baby Name: ${babyName}
 - Age: ${babyAge}
@@ -254,10 +292,11 @@ Format requirements:
 - Incorporate locally available produce and market ingredients popular in ${region}.
 - Ensure high iron, zinc, and healthy brain-building fats (DHA/Choline).
 - Provide a clean, categorized grocery list with approximate portions and realistic weekly grocery price range in ${currency}.
+- CRITICAL: Never include symbols like asterisks (*), double asterisks (**), or em-dashes (—) in any of the textual fields (planTitle, summary, meal names, notes, categories, etc.). All texts must be in pure, standard, clean plain text with standard normal punctuation. Do not format words with markdown or prefix symbols.
 
 Return ONLY valid JSON matching this schema:
 {
-  "planTitle": "7-Day Pediatric Nutrient Solid Meal Plan for ...",
+  "planTitle": "7-Day Nutrient Solid Meal Plan for ...",
   "summary": "Short 2-sentence rationale of nutritional focus...",
   "currencySymbol": "₦",
   "days": [
@@ -285,8 +324,7 @@ Return ONLY valid JSON matching this schema:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
+    const response = await generateContentWithFallback(ai, {
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -303,6 +341,78 @@ Return ONLY valid JSON matching this schema:
   }
 });
 
+// Helper function for warm, simple, friendly heuristic fallback when Gemini key is not configured or fails
+function getHeuristicResponse(
+  message: string,
+  babyName: string,
+  babyAge: string,
+  weaningStage: string,
+  lastFeedStr: string,
+  lastSleepStr: string,
+  lastDiaperStr: string
+) {
+  const lowerMsg = message.toLowerCase();
+  let replyText = "";
+  let actionToTrigger: any = null;
+  let suggestedFollowUps: string[] = [];
+
+  // Check if there is a logging intent (action verbs/indicators)
+  const isLoggingIntent =
+    lowerMsg.includes("log") ||
+    lowerMsg.includes("save") ||
+    lowerMsg.includes("record") ||
+    lowerMsg.includes("add") ||
+    lowerMsg.includes("track") ||
+    lowerMsg.includes("start") ||
+    lowerMsg.includes("timer") ||
+    lowerMsg.includes("done") ||
+    lowerMsg.includes("changed") ||
+    lowerMsg.includes("just") ||
+    lowerMsg.includes("woke") ||
+    lowerMsg.includes("put to") ||
+    lowerMsg.includes("fell asleep");
+
+  if (isLoggingIntent && (lowerMsg.includes("feed") || lowerMsg.includes("bottle") || lowerMsg.includes("milk") || lowerMsg.includes("formula"))) {
+    const matchOz = lowerMsg.match(/(\d+)\s*(oz|ounce|ml)/);
+    const amount = matchOz ? parseInt(matchOz[1], 10) : 4;
+    const unit = matchOz && matchOz[2].includes("ml") ? "ml" : "oz";
+    actionToTrigger = { action: "log_meal", details: { amount, unit, type: "bottle" } };
+    replyText = `I've logged a ${amount} ${unit} bottle feed for ${babyName}. Remember to hold your sweet baby close while feeding!`;
+    suggestedFollowUps = ["Yummy recipe for Leo?", "How is Leo doing?"];
+  } else if (isLoggingIntent && (lowerMsg.includes("sleep") || lowerMsg.includes("nap"))) {
+    actionToTrigger = { action: "log_sleep", details: { durationMinutes: 60 } };
+    replyText = `I've logged a nap for ${babyName}. Sweet dreams! At ${babyAge}, babies stay awake about 2 to 3 hours between naps.`;
+    suggestedFollowUps = ["How long should he sleep?", "When should he nap next?"];
+  } else if (isLoggingIntent && (lowerMsg.includes("diaper") || lowerMsg.includes("nappy"))) {
+    const isPoop = lowerMsg.includes("poop") || lowerMsg.includes("dirty") || lowerMsg.includes("bowel");
+    actionToTrigger = { action: "log_diaper", details: { type: isPoop ? "dirty" : "wet" } };
+    replyText = `I've recorded a ${isPoop ? "poopy" : "wet"} diaper change for ${babyName}. Keeping baby dry and clean keeps their skin happy!`;
+    suggestedFollowUps = ["Diaper rash tips", "Log a feeding"];
+  } else if (lowerMsg.includes("timer") || lowerMsg.includes("nursing") || lowerMsg.includes("breast")) {
+    const side = lowerMsg.includes("right") ? "right" : "left";
+    actionToTrigger = { action: "start_timer", details: { side } };
+    replyText = `I am starting the feeding timer for the ${side} side now. You are doing a wonderful job feeding ${babyName}!`;
+    suggestedFollowUps = ["Stop timer", "Log bottle feed"];
+  } else if (lowerMsg.includes("sleep") || lowerMsg.includes("nap") || lowerMsg.includes("wake") || lowerMsg.includes("bed")) {
+    // General sleep question (no logging intent)
+    replyText = `At ${babyAge}, sweet ${babyName} needs about 12 to 15 hours of sleep total each day. This usually means a few nice naps during the day and a longer stretch at night. If you want to save a nap, just let me know to 'log a nap'!`;
+    suggestedFollowUps = ["Log a nap for Leo", "How long should he stay awake between naps?"];
+  } else if (lowerMsg.includes("recipe") || lowerMsg.includes("eat") || lowerMsg.includes("food") || lowerMsg.includes("wean") || lowerMsg.includes("lunch") || lowerMsg.includes("breakfast") || lowerMsg.includes("feed")) {
+    // General food question (no logging intent)
+    replyText = `For ${babyName} at ${babyAge} (${weaningStage} stage), try starting with yummy single foods like mashed plantains, soft carrots, or warm cereals. Give just one new food at a time to watch for any tummy troubles!`;
+    suggestedFollowUps = ["Yummy recipes", "Log a bottle feed"];
+  } else if (lowerMsg.includes("diaper") || lowerMsg.includes("nappy") || lowerMsg.includes("poop") || lowerMsg.includes("pee")) {
+    // General diaper question (no logging intent)
+    replyText = `Most babies Leo's age need about 6 to 8 diaper changes a day. Keeping skin dry helps avoid rashes. If you changed a diaper, just let me know to 'record wet diaper'!`;
+    suggestedFollowUps = ["Record diaper change", "Diaper rash tips"];
+  } else {
+    replyText = `Hi! I am Ama, your baby care assistant. I am here to help you track ${babyName}'s meals, naps, and diaper changes, or share easy recipes. How can I help you today, mama?`;
+    suggestedFollowUps = ["Yummy recipe for Leo?", "How much sleep does he need?", "Save wet diaper"];
+  }
+
+  return { replyText, actionToTrigger, suggestedFollowUps };
+}
+
 // ----------------------------------------------------------------------------
 // 2b. Intelligent Context-Aware Ama GenAI Assistant
 // ----------------------------------------------------------------------------
@@ -317,59 +427,96 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
       lastSleepStr = "No sleep logged today",
       lastDiaperStr = "No diaper logged today",
       recentLogs = [],
-      conversationHistory = []
+      conversationHistory = [],
+      loggedMeals = [],
+      observationLogs = [],
+      loggedMoods = [],
+      diaperLogs = [],
+      vaccineSchedule = [],
+      memories = []
     } = req.body;
 
     const ai = getGenAI();
     if (!ai) {
-      // Warm, simple, friendly heuristic fallback when Gemini key is not configured
-      const lowerMsg = message.toLowerCase();
-      let replyText = "";
-      let actionToTrigger: any = null;
-
-      if (lowerMsg.includes("feed") || lowerMsg.includes("bottle") || lowerMsg.includes("milk") || lowerMsg.includes("formula")) {
-        const matchOz = lowerMsg.match(/(\d+)\s*(oz|ounce|ml)/);
-        const amount = matchOz ? parseInt(matchOz[1], 10) : 4;
-        const unit = matchOz && matchOz[2].includes("ml") ? "ml" : "oz";
-        actionToTrigger = { action: "log_meal", details: { amount, unit, type: "bottle" } };
-        replyText = `I've logged a ${amount} ${unit} bottle feed for ${babyName}. ${babyName}'s last feed was: ${lastFeedStr}. Remember to hold your sweet baby close while feeding!`;
-      } else if (lowerMsg.includes("sleep") || lowerMsg.includes("nap")) {
-        actionToTrigger = { action: "log_sleep", details: { durationMinutes: 60 } };
-        replyText = `I've logged a nap for ${babyName}. At ${babyAge}, babies usually stay awake for about 2 to 3 hours between naps. Sweet dreams! Last sleep was: ${lastSleepStr}.`;
-      } else if (lowerMsg.includes("diaper") || lowerMsg.includes("nappy")) {
-        const isPoop = lowerMsg.includes("poop") || lowerMsg.includes("dirty") || lowerMsg.includes("bowel");
-        actionToTrigger = { action: "log_diaper", details: { type: isPoop ? "dirty" : "wet" } };
-        replyText = `I've recorded a ${isPoop ? "poopy" : "wet"} diaper change for ${babyName}. Keeping baby clean and dry keeps their skin happy! Last diaper was: ${lastDiaperStr}.`;
-      } else if (lowerMsg.includes("timer") || lowerMsg.includes("nursing") || lowerMsg.includes("breast")) {
-        const side = lowerMsg.includes("right") ? "right" : "left";
-        actionToTrigger = { action: "start_timer", details: { side } };
-        replyText = `I am starting the timer for the ${side} side now. You are doing a wonderful job feeding ${babyName}!`;
-      } else if (lowerMsg.includes("recipe") || lowerMsg.includes("eat") || lowerMsg.includes("food") || lowerMsg.includes("wean") || lowerMsg.includes("lunch") || lowerMsg.includes("breakfast")) {
-        replyText = `For ${babyName} at ${babyAge} (${weaningStage} stage), try starting with yummy foods like Sweet Golden Plantain & Carrot Smiles or warm porridge. Give just one new food at a time to watch for any tummy troubles!`;
-      } else {
-        replyText = `Hi! I am Ama, your baby care assistant. I am here to help you track ${babyName}'s meals, naps, and diaper changes. How can I help you today, mama?`;
-      }
-
+      const heuristic = getHeuristicResponse(message, babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr, lastDiaperStr);
       return res.json({
-        replyText,
-        actionToTrigger,
+        ...heuristic,
         contextSnapshot: { babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr }
       });
     }
 
+    // Build beautiful, readable memory snapshots of the baby's historical database
+    const mealsHistory = Array.isArray(loggedMeals) && loggedMeals.length > 0 
+      ? loggedMeals.slice(-8).map((m: any) => 
+          `- Feed: ${m.newFood || m.foodName || m.type || 'Meal'} (${m.amount ? m.amount + ' ' + (m.unit || 'oz') : 'solid'}), logged at ${m.date || m.timestamp ? new Date(m.date || m.timestamp).toLocaleDateString() : 'recently'}. Taste/Acceptance: ${m.acceptance || m.taste || 'good'}.`
+        ).join("\n")
+      : "No meals logged yet.";
+
+    const diaperHistory = Array.isArray(diaperLogs) && diaperLogs.length > 0 
+      ? diaperLogs.slice(-8).map((d: any) => 
+          `- Diaper: ${d.type || 'Wet'} diaper change logged at ${d.date ? new Date(d.date).toLocaleDateString() : 'recently'}.${d.notes ? ' Note: ' + d.notes : ''}`
+        ).join("\n")
+      : "No diaper logs yet.";
+
+    const diaryHistory = Array.isArray(loggedMoods) && loggedMoods.length > 0 
+      ? loggedMoods.slice(-8).filter((n: any) => n.notes).map((n: any) => 
+          `- Diary / Note: "${n.notes}" logged on ${n.date ? new Date(n.date).toLocaleDateString() : 'recently'}. Mood was: ${n.mood || 'happy'}.`
+        ).join("\n")
+      : "No notes logged yet.";
+
+    const vaccineHistory = Array.isArray(vaccineSchedule) && vaccineSchedule.length > 0
+      ? vaccineSchedule.map((v: any) => 
+          `- Vaccine: ${v.name} is ${v.status} (${v.date ? new Date(v.date).toLocaleDateString() : 'no date'}). Side effects observed: ${v.sideEffects || 'None'}.`
+        ).join("\n")
+      : "No vaccine schedule logged yet.";
+
+    const memoriesHistory = Array.isArray(memories) && memories.length > 0
+      ? memories.slice(-8).map((m: any) => 
+          `- Memory milestone: "${m.title || m.text || 'milestone'}" logged on ${m.date ? new Date(m.date).toLocaleDateString() : 'recently'}.`
+        ).join("\n")
+      : "No memory milestones logged yet.";
+
+    const generalHistory = Array.isArray(observationLogs) && observationLogs.length > 0
+      ? observationLogs.slice(-8).map((o: any) => 
+          `- Observation: "${o.observation || o.text || 'observation'}" logged on ${o.date ? new Date(o.date).toLocaleDateString() : 'recently'}.`
+        ).join("\n")
+      : "No other observations logged yet.";
+
     const systemContext = `
-You are Ama, a warm, caring, loving, and extremely simple baby care assistant for mothers and nannies.
+You are Ama, a warm, caring, loving, supportive, and extremely simple baby care assistant for mothers and nannies. 
 Many users might be busy, tired, or have limited education. You must speak in very simple, easy-to-understand, gentle everyday words.
 
 RULES FOR SPEAKING:
-1. NEVER use medical or technical jargon (e.g., DO NOT use words like "telemetry", "circadian rhythms", "circadian sleep windows", "bio-availability", "developmental synthesizer", "synthesis", "gastrointestinal").
+1. NEVER use medical or technical jargon unless discussing specific emergency/first aid guidelines. Avoid terms like "telemetry", "circadian rhythms", "circadian sleep windows", "bio-availability", "developmental synthesizer", "synthesis", "gastrointestinal".
 2. Instead of "telemetry" or "data", say "notes" or "records".
 3. Instead of "circadian sleep windows" or "circadian alignment", say "nap time" or "sleep routine".
 4. Instead of "nutritional bio-availability", say "healthy food" or "good nutrients for baby's tummy".
-5. Introduce yourself simply: "Hi! I am Ama, your baby care assistant."
-6. Be warm, supportive, and practical. Speak like a friendly next-door neighbor or an experienced grandmother.
+5. Introduce yourself simply if appropriate, or jump straight into the helpful guidance. Speak like a friendly next-door neighbor or an experienced, wise grandmother.
+6. Be extremely warm, supportive, reassuring, and practical.
+7. CRITICAL: Never write or output symbols like asterisks (*), double asterisks (**), em-dashes (—), or markdown bullet symbols. Write only in clean, standard, pure plain text with standard normal punctuation (periods, commas, standard short hyphens, question marks). Do not format words with asterisks or symbols. All lists must use plain numbered lines (e.g. 1. 2. 3.) or normal plain sentences without any prefix symbols.
 
-CURRENT BABY & DAILY CARE CONTEXT:
+AI MEMORY & LEARNING DATABASE:
+You have a deep memory and continuously learn from ${babyName}'s real-time and historical care database logs below. Whenever the user asks about progress, habits, patterns, or needs care advice, actively query and reference these records (such as favorite foods, sleep notes, recent diaper entries, or vaccines) to give hyper-personalized responses:
+
+*** MEALS HISTORY DATABASE ***
+${mealsHistory}
+
+*** DIAPER HISTORY DATABASE ***
+${diaperHistory}
+
+*** DIARY & MOOD NOTES DATABASE ***
+${diaryHistory}
+
+*** VACCINES DATABASE ***
+${vaccineHistory}
+
+*** MEMORIES & MILESTONES ***
+${memoriesHistory}
+
+*** OTHER OBSERVATIONS ***
+${generalHistory}
+
+*** CURRENT BABY CARE CONTEXT ***
 - Baby Name: ${babyName}
 - Age: ${babyAge}
 - Current Weaning Stage: ${weaningStage}
@@ -378,6 +525,13 @@ CURRENT BABY & DAILY CARE CONTEXT:
 - Last Diaper: ${lastDiaperStr}
 
 USER MESSAGE: "${message}"
+
+EXPERT BABYCARE, MEDICAL, & FIRST AID DIRECTIVES:
+You are an absolute expert on all levels of babycare, child safety, baby nursing, infant nutrition, and medical first aid. 
+If the user asks any medical or first aid questions (e.g., choking, CPR, a bad fall, high fever, severe rashes, vomiting, or breathing trouble), you MUST confidently and directly provide precise, step-by-step, immediately useful medical and emergency suggestions. 
+Do NOT decline to answer. Do NOT say "I cannot give medical advice". 
+Instead, to avoid any legal or liability issues while providing life-saving information, gracefully frame your expert guidance with a warm, caring companion disclaimer. Example: 
+"As your friendly AI babycare companion, I always want you to call your doctor for professional peace of mind, but here is exactly what the top child first-aid guidelines recommend you do right now to keep ${babyName} safe and healthy: [Give highly detailed, clear, numbered steps for CPR, fever control, or safety check...]"
 
 INSTRUCTIONS FOR ACTIONS:
 If the user wants to log something, identify the action and set "actionToTrigger":
@@ -395,20 +549,28 @@ Return ONLY valid JSON matching this schema:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
-      contents: systemContext,
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.3,
-      },
-    });
+    try {
+      const response = await generateContentWithFallback(ai, {
+        contents: systemContext,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.3,
+        },
+      });
 
-    const text = response.text || "{}";
-    const parsed = JSON.parse(text);
-    res.json(parsed);
+      const text = response.text || "{}";
+      const parsed = JSON.parse(text);
+      res.json(parsed);
+    } catch (aiError: any) {
+      console.warn("Gemini API request failed. Falling back to local heuristic.", aiError);
+      const heuristic = getHeuristicResponse(message, babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr, lastDiaperStr);
+      res.json({
+        ...heuristic,
+        contextSnapshot: { babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr }
+      });
+    }
   } catch (error: any) {
-    console.error("GenAI Assistant Error:", error);
+    console.error("GenAI Assistant Outer Error:", error);
     res.status(500).json({ error: "Sorry, I had a little trouble processing that. Can you please try again?" });
   }
 });

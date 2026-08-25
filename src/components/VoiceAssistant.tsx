@@ -14,6 +14,12 @@ interface VoiceAssistantProps {
   onAddNote: (note: string) => void;
   onLogSleep?: (durationMinutes: number) => void;
   onLogDiaper?: (type: string) => void;
+  loggedMeals?: any[];
+  observationLogs?: any[];
+  loggedMoods?: any[];
+  diaperLogs?: any[];
+  vaccineSchedule?: any[];
+  memories?: any[];
 }
 
 interface ChatMessage {
@@ -35,7 +41,13 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   onStartTimer,
   onAddNote,
   onLogSleep,
-  onLogDiaper
+  onLogDiaper,
+  loggedMeals = [],
+  observationLogs = [],
+  loggedMoods = [],
+  diaperLogs = [],
+  vaccineSchedule = [],
+  memories = []
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputText, setInputText] = useState('');
@@ -43,12 +55,16 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [talkBackEnabled, setTalkBackEnabled] = useState(true);
+  const [backgroundWakeEnabled, setBackgroundWakeEnabled] = useState(true);
+  const [isWakeListening, setIsWakeListening] = useState(false);
+  const wakeWordRecRef = useRef<any>(null);
+  const isStoppingWakeRef = useRef(false);
   
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
       sender: 'assistant',
-      text: `Hi! I am Ama, your baby care assistant. How is sweet ${babyName} doing today? Ask me about simple recipes, sleep times, or just tell me to save a feeding, nap, or diaper change!`,
+      text: `Hi! I am Ama, your baby care assistant. I can listen in the background for "Hey Ama" to instantly help! How is sweet ${babyName} doing today? Ask me about simple recipes, sleep times, or just tell me to save a feeding, nap, or diaper change!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -61,9 +77,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     if ('speechSynthesis' in window) {
       try {
         window.speechSynthesis.cancel();
-        // Clean markdown and emojis so they aren't spoken weirdly
+        // Clean markdown, em-dashes, and emojis so they aren't spoken weirdly
         const cleanText = textToSpeak
           .replace(/\*\*?/g, '')
+          .replace(/—|–/g, ' ')
           .replace(/[\#\-\*\_]/g, '')
           .replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '')
           .trim();
@@ -123,6 +140,127 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       };
     }
   }, []);
+
+  // Setup Background Wake Word Recognition
+  useEffect(() => {
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const wakeRec = new SpeechRecognition();
+    wakeRec.continuous = false;
+    wakeRec.interimResults = false;
+    wakeRec.lang = 'en-US';
+
+    wakeRec.onstart = () => {
+      setIsWakeListening(true);
+    };
+
+    wakeRec.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript.toLowerCase();
+      console.log('[Wake Word] Heard transcript:', transcript);
+
+      // Match patterns like "hi ama", "hey ama", "ok ama", "okay ama", "hello ama", "ama"
+      const wakeWords = ["hi ama", "hey ama", "ok ama", "okay ama", "hello ama", "hi, ama", "hey, ama", "hey mama", "hi mama"];
+      const matched = wakeWords.find(w => transcript.includes(w)) || (transcript.trim() === 'ama' ? 'ama' : null);
+
+      if (matched) {
+        console.log('[Wake Word] Match found:', matched);
+        isStoppingWakeRef.current = true;
+        try {
+          wakeRec.stop();
+        } catch (e) {}
+
+        // Open assistant panel
+        setIsOpen(true);
+
+        // Extract query spoken after wake word
+        const idx = transcript.indexOf(matched);
+        let query = transcript.substring(idx + matched.length).trim();
+        query = query.replace(/^[,.\s]+/, ""); // remove leading punctuation
+
+        if (query) {
+          // If they spoke a query too, handle it immediately!
+          setTimeout(() => {
+            handleSendUserMessage(query);
+          }, 500);
+        } else {
+          // Speak a friendly activation response
+          speakText("Yes? I am listening.");
+          // Trigger the active drawer mic to start listening
+          setTimeout(() => {
+            if (recognitionRef.current) {
+              setFeedback('Listening for your voice...');
+              try {
+                recognitionRef.current.start();
+                setIsListening(true);
+              } catch (e) {
+                console.error('Failed to start active mic recognition:', e);
+              }
+            }
+          }, 800);
+        }
+      }
+    };
+
+    wakeRec.onerror = (err: any) => {
+      if (err.error !== 'no-speech' && err.error !== 'aborted') {
+        console.warn('[Wake Word] error:', err.error);
+      }
+    };
+
+    wakeRec.onend = () => {
+      setIsWakeListening(false);
+      // Restart if background wake word is enabled, drawer is closed, and we didn't intentionally stop it
+      if (backgroundWakeEnabled && !isOpen && !isStoppingWakeRef.current) {
+        setTimeout(() => {
+          if (backgroundWakeEnabled && !isOpen) {
+            try {
+              wakeRec.start();
+            } catch (e) {
+              // already running or blocked
+            }
+          }
+        }, 1200);
+      }
+    };
+
+    wakeWordRecRef.current = wakeRec;
+
+    // Trigger initial start if closed & enabled
+    if (backgroundWakeEnabled && !isOpen) {
+      isStoppingWakeRef.current = false;
+      try {
+        wakeRec.start();
+      } catch (e) {}
+    }
+
+    return () => {
+      isStoppingWakeRef.current = true;
+      try {
+        wakeRec.stop();
+      } catch (e) {}
+    };
+  }, [backgroundWakeEnabled, isOpen]);
+
+  // Sync background listener start/stop on drawer state
+  useEffect(() => {
+    if (isOpen) {
+      isStoppingWakeRef.current = true;
+      if (wakeWordRecRef.current) {
+        try {
+          wakeWordRecRef.current.stop();
+        } catch (e) {}
+      }
+    } else {
+      isStoppingWakeRef.current = false;
+      if (backgroundWakeEnabled && wakeWordRecRef.current && !isWakeListening) {
+        try {
+          wakeWordRecRef.current.start();
+        } catch (e) {}
+      }
+    }
+  }, [isOpen, backgroundWakeEnabled]);
 
   useEffect(() => {
     if (isOpen) {
@@ -202,7 +340,13 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
           weaningStage: stage,
           lastFeedStr,
           lastSleepStr,
-          lastDiaperStr
+          lastDiaperStr,
+          loggedMeals,
+          observationLogs,
+          loggedMoods,
+          diaperLogs,
+          vaccineSchedule,
+          memories
         })
       });
 
@@ -228,23 +372,54 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       console.error(err);
       // Client-side fallback if server offline using extremely simple and warm language
       const lower = text.toLowerCase();
-      let fallbackReply = `Sure, I've noted that down for ${babyName}!`;
+      let fallbackReply = `Hi! I'm here to help you. If you'd like to save a feed, nap, or diaper change, just tell me to "log a feed", "log a nap", or "save diaper change"!`;
       let actionNote: string | undefined = undefined;
 
-      if (lower.includes('feed') || lower.includes('milk') || lower.includes('bottle')) {
-        onLogMeal({ amount: 4, unit: 'oz', type: 'bottle' });
-        actionNote = `Saved! Logged a 4 oz bottle feed.`;
-      } else if (lower.includes('sleep') || lower.includes('nap')) {
-        if (onLogSleep) onLogSleep(60);
-        actionNote = `Saved! Logged a 60-minute nap.`;
-      } else if (lower.includes('diaper') || lower.includes('nappy')) {
-        const isPoop = lower.includes('poop') || lower.includes('dirty');
-        if (onLogDiaper) onLogDiaper(isPoop ? 'dirty' : 'wet');
-        actionNote = `Saved! Logged a ${isPoop ? 'poopy' : 'wet'} diaper change.`;
-      } else if (lower.includes('timer')) {
-        const side = lower.includes('right') ? 'right' : 'left';
-        onStartTimer(side);
-        actionNote = `Saved! Started your ${side} breast feeding timer.`;
+      // Check if there is a logging intent (action words)
+      const isLoggingIntent =
+        lower.includes("log") ||
+        lower.includes("save") ||
+        lower.includes("record") ||
+        lower.includes("add") ||
+        lower.includes("track") ||
+        lower.includes("start") ||
+        lower.includes("timer") ||
+        lower.includes("done") ||
+        lower.includes("changed") ||
+        lower.includes("just") ||
+        lower.includes("woke") ||
+        lower.includes("put to") ||
+        lower.includes("fell asleep");
+
+      if (isLoggingIntent) {
+        if (lower.includes('feed') || lower.includes('milk') || lower.includes('bottle')) {
+          onLogMeal({ amount: 4, unit: 'oz', type: 'bottle' });
+          fallbackReply = `Sure, I've noted that down for ${babyName}!`;
+          actionNote = `Saved! Logged a 4 oz bottle feed.`;
+        } else if (lower.includes('sleep') || lower.includes('nap')) {
+          if (onLogSleep) onLogSleep(60);
+          fallbackReply = `Sure, I've noted that down for ${babyName}!`;
+          actionNote = `Saved! Logged a 60-minute nap.`;
+        } else if (lower.includes('diaper') || lower.includes('nappy')) {
+          const isPoop = lower.includes('poop') || lower.includes('dirty');
+          if (onLogDiaper) onLogDiaper(isPoop ? 'dirty' : 'wet');
+          fallbackReply = `Sure, I've noted that down for ${babyName}!`;
+          actionNote = `Saved! Logged a ${isPoop ? 'poopy' : 'wet'} diaper change.`;
+        } else if (lower.includes('timer')) {
+          const side = lower.includes('right') ? 'right' : 'left';
+          onStartTimer(side);
+          fallbackReply = `Sure, I've started the timer for ${babyName}!`;
+          actionNote = `Saved! Started your ${side} breast feeding timer.`;
+        }
+      } else {
+        // General questions when offline or API limit exceeded
+        if (lower.includes('sleep') || lower.includes('nap') || lower.includes('wake')) {
+          fallbackReply = `At ${babyAge}, sweet ${babyName} usually needs about 12 to 15 hours of sleep total each day. This includes a few daytime naps and longer sleep at night!`;
+        } else if (lower.includes('recipe') || lower.includes('eat') || lower.includes('food') || lower.includes('wean')) {
+          fallbackReply = `For ${babyName} at ${babyAge}, try delicious single ingredient foods like mashed sweet potatoes, avocado, or warm rice cereal!`;
+        } else if (lower.includes('diaper') || lower.includes('nappy') || lower.includes('poop')) {
+          fallbackReply = `Most babies Leo's age need about 6 to 8 diaper changes a day to keep their skin healthy and dry!`;
+        }
       }
 
       setMessages(prev => [...prev, {
@@ -272,6 +447,18 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
               className="bg-gray-900/90 backdrop-blur text-white text-xs px-3.5 py-2 rounded-2xl shadow-xl border border-white/10 max-w-[220px]"
             >
               {feedback}
+            </motion.div>
+          )}
+
+          {!feedback && backgroundWakeEnabled && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-primary/95 text-white text-[10px] px-3 py-1.5 rounded-full shadow-md border border-white/20 flex items-center gap-1.5 max-w-[240px] font-semibold"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+              <span>Say "Hey Ama" to talk</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -344,6 +531,27 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                     title={talkBackEnabled ? 'Mute Assistant Voice' : 'Unmute Assistant Voice'}
                   >
                     {talkBackEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-white/60" />}
+                  </button>
+
+                  {/* Wake Word Enable/Disable Toggle */}
+                  <button
+                    onClick={() => {
+                      const nextState = !backgroundWakeEnabled;
+                      setBackgroundWakeEnabled(nextState);
+                      if (nextState) {
+                        speakText("Voice activation turned on! You can now say Hey Ama to wake me up.");
+                        setFeedback("Voice activation active! Say 'Hey Ama'.");
+                        setTimeout(() => setFeedback(''), 4000);
+                      } else {
+                        speakText("Voice activation turned off.");
+                      }
+                    }}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                      backgroundWakeEnabled ? 'bg-amber-100 text-amber-600 border border-amber-200' : 'bg-white/20 hover:bg-white/30 text-white'
+                    }`}
+                    title={backgroundWakeEnabled ? "Disable 'Hey Ama' Wake Word" : "Enable 'Hey Ama' Wake Word"}
+                  >
+                    <Mic className={`w-4 h-4 ${backgroundWakeEnabled ? 'animate-pulse' : ''}`} />
                   </button>
 
                   <button

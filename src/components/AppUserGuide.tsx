@@ -360,7 +360,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
           <div>
             <h5 className="font-serif font-black text-gray-800 text-sm">Need Additional Help?</h5>
             <p className="text-xs text-gray-500 font-medium">
-              Ama is designed with pediatric guidance principles for happy, healthy families.
+              Ama is designed with expert babycare guidance principles for happy, healthy families.
             </p>
           </div>
         </div>

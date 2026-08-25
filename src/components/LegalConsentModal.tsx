@@ -257,7 +257,7 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                     <section className="space-y-2">
                       <h4 className="font-bold text-gray-900 text-sm">3. Medical Disclaimer</h4>
                       <p>
-                        Ama Baby Care, including its AI meal planning and cry acoustic predictor, is designed solely for informational and routine child-care tracking purposes. <strong>Ama is not a medical device and does not provide clinical diagnosis or treatment.</strong> Always consult a qualified pediatrician regarding any health questions or distress.
+                        Ama Baby Care, including its AI meal planning and cry acoustic predictor, is designed solely for informational and routine child-care tracking purposes. <strong>Ama is not a medical device and does not provide clinical diagnosis or treatment.</strong> Always consult a qualified doctor regarding any health questions or distress.
                       </p>
                     </section>
 

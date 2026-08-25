@@ -573,7 +573,7 @@ Return ONLY valid JSON matching:
       <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-[10px] text-gray-500 font-medium leading-relaxed flex items-start gap-2.5">
         <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
         <p>
-          <strong>Routine Care Notice:</strong> Ama is an infant care routine tracking assistant. Ama is not a medical device and does not provide medical diagnoses or advice. Always consult a qualified pediatrician or healthcare provider for medical concerns or infant distress.
+          <strong>Routine Care Notice:</strong> Ama is an infant care routine tracking assistant. Ama is not a medical device and does not provide medical diagnoses or advice. Always consult a qualified doctor or healthcare provider for medical concerns or infant distress.
         </p>
       </div>
     </div>

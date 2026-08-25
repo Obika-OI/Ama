@@ -77,7 +77,7 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
       if (!model) throw new Error("Gemini AI model is not configured.");
 
       const prompt = `
-You are an expert pediatric nutritionist and baby feeding specialist.
+You are an expert baby nutritionist and feeding specialist.
 Create a comprehensive 7-Day Weekly Meal Plan and a Localized Grocery Shopping List tailored for a baby with these specific characteristics:
 
 - Baby Name: ${babyName || 'Baby'}
@@ -248,7 +248,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                AI Pediatric Nutrition
+                AI Baby Nutrition
               </span>
               <span className="text-[9px] font-black text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full">
                 Age: {targetAge}
@@ -372,7 +372,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
             <div className="flex items-center gap-2">
               <span className="text-xl">✨</span>
               <h4 className="font-serif font-black text-gray-800 text-sm">
-                Pediatric Strategy for {selectedRegion.name}
+                Nutrition Strategy for {selectedRegion.name}
               </h4>
             </div>
             <p className="text-xs text-gray-600 leading-relaxed font-medium">
