@@ -304,8 +304,114 @@ Return ONLY valid JSON matching this schema:
 });
 
 // ----------------------------------------------------------------------------
-// 3. Village Caregiver Token & Invite Verification
+// 2b. Intelligent Context-Aware Ama GenAI Assistant
 // ----------------------------------------------------------------------------
+app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
+  try {
+    const {
+      message = "",
+      babyName = "Baby",
+      babyAge = "6 months",
+      weaningStage = "Purees",
+      lastFeedStr = "No feed logged today",
+      lastSleepStr = "No sleep logged today",
+      lastDiaperStr = "No diaper logged today",
+      recentLogs = [],
+      conversationHistory = []
+    } = req.body;
+
+    const ai = getGenAI();
+    if (!ai) {
+      // Warm, simple, friendly heuristic fallback when Gemini key is not configured
+      const lowerMsg = message.toLowerCase();
+      let replyText = "";
+      let actionToTrigger: any = null;
+
+      if (lowerMsg.includes("feed") || lowerMsg.includes("bottle") || lowerMsg.includes("milk") || lowerMsg.includes("formula")) {
+        const matchOz = lowerMsg.match(/(\d+)\s*(oz|ounce|ml)/);
+        const amount = matchOz ? parseInt(matchOz[1], 10) : 4;
+        const unit = matchOz && matchOz[2].includes("ml") ? "ml" : "oz";
+        actionToTrigger = { action: "log_meal", details: { amount, unit, type: "bottle" } };
+        replyText = `I've logged a ${amount} ${unit} bottle feed for ${babyName}. ${babyName}'s last feed was: ${lastFeedStr}. Remember to hold your sweet baby close while feeding!`;
+      } else if (lowerMsg.includes("sleep") || lowerMsg.includes("nap")) {
+        actionToTrigger = { action: "log_sleep", details: { durationMinutes: 60 } };
+        replyText = `I've logged a nap for ${babyName}. At ${babyAge}, babies usually stay awake for about 2 to 3 hours between naps. Sweet dreams! Last sleep was: ${lastSleepStr}.`;
+      } else if (lowerMsg.includes("diaper") || lowerMsg.includes("nappy")) {
+        const isPoop = lowerMsg.includes("poop") || lowerMsg.includes("dirty") || lowerMsg.includes("bowel");
+        actionToTrigger = { action: "log_diaper", details: { type: isPoop ? "dirty" : "wet" } };
+        replyText = `I've recorded a ${isPoop ? "poopy" : "wet"} diaper change for ${babyName}. Keeping baby clean and dry keeps their skin happy! Last diaper was: ${lastDiaperStr}.`;
+      } else if (lowerMsg.includes("timer") || lowerMsg.includes("nursing") || lowerMsg.includes("breast")) {
+        const side = lowerMsg.includes("right") ? "right" : "left";
+        actionToTrigger = { action: "start_timer", details: { side } };
+        replyText = `I am starting the timer for the ${side} side now. You are doing a wonderful job feeding ${babyName}!`;
+      } else if (lowerMsg.includes("recipe") || lowerMsg.includes("eat") || lowerMsg.includes("food") || lowerMsg.includes("wean") || lowerMsg.includes("lunch") || lowerMsg.includes("breakfast")) {
+        replyText = `For ${babyName} at ${babyAge} (${weaningStage} stage), try starting with yummy foods like Sweet Golden Plantain & Carrot Smiles or warm porridge. Give just one new food at a time to watch for any tummy troubles!`;
+      } else {
+        replyText = `Hi! I am Ama, your baby care assistant. I am here to help you track ${babyName}'s meals, naps, and diaper changes. How can I help you today, mama?`;
+      }
+
+      return res.json({
+        replyText,
+        actionToTrigger,
+        contextSnapshot: { babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr }
+      });
+    }
+
+    const systemContext = `
+You are Ama, a warm, caring, loving, and extremely simple baby care assistant for mothers and nannies.
+Many users might be busy, tired, or have limited education. You must speak in very simple, easy-to-understand, gentle everyday words.
+
+RULES FOR SPEAKING:
+1. NEVER use medical or technical jargon (e.g., DO NOT use words like "telemetry", "circadian rhythms", "circadian sleep windows", "bio-availability", "developmental synthesizer", "synthesis", "gastrointestinal").
+2. Instead of "telemetry" or "data", say "notes" or "records".
+3. Instead of "circadian sleep windows" or "circadian alignment", say "nap time" or "sleep routine".
+4. Instead of "nutritional bio-availability", say "healthy food" or "good nutrients for baby's tummy".
+5. Introduce yourself simply: "Hi! I am Ama, your baby care assistant."
+6. Be warm, supportive, and practical. Speak like a friendly next-door neighbor or an experienced grandmother.
+
+CURRENT BABY & DAILY CARE CONTEXT:
+- Baby Name: ${babyName}
+- Age: ${babyAge}
+- Current Weaning Stage: ${weaningStage}
+- Last Feed: ${lastFeedStr}
+- Last Sleep: ${lastSleepStr}
+- Last Diaper: ${lastDiaperStr}
+
+USER MESSAGE: "${message}"
+
+INSTRUCTIONS FOR ACTIONS:
+If the user wants to log something, identify the action and set "actionToTrigger":
+- Log Feed: {"action": "log_meal", "details": {"amount": number, "unit": "oz", "type": "bottle"|"breast"|"solid"}}
+- Start Breast Timer: {"action": "start_timer", "details": {"side": "left"|"right"}}
+- Add Diary Note: {"action": "add_note", "details": {"note": "text"}}
+- Log Sleep/Nap: {"action": "log_sleep", "details": {"durationMinutes": number}}
+- Log Diaper: {"action": "log_diaper", "details": {"type": "wet"|"dirty"}}
+
+Return ONLY valid JSON matching this schema:
+{
+  "replyText": "Warm, super simple, friendly answer without any hard words...",
+  "actionToTrigger": null or object with action and details,
+  "suggestedFollowUps": ["Short simple question?", "Another simple question?"]
+}
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.7-flash",
+      contents: systemContext,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.3,
+      },
+    });
+
+    const text = response.text || "{}";
+    const parsed = JSON.parse(text);
+    res.json(parsed);
+  } catch (error: any) {
+    console.error("GenAI Assistant Error:", error);
+    res.status(500).json({ error: "Sorry, I had a little trouble processing that. Can you please try again?" });
+  }
+});
 app.post("/api/village/invite", (req: Request, res: Response) => {
   try {
     const { babyName = "Baby", role = "nanny", inviterName = "Parent", villageId = "" } = req.body;

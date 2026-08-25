@@ -1,4 +1,19 @@
 import { Meal } from './types';
+import plantainCarrotImg from './assets/images/plantain_carrot_art_1787687383642.jpg';
+import tombrownImg from './assets/images/tombrown_cereal_art_1787687398628.jpg';
+import honeyBeansImg from './assets/images/honey_beans_art_1787687872754.jpg';
+import moimoiImg from './assets/images/moimoi_pudding_art_1787687412932.jpg';
+import plantainSticksImg from './assets/images/plantain_sticks_art_1787687885049.jpg';
+import yamUguTotsImg from './assets/images/yam_ugu_tots_art_1787687896946.jpg';
+import yamUguCloudsImg from './assets/images/yam_ugu_clouds_art_1787687911057.jpg';
+import plantainFishImg from './assets/images/plantain_fish_art_1787687922824.jpg';
+import sweetpotatoCornImg from './assets/images/sweetpotato_corn_art_1787687933607.jpg';
+import avocadoBananaImg from './assets/images/avocado_banana_art_1787687426463.jpg';
+import applePearImg from './assets/images/apple_pear_art_1787687947924.jpg';
+import oatmealBerryImg from './assets/images/oatmeal_berry_art_1787687441091.jpg';
+import salmonSweetpotatoImg from './assets/images/salmon_sweetpotato_art_1787687959871.jpg';
+import bananaPancakesImg from './assets/images/banana_pancakes_art_1787687971380.jpg';
+import peaMintImg from './assets/images/pea_mint_art_1787687981612.jpg';
 
 export const STANDARD_RECIPES: Meal[] = [
   {
@@ -7,7 +22,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'Plantains provide natural sweetness and energy, while carrots add key vitamins.',
     time: '15m',
     type: 'lunch',
-    image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=800&q=80',
+    image: plantainCarrotImg,
     stage: 'Purees',
     category: 'Purees',
     costPerServe: '₦200',
@@ -32,7 +47,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'Tom Brown is a traditional, nutrient-dense powder made from grains and legumes. Great for baby\'s weight gain.',
     time: '10m',
     type: 'breakfast',
-    image: 'https://images.unsplash.com/photo-1517881917430-e70dfb3610aa?auto=format&fit=crop&w=800&q=80',
+    image: tombrownImg,
     stage: 'Purees',
     category: 'Cereals',
     costPerServe: '₦300',
@@ -58,7 +73,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'Beans are a great source of protein for growing muscles.',
     time: '40m',
     type: 'lunch',
-    image: 'https://images.unsplash.com/photo-1582234372722-50d7ccc30e5a?auto=format&fit=crop&w=800&q=80',
+    image: honeyBeansImg,
     stage: 'Purees',
     category: 'Purees',
     costPerServe: '₦150',
@@ -84,7 +99,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'A smooth, protein-rich steamed pudding made for easy holding and eating.',
     time: '45m',
     type: 'dinner',
-    image: 'https://images.unsplash.com/photo-1564834724105-918b73d1b9e0?auto=format&fit=crop&w=800&q=80',
+    image: moimoiImg,
     stage: 'Finger Foods',
     category: 'Finger Foods',
     costPerServe: '₦400',
@@ -111,7 +126,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'Dodo Alternative - perfectly soft and sweet finger food.',
     time: '15m',
     type: 'snack',
-    image: 'https://images.unsplash.com/photo-1564758564527-b97d79cb27c1?auto=format&fit=crop&w=800&q=80',
+    image: plantainSticksImg,
     stage: 'Finger Foods',
     category: 'Finger Foods',
     costPerServe: '₦100',
@@ -134,7 +149,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'Nutritious tater tots made with yam, egg, and fresh ugu leaves.',
     time: '30m',
     type: 'dinner',
-    image: 'https://images.unsplash.com/photo-1608039829572-78524f79c4c7?auto=format&fit=crop&w=800&q=80',
+    image: yamUguTotsImg,
     stage: 'Finger Foods',
     category: 'Finger Foods',
     costPerServe: '₦250',
@@ -159,7 +174,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'A smooth, vitamin-packed puree perfect for starting solids.',
     time: '20m',
     type: 'lunch',
-    image: 'https://images.unsplash.com/photo-1612182062633-9ff3b3598e96?auto=format&fit=crop&w=800&q=80',
+    image: yamUguCloudsImg,
     stage: 'Purees',
     category: 'Purees',
     costPerServe: '₦150',
@@ -186,7 +201,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'Sweet and savory combo rich in omega-3 and energy.',
     time: '25m',
     type: 'dinner',
-    image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=800&q=80',
+    image: plantainFishImg,
     stage: 'Purees',
     category: 'Purees',
     costPerServe: '₦350',
@@ -211,7 +226,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'Naturally sweet and rich in fiber and vitamins.',
     time: '25m',
     type: 'lunch',
-    image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80',
+    image: sweetpotatoCornImg,
     stage: 'Purees',
     category: 'Purees',
     costPerServe: '₦180',
@@ -236,7 +251,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'A super-creamy mash packed with healthy monounsaturated fats and potassium.',
     time: '5m',
     type: 'snack',
-    image: 'https://images.unsplash.com/photo-1549590143-d5855148a9d5?auto=format&fit=crop&w=800&q=80',
+    image: avocadoBananaImg,
     stage: 'Purees',
     category: 'Purees',
     costPerServe: '$0.50',
@@ -260,7 +275,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'A warm, soothing stewed fruit combo thinned to perfection.',
     time: '15m',
     type: 'snack',
-    image: 'https://images.unsplash.com/photo-1512568400610-62da28bc8a13?auto=format&fit=crop&w=800&q=80',
+    image: applePearImg,
     stage: 'Purees',
     category: 'Purees',
     costPerServe: '$0.40',
@@ -286,7 +301,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'Organic baby oats with a sweet berry swirl for a perfect breakfast.',
     time: '10m',
     type: 'breakfast',
-    image: 'https://images.unsplash.com/photo-1517881917430-e70dfb3610aa?auto=format&fit=crop&w=800&q=80',
+    image: oatmealBerryImg,
     stage: 'Solids',
     category: 'Cereals',
     costPerServe: '$0.60',
@@ -311,7 +326,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'Rich in omega-3 fatty acids for brain development and vitamin A for eyesight.',
     time: '25m',
     type: 'dinner',
-    image: 'https://images.unsplash.com/photo-1485963631004-f2f00b1d6606?auto=format&fit=crop&w=800&q=80',
+    image: salmonSweetpotatoImg,
     stage: 'Solids',
     category: 'Solids',
     costPerServe: '$1.20',
@@ -336,7 +351,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'Super fluffy, 3-ingredient finger pancakes perfect for self-feeding.',
     time: '12m',
     type: 'breakfast',
-    image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=800&q=80',
+    image: bananaPancakesImg,
     stage: 'Finger Foods',
     category: 'Finger Foods',
     costPerServe: '$0.45',
@@ -362,7 +377,7 @@ export const STANDARD_RECIPES: Meal[] = [
     description: 'A vibrant green puree thinned with milk, sweet and delicious.',
     time: '8m',
     type: 'lunch',
-    image: 'https://images.unsplash.com/photo-1551248429-40975aa4de74?auto=format&fit=crop&w=800&q=80',
+    image: peaMintImg,
     stage: 'Purees',
     category: 'Purees',
     costPerServe: '$0.30',

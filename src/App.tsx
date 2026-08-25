@@ -11185,18 +11185,22 @@ export default function App() {
 
       {isInitialLoadComplete && (
         <VoiceAssistant 
+          babyName={babyName || 'Leo'}
+          babyAge={babyAge || '6 Months'}
+          stage="Purees & Finger Foods"
+          lastFeedStr={loggedMeals.length > 0 ? (loggedMeals[loggedMeals.length - 1].date ? new Date(loggedMeals[loggedMeals.length - 1].date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '2 hours ago') : 'No feed logged today'}
+          lastSleepStr="1h 30m nap logged"
+          lastDiaperStr="Clean diaper logged"
           onLogMeal={(meal) => {
             const newMeal = { id: `m-${Date.now()}`, ...meal, date: new Date().toISOString() };
             setLoggedMeals(prev => [...prev, newMeal]);
-            alert(`Voice Assistant Logged: ${meal.amount} ${meal.unit} ${meal.type}`);
           }}
           onStartTimer={(side) => {
-            alert(`Starting ${side} breast timer (Voice command received).`);
+            alert(`Starting ${side} breast nursing timer for ${babyName || 'baby'}.`);
           }}
           onAddNote={(note) => {
             const newMood = { id: `d-${Date.now()}`, date: new Date().toISOString(), mood: 'Neutral', notes: note };
             setLoggedMoods(prev => [...prev, newMood]);
-            alert(`Voice Assistant added diary note: "${note}"`);
           }}
         />
       )}
