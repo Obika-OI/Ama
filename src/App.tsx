@@ -7197,7 +7197,7 @@ const Journal = ({
 
               {/* Footer details */}
               <footer className="text-center text-[10px] text-gray-400 font-medium pt-4 border-t border-gray-100">
-                Ama - Smart Weaning Assistant Applet • AI Studio preview-secure PDF report document.
+                Ama - Smart Weaning Companion App • Secured caregiver PDF report document.
               </footer>
             </div>
           </div>
