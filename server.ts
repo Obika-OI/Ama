@@ -74,7 +74,189 @@ async function generateContentWithFallback(
 // API ROUTES
 // ============================================================================
 
-// Health check endpoint
+
+import crypto from 'crypto';
+
+// Paystack Payment Integration
+const PAYSTACK_BASE_URL = 'https://api.paystack.co';
+
+const PAYSTACK_PLANS: Record<string, { name: string; amountKobo: number; amountUSD: number; amountGBP: number; interval?: string }> = {
+  price_monthly: {
+    name: 'Ama Premium - Monthly Pro',
+    amountKobo: 450000, // ₦4,500 NGN (in kobo)
+    amountUSD: 500,     // $5.00 USD (in cents)
+    amountGBP: 400,     // £4.00 GBP (in pence)
+    interval: 'monthly'
+  },
+  price_annual: {
+    name: 'Ama Premium - Annual Elite (45% OFF)',
+    amountKobo: 2950000, // ₦29,500 NGN (in kobo)
+    amountUSD: 3500,     // $35.00 USD (in cents)
+    amountGBP: 2800,     // £28.00 GBP (in pence)
+    interval: 'annually'
+  },
+  price_prepaid: {
+    name: 'Ama Premium - 3-Month Prepaid Pass',
+    amountKobo: 950000, // ₦9,500 NGN (in kobo)
+    amountUSD: 1200,    // $12.00 USD (in cents)
+    amountGBP: 1000     // £10.00 GBP (in pence)
+  }
+};
+
+// Initialize Paystack Transaction
+app.post(["/api/paystack/initialize", "/api/checkout"], async (req: Request, res: Response) => {
+  try {
+    const { priceId, email, currency = 'NGN' } = req.body;
+    const planInfo = PAYSTACK_PLANS[priceId] || PAYSTACK_PLANS.price_monthly;
+    const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    const customerEmail = email || "parent@ama-care.app";
+    const reference = `pstk_${priceId || 'premium'}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    
+    const curr = (currency || 'NGN').toString().toUpperCase();
+    let amount = planInfo.amountKobo;
+    if (curr === 'USD') {
+      amount = planInfo.amountUSD;
+    } else if (curr === 'GBP') {
+      amount = planInfo.amountGBP;
+    }
+
+    // If Paystack Secret Key is configured, initiate real transaction with Paystack API
+    if (paystackSecretKey && !paystackSecretKey.includes('sk_test_...')) {
+      const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${paystackSecretKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: customerEmail,
+          amount: amount,
+          currency: currency.toUpperCase(),
+          reference: reference,
+          callback_url: `${appUrl}?paystack_ref=${reference}&price_id=${priceId}`,
+          metadata: {
+            priceId,
+            planName: planInfo.name,
+            custom_fields: [
+              {
+                display_name: "Plan Name",
+                variable_name: "plan_name",
+                value: planInfo.name
+              },
+              {
+                display_name: "Customer Email",
+                variable_name: "customer_email",
+                value: customerEmail
+              }
+            ]
+          }
+        })
+      });
+
+      const data = await response.json();
+      if (data.status && data.data?.authorization_url) {
+        return res.json({
+          url: data.data.authorization_url,
+          access_code: data.data.access_code,
+          reference: data.data.reference
+        });
+      } else {
+        console.warn("Paystack API error response:", data);
+        // If API returned error (e.g. currency not enabled on account), fall back to graceful response
+        return res.status(400).json({ error: data.message || "Failed to initialize Paystack transaction" });
+      }
+    }
+
+    // Graceful Demo / Sandbox mode when secret key is not provided or in testing
+    const demoSuccessUrl = `${appUrl}?paystack_success=true&reference=${reference}&price_id=${priceId}`;
+    return res.json({
+      url: demoSuccessUrl,
+      reference,
+      isDemo: true,
+      message: "Paystack Demo Mode (Set PAYSTACK_SECRET_KEY in production to use live gateway)"
+    });
+  } catch (err: any) {
+    console.error("Paystack Initialize Error:", err.message);
+    res.status(500).json({ error: err.message || "Paystack transaction failed" });
+  }
+});
+
+// Verify Paystack Transaction
+app.get("/api/paystack/verify/:reference", async (req: Request, res: Response) => {
+  try {
+    const refParam = req.params.reference;
+    const reference = Array.isArray(refParam) ? refParam[0] : (refParam || '');
+    const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+
+    if (!reference) {
+      return res.status(400).json({ error: "Transaction reference is required" });
+    }
+
+    if (paystackSecretKey && !paystackSecretKey.includes('sk_test_...')) {
+      const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/verify/${encodeURIComponent(reference)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${paystackSecretKey}`
+        }
+      });
+      const data = await response.json();
+      if (data.status && data.data?.status === 'success') {
+        return res.json({
+          status: 'success',
+          verified: true,
+          plan: data.data.metadata?.priceId || 'premium',
+          amount: data.data.amount,
+          customer: data.data.customer,
+          reference: data.data.reference
+        });
+      } else {
+        return res.status(400).json({
+          status: 'failed',
+          verified: false,
+          message: data.message || "Transaction verification failed"
+        });
+      }
+    }
+
+    // Demo reference verification
+    return res.json({
+      status: 'success',
+      verified: true,
+      plan: reference.includes('annual') ? 'price_annual' : reference.includes('prepaid') ? 'price_prepaid' : 'price_monthly',
+      reference,
+      isDemo: true
+    });
+  } catch (err: any) {
+    console.error("Paystack Verification Error:", err.message);
+    res.status(500).json({ error: err.message || "Verification failed" });
+  }
+});
+
+// Paystack Webhook Handler
+app.post("/api/paystack/webhook", (req: Request, res: Response) => {
+  try {
+    const secret = process.env.PAYSTACK_SECRET_KEY;
+    const signature = req.headers['x-paystack-signature'] as string;
+
+    if (secret && signature) {
+      const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
+      if (hash !== signature) {
+        return res.status(401).send("Invalid webhook signature");
+      }
+    }
+
+    const event = req.body;
+    console.log(`[Paystack Webhook] Received event: ${event?.event}`, event?.data?.reference);
+    
+    // Webhook event processing: charge.success, subscription.create, etc.
+    res.sendStatus(200);
+  } catch (err: any) {
+    console.error("Paystack Webhook Error:", err);
+    res.sendStatus(500);
+  }
+});
+
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({
     status: "ok",

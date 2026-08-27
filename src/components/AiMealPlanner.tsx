@@ -18,7 +18,9 @@ import {
   Zap, 
   Info,
   Layers,
-  Heart
+  Heart,
+  Crown,
+  Lock
 } from 'lucide-react';
 import { model } from '../firebase';
 
@@ -26,6 +28,8 @@ interface AiMealPlannerProps {
   babyAge: string;
   babyName: string;
   allergenMatrix?: any[];
+  isPremium?: boolean;
+  onOpenSubscriptionModal?: () => void;
   onApplyToWeeklyPlan?: (plan: any) => void;
   onSyncGroceries?: (groceries: any[]) => void;
   onClose?: () => void;
@@ -48,6 +52,8 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
   babyAge,
   babyName,
   allergenMatrix = [],
+  isPremium = false,
+  onOpenSubscriptionModal,
   onApplyToWeeklyPlan,
   onSyncGroceries,
   onClose
@@ -71,6 +77,12 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
   const suspectedAllergens = allergenMatrix.filter(a => a.status === 'Suspected Reaction').map(a => a.name);
 
   const handleGeneratePlan = async () => {
+    if (!isPremium) {
+      if (onOpenSubscriptionModal) onOpenSubscriptionModal();
+      setErrorMsg('🔒 7-Day AI Meal & Localized Grocery Planner is an Ama Premium feature. Upgrade via Paystack to unlock.');
+      return;
+    }
+
     setIsGenerating(true);
     setErrorMsg('');
     try {
@@ -260,15 +272,56 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
           </div>
         </div>
 
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center border-none cursor-pointer self-end sm:self-auto"
-          >
-            ✕
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {isPremium ? (
+            <span className="bg-amber-400 text-slate-950 text-[9px] font-black uppercase px-2.5 py-1 rounded-full flex items-center gap-1">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          ) : (
+            <span className="bg-amber-100 text-amber-800 text-[9px] font-black uppercase px-2.5 py-1 rounded-full flex items-center gap-1">
+              <Lock className="w-3 h-3" /> Premium Only
+            </span>
+          )}
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center border-none cursor-pointer self-end sm:self-auto"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Premium Lock Banner if not subscribed */}
+      {!isPremium && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50 border-2 border-amber-300 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs sm:text-sm font-bold text-amber-950">7-Day AI Meal Planner is a Premium Feature</h4>
+                <span className="text-[9px] font-black uppercase bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">Locked</span>
+              </div>
+              <p className="text-[11px] text-amber-800 font-medium mt-0.5">
+                Generate localized 7-day solid meal menus, allergen filters, and priced grocery market lists.
+              </p>
+            </div>
+          </div>
+          {onOpenSubscriptionModal && (
+            <button
+              onClick={onOpenSubscriptionModal}
+              className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-md shadow-amber-500/20 shrink-0"
+            >
+              <Crown className="w-4 h-4" />
+              <span>Upgrade with Paystack</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Generator Controls Bar */}
       <div className="bg-slate-50 border border-slate-100 rounded-3xl p-4 sm:p-5 space-y-4">

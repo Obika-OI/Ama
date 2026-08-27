@@ -1,3 +1,4 @@
+import { SubscriptionModal } from "./components/SubscriptionModal";
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer 
@@ -150,8 +151,10 @@ const CircularProgress = ({ progress, size = 120, strokeWidth = 10, color = THEM
       {children && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {children}
-        </div>
+          
+    </div>
       )}
+      
     </div>
   );
 };
@@ -173,16 +176,20 @@ const MoodTracker = () => {
             {m}
           </button>
         ))}
-      </div>
+        
+    </div>
       <p className="text-[10px] font-bold text-primary uppercase tracking-widest">
         {mood === 'ü§©' ? 'Super Happy' : mood === 'üòä' ? 'Happy' : mood === 'üòê' ? 'Neutral' : mood === 'üò¢' ? 'Sad' : 'Sleepy'}
       </p>
+      
     </div>
   );
 };
 
 const Dashboard = ({ 
   onNavigate,
+  isPremium,
+  setIsSubscriptionModalOpen,
   babyName,
   parentName, 
   fluidMl, 
@@ -212,6 +219,8 @@ const Dashboard = ({
   setUserRole
 }: { 
   onNavigate: (screen: string, data?: any, autoOpenLog?: boolean) => void; 
+  isPremium: boolean;
+  setIsSubscriptionModalOpen: (open: boolean) => void;
   babyName: string;
   parentName: string;
   fluidMl: number;
@@ -366,12 +375,14 @@ const Dashboard = ({
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border select-none w-fit bg-amber-50 text-amber-800 border-amber-200/80">
             <span className="text-xs">{userRole === 'admin' ? 'üëë' : userRole === 'family' ? 'üè°' : 'üß∏'}</span>
             <span className="font-bold">{userRole === 'admin' ? 'Parent (Admin)' : userRole === 'family' ? 'Family Circle' : 'Caregiver'}</span>
-          </div>
+            
+    </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-0.5">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">{currentDateStr}</p>
-            </div>
+              
+    </div>
             {isOnline ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-green-50 text-green-600 border border-green-200">
                 <Wifi className="w-2.5 h-2.5" />
@@ -383,8 +394,10 @@ const Dashboard = ({
                 <span>Offline Queue</span>
               </span>
             )}
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap pt-1">
           {currentUser && !currentUser.isAnonymous ? (
@@ -413,7 +426,8 @@ const Dashboard = ({
                   <span>Logout</span>
                 </button>
               )}
-            </div>
+              
+    </div>
           ) : (
             <div className="flex items-center gap-2">
               {currentUser?.isAnonymous && isSyncing && (
@@ -429,7 +443,8 @@ const Dashboard = ({
                 <Shield className="w-3.5 h-3.5 text-white animate-pulse" />
                 <span>Cloud Backup</span>
               </button>
-            </div>
+              
+    </div>
           )}
 
           <button 
@@ -448,7 +463,8 @@ const Dashboard = ({
           >
             <Settings className="w-5 h-5 text-gray-500 group-hover:text-primary transition-colors" />
           </button>
-        </div>
+          
+    </div>
       </header>
 
       {/* Fluid Intake Overview Card */}
@@ -462,36 +478,42 @@ const Dashboard = ({
             <CircularProgress progress={fluidProgress} size={110} strokeWidth={9} color={THEME.primary}>
               <div className="text-3xl">üíß</div>
             </CircularProgress>
-          </div>
+            
+    </div>
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               <p className="text-[9px] font-black text-primary uppercase tracking-widest">Daily Hydration Goal: {fluidTarget} ml</p>
-            </div>
+              
+    </div>
             <h2 className="text-2xl sm:text-3xl font-serif font-black text-gray-800">
               {fluidMl} <span className="text-gray-400 text-base font-sans font-bold">/ {fluidTarget} ml</span>
             </h2>
             <p className="text-xs text-gray-500 font-medium">
               {fluidProgress >= 100 ? 'üéâ Daily hydration target achieved!' : `${Math.max(0, fluidTarget - fluidMl)} ml remaining today ‚Ä¢ Tap to log fluids`}
             </p>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
       </motion.div>
 
       <section className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <motion.div 
-          onClick={() => onNavigate('sleep')}
+          onClick={() => isPremium ? onNavigate('sleep') : setIsSubscriptionModalOpen(true)}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           className="bg-card p-6 rounded-[32px] shadow-sm border border-white flex flex-col items-center justify-center cursor-pointer group gap-2"
         >
           <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform">
             üß∏
-          </div>
+            
+    </div>
           <div className="text-center">
             <p className="text-sm font-black text-gray-800">Activity</p>
             <p className="text-[10px] font-black text-muted uppercase tracking-widest">Tracker</p>
-          </div>
+            
+    </div>
         </motion.div>
 
         <motion.div 
@@ -502,11 +524,13 @@ const Dashboard = ({
         >
           <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform">
             üîî
-          </div>
+            
+    </div>
           <div className="text-center">
             <p className="text-sm font-black text-gray-800">Reminders</p>
             <p className="text-[10px] font-black text-muted uppercase tracking-widest">Alarms</p>
-          </div>
+            
+    </div>
         </motion.div>
 
         <motion.div 
@@ -517,11 +541,13 @@ const Dashboard = ({
         >
           <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform">
             üìñ
-          </div>
+            
+    </div>
           <div className="text-center">
             <p className="text-sm font-black text-gray-800">Recipe</p>
             <p className="text-[10px] font-black text-muted uppercase tracking-widest">Library</p>
-          </div>
+            
+    </div>
         </motion.div>
 
         <motion.div 
@@ -532,11 +558,13 @@ const Dashboard = ({
         >
           <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform">
             ‚úçÔ∏è
-          </div>
+            
+    </div>
           <div className="text-center">
             <p className="text-sm font-black text-gray-800">Daily</p>
             <p className="text-[10px] font-black text-muted uppercase tracking-widest">Diary</p>
-          </div>
+            
+    </div>
         </motion.div>
       </section>
 
@@ -546,74 +574,87 @@ const Dashboard = ({
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
-            </div>
+              
+    </div>
             <div>
               <h2 className="text-xl font-serif font-black text-gray-800">AI Suite</h2>
               <p className="text-xs text-gray-400 font-medium">Smart acoustic cry analyzer & localized weekly meal planning</p>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
           <span className="text-[9px] font-black text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-widest border border-primary/20">
             Powered by AI
           </span>
-        </div>
+          
+    </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Baby Cry Analyzer Card */}
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate('sleep')}
+            onClick={() => isPremium ? onNavigate('sleep') : setIsSubscriptionModalOpen(true)}
             className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
               <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                 üéôÔ∏è
-              </div>
+                
+    </div>
               <span className="text-[8px] font-black text-amber-700 bg-amber-500/15 px-2.5 py-1 rounded-full uppercase tracking-wider border border-amber-500/20">
                 Acoustic Analysis
               </span>
-            </div>
+              
+    </div>
             <div className="space-y-1">
               <h3 className="text-base font-serif font-black text-gray-800">Baby Cry Reason Analyzer</h3>
               <p className="text-xs text-gray-500 font-medium leading-relaxed">
                 Listens to your baby's cry and correlates audio with time since last feeding & nap to analyze comfort needs.
               </p>
-            </div>
+              
+    </div>
             <div className="pt-1 flex items-center justify-between text-xs font-bold text-amber-600 group-hover:text-amber-700">
               <span className="flex items-center gap-1.5">
                 <Mic className="w-3.5 h-3.5" /> Start Cry Analysis
               </span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </div>
+              
+    </div>
           </motion.div>
 
           {/* AI Weekly Meal & Grocery Planner Card */}
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => onNavigate('ai-meal-planner')}
+            onClick={() => isPremium ? onNavigate('ai-meal-planner') : setIsSubscriptionModalOpen(true)}
             className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                 ü•ó
-              </div>
+                
+    </div>
               <span className="text-[8px] font-black text-emerald-700 bg-emerald-500/15 px-2.5 py-1 rounded-full uppercase tracking-wider border border-emerald-500/20">
                 Localized Groceries
               </span>
-            </div>
+              
+    </div>
             <div className="space-y-1">
               <h3 className="text-base font-serif font-black text-gray-800">AI Weekly Meal & Grocery Plan</h3>
               <p className="text-xs text-gray-500 font-medium leading-relaxed">
                 Generates a complete 7-day age-optimized solid food menu that targets nutritional gaps with an automated local grocery checklist.
               </p>
-            </div>
+              
+    </div>
             <div className="pt-1 flex items-center justify-between text-xs font-bold text-emerald-600 group-hover:text-emerald-700">
               <span className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" /> Build 7-Day Plan
               </span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </div>
+              
+    </div>
           </motion.div>
-        </div>
+          
+    </div>
       </section>
 
       <section className="space-y-6">
@@ -621,7 +662,8 @@ const Dashboard = ({
           <div>
             <h2 className="text-xl font-serif font-black text-gray-800">Plan for Today</h2>
             <p className="text-xs text-gray-400 font-medium">Daily schedule, meals, activities, medications & vaccines</p>
-          </div>
+            
+    </div>
           <div className="flex items-center gap-2">
             <button 
               onClick={() => {
@@ -639,8 +681,10 @@ const Dashboard = ({
             >
               Calendar & Journal ‚Üí
             </button>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         {/* Estimated Nutrition Card - System Card Styling */}
         <motion.div 
@@ -651,20 +695,24 @@ const Dashboard = ({
           <div className="flex items-center gap-4 sm:gap-6">
             <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-3xl shadow-sm group-hover:scale-105 transition-transform shrink-0">
               üçé
-            </div>
+              
+    </div>
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-700 rounded-full border border-amber-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                 <p className="text-[9px] font-black uppercase tracking-widest">
                   Daily Intake ‚Ä¢ {todayMeals.length} Scheduled {todayMeals.length === 1 ? 'Meal' : 'Meals'}
                 </p>
-              </div>
+                
+    </div>
               <h3 className="text-xl font-serif font-black text-gray-800">Estimated Nutrition</h3>
               <p className="text-xs text-gray-500 font-medium">
                 {todayMeals.length > 0 ? 'Calculated from planned meals & feedings for today' : 'No meals scheduled yet today ‚Ä¢ Tap to open feeding tracker'}
               </p>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
             <div className="bg-white px-4 py-2.5 rounded-2xl border border-gray-100 shadow-xs text-center min-w-[85px]">
@@ -672,20 +720,24 @@ const Dashboard = ({
               <p className="text-base font-black text-amber-600 leading-tight mt-0.5">
                 {estimatedCalories} <span className="text-[10px] text-gray-400 font-bold uppercase">kcal</span>
               </p>
-            </div>
+              
+    </div>
             <div className="bg-white px-4 py-2.5 rounded-2xl border border-gray-100 shadow-xs text-center min-w-[85px]">
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Protein</p>
               <p className="text-base font-black text-primary leading-tight mt-0.5">
                 {estimatedProtein}g <span className="text-[10px] text-gray-400 font-bold uppercase">protein</span>
               </p>
-            </div>
+              
+    </div>
             <div className="bg-white px-4 py-2.5 rounded-2xl border border-gray-100 shadow-xs text-center min-w-[85px]">
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Completed</p>
               <p className="text-base font-black text-gray-800 leading-tight mt-0.5">
                 {todayMeals.filter(m => m.completed).length} <span className="text-[10px] text-gray-400 font-bold">/ {todayMeals.length}</span>
               </p>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
         </motion.div>
 
         {/* 4 Plan for Today Cards */}
@@ -699,14 +751,17 @@ const Dashboard = ({
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform shrink-0">
                 üçΩÔ∏è
-              </div>
+                
+    </div>
               <div>
                 <p className="text-sm font-black text-gray-800">Daily Menu</p>
                 <p className="text-[10px] font-black text-muted uppercase tracking-widest">
                   {todayMeals.length > 0 ? `${todayMeals.filter(m => m.completed).length}/${todayMeals.length} Done` : '+ Tap to Schedule'}
                 </p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
             <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary transition-colors shrink-0" />
           </motion.div>
 
@@ -719,14 +774,17 @@ const Dashboard = ({
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform shrink-0">
                 üß∏
-              </div>
+                
+    </div>
               <div>
                 <p className="text-sm font-black text-gray-800">Activities Plan</p>
                 <p className="text-[10px] font-black text-muted uppercase tracking-widest">
                   {todayActivities.length > 0 ? `${todayActivities.filter(a => a.completed).length}/${todayActivities.length} Tracked` : '+ Tap to Schedule'}
                 </p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
             <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary transition-colors shrink-0" />
           </motion.div>
 
@@ -739,14 +797,17 @@ const Dashboard = ({
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform shrink-0">
                 üíä
-              </div>
+                
+    </div>
               <div>
                 <p className="text-sm font-black text-gray-800">Medication Plan</p>
                 <p className="text-[10px] font-black text-muted uppercase tracking-widest">
                   {todayMeds.length > 0 ? `${todayMeds.filter(m => m.completed).length}/${todayMeds.length} Taken` : '+ Tap to Schedule'}
                 </p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
             <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary transition-colors shrink-0" />
           </motion.div>
 
@@ -759,7 +820,8 @@ const Dashboard = ({
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform shrink-0">
                 üíâ
-              </div>
+                
+    </div>
               <div>
                 <p className="text-sm font-black text-gray-800">Immunization</p>
                 <p className="text-[10px] font-black text-muted uppercase tracking-widest">
@@ -769,11 +831,14 @@ const Dashboard = ({
                     ? `${(vaccineSchedule || []).filter(v => v.status === 'Completed').length}/${(vaccineSchedule || []).length} Up to Date`
                     : '+ Tap to Schedule'}
                 </p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
             <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary transition-colors shrink-0" />
           </motion.div>
-        </div>
+          
+    </div>
       </section>
 
       <section className="space-y-6">
@@ -785,7 +850,8 @@ const Dashboard = ({
           >
             View Quests
           </button>
-        </div>
+          
+    </div>
 
         <div className="bg-card p-8 rounded-[56px] border border-white shadow-xl shadow-card/20 space-y-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full -mr-16 -mt-16 blur-3xl" />
@@ -797,18 +863,23 @@ const Dashboard = ({
                 <p className="text-[10px] text-muted font-black uppercase tracking-widest">
                   {completedCount} of {totalCount} Quests completed
                 </p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <span className="text-xl font-serif font-black text-primary">{Math.round(questProgress)}%</span>
               {dailyStreak > 0 && (
                 <div className="flex items-center gap-0.5 bg-amber-500/15 text-amber-600 px-2 py-0.5 rounded-full animate-pulse border border-amber-500/10">
                   <Flame className="w-3 h-3 fill-amber-500 text-amber-500" />
                   <span className="text-[8px] font-black uppercase tracking-wider">{dailyStreak}d Streak</span>
-                </div>
+                  
+    </div>
               )}
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
 
           <div className="w-full bg-gray-100 rounded-full h-3 p-0.5 shadow-inner">
             <motion.div 
@@ -816,8 +887,10 @@ const Dashboard = ({
               animate={{ width: `${questProgress}%` }}
               className="bg-accent h-full rounded-full shadow-sm" 
             />
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
       </section>
 
       {/* Interactive Calendar Scheduling & Checklist Bottom-Sheet Modal */}
@@ -866,14 +939,16 @@ const Dashboard = ({
                       <span>{tab.icon} {tab.label}</span>
                     </button>
                   ))}
-                </div>
+                  
+    </div>
                 <button 
                   onClick={() => setActiveModalType(null)}
                   className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center cursor-pointer border-none shrink-0 ml-2"
                 >
                   <X className="w-4 h-4" />
                 </button>
-              </div>
+                
+    </div>
 
               {/* Modal Title Banner */}
               <div className="flex items-center justify-between">
@@ -888,7 +963,8 @@ const Dashboard = ({
                   <p className="text-[10px] text-muted font-black uppercase tracking-widest">
                     {activeModalType === 'schedule' ? 'Add new schedule item to calendar' : 'Track and manage scheduled plans'}
                   </p>
-                </div>
+                  
+    </div>
                 {activeModalType !== 'schedule' && (
                   <button
                     onClick={() => {
@@ -900,7 +976,8 @@ const Dashboard = ({
                     {showAddForm ? 'Hide Form' : '+ Add Item'}
                   </button>
                 )}
-              </div>
+                
+    </div>
 
               {/* Schedule Plan Floating Interactive Calendar & Form */}
               {(showAddForm || activeModalType === 'schedule') && (
@@ -911,14 +988,17 @@ const Dashboard = ({
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-primary shadow-xs">
                           <Calendar className="w-4 h-4" />
-                        </div>
+                          
+    </div>
                         <div>
                           <h2 className="text-xs font-black text-gray-800 uppercase tracking-[0.2em]">
                             {new Date(scheduleCalYear, scheduleCalMonth).toLocaleString('default', { month: 'long', year: 'numeric' })}
                           </h2>
                           <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Tap a day to set target schedule date</p>
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
                       <div className="flex items-center gap-1">
                         <button 
                           type="button"
@@ -936,15 +1016,18 @@ const Dashboard = ({
                         >
                           <ChevronRight className="w-4 h-4" />
                         </button>
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
 
                     {/* Weekday Labels */}
                     <div className="grid grid-cols-7 gap-1 text-center">
                       {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
                         <div key={day} className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{day}</div>
                       ))}
-                    </div>
+                      
+    </div>
 
                     {/* Days Matrix */}
                     <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center">
@@ -980,7 +1063,8 @@ const Dashboard = ({
                           </button>
                         );
                       })}
-                    </div>
+                      
+    </div>
 
                     {/* Selected Date Summary & Quick Jump Chips */}
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/60">
@@ -1021,9 +1105,12 @@ const Dashboard = ({
                         >
                           Tomorrow
                         </button>
-                      </div>
-                    </div>
-                  </div>
+                        
+    </div>
+                      
+    </div>
+                    
+    </div>
 
                   {/* Inline Schedule New Item Form */}
                   <motion.div 
@@ -1041,7 +1128,8 @@ const Dashboard = ({
                           ‚úì {scheduleSuccessMsg}
                         </span>
                       )}
-                    </div>
+                      
+    </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -1057,7 +1145,8 @@ const Dashboard = ({
                           <option value="vaccine">üíâ Immunization (Vaccine)</option>
                           <option value="routine">‚ú® Daily Routine / Care</option>
                         </select>
-                      </div>
+                        
+    </div>
 
                       <div>
                         <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Selected Date</label>
@@ -1074,8 +1163,10 @@ const Dashboard = ({
                             }
                           }}
                         />
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
 
                   {/* Dynamic Category Specific Inputs */}
                   {scheduleCategory === 'meal' && (
@@ -1092,7 +1183,8 @@ const Dashboard = ({
                           <option>Dinner</option>
                           <option>Snack</option>
                         </select>
-                      </div>
+                        
+    </div>
                       <div>
                         <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Select Recipe</label>
                         <select 
@@ -1105,8 +1197,10 @@ const Dashboard = ({
                             <option key={m.id} value={m.id}>{m.title}</option>
                           ))}
                         </select>
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
                   )}
 
                   {scheduleCategory === 'activity' && (
@@ -1120,7 +1214,8 @@ const Dashboard = ({
                           value={scheduleTitle}
                           onChange={e => setScheduleTitle(e.target.value)}
                         />
-                      </div>
+                        
+    </div>
                       <div>
                         <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Duration</label>
                         <select 
@@ -1135,8 +1230,10 @@ const Dashboard = ({
                           <option>45m</option>
                           <option>1h</option>
                         </select>
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
                   )}
 
                   {scheduleCategory === 'med' && (
@@ -1150,7 +1247,8 @@ const Dashboard = ({
                           value={scheduleTitle}
                           onChange={e => setScheduleTitle(e.target.value)}
                         />
-                      </div>
+                        
+    </div>
                       <div>
                         <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Dosage</label>
                         <input 
@@ -1160,8 +1258,10 @@ const Dashboard = ({
                           value={scheduleMedDosage}
                           onChange={e => setScheduleMedDosage(e.target.value)}
                         />
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
                   )}
 
                   {scheduleCategory === 'vaccine' && (
@@ -1183,7 +1283,8 @@ const Dashboard = ({
                           <option value="Varicella (Chickenpox)">Varicella</option>
                           <option value="Hepatitis A (HepA)">Hepatitis A</option>
                         </select>
-                      </div>
+                        
+    </div>
                       <div>
                         <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Milestone Age</label>
                         <select 
@@ -1201,8 +1302,10 @@ const Dashboard = ({
                           <option>18 Months</option>
                           <option>2 Years</option>
                         </select>
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
                   )}
 
                   {scheduleCategory === 'routine' && (
@@ -1221,7 +1324,8 @@ const Dashboard = ({
                           <option>Outdoor Fresh Air Stroll</option>
                           <option>Tummy Time & Stretches</option>
                         </select>
-                      </div>
+                        
+    </div>
                       <div>
                         <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Target Duration</label>
                         <select 
@@ -1235,8 +1339,10 @@ const Dashboard = ({
                           <option>1h</option>
                           <option>2h</option>
                         </select>
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
                   )}
 
                   <div className="grid grid-cols-2 gap-3">
@@ -1254,7 +1360,8 @@ const Dashboard = ({
                           setScheduleTime(`${formattedHour.toString().padStart(2, '0')}:${m} ${ampm}`);
                         }}
                       />
-                    </div>
+                      
+    </div>
                     <div className="flex items-end">
                       <button 
                         onClick={handleCreateScheduleItem}
@@ -1262,10 +1369,13 @@ const Dashboard = ({
                       >
                         + Add to Plan
                       </button>
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
                 </motion.div>
-                </div>
+                  
+    </div>
               )}
 
               {/* Category Items List */}
@@ -1279,8 +1389,10 @@ const Dashboard = ({
                           <div>
                             <p className="text-sm font-bold text-gray-800">{scheduled.meal?.title || scheduled.title}</p>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{scheduled.type} ‚Ä¢ {scheduled.time}</p>
-                          </div>
-                        </div>
+                            
+    </div>
+                          
+    </div>
                         <div className="flex items-center gap-2">
                           <button 
                             onClick={() => {
@@ -1300,8 +1412,10 @@ const Dashboard = ({
                           >
                             <CheckCircle2 className="w-5 h-5" />
                           </button>
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
                     ))
                   ) : (
                     <div 
@@ -1315,7 +1429,8 @@ const Dashboard = ({
                       <p className="text-[10px] text-primary font-bold mt-1.5 flex items-center justify-center gap-1">
                         <Plus className="w-3.5 h-3.5" /> Tap to schedule a meal now
                       </p>
-                    </div>
+                      
+    </div>
                   )
                 )}
 
@@ -1331,8 +1446,10 @@ const Dashboard = ({
                               <div>
                                 <p className="text-sm font-bold text-gray-800">{scheduled.title}</p>
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Duration: {scheduled.duration} ‚Ä¢ {scheduled.time}</p>
-                              </div>
-                            </div>
+                                
+    </div>
+                              
+    </div>
                             <button 
                               onClick={() => {
                                 const updated = scheduledActivities.map(a => a.id === scheduled.id ? { ...a, completed: !a.completed } : a);
@@ -1342,7 +1459,8 @@ const Dashboard = ({
                             >
                               <CheckCircle2 className="w-5 h-5" />
                             </button>
-                          </div>
+                            
+    </div>
 
                           {/* Interactive tracking metrics */}
                           <div className="bg-white p-3 rounded-2xl space-y-2 border border-gray-100 shadow-inner">
@@ -1361,10 +1479,14 @@ const Dashboard = ({
                                     {level}
                                   </button>
                                 ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                                
+    </div>
+                              
+    </div>
+                            
+    </div>
+                          
+    </div>
                       );
                     })
                   ) : (
@@ -1379,7 +1501,8 @@ const Dashboard = ({
                       <p className="text-[10px] text-primary font-bold mt-1.5 flex items-center justify-center gap-1">
                         <Plus className="w-3.5 h-3.5" /> Tap to schedule an activity now
                       </p>
-                    </div>
+                      
+    </div>
                   )
                 )}
 
@@ -1392,8 +1515,10 @@ const Dashboard = ({
                           <div>
                             <p className="text-sm font-bold text-gray-800">{scheduled.name || scheduled.title}</p>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{scheduled.dosage} ‚Ä¢ {scheduled.time}</p>
-                          </div>
-                        </div>
+                            
+    </div>
+                          
+    </div>
                         <button 
                           onClick={() => {
                             const updated = scheduledMeds.map(m => m.id === scheduled.id ? { ...m, completed: !m.completed } : m);
@@ -1403,7 +1528,8 @@ const Dashboard = ({
                         >
                           <CheckCircle2 className="w-5 h-5" />
                         </button>
-                      </div>
+                        
+    </div>
                     ))
                   ) : (
                     <div 
@@ -1417,7 +1543,8 @@ const Dashboard = ({
                       <p className="text-[10px] text-primary font-bold mt-1.5 flex items-center justify-center gap-1">
                         <Plus className="w-3.5 h-3.5" /> Tap to schedule vitamin or medicine
                       </p>
-                    </div>
+                      
+    </div>
                   )
                 )}
 
@@ -1433,8 +1560,10 @@ const Dashboard = ({
                               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                                 Milestone: {vac.age} {vac.date ? `‚Ä¢ ${vac.date}` : ''}
                               </p>
-                            </div>
-                          </div>
+                              
+    </div>
+                            
+    </div>
                           <button 
                             onClick={() => {
                               if (setVaccineSchedule) {
@@ -1451,7 +1580,8 @@ const Dashboard = ({
                           >
                             {vac.status === 'Completed' ? '‚úì Completed' : 'Mark Done'}
                           </button>
-                        </div>
+                          
+    </div>
                       ))
                     ) : (
                       <div 
@@ -1465,9 +1595,11 @@ const Dashboard = ({
                         <p className="text-[10px] text-primary font-bold mt-1.5 flex items-center justify-center gap-1">
                           <Plus className="w-3.5 h-3.5" /> Tap to schedule a vaccine milestone
                         </p>
-                      </div>
+                        
+    </div>
                     )}
-                  </div>
+                    
+    </div>
                 )}
 
                 {activeModalType === 'schedule' && (
@@ -1484,7 +1616,8 @@ const Dashboard = ({
                           (vaccineSchedule || []).filter(v => v.date && isSameDay(new Date(v.date), new Date(scheduleDate + 'T12:00:00'))).length
                         } Items
                       </span>
-                    </div>
+                      
+    </div>
 
                     {/* Render scheduled meals for selected date */}
                     {scheduledMeals.filter(m => m.date && isSameDay(new Date(m.date), new Date(scheduleDate + 'T12:00:00'))).map((m) => (
@@ -1494,8 +1627,10 @@ const Dashboard = ({
                           <div>
                             <p className="text-xs font-bold text-gray-800">{m.meal?.title || m.title}</p>
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{m.type || 'Meal'} ‚Ä¢ {m.time}</p>
-                          </div>
-                        </div>
+                            
+    </div>
+                          
+    </div>
                         <button 
                           onClick={() => {
                             const updated = scheduledMeals.map(item => item.id === m.id ? { ...item, completed: !item.completed } : item);
@@ -1505,7 +1640,8 @@ const Dashboard = ({
                         >
                           <CheckCircle2 className="w-4 h-4" />
                         </button>
-                      </div>
+                        
+    </div>
                     ))}
 
                     {/* Render scheduled activities for selected date */}
@@ -1516,8 +1652,10 @@ const Dashboard = ({
                           <div>
                             <p className="text-xs font-bold text-gray-800">{a.title}</p>
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{a.time} ‚Ä¢ {a.duration}</p>
-                          </div>
-                        </div>
+                            
+    </div>
+                          
+    </div>
                         <button 
                           onClick={() => {
                             const updated = scheduledActivities.map(item => item.id === a.id ? { ...item, completed: !item.completed } : item);
@@ -1527,7 +1665,8 @@ const Dashboard = ({
                         >
                           <CheckCircle2 className="w-4 h-4" />
                         </button>
-                      </div>
+                        
+    </div>
                     ))}
 
                     {/* Render scheduled meds for selected date */}
@@ -1538,8 +1677,10 @@ const Dashboard = ({
                           <div>
                             <p className="text-xs font-bold text-gray-800">{md.name || md.title}</p>
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{md.dosage} ‚Ä¢ {md.time}</p>
-                          </div>
-                        </div>
+                            
+    </div>
+                          
+    </div>
                         <button 
                           onClick={() => {
                             const updated = scheduledMeds.map(item => item.id === md.id ? { ...item, completed: !item.completed } : item);
@@ -1549,7 +1690,8 @@ const Dashboard = ({
                         >
                           <CheckCircle2 className="w-4 h-4" />
                         </button>
-                      </div>
+                        
+    </div>
                     ))}
 
                     {/* Render scheduled vaccines for selected date */}
@@ -1560,16 +1702,21 @@ const Dashboard = ({
                           <div>
                             <p className="text-xs font-bold text-gray-800">{v.name}</p>
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Milestone: {v.age}</p>
-                          </div>
-                        </div>
+                            
+    </div>
+                          
+    </div>
                         <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${v.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                           {v.status}
                         </span>
-                      </div>
+                        
+    </div>
                     ))}
-                  </div>
+                    
+    </div>
                 )}
-              </div>
+                
+    </div>
 
               {/* Navigation Action Buttons */}
               <div className="space-y-2.5 pt-2 border-t border-gray-100">
@@ -1635,12 +1782,16 @@ const Dashboard = ({
                   >
                     Close
                   </button>
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
             </motion.div>
-          </div>
+            
+    </div>
         )}
       </AnimatePresence>
+      
     </div>
   );
 };
@@ -1882,7 +2033,8 @@ const RecipeLibrary = ({ onNavigate, personalRecipes }: { onNavigate: (screen: s
               onFocus={() => setShowSearchResults(true)}
               className="w-full bg-gray-50 border-none rounded-2xl py-3 pl-10 pr-4 text-xs font-semibold outline-none text-gray-700"
             />
-          </div>
+            
+    </div>
           <button 
             onClick={fetchLocationSuggestions}
             disabled={isLoadingLocation}
@@ -1908,9 +2060,11 @@ const RecipeLibrary = ({ onNavigate, personalRecipes }: { onNavigate: (screen: s
               ) : (
                 <p className="p-3 text-xs text-gray-400 italic text-center">No matching locations found.</p>
               )}
-            </div>
+              
+    </div>
           )}
-        </div>
+          
+    </div>
 
         <div className="flex items-center justify-between text-xs font-bold bg-primary/5 p-3.5 rounded-2xl">
           <div className="flex items-center gap-2">
@@ -1918,13 +2072,18 @@ const RecipeLibrary = ({ onNavigate, personalRecipes }: { onNavigate: (screen: s
             <div>
               <p className="text-gray-800 text-[11px]">Active: <span className="font-extrabold text-primary">{userLocation}</span></p>
               <p className="text-[9px] text-gray-400 font-medium">Standard weaning recipes loaded</p>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
           <div className="bg-white px-3 py-1.5 rounded-xl text-primary font-black text-xs border border-solid border-primary/10">
             Currency: {userCurrency}
-          </div>
-        </div>
-      </div>
+            
+    </div>
+          
+    </div>
+        
+    </div>
 
       <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
         {['All', 'Purees', 'Solids', 'Finger Foods', 'Snacks'].map((cat, i) => (
@@ -1938,15 +2097,18 @@ const RecipeLibrary = ({ onNavigate, personalRecipes }: { onNavigate: (screen: s
             {cat}
           </button>
         ))}
-      </div>
+        
+    </div>
 
       <div className="bg-primary/10 p-6 rounded-[40px] space-y-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-primary" />
             <h2 className="text-sm font-bold text-gray-800 uppercase tracking-widest">Local Suggestions</h2>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
         <div className="space-y-2">
           {locationSuggestions.length > 0 ? (
             locationSuggestions.map((s, i) => (
@@ -1957,8 +2119,10 @@ const RecipeLibrary = ({ onNavigate, personalRecipes }: { onNavigate: (screen: s
           ) : (
             <p className="text-xs text-gray-400 italic text-left">Tap GPS or search locations above!</p>
           )}
-        </div>
-      </div>
+          
+    </div>
+        
+    </div>
 
       <div className="space-y-4">
         <h2 className="text-lg font-bold text-gray-800 text-left">Nutritious Favorites</h2>
@@ -1974,31 +2138,41 @@ const RecipeLibrary = ({ onNavigate, personalRecipes }: { onNavigate: (screen: s
                 <img src={meal.image} alt={meal.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
                 <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black text-primary uppercase">
                   {formatCost(meal.costPerServe || '$0.45', userCurrency)} / Serve
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
               <div className="p-6 space-y-3">
                 <div className="flex justify-between items-start">
                   <div className="text-left">
                     <p className="text-[10px] font-black text-muted uppercase tracking-widest mb-1">{meal.stage}</p>
                     <h3 className="text-xl font-bold text-gray-800">{meal.title}</h3>
-                  </div>
+                    
+    </div>
                   <div className="flex items-center gap-1 text-muted">
                     <Clock className="w-3 h-3" />
                     <span className="text-[10px] font-bold uppercase">{meal.time}</span>
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
                 <div className="flex gap-2">
                   {meal.nutrients.slice(0, 3).map((n, i) => (
                     <span key={i} className="text-[10px] font-bold text-primary bg-primary/5 px-2 py-1 rounded-lg flex items-center gap-1">
                       {n.icon} {n.label}
                     </span>
                   ))}
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
             </motion.div>
           ))}
-        </div>
-      </div>
+          
+    </div>
+        
+    </div>
+      
     </div>
   );
 };
@@ -2102,7 +2276,8 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
         <button className="absolute top-6 right-6 w-12 h-12 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center shadow-sm">
           <Heart className="w-5 h-5 text-gray-400" />
         </button>
-      </div>
+        
+    </div>
 
       <div className="p-8 -mt-20 bg-background rounded-t-[64px] relative space-y-8">
         <div className="space-y-4">
@@ -2111,26 +2286,33 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
             <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm">
               <Clock className="w-3 h-3 text-muted" />
               <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">{meal.time}</span>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
           <h1 className="text-4xl font-serif font-black text-gray-800 leading-tight">{meal.title}</h1>
           <p className="text-sm text-muted font-medium leading-relaxed">{meal.description}</p>
-        </div>
+          
+    </div>
 
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white p-4 rounded-[24px] shadow-sm border border-gray-50 flex flex-col items-center">
             <span className="text-[10px] text-muted uppercase font-black tracking-tighter mb-1">Cost</span>
             <span className="font-bold text-gray-800">{formatCost(meal.costPerServe || '$0.45', localStorage.getItem('userCurrency') || '$')}</span>
-          </div>
+            
+    </div>
           <div className="bg-white p-4 rounded-[24px] shadow-sm border border-gray-50 flex flex-col items-center">
             <span className="text-[10px] text-muted uppercase font-black tracking-tighter mb-1">Prep</span>
             <span className="font-bold text-gray-800">15m</span>
-          </div>
+            
+    </div>
           <div className="bg-white p-4 rounded-[24px] shadow-sm border border-gray-50 flex flex-col items-center">
             <span className="text-[10px] text-muted uppercase font-black tracking-tighter mb-1">Age</span>
             <span className="font-bold text-gray-800">6m+</span>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-gray-800">Nutrients</h2>
@@ -2139,15 +2321,20 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
               <div key={i} className="bg-card p-4 rounded-[24px] shadow-sm border border-white flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-xl">
                   {n.icon || '‚ú®'}
-                </div>
+                  
+    </div>
                 <div>
                   <p className="text-[10px] text-muted font-black uppercase tracking-tighter">{n.label}</p>
                   <p className="text-sm font-bold text-gray-800">{n.value}</p>
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
             ))}
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         {meal.ingredients && meal.ingredients.length > 0 && (
           <div className="space-y-4">
@@ -2159,16 +2346,21 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
                   <div key={i} className="bg-white p-4 rounded-[24px] shadow-sm border border-gray-100 flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gray-50 flex items-center justify-center">
                       <img src={matchedImage} alt={ing.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    </div>
+                      
+    </div>
                     <div className="text-left">
                       <p className="text-xs font-bold text-gray-800 leading-tight">{ing.name}</p>
                       <p className="text-[10px] text-muted font-medium mt-0.5">{ing.amount}</p>
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
                 );
               })}
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
         )}
 
         <div className="space-y-6">
@@ -2178,12 +2370,16 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
               <div key={i} className="flex gap-6">
                 <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center font-black shrink-0 shadow-lg shadow-primary/20">
                   {i + 1}
-                </div>
+                  
+    </div>
                 <p className="text-sm text-muted font-medium leading-relaxed pt-1">{step}</p>
-              </div>
+                
+    </div>
             ))}
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         <div className="pb-32 pt-8 space-y-4">
           <button 
@@ -2198,8 +2394,10 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
           >
             Schedule Meal
           </button>
-        </div>
-      </div>
+          
+    </div>
+        
+    </div>
 
       <AnimatePresence>
         {showLogModal && (
@@ -2221,7 +2419,8 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
               <div className="space-y-2 text-center">
                 <h2 className="text-3xl font-serif font-black text-gray-800">Log Meal</h2>
                 <p className="text-sm text-muted font-bold uppercase tracking-widest">When did baby have this?</p>
-              </div>
+                
+    </div>
 
               <div className="space-y-8">
                 <div className="grid grid-cols-2 gap-4">
@@ -2236,7 +2435,8 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
                       {type}
                     </button>
                   ))}
-                </div>
+                  
+    </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50 p-6 rounded-[32px] space-y-2">
@@ -2247,7 +2447,8 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
                       onChange={(e) => setMealDate(e.target.value)}
                       className="w-full bg-transparent text-sm font-black text-gray-800 focus:outline-none"
                     />
-                  </div>
+                    
+    </div>
                   <div className="bg-gray-50 p-6 rounded-[32px] space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Time</label>
                     <input 
@@ -2256,8 +2457,10 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
                       onChange={(e) => setMealTime(e.target.value)}
                       className="w-full bg-transparent text-sm font-black text-gray-800 focus:outline-none"
                     />
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
 
                 <div className="space-y-6">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Consistency & New Food</p>
@@ -2271,7 +2474,8 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
                         {c}
                       </button>
                     ))}
-                  </div>
+                    
+    </div>
                   <div className="flex justify-center gap-4 overflow-x-auto pb-2 px-2">
                     {FOODS.map(f => (
                       <button 
@@ -2282,7 +2486,8 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
                         {f}
                       </button>
                     ))}
-                  </div>
+                    
+    </div>
                   <div className="grid grid-cols-2 gap-6">
                     {[
                       { key: 'appetising', label: 'Appetizing', icon: '‚ú®' },
@@ -2294,7 +2499,8 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
                         <div className="flex items-center gap-1">
                           <span className="text-xs">{item.icon}</span>
                           <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{item.label}</span>
-                        </div>
+                          
+    </div>
                         <div className="flex gap-1">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <button 
@@ -2309,24 +2515,30 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
                               />
                             </button>
                           ))}
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
                     ))}
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
 
                 <div className="flex items-center justify-between bg-red-50 p-6 rounded-[32px] border border-red-100">
                   <div className="flex items-center gap-3">
                     <AlertCircle className="w-5 h-5 text-red-400" />
                     <span className="text-xs font-bold text-red-800">Allergy Reaction?</span>
-                  </div>
+                    
+    </div>
                   <button 
                     onClick={() => setAllergyReaction(!allergyReaction)}
                     className={`w-12 h-6 rounded-full transition-all relative ${allergyReaction ? 'bg-red-500' : 'bg-gray-200'}`}
                   >
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${allergyReaction ? 'left-7' : 'left-1'}`} />
                   </button>
-                </div>
+                  
+    </div>
 
                 {allergyReaction && (
                   <motion.div 
@@ -2353,8 +2565,10 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
                     placeholder="Any reactions..."
                     className="w-full bg-gray-50 p-4 rounded-[24px] focus:outline-none text-sm font-medium min-h-[80px] resize-none"
                   />
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               <button 
                 onClick={() => {
@@ -2376,7 +2590,8 @@ const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = false, ba
                 Confirm Log
               </button>
             </motion.div>
-          </div>
+            
+    </div>
         )}
       </AnimatePresence>
     </motion.div>
@@ -2733,7 +2948,8 @@ const FeedingTracker = ({
         <h1 className="text-2xl font-serif font-black text-gray-800">Feeding Tracker</h1>
         <div className="w-11 h-11 rounded-full bg-card shadow-sm border border-white flex items-center justify-center">
           <Timer className="w-5 h-5 text-gray-500" />
-        </div>
+          
+    </div>
       </header>
 
       {/* Segmented Sub-tabs */}
@@ -2762,7 +2978,8 @@ const FeedingTracker = ({
         >
           Safety Guide
         </button>
-      </div>
+        
+    </div>
 
       <AnimatePresence mode="wait">
         {activeTab === 'today' && (
@@ -2783,8 +3000,10 @@ const FeedingTracker = ({
                   <div>
                     <h3 className="text-sm font-serif font-black text-gray-800">Breastfeeding Timers</h3>
                     <p className="text-[11px] text-gray-400 font-medium">Exclusive Left & Right session timers</p>
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
 
                 <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-3xl">
                   {/* Left Breast Timer */}
@@ -2803,7 +3022,8 @@ const FeedingTracker = ({
                     >
                       {isLeftActive ? 'Pause' : 'Start'}
                     </button>
-                  </div>
+                    
+    </div>
 
                   {/* Right Breast Timer */}
                   <div className="flex flex-col items-center p-3 bg-white rounded-2xl border border-solid border-gray-100/50 space-y-2">
@@ -2821,8 +3041,10 @@ const FeedingTracker = ({
                     >
                       {isRightActive ? 'Pause' : 'Start'}
                     </button>
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
 
                 {(leftTimer > 0 || rightTimer > 0) && (
                   <div className="flex gap-2">
@@ -2843,9 +3065,11 @@ const FeedingTracker = ({
                     >
                       Reset
                     </button>
-                  </div>
+                    
+    </div>
                 )}
-              </div>
+                
+    </div>
 
               {/* Fast Bottle Logger Card */}
               <div className="bg-card p-6 rounded-[40px] shadow-sm border border-white space-y-5 text-left flex flex-col justify-between">
@@ -2855,8 +3079,10 @@ const FeedingTracker = ({
                     <div>
                       <h3 className="text-sm font-serif font-black text-gray-800">Bottle Logger</h3>
                       <p className="text-[11px] text-gray-400 font-medium">Log formula or pumped breastmilk</p>
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
 
                   <div className="space-y-3 bg-gray-50 p-4 rounded-3xl">
                     {/* Bottle Type Selector */}
@@ -2870,7 +3096,8 @@ const FeedingTracker = ({
                           {type === 'Pumped' ? 'ü•õ Pumped' : 'üß™ Formula'}
                         </button>
                       ))}
-                    </div>
+                      
+    </div>
 
                     {/* Bottle Amount Input */}
                     <div className="relative">
@@ -2882,9 +3109,12 @@ const FeedingTracker = ({
                         className="w-full bg-white border border-solid border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary pr-12 text-left"
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400 uppercase">ml</span>
-                    </div>
-                  </div>
-                </div>
+                      
+    </div>
+                    
+    </div>
+                  
+    </div>
 
                 <button
                   onClick={handleSaveBottleLog}
@@ -2893,8 +3123,10 @@ const FeedingTracker = ({
                 >
                   Log Feed (+ Fluid intake)
                 </button>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             {/* Recent Local Feeds history list */}
             {userRole === 'nanny' ? (
@@ -2904,7 +3136,8 @@ const FeedingTracker = ({
                   <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-200">
                     <Lock className="w-2.5 h-2.5" /> Nanny Mode
                   </span>
-                </div>
+                  
+    </div>
                 {feedingLogs.filter(log => log.date === new Date().toLocaleDateString() || log.date === new Date().toISOString().split('T')[0]).length > 0 ? (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {feedingLogs
@@ -2914,7 +3147,8 @@ const FeedingTracker = ({
                           <div className="flex items-center gap-3">
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${log.type === 'Bottle Feed' ? 'bg-sky-50 text-sky-600' : 'bg-rose-50 text-rose-600'}`}>
                               {log.type === 'Bottle Feed' ? 'üçº' : 'ü§±'}
-                            </div>
+                              
+    </div>
                             <div>
                               <p className="text-xs font-bold text-gray-800">
                                 {log.type === 'Bottle Feed' 
@@ -2923,27 +3157,34 @@ const FeedingTracker = ({
                                 }
                               </p>
                               <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">{log.timestamp} ‚Ä¢ Today</p>
-                            </div>
-                          </div>
+                              
+    </div>
+                            
+    </div>
                           <button
                             onClick={() => handleDeleteFeedingLog(log.id)}
                             className="w-7 h-7 rounded-full bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center border-none cursor-pointer transition-colors"
                           >
                             ‚úï
                           </button>
-                        </div>
+                          
+    </div>
                       ))}
-                  </div>
+                    
+    </div>
                 ) : (
                   <div className="p-4 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200 text-center">
                     <p className="text-xs text-gray-500 font-medium">No feeding sessions logged for today's shift yet.</p>
-                  </div>
+                    
+    </div>
                 )}
                 <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-100 flex items-center gap-2 text-[10px] text-amber-800">
                   <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                   <span>Previous days' historical feeding archives are shielded in caregiver mode.</span>
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
             ) : feedingLogs.length > 0 && (
               <div className="space-y-3 text-left">
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Recent Feeding History</h4>
@@ -2953,7 +3194,8 @@ const FeedingTracker = ({
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${log.type === 'Bottle Feed' ? 'bg-sky-50 text-sky-600' : 'bg-rose-50 text-rose-600'}`}>
                           {log.type === 'Bottle Feed' ? 'üçº' : 'ü§±'}
-                        </div>
+                          
+    </div>
                         <div>
                           <p className="text-xs font-bold text-gray-800">
                             {log.type === 'Bottle Feed' 
@@ -2962,18 +3204,23 @@ const FeedingTracker = ({
                             }
                           </p>
                           <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">{log.timestamp} ‚Ä¢ {log.date}</p>
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
                       <button
                         onClick={() => handleDeleteFeedingLog(log.id)}
                         className="w-7 h-7 rounded-full bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center border-none cursor-pointer transition-colors"
                       >
                         ‚úï
                       </button>
-                    </div>
+                      
+    </div>
                   ))}
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
             )}
 
             <div className="space-y-6">
@@ -3008,22 +3255,28 @@ const FeedingTracker = ({
                     >
                       Save
                     </button>
-                  </div>
+                    
+    </div>
                 )}
-              </div>
+                
+    </div>
               <div className="bg-card p-10 rounded-[56px] shadow-xl shadow-gray-100/50 border border-gray-50 space-y-10 flex flex-col items-center">
                 <div className="relative flex flex-col items-center justify-center space-y-4">
                   <div className="relative flex items-center justify-center">
                     <CircularProgress progress={(fluidMl / fluidTarget) * 100} size={200} strokeWidth={16} color={THEME.primary} />
                     <div className="absolute flex items-center justify-center">
                       <div className="text-5xl">üíß</div>
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
                   <div className="flex flex-col items-center">
                     <span className="text-3xl font-serif font-black text-gray-800">{Math.round((fluidMl / fluidTarget) * 100)}%</span>
                     <span className="text-[10px] font-black text-muted uppercase tracking-widest">{fluidMl} ml / {fluidTarget} ml</span>
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
                 
                 <button 
                   onClick={() => onAddFluid?.(50)}
@@ -3032,8 +3285,10 @@ const FeedingTracker = ({
                   <PlusCircle className="w-5 h-5" />
                   Add 50ml Water
                 </button>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             {/* Daily Nutrition Estimator Card */}
             <div className="bg-card p-6 rounded-[36px] border border-white shadow-sm space-y-4 text-left">
@@ -3043,55 +3298,68 @@ const FeedingTracker = ({
                   <div>
                     <h3 className="text-sm font-serif font-black text-gray-800">Daily Nutrition Estimator</h3>
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Estimated intake from today's meals & vitamins</p>
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
                 <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2.5 py-1 rounded-full">
                   {todayScheduledMeals.length} Meals
                 </span>
-              </div>
+                
+    </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
                 <div className="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-100/60">
                   <div className="flex items-center gap-1.5 text-amber-600 mb-1">
                     <Flame className="w-3.5 h-3.5" />
                     <span className="text-[9px] font-black uppercase tracking-wider">Calories</span>
-                  </div>
+                    
+    </div>
                   <p className="text-lg font-serif font-black text-gray-800">{estimatedCalories} <span className="text-[10px] font-sans font-bold text-gray-400">kcal</span></p>
                   <p className="text-[9px] text-gray-400 mt-0.5">Est. Energy</p>
-                </div>
+                  
+    </div>
 
                 <div className="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-100/60">
                   <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
                     <Dna className="w-3.5 h-3.5" />
                     <span className="text-[9px] font-black uppercase tracking-wider">Protein</span>
-                  </div>
+                    
+    </div>
                   <p className="text-lg font-serif font-black text-gray-800">{estimatedProtein} <span className="text-[10px] font-sans font-bold text-gray-400">g</span></p>
                   <p className="text-[9px] text-gray-400 mt-0.5">Growth & muscle</p>
-                </div>
+                  
+    </div>
 
                 <div className="bg-sky-50/70 p-3.5 rounded-2xl border border-sky-100/60">
                   <div className="flex items-center gap-1.5 text-sky-600 mb-1">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span className="text-[9px] font-black uppercase tracking-wider">Vitamins</span>
-                  </div>
+                    
+    </div>
                   <p className="text-lg font-serif font-black text-gray-800">
                     {estimatedVitamins.length > 0 ? `${estimatedVitamins.length} types` : '0 types'}
                   </p>
                   <p className="text-[9px] text-gray-400 mt-0.5 truncate">
                     {estimatedVitamins.length > 0 ? estimatedVitamins.slice(0, 3).join(', ') : 'Vit A, C, D & Minerals'}
                   </p>
-                </div>
+                  
+    </div>
 
                 <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-100/60">
                   <div className="flex items-center gap-1.5 text-purple-600 mb-1">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span className="text-[9px] font-black uppercase tracking-wider">Variety</span>
-                  </div>
+                    
+    </div>
                   <p className="text-lg font-serif font-black text-gray-800">{new Set(todayScheduledMeals.map(m => m.meal?.title || m.title)).size} <span className="text-[10px] font-sans font-bold text-gray-400">foods</span></p>
                   <p className="text-[9px] text-gray-400 mt-0.5">Diverse palate</p>
-                </div>
-              </div>
-            </div>
+                  
+    </div>
+                
+    </div>
+              
+    </div>
 
             <div className="space-y-4">
               <div className="flex justify-between items-center px-2">
@@ -3102,19 +3370,23 @@ const FeedingTracker = ({
                 >
                   + Schedule Meal
                 </button>
-              </div>
+                
+    </div>
               <div className="space-y-3">
                 {scheduledMeals.filter(m => !m.date || new Date(m.date).toDateString() === new Date().toDateString()).length > 0 ? scheduledMeals.filter(m => !m.date || new Date(m.date).toDateString() === new Date().toDateString()).map(scheduled => (
                   <div key={scheduled.id} className="bg-card p-4 rounded-2xl shadow-sm border border-white flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-white/50 rounded-2xl flex items-center justify-center text-2xl">
                         {scheduled.type === 'Breakfast' ? 'ü•£' : scheduled.type === 'Lunch' ? 'üç≤' : 'üçΩÔ∏è'}
-                      </div>
+                        
+    </div>
                       <div>
                         <p className="text-[10px] font-bold text-gray-400 uppercase">{scheduled.type} ‚Ä¢ {scheduled.time}</p>
                         <p className="text-sm font-bold text-gray-800">{scheduled.meal?.title || scheduled.title}</p>
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
                     <button 
                       onClick={() => {
                         const isCompleting = !scheduled.completed;
@@ -3128,12 +3400,15 @@ const FeedingTracker = ({
                     >
                       <CheckCircle2 className="w-5 h-5" />
                     </button>
-                  </div>
+                    
+    </div>
                 )) : (
                   <p className="text-xs text-gray-500 italic px-2">No meals scheduled for today.</p>
                 )}
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
           </motion.div>
         )}
 
@@ -3153,9 +3428,12 @@ const FeedingTracker = ({
                   <p className="text-xs text-muted leading-relaxed font-medium">
                     Follow safe guidelines to introduce high-risk allergens individually. Log 3 full days of exposure with no symptoms to mark as Cleared.
                   </p>
-                </div>
-              </div>
-            </div>
+                  
+    </div>
+                
+    </div>
+              
+    </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {(allergenMatrix || []).map(allergen => {
@@ -3181,15 +3459,18 @@ const FeedingTracker = ({
                       }`}>
                         {allergen.status === 'In Progress' ? `Day ${allergen.day}/3` : allergen.status}
                       </span>
-                    </div>
+                      
+    </div>
                     <div className="space-y-1">
                       <h4 className="font-bold text-gray-800 text-sm leading-none">{allergen.name}</h4>
                       <p className="text-[9px] font-medium text-gray-400 line-clamp-1">{allergen.notes || 'No notes yet'}</p>
-                    </div>
+                      
+    </div>
                   </button>
                 );
               })}
-            </div>
+              
+    </div>
           </motion.div>
         )}
 
@@ -3212,7 +3493,8 @@ const FeedingTracker = ({
                   onChange={e => setSearchQuery(e.target.value)}
                   className="w-full bg-transparent border-none p-2.5 text-sm font-medium outline-none text-gray-700"
                 />
-              </div>
+                
+    </div>
 
               {/* Segmented traffic-light filters */}
               <div className="flex gap-1.5 overflow-x-auto py-1">
@@ -3248,8 +3530,10 @@ const FeedingTracker = ({
                 >
                   üî¥ Avoid &lt; 12m
                 </button>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             {/* Ingredients Index List */}
             <div className="space-y-3">
@@ -3270,13 +3554,16 @@ const FeedingTracker = ({
                         food.color === 'amber' ? 'bg-amber-500' : 'bg-red-500'
                       }`} />
                       <h4 className="font-bold text-gray-800 text-sm">{food.name}</h4>
-                    </div>
+                      
+    </div>
                     <p className="text-[10px] text-gray-400 font-medium line-clamp-1 pr-6">{food.warning}</p>
-                  </div>
+                    
+    </div>
                   <ChevronRight className="w-5 h-5 text-gray-300 shrink-0" />
                 </button>
               ))}
-            </div>
+              
+    </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -3314,8 +3601,10 @@ const FeedingTracker = ({
                         {status}
                       </button>
                     ))}
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
 
                 {editStatus === 'In Progress' && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
@@ -3332,7 +3621,8 @@ const FeedingTracker = ({
                           Day {day} / 3
                         </button>
                       ))}
-                    </div>
+                      
+    </div>
                   </motion.div>
                 )}
 
@@ -3344,7 +3634,8 @@ const FeedingTracker = ({
                     placeholder="Log any small details, mild skin rashes, stool abnormalities or successful cleared days..."
                     className="w-full bg-gray-50 rounded-2xl p-3 text-xs font-medium border-none outline-none h-20 text-gray-700"
                   />
-                </div>
+                  
+    </div>
 
                 {/* Display linked allergic reaction meals */}
                 {loggedMeals.filter(m => m.allergyReaction).length > 0 && (
@@ -3355,12 +3646,16 @@ const FeedingTracker = ({
                         <div key={idx} className="text-[10px] font-bold text-red-700 bg-white/50 p-1.5 rounded border border-red-100 flex justify-between">
                           <span>{m.title}</span>
                           <span>{m.logTime || m.time}</span>
-                        </div>
+                          
+    </div>
                       ))}
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
                 )}
-              </div>
+                
+    </div>
 
               <div className="flex gap-2 pt-2">
                 <button 
@@ -3375,9 +3670,11 @@ const FeedingTracker = ({
                 >
                   Save Status
                 </button>
-              </div>
+                
+    </div>
             </motion.div>
-          </div>
+            
+    </div>
         )}
       </AnimatePresence>
 
@@ -3401,7 +3698,8 @@ const FeedingTracker = ({
                      selectedFood.color === 'amber' ? 'Prepare with Caution' : 'Avoid Under 12m'}
                   </span>
                   <h3 className="text-2xl font-serif font-black text-gray-800">{selectedFood.name}</h3>
-                </div>
+                  
+    </div>
                 <button 
                   onClick={() => setSelectedFood(null)}
                   className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 font-black text-sm flex items-center justify-center cursor-pointer"
@@ -3416,7 +3714,8 @@ const FeedingTracker = ({
                 selectedFood.color === 'amber' ? 'bg-amber-50 text-amber-800 border-amber-100' : 'bg-primary/5 text-primary border-primary/10'
               }`}>
                 {selectedFood.warning}
-              </div>
+                
+    </div>
 
               {/* Age-by-Age Preparation Matrix */}
               <div className="space-y-4">
@@ -3426,17 +3725,22 @@ const FeedingTracker = ({
                   <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">üë∂ 6 Months Old (Purees & Soft BLW)</p>
                     <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep6m}</p>
-                  </div>
+                    
+    </div>
                   <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">üßé 10 Months Old (Finger Food Bites)</p>
                     <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep10m}</p>
-                  </div>
+                    
+    </div>
                   <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">üö∂ 12+ Months Old (Normal Serving)</p>
                     <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep12m}</p>
-                  </div>
-                </div>
-              </div>
+                    
+    </div>
+                  
+    </div>
+                
+    </div>
 
               <button 
                 onClick={() => setSelectedFood(null)}
@@ -3445,9 +3749,11 @@ const FeedingTracker = ({
                 Got It, Thanks!
               </button>
             </motion.div>
-          </div>
+            
+    </div>
         )}
       </AnimatePresence>
+      
     </div>
   );
 };
@@ -3464,7 +3770,9 @@ const ActivityTracker = ({
   loggedMeals = [],
   diaperLogs = [],
   onNavigate,
-  initialTab = 'sleep'
+  initialTab = 'sleep',
+  isPremium = false,
+  setIsSubscriptionModalOpen
 }: { 
   loggedMoods: any[]; 
   setLoggedMoods: (moods: any) => void;
@@ -3478,6 +3786,8 @@ const ActivityTracker = ({
   diaperLogs?: any[];
   onNavigate?: (screen: string, data?: any) => void;
   initialTab?: 'sleep' | 'care' | 'cry';
+  isPremium?: boolean;
+  setIsSubscriptionModalOpen?: (open: boolean) => void;
 }) => {
   const [timer, setTimer] = useState(0);
   const [isActive, setIsActive] = useState(false);
@@ -4107,7 +4417,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
         <h1 className="text-2xl font-serif font-black text-gray-800">Activity Tracker</h1>
         <div className="w-11 h-11 rounded-full bg-card shadow-sm border border-white flex items-center justify-center">
           <span className="text-2xl">üß∏</span>
-        </div>
+          
+    </div>
       </header>
 
       {/* Segmented Tab Control */}
@@ -4128,7 +4439,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
             {tab.label}
           </button>
         ))}
-      </div>
+        
+    </div>
 
       {/* Baby Sound Monitor Notification Banner */}
       <AnimatePresence>
@@ -4144,8 +4456,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div className="text-left">
                 <p className="font-serif font-black text-sm uppercase tracking-wider">Baby Sound Alert</p>
                 <p className="text-[11px] font-medium opacity-90">{monitorAlert}</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
             <button 
               onClick={() => setMonitorAlert(null)}
               className="w-8 h-8 rounded-full bg-white/20 text-gray-800 flex items-center justify-center hover:bg-white/30 transition-all font-bold text-xs"
@@ -4172,7 +4486,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div>
                 <h3 className="font-serif font-black text-gray-800 uppercase tracking-widest text-xs">üéôÔ∏è Baby Sound Monitor</h3>
                 <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Auto Sleep & Mood Logger</p>
-              </div>
+                
+    </div>
               <button
                 onClick={isListening ? stopListening : startListening}
                 className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer border-none ${
@@ -4181,7 +4496,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               >
                 {isListening ? 'Stop Listening' : 'Start Monitor'}
               </button>
-            </div>
+              
+    </div>
 
             <div className="bg-white/60 p-4 rounded-3xl space-y-3 border border-white/50">
               <div className="flex items-center justify-between text-[10px]">
@@ -4189,33 +4505,38 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                 <span className={`font-black uppercase tracking-wider ${isListening ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
                   {isListening ? 'üü¢ LISTENING ACTIVE' : 'üî¥ OFFLINE'}
                 </span>
-              </div>
+                
+    </div>
 
               {isListening && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-[10px]">
                     <span className="font-black text-gray-400 uppercase tracking-widest">Mic Amplitude:</span>
                     <span className="font-mono font-bold text-gray-700">{decibels} dB</span>
-                  </div>
+                    
+    </div>
                   <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                     <motion.div 
                       className={`h-full rounded-full ${decibels > 40 ? 'bg-red-500' : 'bg-primary'}`}
                       animate={{ width: `${Math.min(100, (decibels / 100) * 100)}%` }}
                       transition={{ type: 'spring', stiffness: 200, damping: 20 }}
                     />
-                  </div>
+                    
+    </div>
                   {decibels > 40 && (
                     <p className="text-[9px] font-black text-red-500 uppercase tracking-wider animate-pulse">
                       ‚ö†Ô∏è Sound detected! Threshold exceeded.
                     </p>
                   )}
-                </div>
+                  
+    </div>
               )}
 
               <p className="text-[10px] text-muted leading-relaxed font-medium">
                 Allows the app to automatically detect sounds (crying, fussing). Sound above 40dB triggers auto "Wake Up" for active sleep sessions, or logs a fussy mood if baby is awake.
               </p>
-            </div>
+              
+    </div>
           </motion.div>
 
           {/* Log Current Mood */}
@@ -4237,13 +4558,15 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                     {m}
                   </button>
                 ))}
-              </div>
+                
+    </div>
               {loggedMoods.length > 0 && (
                 <p className="text-[10px] font-black text-muted uppercase tracking-widest text-center">
                   Last logged: {new Date(loggedMoods[loggedMoods.length - 1].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               )}
-            </div>
+              
+    </div>
           </motion.div>
 
           {/* Current Nap (Active Timer) */}
@@ -4256,8 +4579,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Current Nap</p>
               <div className="text-6xl font-serif font-black text-gray-800 tabular-nums">
                 {formatTime(timer)}
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
             
             {isActive ? (
               <motion.button 
@@ -4285,8 +4610,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Wake Window Calculator</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Maintains age-appropriate bedtime windows</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             <div className="bg-gray-50 p-5 rounded-3xl space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -4304,7 +4631,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                     <option value="10-12m">10-12 Months</option>
                     <option value="12m+">12m+ Months</option>
                   </select>
-                </div>
+                  
+    </div>
                 <div>
                   <label className="text-[8px] font-bold text-gray-400 block mb-1 uppercase">Last Wake Up</label>
                   <input
@@ -4314,17 +4642,22 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                     placeholder="e.g. 11:30 AM"
                     className="w-full bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-800 focus:outline-none"
                   />
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               <div className="bg-indigo-50/50 p-4 rounded-2xl border border-solid border-indigo-100/50 text-center">
                 <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest leading-none mb-1">Recommended Next Nap Window</p>
                 <p className="text-xl font-serif font-black text-indigo-700">{calculatedNapWindow}</p>
                 <p className="text-[9px] text-indigo-400 font-medium mt-1">Calculated based on baby sleep science guidelines.</p>
-              </div>
+                
+    </div>
 
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
 
           {/* Procedural Ambient Sound Machine & Lullabies Merged Card */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left">
@@ -4333,8 +4666,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Lullabies & Sound Machine</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Soothing audio synthesized directly in browser</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             <div className="bg-gray-50 p-5 rounded-3xl space-y-5">
               <div className="grid grid-cols-3 gap-2">
@@ -4361,7 +4696,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                     <span className="text-[8px] opacity-60 uppercase mt-0.5 font-bold">{snd.desc}</span>
                   </button>
                 ))}
-              </div>
+                
+    </div>
 
               {(activeSound !== 'none' || playingLullaby !== null) && (
                 <button
@@ -4380,7 +4716,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                 <div className="flex justify-between text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
                   <span>Volume</span>
                   <span>{Math.round(volume * 100)}%</span>
-                </div>
+                  
+    </div>
                 <input
                   type="range"
                   min="0"
@@ -4390,7 +4727,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                   onChange={e => setVolume(parseFloat(e.target.value))}
                   className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
                 />
-              </div>
+                
+    </div>
 
               {/* Sleep Timer */}
               <div className="space-y-1">
@@ -4405,8 +4743,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                       {timer}
                     </button>
                   ))}
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               {/* Lullabies for Baby Embedded Section */}
               <div className="border-t border-gray-200/50 pt-4 mt-2 space-y-3">
@@ -4417,12 +4757,15 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${playingLullaby === lullaby.id ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
                           üéµ
-                        </div>
+                          
+    </div>
                         <div>
                           <p className="text-xs font-bold text-gray-800 leading-tight">{lullaby.name}</p>
                           <p className="text-[8px] font-black text-muted uppercase tracking-widest">{lullaby.duration}</p>
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
                       <button 
                         onClick={() => {
                           if (playingLullaby === lullaby.id) {
@@ -4438,12 +4781,17 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                       >
                         {playingLullaby === lullaby.id ? '‚ñ†' : '‚ñ∂'}
                       </button>
-                    </div>
+                      
+    </div>
                   ))}
-                </div>
-              </div>
-            </div>
-          </div>
+                  
+    </div>
+                
+    </div>
+              
+    </div>
+            
+    </div>
 
           {/* Sleep & Mood correlation charts */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left">
@@ -4452,8 +4800,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Sleep & Mood Correlation</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Visualizes sleep duration against baby mood</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             <div className="bg-gray-50 p-4 rounded-3xl h-44 flex items-center justify-center text-center">
               <ResponsiveContainer width="100%" height="100%">
@@ -4470,9 +4820,11 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                   <Line type="monotone" dataKey="score" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 5 }} name="Baby Happiness %" />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+              
+    </div>
             <p className="text-[10px] text-gray-400 text-center">Data indicates sleep of <span className="font-bold text-gray-700">10h+</span> is highly correlated with excellent morning moods.</p>
-          </div>
+            
+    </div>
 
           {/* AI Sleep Insights */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left relative overflow-hidden">
@@ -4483,8 +4835,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                 <div>
                   <h3 className="text-sm font-serif font-black text-gray-800">AI Nap Insights</h3>
                   <p className="text-[11px] text-gray-400 font-medium">Predicts optimal sleep windows</p>
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
               {!sleepInsight && !isGeneratingInsight && (
                 <button 
                   onClick={generateSleepInsight}
@@ -4493,29 +4847,34 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                   Analyze
                 </button>
               )}
-            </div>
+              
+    </div>
 
             {isGeneratingInsight && (
               <div className="bg-purple-50/50 rounded-2xl p-6 text-center space-y-3 animate-pulse">
                 <div className="w-6 h-6 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin mx-auto" />
                 <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Analyzing past 7 days...</p>
-              </div>
+                
+    </div>
             )}
 
             {sleepInsight && !isGeneratingInsight && (
               <div className="bg-purple-50 rounded-3xl p-5 border border-purple-100">
                 <div className="text-[11px] text-purple-900 leading-relaxed space-y-2 whitespace-pre-wrap">
                   {sleepInsight}
-                </div>
+                  
+    </div>
                 <button 
                   onClick={generateSleepInsight}
                   className="mt-4 text-[9px] font-black text-purple-500 uppercase tracking-widest hover:text-purple-700 transition-colors cursor-pointer border-none bg-transparent"
                 >
                   ‚Üª Refresh Insights
                 </button>
-              </div>
+                
+    </div>
             )}
-          </div>
+            
+    </div>
 
           {/* Today's Naps */}
           <div className="space-y-4 text-left">
@@ -4532,16 +4891,19 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-gray-800">{log.start} - {log.end}</p>
                     <p className="text-[10px] font-black text-muted uppercase tracking-widest">{log.duration} ‚Ä¢ Logged at {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                  </div>
+                    
+    </div>
                   <div className="text-3xl bg-gray-50 w-12 h-12 rounded-full flex items-center justify-center">
                     {log.quality}
-                  </div>
+                    
+    </div>
                 </motion.div>
               ))
             ) : (
               <p className="text-xs text-gray-500 italic px-2">No naps logged yet today.</p>
             )}
-          </div>
+            
+    </div>
 
           {/* Integrated Smart Baby Cry Reason Analyzer */}
           <div className="md:col-span-2 pt-2">
@@ -4551,8 +4913,11 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               loggedMeals={loggedMeals}
               diaperLogs={diaperLogs}
               onNavigate={onNavigate}
+              isPremium={isPremium}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen?.(true)}
             />
-          </div>
+            
+    </div>
         </motion.div>
       ) : (
         <motion.div 
@@ -4567,8 +4932,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Outdoor & Sunlight</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Perfect for strollers, circadian rhythm & Vitamin D</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             {/* Circular Gauge */}
             <div className="flex flex-col items-center justify-center py-4 relative">
@@ -4582,14 +4949,17 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div className="absolute text-center">
                 <span className="text-3xl font-serif font-black text-gray-800">{Math.round(sunlightToday)}</span>
                 <span className="text-[10px] text-muted block font-bold">/ {sunlightGoal} min</span>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             <div className="bg-gray-50 p-4 rounded-3xl space-y-4">
               <div className="flex justify-between items-center text-xs font-bold text-gray-600">
                 <span>Stroll Timer</span>
                 <span className="font-mono text-base">{Math.floor(sunSeconds / 60)}m {(sunSeconds % 60).toString().padStart(2, '0')}s</span>
-              </div>
+                
+    </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setSunTimerActive(!sunTimerActive)}
@@ -4605,9 +4975,12 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                     Save
                   </button>
                 )}
-              </div>
-            </div>
-          </div>
+                
+    </div>
+              
+    </div>
+            
+    </div>
 
           {/* Bath & Hygiene Routines */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left">
@@ -4616,8 +4989,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Bath & Hygiene Routines</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Keep track of baby's hygiene intervals</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             <div className="grid grid-cols-1 gap-3">
               {[
@@ -4638,19 +5013,24 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                       <div className="text-left">
                         <p className="text-xs font-black text-gray-800">{item.label}</p>
                         <p className="text-[9px] text-gray-400 font-medium">{loggedDate ? `Last: ${loggedDate}` : 'Not logged today'}</p>
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
                     <button
                       onClick={() => toggleHygiene(item.id)}
                       className={`w-10 h-10 rounded-full flex items-center justify-center border-none cursor-pointer transition-colors ${loggedDate ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'}`}
                     >
                       <CheckCircle2 className="w-5 h-5" />
                     </button>
-                  </div>
+                    
+    </div>
                 );
               })}
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
 
           {/* Immunization Scheduler */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left">
@@ -4659,8 +5039,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Immunization Schedule</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Vaccine schedules & post-shot side effects</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
               {vaccineSchedule.map(v => (
@@ -4675,7 +5057,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                     {v.sideEffects && v.sideEffects !== 'None' && (
                       <p className="text-[9px] text-rose-600 bg-rose-50 px-2 py-0.5 rounded font-bold inline-block mt-1">‚ö†Ô∏è Side effects: {v.sideEffects}</p>
                     )}
-                  </div>
+                    
+    </div>
                   <button
                     onClick={() => {
                       setEditingVaccine(v.id);
@@ -4687,9 +5070,11 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                   >
                     Edit
                   </button>
-                </div>
+                  
+    </div>
               ))}
-            </div>
+              
+    </div>
 
             {/* Vaccine Edit Drawer */}
             <AnimatePresence>
@@ -4700,7 +5085,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                       Edit vaccine status
                     </p>
                     <button onClick={() => setEditingVaccine(null)} className="text-xs font-bold text-gray-400 bg-none border-none cursor-pointer">Cancel</button>
-                  </div>
+                    
+    </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -4710,12 +5096,15 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                         <option value="Completed">Completed</option>
                         <option value="Deferred">Deferred</option>
                       </select>
-                    </div>
+                      
+    </div>
                     <div>
                       <label className="text-[8px] font-bold text-gray-400 block mb-1 uppercase">Date</label>
                       <input type="date" value={editingVacDate} onChange={e => setEditingVacDate(e.target.value)} className="w-full bg-white border border-gray-100 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-800 focus:outline-none" />
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
 
                   <div>
                     <label className="text-[8px] font-bold text-gray-400 block mb-1.5 uppercase">Track Side Effects</label>
@@ -4729,8 +5118,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                           {eff}
                         </button>
                       ))}
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
 
                   <button onClick={handleSaveVaccine} className="w-full bg-primary text-white py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest cursor-pointer border-none hover:bg-primary/95 transition-all">
                     Save Vaccine Record
@@ -4738,7 +5129,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+            
+    </div>
 
           {/* Teething Map */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left">
@@ -4747,8 +5139,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Teething Map</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Interactive Baby Dental Emergence Map</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             <div className="bg-gray-50 p-6 rounded-3xl space-y-6 text-center">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tap on any tooth to edit emergence</p>
@@ -4772,8 +5166,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                         </button>
                       );
                     })}
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
 
                 {/* Lower Teeth Row */}
                 <div className="space-y-2">
@@ -4793,10 +5189,14 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                         </button>
                       );
                     })}
-                  </div>
-                </div>
-              </div>
-            </div>
+                    
+    </div>
+                  
+    </div>
+                
+    </div>
+              
+    </div>
 
             {/* Selected Tooth Drawer Panel */}
             <AnimatePresence>
@@ -4807,7 +5207,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                       Configure: {TEETH_LIST.find(t => t.id === selectedTooth)?.name}
                     </p>
                     <button onClick={() => setSelectedTooth(null)} className="text-xs font-bold text-gray-400 bg-none border-none cursor-pointer">Close</button>
-                  </div>
+                    
+    </div>
 
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-gray-600">Has Emerged / Erupted?</span>
@@ -4817,7 +5218,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                     >
                       {selectedToothEmerged ? 'Emerged' : 'Not yet'}
                     </button>
-                  </div>
+                    
+    </div>
 
                   {selectedToothEmerged && (
                     <div>
@@ -4828,7 +5230,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                         onChange={e => setSelectedToothDate(e.target.value)}
                         className="w-full bg-white border border-gray-100 rounded-xl px-4 py-2 text-xs font-bold text-gray-800 focus:outline-none"
                       />
-                    </div>
+                      
+    </div>
                   )}
 
                   <div className="space-y-2">
@@ -4843,8 +5246,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                           {sym}
                         </button>
                       ))}
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
 
                   <div className="space-y-2">
                     <label className="text-[8px] font-bold text-gray-400 block uppercase">Remedies Applied</label>
@@ -4858,8 +5263,10 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                           {rem}
                         </button>
                       ))}
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
 
                   <button
                     onClick={saveToothStatus}
@@ -4870,7 +5277,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+            
+    </div>
 
           {/* Daily Scheduled Activities */}
           <div className="space-y-4 text-left">
@@ -4884,12 +5292,15 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-3xl shadow-sm">
                           üß∏
-                        </div>
+                          
+    </div>
                         <div>
                           <p className="text-sm font-bold text-gray-800">{scheduled.title}</p>
                           <p className="text-[10px] font-black text-muted uppercase tracking-widest">{scheduled.time} ‚Ä¢ {scheduled.duration}</p>
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
                       <button 
                         onClick={() => {
                           const updated = scheduledActivities.map(a => a.id === scheduled.id ? { ...a, completed: !a.completed } : a);
@@ -4899,7 +5310,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                       >
                         <CheckCircle2 className="w-5 h-5" />
                       </button>
-                    </div>
+                      
+    </div>
 
                     {/* Energy, Concentration, Attention toggles */}
                     <div className="bg-white/60 p-4 rounded-2xl space-y-3 border border-white/50">
@@ -4907,7 +5319,8 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                         <div className="flex justify-between items-center text-[10px]">
                           <span className="font-bold text-gray-500">‚ö° Energy</span>
                           <span className="font-black text-primary uppercase">{scheduled.energy || 'Low'}</span>
-                        </div>
+                          
+    </div>
                         <div className="flex gap-2">
                           {['Low', 'Medium', 'High'].map(level => (
                             <button
@@ -4921,14 +5334,17 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                               {level === 'Low' ? 'üîã Low' : level === 'Medium' ? '‚ö° Med' : 'üî• High'}
                             </button>
                           ))}
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
 
                       <div className="space-y-1">
                         <div className="flex justify-between items-center text-[10px]">
                           <span className="font-bold text-gray-500">üß† Concentration</span>
                           <span className="font-black text-primary uppercase">{scheduled.concentration || 'Medium'}</span>
-                        </div>
+                          
+    </div>
                         <div className="flex gap-2">
                           {['Low', 'Medium', 'High'].map(level => (
                             <button
@@ -4942,14 +5358,17 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                               {level === 'Low' ? '‚òÅÔ∏è Low' : level === 'Medium' ? 'üß© Med' : 'üß† High'}
                             </button>
                           ))}
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
 
                       <div className="space-y-1">
                         <div className="flex justify-between items-center text-[10px]">
                           <span className="font-bold text-gray-500">üéØ Attention</span>
                           <span className="font-black text-primary uppercase">{scheduled.attention || 'Medium'}</span>
-                        </div>
+                          
+    </div>
                         <div className="flex gap-2">
                           {['Low', 'Medium', 'High'].map(level => (
                             <button
@@ -4963,23 +5382,32 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                               {level === 'Low' ? 'ü™Å Low' : level === 'Medium' ? 'üîç Med' : 'üéØ High'}
                             </button>
                           ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                          
+    </div>
+                        
+    </div>
+                      
+    </div>
+                    
+    </div>
                 );
               }) : (
                 <p className="text-xs text-gray-500 italic px-2">No planned activities for today.</p>
               )}
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
         </motion.div>
       )}
+      
     </div>
   );
 };
 
-const Journal = ({ 
+const Journal = ({  isPremium,
+  setIsSubscriptionModalOpen,
+ 
   onNavigate,
   navData,
   allMeals,
@@ -5025,6 +5453,8 @@ const Journal = ({
   userRole = 'admin',
   setUserRole
 }: { 
+  isPremium: boolean,
+  setIsSubscriptionModalOpen: (open: boolean) => void,
   onNavigate: (screen: string, data?: any, autoOpenLog?: boolean) => void,
   navData?: any,
   allMeals: any[],
@@ -5605,7 +6035,8 @@ const Journal = ({
             <FileText className="w-3.5 h-3.5" />
             <span>View Report</span>
           </button>
-        </div>
+          
+    </div>
       </header>
 
       {/* Clean Slate Confirmation Modal */}
@@ -5624,7 +6055,8 @@ const Journal = ({
                 <p className="text-xs text-gray-400 font-medium leading-relaxed">
                   Are you absolutely sure you want to wipe all logged meals, diaper entries, weekly plans, and fluid intake back to 0%? This action is permanent.
                 </p>
-              </div>
+                
+    </div>
 
               <div className="flex gap-2 pt-2">
                 <button 
@@ -5639,9 +6071,11 @@ const Journal = ({
                 >
                   Clear All
                 </button>
-              </div>
+                
+    </div>
             </motion.div>
-          </div>
+            
+    </div>
         )}
       </AnimatePresence>
 
@@ -5689,7 +6123,8 @@ const Journal = ({
         >
           Weekly Menu üõí
         </button>
-      </div>
+        
+    </div>
 
       <AnimatePresence mode="wait">
         {activeTab === 'daily' && (
@@ -5709,13 +6144,16 @@ const Journal = ({
           <div className="flex gap-2">
             <button onClick={handlePrevMonth} className="p-2 text-gray-400 hover:text-gray-800 transition-colors cursor-pointer border-none bg-transparent"><ChevronLeft className="w-5 h-5" /></button>
             <button onClick={handleNextMonth} className="p-2 text-gray-400 hover:text-gray-800 transition-colors cursor-pointer border-none bg-transparent"><ChevronRight className="w-5 h-5" /></button>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
         <div className="grid grid-cols-7 gap-2 mb-2 text-center">
           {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
             <div key={day} className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{day}</div>
           ))}
-        </div>
+          
+    </div>
         <div className="grid grid-cols-7 gap-2 text-center">
           {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} />)}
           {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -5739,8 +6177,10 @@ const Journal = ({
               </button>
             );
           })}
-        </div>
-      </div>
+          
+    </div>
+        
+    </div>
       
       {showAddPlan && (
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-card p-6 rounded-[32px] shadow-xl border border-white space-y-4">
@@ -5755,7 +6195,8 @@ const Journal = ({
                 <option value="vaccine">Immunization / Vaccine</option>
                 <option value="routine">Daily Routine / Care</option>
               </select>
-            </div>
+              
+    </div>
 
             {/* Meal dynamic fields */}
             {newPlanType === 'meal' && (
@@ -5768,7 +6209,8 @@ const Journal = ({
                     <option>Dinner</option>
                     <option>Snack</option>
                   </select>
-                </div>
+                  
+    </div>
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Select Meal Recipe</label>
                   <select className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium" value={newPlanTitle} onChange={e => setNewPlanTitle(e.target.value)}>
@@ -5777,7 +6219,8 @@ const Journal = ({
                       <option key={m.id} value={m.id}>{m.title}</option>
                     ))}
                   </select>
-                </div>
+                  
+    </div>
               </>
             )}
 
@@ -5787,7 +6230,8 @@ const Journal = ({
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Activity Name</label>
                   <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium outline-none text-gray-700" placeholder="e.g. Tummy Time" value={newPlanTitle} onChange={e => setNewPlanTitle(e.target.value)} />
-                </div>
+                  
+    </div>
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Duration</label>
                   <select className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium" value={newActivityDuration} onChange={e => setNewActivityDuration(e.target.value)}>
@@ -5798,7 +6242,8 @@ const Journal = ({
                     <option>45m</option>
                     <option>1h</option>
                   </select>
-                </div>
+                  
+    </div>
               </>
             )}
 
@@ -5808,11 +6253,13 @@ const Journal = ({
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Medication Name</label>
                   <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium outline-none text-gray-700" placeholder="e.g. Vitamin D" value={newPlanTitle} onChange={e => setNewPlanTitle(e.target.value)} />
-                </div>
+                  
+    </div>
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Dosage</label>
                   <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium outline-none text-gray-700" placeholder="e.g. 1 drop, 5ml" value={newMedDosage} onChange={e => setNewMedDosage(e.target.value)} />
-                </div>
+                  
+    </div>
               </>
             )}
 
@@ -5822,7 +6269,8 @@ const Journal = ({
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Vaccine Name</label>
                   <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium outline-none text-gray-700" placeholder="e.g. DTaP, MMR, Rotavirus" value={newPlanTitle} onChange={e => setNewPlanTitle(e.target.value)} />
-                </div>
+                  
+    </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Target Age</label>
@@ -5836,7 +6284,8 @@ const Journal = ({
                       <option>15 Months</option>
                       <option>18 Months</option>
                     </select>
-                  </div>
+                    
+    </div>
                   <div>
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Status</label>
                     <select className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium" value={newVaccineStatus} onChange={e => setNewVaccineStatus(e.target.value)}>
@@ -5844,8 +6293,10 @@ const Journal = ({
                       <option value="Completed">Completed</option>
                       <option value="Upcoming">Upcoming</option>
                     </select>
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
               </>
             )}
 
@@ -5862,11 +6313,13 @@ const Journal = ({
                     <option>Diaper Change Routine</option>
                     <option>Sensory Play</option>
                   </select>
-                </div>
+                  
+    </div>
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Custom Title / Notes (Optional)</label>
                   <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium outline-none text-gray-700" placeholder="e.g. Afternoon restorative nap" value={newPlanTitle} onChange={e => setNewPlanTitle(e.target.value)} />
-                </div>
+                  
+    </div>
               </>
             )}
 
@@ -5879,13 +6332,16 @@ const Journal = ({
                 const formattedHour = hour % 12 || 12;
                 setNewPlanTime(`${formattedHour.toString().padStart(2, '0')}:${m} ${ampm}`);
               }} />
-            </div>
+              
+    </div>
 
             <div className="flex gap-2">
               <button onClick={() => setShowAddPlan(false)} className="flex-1 py-3 rounded-full bg-gray-100 text-gray-600 font-bold text-xs uppercase tracking-widest cursor-pointer border-none">Close</button>
               <button onClick={handleAddPlan} className="flex-1 py-3 rounded-full bg-primary text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 cursor-pointer border-none">Add Plan</button>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
         </motion.div>
       )}
 
@@ -5899,7 +6355,8 @@ const Journal = ({
             <Plus className="w-3.5 h-3.5" />
             <span>Add Plan</span>
           </button>
-        </div>
+          
+    </div>
         <div className="bg-card rounded-[48px] shadow-xl shadow-card/20 border border-white p-8 relative overflow-hidden">
           <div className="relative space-y-4">
             {dayItems.length > 0 ? (
@@ -5907,18 +6364,21 @@ const Journal = ({
                 <div key={i} className="flex gap-4 items-center bg-gray-50 p-4 rounded-3xl text-left">
                   <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-2xl shadow-sm shrink-0">
                     {item.icon}
-                  </div>
+                    
+    </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-gray-800 text-sm">{item.title}</h3>
                     <p className="text-[9px] font-black text-primary uppercase tracking-widest">{item.category} ‚Ä¢ {item.time}</p>
-                  </div>
+                    
+    </div>
                   <button 
                     onClick={() => toggleItemCompletion(item)}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-gray-800 transition-colors cursor-pointer border-none ${item.completed ? 'bg-green-500' : 'bg-gray-200'}`}
                   >
                     <CheckCircle2 className="w-5 h-5 text-white" />
                   </button>
-                </div>
+                  
+    </div>
               ))
             ) : (
               <div 
@@ -5929,11 +6389,15 @@ const Journal = ({
                 <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-1.5 flex items-center justify-center gap-1">
                   <Plus className="w-3.5 h-3.5" /> Tap to schedule a plan for this day
                 </p>
-              </div>
+                
+    </div>
             )}
-          </div>
-        </div>
-      </div>
+            
+    </div>
+          
+    </div>
+        
+    </div>
 
       {/* List of logged meals for selected day */}
       <div className="space-y-6">
@@ -5951,14 +6415,18 @@ const Journal = ({
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl">
                         {meal.newFood || 'ü•£'}
-                      </div>
+                        
+    </div>
                       <div>
                         <p className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">{meal.logTime} ‚Ä¢ {meal.logType}</p>
                         <p className="text-sm font-black text-gray-800 mt-1 leading-tight">{meal.title}</p>
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
                     <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                  </div>
+                    
+    </div>
 
                   {isExpanded && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-4 border-t border-gray-100">
@@ -5969,45 +6437,55 @@ const Journal = ({
                             {[1, 2, 3, 4, 5].map(star => (
                               <Star key={star} className={`w-3 h-3 ${meal.appetising >= star ? 'text-amber-500 fill-amber-500' : 'text-gray-200'}`} />
                             ))}
-                          </div>
-                        </div>
+                            
+    </div>
+                          
+    </div>
                         <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-xs">
                           <p className="text-[8px] font-black text-primary uppercase tracking-widest">Acceptance</p>
                           <div className="flex gap-0.5 mt-1 justify-center">
                             {[1, 2, 3, 4, 5].map(star => (
                               <Star key={star} className={`w-3 h-3 ${meal.acceptance >= star ? 'text-amber-500 fill-amber-500' : 'text-gray-200'}`} />
                             ))}
-                          </div>
-                        </div>
+                            
+    </div>
+                          
+    </div>
                         <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-xs">
                           <p className="text-[8px] font-black text-primary uppercase tracking-widest">Satisfaction</p>
                           <div className="flex gap-0.5 mt-1 justify-center">
                             {[1, 2, 3, 4, 5].map(star => (
                               <Star key={star} className={`w-3 h-3 ${meal.satisfaction >= star ? 'text-amber-500 fill-amber-500' : 'text-gray-200'}`} />
                             ))}
-                          </div>
-                        </div>
-                      </div>
+                            
+    </div>
+                          
+    </div>
+                        
+    </div>
 
                       {meal.allergyReaction && (
                         <div className="bg-red-50 p-3 rounded-xl text-red-900 font-bold text-[10px] space-y-1.5 border border-red-200 flex flex-col items-start w-full shadow-xs">
                           <div className="flex items-center gap-1.5">
                             <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
                             <span className="font-black text-[9px] uppercase tracking-wider text-red-700">‚ö†Ô∏è ALLERGIC REACTION SUSPECTED</span>
-                          </div>
+                            
+    </div>
                           {meal.allergyNotes && (
                             <p className="text-[10px] text-gray-700 bg-white p-2.5 rounded-xl w-full leading-relaxed border border-red-100 border-solid">
                               {meal.allergyNotes}
                             </p>
                           )}
-                        </div>
+                          
+    </div>
                       )}
 
                       {meal.notes && (
                         <div className="bg-white p-3.5 rounded-2xl border border-gray-100 shadow-xs">
                           <p className="text-[8px] font-black text-primary uppercase tracking-widest mb-1 leading-none">Feedback / Notes</p>
                           <p className="text-gray-800 font-bold text-[11px] leading-relaxed">"{meal.notes}"</p>
-                        </div>
+                          
+    </div>
                       )}
 
                       <div className="flex justify-end pt-2">
@@ -6017,19 +6495,24 @@ const Journal = ({
                         >
                           <Trash2 className="w-3.5 h-3.5" /> Delete Log
                         </button>
-                      </div>
+                        
+    </div>
                     </motion.div>
                   )}
-                </div>
+                  
+    </div>
               );
             })
           ) : (
             <div className="bg-card p-6 rounded-[36px] border border-white text-center py-6 shadow-xl shadow-card/20">
               <p className="text-xs text-gray-600 font-bold italic">No meals logged for this date.</p>
-            </div>
+              
+    </div>
           )}
-        </div>
-      </div>
+          
+    </div>
+        
+    </div>
 
       {/* Observation Logs / Digestive & Diaper Tracker */}
       <div className="space-y-6">
@@ -6041,7 +6524,8 @@ const Journal = ({
           >
             + Log Diaper
           </button>
-        </div>
+          
+    </div>
 
         {/* Diaper Logger Modal */}
         <AnimatePresence>
@@ -6084,8 +6568,10 @@ const Journal = ({
                           {t === 'Wet' ? 'üíß Wet' : t === 'Dirty' ? 'üí© Dirty' : 'üîÑ Both'}
                         </button>
                       ))}
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
 
                   {/* Wet specific inputs */}
                   {diaperType !== 'Dirty' && (
@@ -6104,8 +6590,10 @@ const Journal = ({
                               {intensity === 'Light' ? 'üíß Light' : intensity === 'Medium' ? 'üíßüíß Med' : 'üíßüíßüíß Heavy'}
                             </button>
                           ))}
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
                       <div>
                         <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Diaper Weight (g)</label>
                         <input 
@@ -6115,7 +6603,8 @@ const Journal = ({
                           onChange={e => setWetWeight(e.target.value)}
                           className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium outline-none text-gray-700"
                         />
-                      </div>
+                        
+    </div>
                     </motion.div>
                   )}
 
@@ -6139,11 +6628,14 @@ const Journal = ({
                               <div className="space-y-0.5 leading-none">
                                 <p className="font-bold text-gray-800 text-[11px]">Type {scale.type} - {scale.name}</p>
                                 <p className="text-[9px] text-gray-400 font-medium">{scale.desc}</p>
-                              </div>
+                                
+    </div>
                             </button>
                           ))}
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
 
                       <div>
                         <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Stool Color</label>
@@ -6157,7 +6649,8 @@ const Journal = ({
                           <option value="Green">üü¢ Green</option>
                           <option value="Red/Black">üî¥ Alert (Red/Black)</option>
                         </select>
-                      </div>
+                        
+    </div>
 
                       <div>
                         <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Stool Consistency</label>
@@ -6171,7 +6664,8 @@ const Journal = ({
                           <option value="Hard">Hard</option>
                           <option value="Mucusy">Mucusy</option>
                         </select>
-                      </div>
+                        
+    </div>
                     </motion.div>
                   )}
 
@@ -6184,7 +6678,8 @@ const Journal = ({
                       onChange={e => setDiaperSymptoms(e.target.value)}
                       className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium outline-none text-gray-700"
                     />
-                  </div>
+                    
+    </div>
 
                   <div>
                     <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Notes / Logs</label>
@@ -6194,8 +6689,10 @@ const Journal = ({
                       onChange={e => setDiaperNotes(e.target.value)}
                       className="w-full bg-gray-50 border-none rounded-xl p-3 text-xs font-medium h-16 outline-none text-gray-700"
                     />
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
 
                 <div className="flex gap-2 pt-2">
                   <button 
@@ -6210,9 +6707,11 @@ const Journal = ({
                   >
                     Save Log
                   </button>
-                </div>
+                  
+    </div>
               </motion.div>
-            </div>
+              
+    </div>
           )}
         </AnimatePresence>
 
@@ -6232,8 +6731,10 @@ const Journal = ({
                           {diaper.type === 'Both' && ' ‚Ä¢ '}
                           {diaper.type !== 'Wet' && `Bristol Type ${diaper.stoolType}`}
                         </p>
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
 
                     {diaper.type !== 'Wet' && (
                       <div className="grid grid-cols-2 gap-3 bg-gray-50/50 p-3 rounded-2xl border border-solid border-gray-100/50">
@@ -6257,19 +6758,23 @@ const Journal = ({
                             />
                             {diaper.poopColor || 'Yellow'}
                           </span>
-                        </div>
+                          
+    </div>
                         <div>
                           <span className="font-black text-gray-400 uppercase tracking-wider text-[8px] block mb-0.5">Stool Consistency</span>
                           <span className="text-gray-800 font-bold text-[10px]">{diaper.poopConsistency || 'Normal'}</span>
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
                     )}
 
                     {diaper.recentFoods && diaper.recentFoods.length > 0 && (
                       <div className="text-[10px] font-semibold text-gray-500 bg-gray-50 p-2.5 rounded-xl leading-snug">
                         <span className="font-black text-gray-600 uppercase tracking-wider text-[8px] block mb-0.5">Correlated Foods in Last 24h:</span>
                         {diaper.recentFoods.join(', ')}
-                      </div>
+                        
+    </div>
                     )}
 
                     {diaper.symptoms && (
@@ -6281,14 +6786,16 @@ const Journal = ({
                     {diaper.notes && (
                       <p className="text-[11px] text-gray-500 leading-normal font-medium italic">"{diaper.notes}"</p>
                     )}
-                  </div>
+                    
+    </div>
                   <button 
                     onClick={() => handleDeleteDiaper(diaper.id)}
                     className="p-2 text-gray-300 hover:text-red-500 transition-colors cursor-pointer border-none bg-transparent"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
-                </div>
+                  
+    </div>
               ))
             ) : (
               <div className="text-center py-6">
@@ -6299,11 +6806,15 @@ const Journal = ({
                 >
                   Quick Log Now
                 </button>
-              </div>
+                
+    </div>
             )}
-          </div>
-        </div>
-      </div>
+            
+    </div>
+          
+    </div>
+        
+    </div>
 
       {/* Dynamic Date Reflection & Thoughts Preview Card */}
       <div className="space-y-4">
@@ -6315,14 +6826,16 @@ const Journal = ({
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider text-left">
               {selectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
-          </div>
+            
+    </div>
           <button 
             onClick={() => setActiveTab('diary')}
             className="px-3.5 py-1.5 rounded-full bg-white text-primary border border-gray-200 text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 cursor-pointer shadow-xs font-bold transition-transform active:scale-95"
           >
             Open Diary üìñ
           </button>
-        </div>
+          
+    </div>
         <div className="bg-card rounded-[48px] shadow-xl shadow-card/20 border border-white p-6 sm:p-8 text-left space-y-4">
           {todayDiaryEntries.length > 0 ? (
             <div className="space-y-3">
@@ -6333,12 +6846,15 @@ const Journal = ({
                       {entry.mood || '‚ú® Grateful'} ‚Ä¢ {entry.category || 'Thought'}
                     </span>
                     <span className="text-[10px] text-gray-400 font-bold">{entry.timestamp || ''}</span>
-                  </div>
+                    
+    </div>
                   <h4 className="font-serif font-bold text-gray-800 text-sm">{entry.title || 'Daily Reflection'}</h4>
                   <p className="text-xs text-gray-600 leading-relaxed font-sans">{entry.notes}</p>
-                </div>
+                  
+    </div>
               ))}
-            </div>
+              
+    </div>
           ) : (
             <div className="bg-white p-5 sm:p-6 rounded-3xl border border-gray-100 text-center py-5 space-y-3 shadow-xs">
               <p className="text-xs text-gray-500 font-medium">
@@ -6350,10 +6866,13 @@ const Journal = ({
               >
                 ‚úçÔ∏è Write {isToday ? "Today's" : isYesterday ? "Yesterday's" : selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} Story or Thought
               </button>
-            </div>
+              
+    </div>
           )}
-        </div>
-      </div>
+          
+    </div>
+        
+    </div>
 
       {/* Observation Notes (Caregiver Observations & Notes) */}
       <div className="space-y-6">
@@ -6365,33 +6884,41 @@ const Journal = ({
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Care Observations</p>
                   <p className="font-medium text-gray-800 text-xs">{currentObs.symptoms}</p>
-                </div>
+                  
+    </div>
               )}
               {currentObs.notes && (
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Caregiver Notes</p>
                   <p className="font-medium text-gray-800 text-xs leading-relaxed">{currentObs.notes}</p>
-                </div>
+                  
+    </div>
               )}
               {!currentObs.symptoms && !currentObs.notes && (
                 <p className="text-xs text-gray-400 italic px-2">No care observations or notes logged for this date.</p>
               )}
-            </div>
+              
+    </div>
           ) : (
             <div className="space-y-4">
               <div>
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Observations (If Any)</label>
                 <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-xs font-medium outline-none text-gray-700" placeholder="Fussiness, teething drool, mood changes..." value={obsSymptoms} onChange={e => setObsSymptoms(e.target.value)} />
-              </div>
+                
+    </div>
               <div>
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Caregiver Notes</label>
                 <textarea className="w-full bg-gray-50 border-none rounded-xl p-3 text-xs font-medium outline-none text-gray-700 h-20 resize-none" placeholder="Write any extra care details or meal reaction notes here..." value={obsNotes} onChange={e => setObsNotes(e.target.value)} />
-              </div>
+                
+    </div>
               <button onClick={saveObservation} className="w-full py-4 rounded-full bg-primary text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 cursor-pointer border-none">Save Care Notes</button>
-            </div>
+              
+    </div>
           )}
-        </div>
-      </div>
+          
+    </div>
+        
+    </div>
           </motion.div>
         )}
 
@@ -6406,7 +6933,8 @@ const Journal = ({
           >
             <div className="w-16 h-16 rounded-3xl bg-amber-100/80 text-amber-700 flex items-center justify-center text-3xl mx-auto shadow-inner">
               üîí
-            </div>
+              
+    </div>
             <div className="space-y-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
                 Village Privacy Protection
@@ -6417,7 +6945,8 @@ const Journal = ({
               <p className="text-xs text-gray-500 leading-relaxed">
                 Personal family reflections, emotional notes, and AI Keepsake Storybooks are protected and reserved for the primary family circle.
               </p>
-            </div>
+              
+    </div>
 
             <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100 text-left space-y-2.5 text-xs text-gray-600">
               <p className="font-bold text-gray-800 flex items-center gap-1.5">
@@ -6430,7 +6959,8 @@ const Journal = ({
                 <li>Track daily fluid & hydration milestones in real time</li>
                 <li>Set alarms and track scheduled medications and nap timers</li>
               </ul>
-            </div>
+              
+    </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <button
@@ -6447,7 +6977,8 @@ const Journal = ({
                   Switch to Admin (Parent) üëë
                 </button>
               )}
-            </div>
+              
+    </div>
           </motion.div>
         ) : activeTab === 'diary' && (
           <motion.div
@@ -6460,7 +6991,8 @@ const Journal = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <StorybookGenerator diaryEntries={loggedMoods && loggedMoods.length > 0 ? loggedMoods : observationLogs.filter(o => o.type === 'diary' || o.mood || o.notes)} babyName={babyName} />
               <MemorySlideshow memories={memories} babyName={babyName} onAddMemory={setMemories ? (m) => setMemories([...memories, m]) : undefined} />
-            </div>
+              
+    </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-left">
             {/* Selected Date Header Banner */}
@@ -6474,11 +7006,13 @@ const Journal = ({
                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 bg-white px-2.5 py-0.5 rounded-full border border-gray-100 shadow-2xs">
                       {selectedDateLabel}
                     </span>
-                  </div>
+                    
+    </div>
                   <h2 className="text-xl font-serif font-black text-gray-800 mt-2">
                     {selectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                   </h2>
-                </div>
+                  
+    </div>
                 <div className="flex items-center gap-1.5 self-start sm:self-auto">
                   <button 
                     onClick={() => {
@@ -6521,9 +7055,12 @@ const Journal = ({
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
-                </div>
-              </div>
-            </div>
+                  
+    </div>
+                
+    </div>
+              
+    </div>
 
             {/* Diary Entry Composer Form */}
             <div className="bg-card p-6 md:p-8 rounded-[40px] shadow-xl shadow-card/15 border border-white space-y-6">
@@ -6537,7 +7074,8 @@ const Journal = ({
                   <p className="text-xs text-gray-400 font-medium">
                     Saving for {selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
-                </div>
+                  
+    </div>
                 {editingDiaryId && (
                   <button 
                     onClick={() => {
@@ -6550,7 +7088,8 @@ const Journal = ({
                     Cancel Edit
                   </button>
                 )}
-              </div>
+                
+    </div>
 
               {/* Mood Selector Pills */}
               <div className="space-y-2">
@@ -6571,8 +7110,10 @@ const Journal = ({
                       {m.label}
                     </button>
                   ))}
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               {/* Category Tag Selector */}
               <div className="space-y-2">
@@ -6593,8 +7134,10 @@ const Journal = ({
                       {cat}
                     </button>
                   ))}
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               {/* Optional Entry Title Input */}
               <div className="space-y-1.5">
@@ -6608,7 +7151,8 @@ const Journal = ({
                   onChange={e => setDiaryTitle(e.target.value)}
                   className="w-full bg-white border border-gray-100 rounded-2xl p-3.5 text-sm font-semibold outline-none text-gray-800 focus:border-primary transition-all shadow-xs"
                 />
-              </div>
+                
+    </div>
 
               {/* Story / Thoughts Textarea */}
               <div className="space-y-1.5">
@@ -6625,7 +7169,8 @@ const Journal = ({
                 <p className="text-[10px] text-gray-400 italic">
                   üí° Prompt: {isToday ? "What brought you warmth or peace today? What did you discover about your baby or yourself?" : `What memories or feelings stood out on ${selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}?`}
                 </p>
-              </div>
+                
+    </div>
 
               {/* Save Button */}
               <button
@@ -6640,7 +7185,8 @@ const Journal = ({
                 <Sparkles className="w-4 h-4" />
                 <span>{editingDiaryId ? 'Update Diary Entry' : `Save Entry for ${selectedDateLabel}`}</span>
               </button>
-            </div>
+              
+    </div>
 
             {/* Diary Entries Feed & History Timeline */}
             <div className="space-y-6">
@@ -6656,7 +7202,8 @@ const Journal = ({
                       ? `Entries recorded for ${selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`
                       : 'Browse complete historical reflections'}
                   </p>
-                </div>
+                  
+    </div>
 
                 {/* Filter Switcher: Selected Date vs All */}
                 <div className="bg-gray-100 p-1 rounded-2xl flex border border-gray-200/50">
@@ -6676,8 +7223,10 @@ const Journal = ({
                   >
                     All Entries ({observationLogs.filter(o => o.type === 'diary' || (!o.type && o.notes && !o.symptoms)).length})
                   </button>
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               {/* Search Field */}
               <div className="relative">
@@ -6697,7 +7246,8 @@ const Journal = ({
                     Clear
                   </button>
                 )}
-              </div>
+                
+    </div>
 
               {/* Entries Timeline List */}
               <div className="space-y-4">
@@ -6718,11 +7268,13 @@ const Journal = ({
                             <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-lg bg-white text-gray-600 uppercase tracking-wider border border-gray-100">
                               {entry.category || 'Thought'}
                             </span>
-                          </div>
+                            
+    </div>
                           <h4 className="text-base font-serif font-black text-gray-800 pt-1">
                             {entry.title || 'Daily Reflection'}
                           </h4>
-                        </div>
+                          
+    </div>
                         <div className="text-right">
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                             {new Date(entry.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -6730,14 +7282,17 @@ const Journal = ({
                           {entry.timestamp && (
                             <p className="text-[10px] font-bold text-gray-400">{entry.timestamp}</p>
                           )}
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
 
                       <div className="bg-white p-4 rounded-2xl border border-gray-100">
                         <p className="text-sm font-sans text-gray-800 leading-relaxed whitespace-pre-wrap">
                           {entry.notes}
                         </p>
-                      </div>
+                        
+    </div>
 
                       <div className="flex justify-between items-center pt-1 border-t border-gray-100">
                         <button
@@ -6763,8 +7318,10 @@ const Journal = ({
                             <Trash2 className="w-3.5 h-3.5" />
                             <span>Delete</span>
                           </button>
-                        </div>
-                      </div>
+                          
+    </div>
+                        
+    </div>
                     </motion.div>
                   ))
                 ) : (
@@ -6779,11 +7336,15 @@ const Journal = ({
                         : `Your diary is empty. Start recording special moments and daily reflections above!`
                       }
                     </p>
-                  </div>
+                    
+    </div>
                 )}
-              </div>
-            </div>
-            </div>
+                
+    </div>
+              
+    </div>
+              
+    </div>
           </motion.div>
         )}
 
@@ -6802,10 +7363,11 @@ const Journal = ({
                 <div>
                   <h3 className="font-serif font-black text-gray-800 text-lg">Weekly Menu</h3>
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Plan Whole-Week Solid Foods</p>
-                </div>
+                  
+    </div>
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => onNavigate('ai-meal-planner')}
+                    onClick={() => isPremium ? onNavigate('ai-meal-planner') : setIsSubscriptionModalOpen(true)}
                     className="px-3.5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border-none font-bold flex items-center gap-1 shadow-sm"
                   >
                     <Sparkles className="w-3 h-3" />
@@ -6817,27 +7379,33 @@ const Journal = ({
                   >
                     Reset
                   </button>
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               {/* AI Meal Plan CTA Banner */}
               <div className="bg-gradient-to-r from-emerald-500/10 to-primary/10 p-4 rounded-3xl border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-white text-emerald-600 flex items-center justify-center text-xl shrink-0 shadow-xs">
                     ü•ó
-                  </div>
+                    
+    </div>
                   <div>
                     <p className="text-xs font-bold text-gray-800">Need an Age-Optimized Solid Food Plan?</p>
                     <p className="text-[10px] text-gray-500 font-medium">Auto-generate 7 days of nutrient-targeted meals + localized grocery list</p>
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
                 <button
-                  onClick={() => onNavigate('ai-meal-planner')}
+                  onClick={() => isPremium ? onNavigate('ai-meal-planner') : setIsSubscriptionModalOpen(true)}
                   className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-2xl cursor-pointer border-none transition-transform active:scale-95 whitespace-nowrap self-stretch sm:self-auto"
                 >
                   Generate 7-Day Plan ‚Üí
                 </button>
-              </div>
+                
+    </div>
 
               <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
                 {WEEK_DAYS.map(day => (
@@ -6860,7 +7428,8 @@ const Journal = ({
                                 >
                                   ‚úï
                                 </button>
-                              </div>
+                                
+    </div>
                             ) : (
                               <button 
                                 onClick={() => setShowRecipePicker({ day, slot })}
@@ -6869,14 +7438,19 @@ const Journal = ({
                                 + Add
                               </button>
                             )}
-                          </div>
+                            
+    </div>
                         );
                       })}
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
                 ))}
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             {/* Automated Grocery Checklist */}
             <div className="bg-card p-6 rounded-[48px] shadow-xl shadow-card/15 border border-white space-y-5 text-left">
@@ -6885,8 +7459,10 @@ const Journal = ({
                 <div>
                   <h3 className="font-serif font-black text-gray-800 text-lg leading-tight">Automated Grocery Checklist</h3>
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Consolidated Ingredients for Shopping</p>
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               <div className="space-y-2">
                 {consolidatedGroceries.length > 0 ? (
@@ -6905,11 +7481,13 @@ const Journal = ({
                             isChecked ? 'bg-green-500 border-green-500 text-white' : 'border-gray-200 bg-gray-50'
                           }`}>
                             {isChecked && '‚úì'}
-                          </div>
+                            
+    </div>
                           <span className={`text-xs font-bold text-gray-700 ${isChecked ? 'line-through text-gray-400' : ''}`}>
                             {item.name}
                           </span>
-                        </div>
+                          
+    </div>
                         <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full shrink-0">
                           {item.count} meals ({item.amounts.join(', ')})
                         </span>
@@ -6922,10 +7500,13 @@ const Journal = ({
                     <p className="text-[10px] text-gray-400 font-medium px-6 mt-1">
                       Assign recipes to days in the planner above to automatically parse and compile ingredients here!
                     </p>
-                  </div>
+                    
+    </div>
                 )}
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -6956,14 +7537,17 @@ const Journal = ({
                   >
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl shrink-0 shadow-sm">
                       {recipe.newFood || 'ü•£'}
-                    </div>
+                      
+    </div>
                     <div className="space-y-0.5 leading-tight">
                       <p className="font-bold text-gray-800 text-xs">{recipe.title}</p>
                       <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">{recipe.stage}</p>
-                    </div>
+                      
+    </div>
                   </button>
                 ))}
-              </div>
+                
+    </div>
 
               <button 
                 onClick={() => setShowRecipePicker(null)} 
@@ -6972,7 +7556,8 @@ const Journal = ({
                 Close
               </button>
             </motion.div>
-          </div>
+            
+    </div>
         )}
       </AnimatePresence>
 
@@ -6991,6 +7576,10 @@ const Journal = ({
               </button>
               <button 
                 onClick={async () => {
+                  if (!isPremium) {
+                    setIsSubscriptionModalOpen(true);
+                    return;
+                  }
                   const element = document.getElementById('print-report-content');
                   if (!element) return;
                   try {
@@ -7015,7 +7604,8 @@ const Journal = ({
                 <Printer className="w-4 h-4" />
                 <span>Export PDF</span>
               </button>
-            </div>
+              
+    </div>
 
             {/* Document body container */}
             <div id="print-report-content" className="max-w-2xl mx-auto w-full border border-solid border-gray-100 rounded-3xl p-8 space-y-8 bg-white shadow-xl print:shadow-none print:border-none print:p-0">
@@ -7028,14 +7618,18 @@ const Journal = ({
                     <h2 className="text-3xl font-serif font-black text-gray-800">
                       Baby's Progress
                     </h2>
-                  </div>
+                    
+    </div>
                   <p className="text-xs text-gray-500 font-medium">Generated on {new Date().toLocaleDateString('default', { dateStyle: 'long' })} ‚Ä¢ Patient age: {latestGrowthLog ? latestGrowthLog.month : 'Not Set'}</p>
-                </div>
+                  
+    </div>
                 <div className="text-right space-y-1">
                   <p className="text-lg font-serif font-bold text-primary">Ama</p>
                   <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest leading-none">Baby Companion App</p>
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               {/* Quick Health Indicators Cards Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -7047,7 +7641,8 @@ const Journal = ({
                   <p className="text-[9px] font-bold text-gray-400 leading-none mt-1">
                     {latestGrowthLog ? `${getLatestWeightPercentile(latestGrowthLog.weight)}th percentile` : 'No data logged'}
                   </p>
-                </div>
+                  
+    </div>
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 text-center space-y-1">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Latest Height</p>
                   <p className="text-xl font-bold text-gray-800 leading-none">
@@ -7056,12 +7651,14 @@ const Journal = ({
                   <p className="text-[9px] font-bold text-gray-400 leading-none mt-1">
                     {latestGrowthLog ? `${getLatestHeightPercentile(latestGrowthLog.height)}th percentile` : 'No data logged'}
                   </p>
-                </div>
+                  
+    </div>
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 text-center space-y-1">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Fluid Intake Today</p>
                   <p className="text-xl font-bold text-gray-800 leading-none">{fluidMl} ml</p>
                   <p className="text-[9px] font-bold text-gray-400 leading-none mt-1">Target: {fluidTarget} ml</p>
-                </div>
+                  
+    </div>
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 text-center space-y-1">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Growth Quests Completed</p>
                   <p className="text-xl font-bold text-gray-800 leading-none">
@@ -7070,8 +7667,10 @@ const Journal = ({
                   <p className="text-[9px] font-bold text-green-600 leading-none mt-1">
                     {dailyStreak > 0 ? `${dailyStreak} Day Streak Active` : 'No Active Streak'}
                   </p>
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               {/* Solids & Foods Milestone Summary Section */}
               <div className="space-y-4">
@@ -7086,11 +7685,13 @@ const Journal = ({
                             ‚úì {a.name}
                           </span>
                         ))}
-                      </div>
+                        
+    </div>
                     ) : (
                       <p className="text-[11px] text-gray-400 italic">No allergens cleared yet.</p>
                     )}
-                  </div>
+                    
+    </div>
                   <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 space-y-2">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Under-monitoring / Suspected</p>
                     {suspectedAllergensList.length > 0 ? (
@@ -7100,12 +7701,15 @@ const Journal = ({
                             ‚ö†Ô∏è {a.name}
                           </span>
                         ))}
-                      </div>
+                        
+    </div>
                     ) : (
                       <p className="text-[11px] text-gray-400 italic">No suspected reaction allergens recorded.</p>
                     )}
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
 
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 space-y-2">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Introduced Ingredients Log</p>
@@ -7116,8 +7720,10 @@ const Journal = ({
                   ) : (
                     <p className="text-xs text-gray-400 italic font-medium">No solid meals logged yet. Baby is fully on milk/formula plan.</p>
                   )}
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               {/* Digestive & Symptoms Tracker Section */}
               <div className="space-y-4">
@@ -7127,18 +7733,22 @@ const Journal = ({
                     <div className="leading-none space-y-1">
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Wet Diapers</p>
                       <p className="font-bold text-gray-800 text-sm">{totalWetDiapers} Logged</p>
-                    </div>
+                      
+    </div>
                     <div className="leading-none space-y-1">
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Dirty Diapers</p>
                       <p className="font-bold text-gray-800 text-sm">{totalDirtyDiapers} Logged</p>
-                    </div>
+                      
+    </div>
                     <div className="leading-none space-y-1">
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Average Stool Type</p>
                       <p className="font-bold text-gray-800 text-sm">
                         Type {avgStoolType} - {avgStoolType === 4 ? 'Optimal Smooth' : avgStoolType > 4 ? 'Loose' : 'Hard'}
                       </p>
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
 
                   {reactionMealsList.length > 0 && (
                     <div className="bg-red-50 border border-solid border-red-100 p-3 rounded-xl space-y-1">
@@ -7150,10 +7760,13 @@ const Journal = ({
                           </li>
                         ))}
                       </ul>
-                    </div>
+                      
+    </div>
                   )}
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               {/* Medication History Section */}
               <div className="space-y-4">
@@ -7170,7 +7783,8 @@ const Journal = ({
                     ) : (
                       <p className="text-[11px] text-gray-400 italic">No recent medications logged.</p>
                     )}
-                  </div>
+                    
+    </div>
                   
                   <div className="space-y-2 mt-4 pt-4 border-t border-gray-100">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Vaccine Status</p>
@@ -7183,26 +7797,34 @@ const Journal = ({
                     ) : (
                       <p className="text-[11px] text-gray-400 italic">No vaccines recorded.</p>
                     )}
-                  </div>
-                </div>
-              </div>
+                    
+    </div>
+                  
+    </div>
+                
+    </div>
 
               {/* Notes block for caregiver use */}
               <div className="border-t border-gray-200 pt-6 space-y-3">
                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Review & Recommendations</p>
                 <div className="h-24 w-full border border-dashed border-gray-200 rounded-2xl bg-gray-50/30 p-4">
                   <p className="text-[10px] text-gray-300 italic">Review notes space... (Print to write down or fill manually)</p>
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               {/* Footer details */}
               <footer className="text-center text-[10px] text-gray-400 font-medium pt-4 border-t border-gray-100">
                 Ama - Smart Weaning Companion App ‚Ä¢ Secured caregiver PDF report document.
               </footer>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
         )}
       </AnimatePresence>
+      
     </div>
   );
 };
@@ -7245,7 +7867,8 @@ const AddRecipeScreen = ({ onBack, onSave }: { onBack: () => void; onSave: (reci
               placeholder="e.g. Creamy Avocado Puree"
               className="w-full bg-transparent text-2xl font-serif font-black text-gray-800 focus:outline-none placeholder:text-gray-200"
             />
-          </div>
+            
+    </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</label>
             <textarea 
@@ -7254,7 +7877,8 @@ const AddRecipeScreen = ({ onBack, onSave }: { onBack: () => void; onSave: (reci
               placeholder="Tell us about this recipe..."
               className="w-full bg-transparent text-sm font-medium text-muted focus:outline-none placeholder:text-gray-200 min-h-[100px] resize-none"
             />
-          </div>
+            
+    </div>
           <div className="space-y-3 pt-2">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Recipe Category</label>
             <div className="flex gap-2 flex-wrap">
@@ -7270,9 +7894,12 @@ const AddRecipeScreen = ({ onBack, onSave }: { onBack: () => void; onSave: (reci
                   {cat}
                 </button>
               ))}
-            </div>
-          </div>
-        </div>
+              
+    </div>
+            
+    </div>
+          
+    </div>
 
         <div className="space-y-6">
           <div className="flex justify-between items-center px-2">
@@ -7280,7 +7907,8 @@ const AddRecipeScreen = ({ onBack, onSave }: { onBack: () => void; onSave: (reci
             <button onClick={handleAddIngredient} className="text-primary">
               <PlusCircle className="w-6 h-6" />
             </button>
-          </div>
+            
+    </div>
           <div className="space-y-4">
             {ingredients.map((ing, i) => (
               <div key={i} className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-50 flex gap-4">
@@ -7306,10 +7934,13 @@ const AddRecipeScreen = ({ onBack, onSave }: { onBack: () => void; onSave: (reci
                   }}
                   className="w-20 bg-transparent font-bold text-primary text-right focus:outline-none placeholder:text-primary/20"
                 />
-              </div>
+                
+    </div>
             ))}
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         <div className="space-y-6">
           <div className="flex justify-between items-center px-2">
@@ -7317,7 +7948,8 @@ const AddRecipeScreen = ({ onBack, onSave }: { onBack: () => void; onSave: (reci
             <button onClick={handleAddStep} className="text-primary">
               <PlusCircle className="w-6 h-6" />
             </button>
-          </div>
+            
+    </div>
           <div className="space-y-4">
             {steps.map((step, i) => (
               <div key={i} className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-50 flex gap-4">
@@ -7332,10 +7964,13 @@ const AddRecipeScreen = ({ onBack, onSave }: { onBack: () => void; onSave: (reci
                   }}
                   className="flex-1 bg-transparent font-medium text-gray-800 focus:outline-none min-h-[60px] resize-none placeholder:text-gray-200"
                 />
-              </div>
+                
+    </div>
             ))}
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         <button 
           onClick={() => {
@@ -7347,8 +7982,10 @@ const AddRecipeScreen = ({ onBack, onSave }: { onBack: () => void; onSave: (reci
         >
           Save Recipe
         </button>
-        </div>
-      </div>
+          
+    </div>
+        
+    </div>
     </motion.div>
   );
 };
@@ -7638,10 +8275,12 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
           <div className="text-center">
             <h1 className="font-serif text-xl font-black text-gray-800 tracking-wide">Growth Activities</h1>
             <p className="text-[10px] text-[#37b1f5] font-extrabold uppercase tracking-widest">Active & Mindful Play</p>
-          </div>
+            
+    </div>
           <div className="w-11 h-11 rounded-full bg-[#FFD6E8] flex items-center justify-center text-pink-500 shadow-xs">
             <Trophy className="w-6 h-6" />
-          </div>
+            
+    </div>
         </header>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
@@ -7653,14 +8292,18 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                 <span className="text-[8px] font-black uppercase tracking-widest opacity-80">Lifetime Progress</span>
                 <h3 className="text-2xl font-serif font-black">Level {level}</h3>
                 <p className="text-[10px] font-bold opacity-90">{allTimePoints} total points</p>
-              </div>
+                
+    </div>
               <div className="space-y-2 relative z-10">
                 <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden shadow-inner border border-solid border-white/10">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className="bg-[#ffd700] h-full rounded-full shadow-sm" />
-                </div>
+                  
+    </div>
                 <p className="text-[8px] font-black uppercase tracking-widest opacity-80 text-right">Next Lvl: {pointsToNextLevel} pts</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             <div className="bg-[#FFD6E8] p-6 rounded-[36px] text-pink-900 space-y-4 border border-solid border-white/50 shadow-xl shadow-pink-200/20 relative overflow-hidden flex flex-col justify-between min-h-[150px] text-left">
               <div className="absolute top-0 right-0 w-24 h-24 bg-white/30 rounded-full -mr-10 -mt-10 blur-xl" />
@@ -7669,14 +8312,19 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-2xl font-serif font-black">{dailyStreak} Days</h3>
                   <Flame className="w-6 h-6 text-[#ffd700] animate-pulse fill-current drop-shadow-sm" />
-                </div>
+                  
+    </div>
                 <p className="text-[10px] font-bold text-pink-700/80">{dailyStreak > 0 ? "Doing spectacular!" : "Start today!"}</p>
-              </div>
+                
+    </div>
               <div className="relative z-10 text-[8px] font-black uppercase tracking-wider bg-white/60 text-pink-700 py-1.5 px-3 rounded-xl text-center shadow-xs">
                 {activities.length > 0 && activities.every(a => a.isCompleted) ? "All Completed! üéâ" : "Goal: 3 Quests"}
-              </div>
-            </div>
-          </div>
+                
+    </div>
+              
+    </div>
+            
+    </div>
 
           {/* Activities List */}
           <div className="space-y-4">
@@ -7684,7 +8332,8 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
               <div>
                 <h2 className="text-lg font-serif font-black text-gray-800 text-left">Daily Quests</h2>
                 <p className="text-[10px] text-[#37b1f5] font-bold">Complete quests daily to level up</p>
-              </div>
+                
+    </div>
               <button 
                 onClick={handleReroll} 
                 disabled={isRerolling} 
@@ -7693,7 +8342,8 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                 <RefreshCw className={`w-3 h-3 ${isRerolling ? 'animate-spin' : ''}`} />
                 <span>Reroll</span>
               </button>
-            </div>
+              
+    </div>
 
             <div className="space-y-3">
               {activities.length > 0 ? (
@@ -7711,27 +8361,34 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                     <div className="flex items-center gap-4">
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-xs shrink-0 ${activity.isCompleted ? 'bg-emerald-100' : 'bg-[#D2E9F9]'}`}>
                         {activity.isCompleted ? '‚úì' : activity.icon}
-                      </div>
+                        
+    </div>
                       <div className="flex-1 space-y-1">
                         <div className="flex justify-between items-center">
                           <h3 className="font-bold text-gray-800 text-xs leading-tight">{activity.title}</h3>
                           <span className={`text-[9px] font-black uppercase tracking-widest shrink-0 px-2 py-1 rounded-md ${activity.isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-[#ffd700]/20 text-yellow-700'}`}>
                             +{activity.points} pts
                           </span>
-                        </div>
+                          
+    </div>
                         <p className="text-[11px] text-gray-400 leading-relaxed font-medium line-clamp-1">{activity.description}</p>
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
                   </motion.div>
                 ))
               ) : (
                 <div className="bg-white/50 backdrop-blur border border-solid border-white p-8 rounded-[36px] text-center shadow-sm">
                   <p className="text-xs font-bold text-[#37b1f5] mb-3">No quests active today.</p>
                   <button onClick={handleReroll} className="px-5 py-3 bg-[#37b1f5] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border-none cursor-pointer shadow-md">Generate Quests</button>
-                </div>
+                  
+    </div>
               )}
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
 
           {/* Daily Quest Tracker */}
           <div className="bg-white rounded-[40px] border border-solid border-white p-6 space-y-6 shadow-sm text-left">
@@ -7740,18 +8397,23 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
               <div>
                 <h3 className="text-sm font-bold text-gray-800">Daily Quest Tracker</h3>
                 <p className="text-[10px] text-gray-400">Target: {questGoal} mins daily</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             <div className="flex items-center justify-between gap-4 bg-[#FDFBF7] p-4 rounded-3xl border border-solid border-gray-100">
               <div className="flex flex-col">
                 <span className="text-[10px] font-black text-pink-400 uppercase tracking-widest">Today's Progress</span>
                 <span className="text-xl font-serif font-black text-gray-800">{Math.round(questTimeToday)} min</span>
-              </div>
+                
+    </div>
               <div className="font-mono text-sm bg-white border border-solid border-gray-100 shadow-xs text-pink-500 px-3 py-1.5 rounded-xl font-bold">
                 {Math.floor(qtSeconds / 60)}m {(qtSeconds % 60).toString().padStart(2, '0')}s
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             <div className="space-y-3">
               <label className="text-[8px] font-black text-gray-400 block uppercase tracking-widest">Quest Name</label>
@@ -7766,7 +8428,8 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                 <option>Motor Skills</option>
                 <option>Reading</option>
               </select>
-            </div>
+              
+    </div>
 
             <div className="flex gap-2">
               <button
@@ -7785,7 +8448,8 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                   Save
                 </button>
               )}
-            </div>
+              
+    </div>
 
             {questLogs.length > 0 && (
               <div className="space-y-3 pt-2">
@@ -7796,14 +8460,19 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                       <div>
                         <p className="font-bold text-gray-800">‚úÖ {log.name}</p>
                         <p className="text-[9px] text-gray-400 mt-1">{log.time} ‚Ä¢ {log.date}</p>
-                      </div>
+                        
+    </div>
                       <span className="bg-[#FFD6E8] text-pink-600 px-3 py-1.5 rounded-xl text-[10px] font-black">{log.minutes}m</span>
-                    </div>
+                      
+    </div>
                   ))}
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
             )}
-          </div>
+            
+    </div>
 
           {/* Developmental Milestones Checklist Card */}
           <div className="bg-white rounded-[40px] border border-solid border-white p-6 space-y-6 shadow-sm text-left">
@@ -7812,8 +8481,10 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
               <div>
                 <h3 className="text-sm font-bold text-gray-800">Developmental Milestones</h3>
                 <p className="text-[10px] text-gray-400">CDC-aligned age standards (gamified +15 XP)</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             {/* Age selectors */}
             <div className="flex gap-1 bg-gray-50 p-1 rounded-2xl overflow-x-auto">
@@ -7826,7 +8497,8 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                   {age}
                 </button>
               ))}
-            </div>
+              
+    </div>
 
             {/* CDC standard milestone items */}
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -7840,16 +8512,21 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                   >
                     <div className={`w-5 h-5 rounded-full border-2 border-solid flex items-center justify-center transition-colors shrink-0 ${isChecked ? 'bg-emerald-500 border-emerald-500 text-white text-[9px] font-black' : 'border-gray-200'}`}>
                       {isChecked && '‚úì'}
-                    </div>
+                      
+    </div>
                     <div className="space-y-1">
                       <p className="text-xs font-bold text-gray-800 leading-tight">{m.text}</p>
                       <span className="text-[8px] font-black uppercase text-emerald-600 tracking-wider bg-emerald-100/40 px-1.5 py-0.5 rounded-md">{m.category}</span>
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
                 );
               })}
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
 
           {/* Book Reading Logger Section */}
           <div className="bg-white rounded-[40px] border border-solid border-white p-6 space-y-6 shadow-sm text-left">
@@ -7858,8 +8535,10 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
               <div>
                 <h3 className="text-sm font-bold text-gray-800">Reading & Language Session</h3>
                 <p className="text-[10px] text-gray-400">Build your child's core vocabulary early</p>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             {/* Interactive Gamified Language Quests */}
             <div className="space-y-3">
@@ -7876,10 +8555,13 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                         <div className="flex items-center gap-2">
                           <p className="text-xs font-black text-gray-800 leading-tight">{quest.name}</p>
                           <span className="text-[8px] font-black uppercase text-yellow-700 bg-amber-100 px-1.5 py-0.5 rounded">+{quest.points} XP</span>
-                        </div>
+                          
+    </div>
                         <p className="text-[10px] text-gray-500 leading-relaxed font-medium">{quest.description}</p>
-                      </div>
-                    </div>
+                        
+    </div>
+                      
+    </div>
                     <div className="flex gap-2 shrink-0 justify-end">
                       <button
                         onClick={() => {
@@ -7909,11 +8591,15 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                       >
                         ‚ö° Quick Log
                       </button>
-                    </div>
-                  </div>
+                      
+    </div>
+                    
+    </div>
                 ))}
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             <div className="bg-[#D2E9F9]/30 p-5 rounded-3xl space-y-4 border border-solid border-[#D2E9F9]">
               <div className="space-y-3">
@@ -7933,7 +8619,8 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                       onChange={e => setNewBookMin(e.target.value)}
                       className="w-full bg-white border border-solid border-white rounded-xl px-4 py-2.5 text-xs font-bold text-gray-800 focus:outline-none shadow-xs"
                     />
-                  </div>
+                    
+    </div>
                   <div>
                     <label className="text-[8px] font-black text-[#37b1f5] block mb-1.5 uppercase tracking-wider">Reaction</label>
                     <select
@@ -7946,16 +8633,20 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                       <option>üë∂ Grabby</option>
                       <option>ü•± Sleepy</option>
                     </select>
-                  </div>
-                </div>
+                    
+    </div>
+                  
+    </div>
                 <button
                   onClick={handleAddReadingLog}
                   className="w-full bg-[#37b1f5] text-white py-3.5 rounded-2xl font-black text-[9px] uppercase tracking-widest cursor-pointer border-none hover:bg-blue-500 transition-all shadow-md mt-2"
                 >
                   Log Reading Session
                 </button>
-              </div>
-            </div>
+                
+    </div>
+              
+    </div>
 
             {readingLogs.length > 0 && (
               <div className="space-y-3">
@@ -7966,14 +8657,19 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                       <div>
                         <p className="font-bold text-gray-800">üìñ {log.title}</p>
                         <p className="text-[9px] text-gray-400 mt-1">Reaction: {log.reaction} ‚Ä¢ {log.date}</p>
-                      </div>
+                        
+    </div>
                       <span className="bg-[#D2E9F9] text-[#37b1f5] px-3 py-1.5 rounded-xl text-[10px] font-black">{log.minutes}m</span>
-                    </div>
+                      
+    </div>
                   ))}
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
             )}
-          </div>
+            
+    </div>
 
           {/* Growth Tracker & Chart moved to Quests Tab with matching color palette */}
           <div className="bg-white p-6 rounded-[40px] border border-solid border-white shadow-sm space-y-6">
@@ -7981,7 +8677,8 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
               <div>
                 <h2 className="text-sm font-bold text-gray-800">Baby Growth Curve</h2>
                 <p className="text-[10px] text-gray-400">Weight, Height & Head Circumference</p>
-              </div>
+                
+    </div>
               <button
                 onClick={predictGrowth}
                 disabled={isPredictingGrowth || growthLogs.length === 0}
@@ -7989,7 +8686,8 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
               >
                 <span>‚ú®</span> {isPredictingGrowth ? 'Predicting...' : 'AI Forecast'}
               </button>
-            </div>
+              
+    </div>
             
             <div className="h-52 w-full pr-4">
               <ResponsiveContainer width="100%" height="100%">
@@ -8004,7 +8702,8 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                   <Line yAxisId="right" type="monotone" dataKey="head" stroke="#ffd700" strokeWidth={2.5} strokeDasharray="4 4" dot={{ r: 3, fill: '#ffd700' }} name="Head (cm)" />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+              
+    </div>
 
             {/* Growth Logger inputs */}
             <div className="bg-gray-50/50 p-4 rounded-3xl border border-solid border-gray-100 space-y-3">
@@ -8013,32 +8712,40 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                 <div>
                   <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Age</label>
                   <input type="text" value={newMonth} onChange={e => setNewMonth(e.target.value)} placeholder="e.g. 7m" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
-                </div>
+                  
+    </div>
                 <div>
                   <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Wt (kg)</label>
                   <input type="number" step="0.1" value={newWeight} onChange={e => setNewWeight(e.target.value)} placeholder="e.g. 8.2" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
-                </div>
+                  
+    </div>
                 <div>
                   <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Ht (cm)</label>
                   <input type="number" step="0.5" value={newHeight} onChange={e => setNewHeight(e.target.value)} placeholder="e.g. 68" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
-                </div>
+                  
+    </div>
                 <div>
                   <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Head (cm)</label>
                   <input type="number" step="0.5" value={newHead} onChange={e => setNewHead(e.target.value)} placeholder="e.g. 43" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
               <button onClick={handleLogGrowth} className="w-full bg-[#37b1f5] text-white py-3 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-blue-500 shadow-sm transition-all flex items-center justify-center gap-1 border-none cursor-pointer">
                 <PlusCircle className="w-4 h-4" /> Save Growth Entry (+30 pts)
               </button>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
 
           {/* Rewards Drawer */}
           <div className="bg-white rounded-[40px] border border-solid border-white p-6 space-y-5 shadow-sm text-left">
             <div className="px-2">
               <h2 className="text-sm font-bold text-gray-800">Milestone Rewards</h2>
               <p className="text-[10px] text-[#37b1f5] font-bold">Keep achievements unlocked</p>
-            </div>
+              
+    </div>
             <div className="grid grid-cols-3 gap-4">
               {rewards.map(reward => (
                 <div 
@@ -8056,10 +8763,13 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                   ) : (
                     <span className="text-[7px] text-gray-400 font-bold uppercase tracking-widest">Locked</span>
                   )}
-                </div>
+                  
+    </div>
               ))}
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
         </motion.div>
 
       {/* Quest Detail Modal */}
@@ -8088,7 +8798,8 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
               
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-sm mb-4 bg-[#D2E9F9]">
                 {selectedActivity.icon}
-              </div>
+                
+    </div>
               
               <div className="space-y-4">
                 <div>
@@ -8099,24 +8810,29 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
                     <span className="text-[8px] font-black uppercase tracking-widest px-2 py-1 bg-[#37b1f5]/10 text-[#37b1f5] rounded-md">
                       {selectedActivity.category}
                     </span>
-                  </div>
+                    
+    </div>
                   <h2 className="text-xl font-serif font-black text-gray-800 leading-tight">{selectedActivity.title}</h2>
-                </div>
+                  
+    </div>
                 
                 <div className="bg-gray-50 p-4 rounded-3xl border border-solid border-gray-100 space-y-2">
                   <h3 className="text-xs font-bold text-gray-800">Why it's important</h3>
                   <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
                     {selectedActivity.description}
                   </p>
-                </div>
+                  
+    </div>
                 
                 <div className="bg-[#FFD6E8]/30 p-4 rounded-3xl border border-solid border-pink-100 space-y-2">
                   <h3 className="text-xs font-bold text-gray-800">How to perform</h3>
                   <p className="text-[11px] text-gray-600 leading-relaxed font-medium">
                     Ensure baby is fed and rested. Start in a quiet environment. Perform the activity for 5-10 minutes. If baby gets fuzzy, pause and try again later. Focus on eye contact and gentle communication throughout.
                   </p>
-                </div>
-              </div>
+                  
+    </div>
+                
+    </div>
 
               <button
                 onClick={completeSelectedActivity}
@@ -8133,7 +8849,8 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
           </motion.div>
         )}
       </AnimatePresence>
-      </div>
+        
+    </div>
     </motion.div>
   );
 };
@@ -8210,11 +8927,13 @@ const RemindersScreen = ({
                 <option>Activity</option>
                 <option>Other</option>
               </select>
-            </div>
+              
+    </div>
             <div>
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Title</label>
               <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium" placeholder="e.g. Vitamin D Drops" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
-            </div>
+              
+    </div>
             <div>
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Time</label>
               <input type="time" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium" value={newTime.replace(/ [AP]M/, '')} onChange={e => {
@@ -8224,12 +8943,15 @@ const RemindersScreen = ({
                 const formattedHour = hour % 12 || 12;
                 setNewTime(`${formattedHour.toString().padStart(2, '0')}:${m} ${ampm}`);
               }} />
-            </div>
+              
+    </div>
             <div className="flex gap-2">
               <button onClick={() => setShowAdd(false)} className="flex-1 py-3 rounded-full bg-gray-100 text-gray-600 font-bold text-xs uppercase tracking-widest">Cancel</button>
               <button onClick={handleAdd} className="flex-1 py-3 rounded-full bg-primary text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20">Save</button>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
         </motion.div>
       )}
 
@@ -8239,15 +8961,19 @@ const RemindersScreen = ({
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-3xl shadow-sm">
                 {getTypeIcon(notif.type)}
-              </div>
+                
+    </div>
               <div>
                 <p className="text-sm font-bold text-gray-800">{notif.title}</p>
                 <div className="flex items-center gap-2 text-muted mt-1">
                   <Clock className="w-3 h-3" />
                   <span className="text-[10px] font-black uppercase tracking-widest">{notif.time}</span>
-                </div>
-              </div>
-            </div>
+                  
+    </div>
+                
+    </div>
+              
+    </div>
             <button 
               onClick={() => {
                 setReminders(reminders.map(r => r.id === notif.id ? { ...r, active: !r.active } : r));
@@ -8260,7 +8986,9 @@ const RemindersScreen = ({
         )) : (
           <p className="text-center text-gray-400 text-sm italic mt-10">No reminders set.</p>
         )}
-      </div>
+        
+    </div>
+      
     </div>
   );
 };
@@ -8306,22 +9034,29 @@ const NotificationsScreen = ({
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-2xl shadow-sm">
                   üîî
-                </div>
+                  
+    </div>
                 <div>
                   <p className="text-sm font-bold text-gray-800">{notif.title}</p>
                   <div className="flex items-center gap-2 text-muted mt-1">
                     <Clock className="w-3 h-3" />
                     <span className="text-[10px] font-black uppercase tracking-widest">{notif.time}</span>
-                  </div>
-                </div>
-              </div>
+                    
+    </div>
+                  
+    </div>
+                
+    </div>
               {!notif.read && <div className="w-3 h-3 bg-primary rounded-full" />}
-            </div>
+              
+    </div>
           ))
         ) : (
           <p className="text-center text-gray-400 text-sm italic mt-10">No notifications.</p>
         )}
-      </div>
+        
+    </div>
+      
     </div>
   );
 };
@@ -8387,6 +9122,8 @@ const SettingsScreen = ({
   currentUser,
   onGoogleSignIn,
   onSignOut,
+  isPremium,
+  setIsSubscriptionModalOpen,
   babyName,
   setBabyName,
   babyAge,
@@ -8410,6 +9147,8 @@ const SettingsScreen = ({
   currentUser: any;
   onGoogleSignIn: () => void;
   onSignOut: () => void;
+  isPremium: boolean;
+  setIsSubscriptionModalOpen: (open: boolean) => void;
   babyName: string;
   setBabyName: (name: string) => void;
   babyAge: string;
@@ -8461,6 +9200,12 @@ const SettingsScreen = ({
   const [showLegalViewerModal, setShowLegalViewerModal] = useState(false);
 
   const handleCreateCloudBackupAndInvite = async () => {
+    if (!isPremium) {
+      setIsSubscriptionModalOpen(true);
+      setSuccessMsg('üîí Single User Mode Active: Multi-Device Village Sync & Caregiver Invites require Ama Premium. Upgrade via Paystack.');
+      setTimeout(() => setSuccessMsg(''), 4500);
+      return;
+    }
     if (userRole !== 'admin') {
       setSuccessMsg('üîí Only Primary Parent (Admin) can generate multi-device sync snapshots or caregiver invites.');
       setTimeout(() => setSuccessMsg(''), 3500);
@@ -8470,7 +9215,9 @@ const SettingsScreen = ({
     try {
       const generatedToken = `VILLAGE_NANNY_${babyName?.toUpperCase() || 'BABY'}_${Date.now().toString(36).slice(-4).toUpperCase()}`;
       const backupData = {
-        babyName,
+        isPremium,
+  setIsSubscriptionModalOpen,
+  babyName,
         parentName,
         parentDob,
         userRole: 'nanny',
@@ -8624,7 +9371,8 @@ const SettingsScreen = ({
         <div className="text-center">
           <h1 className="text-2xl font-serif font-black text-gray-800">Compliance & Settings</h1>
           <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] mt-0.5">Privacy & Security Guard</p>
-        </div>
+          
+    </div>
         <div className="w-11" />
       </header>
 
@@ -8632,7 +9380,8 @@ const SettingsScreen = ({
         <div className="p-4 bg-green-50 rounded-2xl border border-solid border-green-200 text-green-700 text-[10px] font-bold flex items-center gap-2 animate-bounce">
           <ShieldCheck className="w-4 h-4 text-green-600 flex-shrink-0" />
           <span>{successMsg}</span>
-        </div>
+          
+    </div>
       )}
 
       {/* Non-Admin Notice Banner */}
@@ -8640,20 +9389,63 @@ const SettingsScreen = ({
         <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2.5 text-left">
           <Lock className="w-4 h-4 text-amber-600 shrink-0" />
           <span>üîí Caregiver View (Read-Only): Signed in as {userRole === 'family' ? 'Family Circle Member' : 'Caregiver / Nanny'}. Only Primary Parent (Admin) can switch village roles or modify compliance settings.</span>
-        </div>
+          
+    </div>
       )}
+
+      {/* Paystack Subscription & Plan Management */}
+      <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-5 text-left">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-xs">
+              üëë
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-gray-800">Ama Premium & Billing</h2>
+              <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">Secured via Paystack</p>
+            </div>
+          </div>
+          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+            isPremium 
+              ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
+              : 'bg-gray-100 text-gray-600 border border-gray-200'
+          }`}>
+            {isPremium ? 'Active Pro Member' : 'Free Tier'}
+          </span>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white/80 border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-xs font-bold text-gray-800">
+              {isPremium ? 'All AI features and pediatric exports are fully unlocked.' : 'Upgrade to unlock Acoustic Cry Analysis, AI Meal Plans & PDF exports.'}
+            </p>
+            <p className="text-[10px] text-gray-500 font-medium">
+              Accepts Verve, Visa, Mastercard, Bank Transfer, USSD & Apple Pay via Paystack.
+            </p>
+          </div>
+          <button
+            onClick={() => setIsSubscriptionModalOpen(true)}
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border-none shadow-xs shrink-0"
+          >
+            {isPremium ? 'Change / Renew Plan' : 'Upgrade with Paystack'}
+          </button>
+        </div>
+      </section>
 
       {/* Baby & Parent Profile Customization Panel */}
       <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-6 text-left">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shadow-xs">
             üë∂
-          </div>
+            
+    </div>
           <div>
             <h2 className="text-sm font-bold text-gray-800">Unique Child & Parent Profile</h2>
             <p className="text-[9px] text-rose-600 font-bold uppercase tracking-wider">Configure Name & Age</p>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
@@ -8672,7 +9464,8 @@ const SettingsScreen = ({
               placeholder="e.g. Leo"
               className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-rose-500 transition-all disabled:opacity-50"
             />
-          </div>
+            
+    </div>
 
           <div className="space-y-1.5">
             <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest block pl-1">
@@ -8697,7 +9490,8 @@ const SettingsScreen = ({
                 Calculated Age: {babyAge}
               </p>
             )}
-          </div>
+            
+    </div>
 
           <div className="space-y-1.5">
             <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest block pl-1">
@@ -8715,8 +9509,10 @@ const SettingsScreen = ({
               placeholder="e.g. Mom"
               className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-rose-500 transition-all disabled:opacity-50"
             />
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
         
         {userRole === 'admin' && (
           <p className="text-[10px] text-gray-400 pl-1">
@@ -8733,19 +9529,24 @@ const SettingsScreen = ({
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center text-xl shadow-xs">
               üèòÔ∏è
-            </div>
+              
+    </div>
             <div>
               <h2 className="text-sm font-bold text-gray-800">The Village: Care Circle & Roles</h2>
               <p className="text-[9px] text-amber-700 font-bold uppercase tracking-wider">Multi-User Access Control</p>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
           <div className="flex items-center gap-1.5 self-start sm:self-auto bg-amber-50/80 px-3 py-1.5 rounded-full border border-amber-200/60">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
             <span className="text-[10px] font-black uppercase tracking-wider text-amber-800">
               Active: {userRole === 'admin' ? 'Parent (Admin)' : userRole === 'family' ? 'Family Circle' : 'Caregiver / Nanny'}
             </span>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         <p className="text-xs text-gray-500 leading-relaxed">
           "It takes a village to raise a child." Assign distinct security roles to grandparents, babysitters, and au pairs to keep private diaries and administrative security strictly shielded while enabling rapid care tracking.
@@ -8775,28 +9576,39 @@ const SettingsScreen = ({
             <div className="flex items-start justify-between">
               <div className="w-9 h-9 rounded-2xl bg-amber-100/70 text-amber-800 flex items-center justify-center text-lg">
                 üëë
-              </div>
+                
+    </div>
               <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
                 userRole === 'admin' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600'
               }`}>
                 {userRole === 'admin' ? 'Selected' : 'Full Access'}
               </span>
-            </div>
+              
+    </div>
             <div>
               <h3 className="text-xs font-black text-gray-800">Parent (Admin)</h3>
               <p className="text-[11px] text-gray-500 leading-normal mt-1">
                 Full authority. Private diary, AI storybook, encryption sandbox, zero-tracking, and account purge.
               </p>
-            </div>
+              
+    </div>
             <div className="text-[9px] font-bold text-amber-800 flex items-center gap-1 pt-1 border-t border-amber-200/50">
               <CheckCircle2 className="w-3 h-3 text-amber-600" />
               <span>Unrestricted Permissions</span>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
 
           {/* Family Circle Role */}
           <div
             onClick={() => {
+              if (!isPremium) {
+                setIsSubscriptionModalOpen(true);
+                setSuccessMsg('üîí Single User Mode Active: Multi-Caregiver Village Roles require Ama Premium. Upgrade via Paystack.');
+                setTimeout(() => setSuccessMsg(''), 4500);
+                return;
+              }
               if (userRole !== 'admin') {
                 setSuccessMsg('üîí Permission Denied: Only Primary Parent (Admin) can switch village roles.');
                 setTimeout(() => setSuccessMsg(''), 3500);
@@ -8816,28 +9628,39 @@ const SettingsScreen = ({
             <div className="flex items-start justify-between">
               <div className="w-9 h-9 rounded-2xl bg-indigo-100/70 text-indigo-800 flex items-center justify-center text-lg">
                 üè°
-              </div>
+                
+    </div>
               <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
                 userRole === 'family' ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-600'
               }`}>
                 {userRole === 'family' ? 'Selected' : 'Family View'}
               </span>
-            </div>
+              
+    </div>
             <div>
               <h3 className="text-xs font-black text-gray-800">Family Member</h3>
               <p className="text-[11px] text-gray-500 leading-normal mt-1">
                 For grandparents and partners. View milestones, photos, stories, and feed logs with read-only admin security.
               </p>
-            </div>
+              
+    </div>
             <div className="text-[9px] font-bold text-indigo-800 flex items-center gap-1 pt-1 border-t border-indigo-200/50">
               <CheckCircle2 className="w-3 h-3 text-indigo-600" />
               <span>Memories & Timeline</span>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
 
           {/* Nanny / Caregiver Role */}
           <div
             onClick={() => {
+              if (!isPremium) {
+                setIsSubscriptionModalOpen(true);
+                setSuccessMsg('üîí Single User Mode Active: Multi-Caregiver Village Roles require Ama Premium. Upgrade via Paystack.');
+                setTimeout(() => setSuccessMsg(''), 4500);
+                return;
+              }
               if (userRole !== 'admin') {
                 setSuccessMsg('üîí Permission Denied: Only Primary Parent (Admin) can switch village roles.');
                 setTimeout(() => setSuccessMsg(''), 3500);
@@ -8857,25 +9680,31 @@ const SettingsScreen = ({
             <div className="flex items-start justify-between">
               <div className="w-9 h-9 rounded-2xl bg-teal-100/70 text-teal-800 flex items-center justify-center text-lg">
                 üß∏
-              </div>
+                
+    </div>
               <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
                 userRole === 'nanny' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'
               }`}>
                 {userRole === 'nanny' ? 'Selected' : 'Caregiver Mode'}
               </span>
-            </div>
+              
+    </div>
             <div>
               <h3 className="text-xs font-black text-gray-800">Caregiver / Nanny</h3>
               <p className="text-[11px] text-gray-500 leading-normal mt-1">
                 Fast daily logging (bottles, solid foods, diapers, meds, naps). Personal family diary and admin keys locked.
               </p>
-            </div>
+              
+    </div>
             <div className="text-[9px] font-bold text-teal-800 flex items-center gap-1 pt-1 border-t border-teal-200/50">
               <Lock className="w-3 h-3 text-teal-600" />
               <span>Privacy Shield Active</span>
-            </div>
-          </div>
-        </div>
+              
+    </div>
+            
+    </div>
+          
+    </div>
 
         {/* Integrated Multi-Device Sync & Village Caregiver Invite Engine */}
         <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200/80 space-y-4 text-left">
@@ -8887,11 +9716,13 @@ const SettingsScreen = ({
               <h3 className="text-sm font-bold text-gray-800 mt-0.5">
                 Caregiver Invite Link, QR Code & Cross-Device Sync Engine
               </h3>
-            </div>
+              
+    </div>
             <span className="text-[9px] font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-full font-bold">
               NODE BACKEND V1
             </span>
-          </div>
+            
+    </div>
 
           <p className="text-xs text-gray-500 leading-relaxed">
             Generate an instant Multi-Device Sync Snapshot key, share the Village Caregiver Invite Link, or scan the QR Code with your partner, nanny, or daycare provider for instant care synchronization.
@@ -8903,7 +9734,8 @@ const SettingsScreen = ({
               <div>
                 <p className="text-xs font-bold text-gray-800">1. Generate Caregiver Invite Link</p>
                 <p className="text-[10px] text-gray-400 mt-0.5">Creates encrypted cloud sync snapshot & copies nanny invitation link.</p>
-              </div>
+                
+    </div>
               <button
                 onClick={handleCreateCloudBackupAndInvite}
                 disabled={isCreatingSync}
@@ -8912,14 +9744,16 @@ const SettingsScreen = ({
                 <Copy className="w-3.5 h-3.5" />
                 <span>{isCreatingSync ? 'Generating...' : 'Copy Village Caregiver Invite Link'}</span>
               </button>
-            </div>
+              
+    </div>
 
             {/* Sync Snapshot Code display & Restore */}
             <div className="bg-white p-4 rounded-2xl border border-gray-200 space-y-3 flex flex-col justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-800">2. Restore / Join Village Sync</p>
                 <p className="text-[10px] text-gray-400 mt-0.5">Input sync snapshot key received from Primary Parent.</p>
-              </div>
+                
+    </div>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -8935,9 +9769,12 @@ const SettingsScreen = ({
                 >
                   {isRestoringSync ? 'Syncing...' : 'Sync Data'}
                 </button>
-              </div>
-            </div>
-          </div>
+                
+    </div>
+              
+    </div>
+            
+    </div>
 
           {/* QR Code Syncing Section Merged Here */}
           <div className="bg-white p-4 rounded-2xl border border-gray-200 space-y-3">
@@ -8948,7 +9785,8 @@ const SettingsScreen = ({
                   <span>Partner QR Code & Link Syncing</span>
                 </p>
                 <p className="text-[10px] text-gray-400 mt-0.5">Scan or copy direct sync link to mirror baby logs with your partner.</p>
-              </div>
+                
+    </div>
               <button
                 type="button"
                 onClick={() => setIsQrModalOpen(!isQrModalOpen)}
@@ -8956,7 +9794,8 @@ const SettingsScreen = ({
               >
                 {isQrModalOpen ? 'Hide QR Code' : 'Show QR Code'}
               </button>
-            </div>
+              
+    </div>
 
             {isQrModalOpen && (
               <div className="pt-2 flex flex-col items-center justify-center space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
@@ -8966,7 +9805,8 @@ const SettingsScreen = ({
                     alt="Sync QR Code"
                     className="w-44 h-44"
                   />
-                </div>
+                  
+    </div>
                 <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider text-center">
                   Scan with partner's camera to import live tracking state
                 </p>
@@ -8981,15 +9821,19 @@ const SettingsScreen = ({
                   <Link className="w-3.5 h-3.5" />
                   <span>Copy Partner Sync Link</span>
                 </button>
-              </div>
+                
+    </div>
             )}
-          </div>
+            
+    </div>
 
           <div className="flex items-center gap-2 bg-white px-3.5 py-2.5 rounded-xl border border-gray-200 font-mono text-[11px] text-gray-600">
             <span className="text-gray-400 select-none">Active Token:</span>
             <span className="font-bold text-primary truncate">{activeSyncToken}</span>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         {/* Role Permissions Matrix */}
         <div className="space-y-2.5 text-left pt-1">
@@ -8999,7 +9843,8 @@ const SettingsScreen = ({
               <span>Village Role Permissions Matrix</span>
             </h4>
             <span className="text-[9px] font-mono text-gray-400 uppercase">RBAC v2.4</span>
-          </div>
+            
+    </div>
           
           <div className="overflow-x-auto rounded-2xl border border-gray-100">
             <table className="w-full text-left text-xs">
@@ -9050,8 +9895,10 @@ const SettingsScreen = ({
                 </tr>
               </tbody>
             </table>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
       </section>
 
       {/* Trust & Regulations Section */}
@@ -9059,12 +9906,15 @@ const SettingsScreen = ({
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-xl">
             üõ°Ô∏è
-          </div>
+            
+    </div>
           <div>
             <h2 className="text-sm font-bold text-gray-800">Privacy & Security Settings</h2>
             <p className="text-[9px] text-muted font-bold uppercase tracking-wider">Zero Tracker Framework</p>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         {/* Zero Tracking Toggle */}
         <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 flex justify-between items-center">
@@ -9072,7 +9922,8 @@ const SettingsScreen = ({
             <div className="flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${zeroThirdPartyTracking ? 'bg-green-500' : 'bg-gray-400'}`} />
               <p className="text-xs font-bold text-gray-800">Zero Third-Party Tracking</p>
-            </div>
+              
+    </div>
             <p className="text-[10px] text-gray-400 leading-normal">
               Completely disables third-party cookies, trackers, and external analytics scripts. Data remains fully sandboxed.
             </p>
@@ -9082,7 +9933,8 @@ const SettingsScreen = ({
                 <span>Managed by Primary Parent (Admin)</span>
               </p>
             )}
-          </div>
+            
+    </div>
           {userRole === 'admin' ? (
             <button 
               onClick={() => handleToggleTracking(!zeroThirdPartyTracking)}
@@ -9094,9 +9946,11 @@ const SettingsScreen = ({
             <div className="flex items-center gap-1 text-[9px] font-bold text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
               <Lock className="w-3 h-3 text-gray-400" />
               <span>Admin Only</span>
-            </div>
+              
+    </div>
           )}
-        </div>
+          
+    </div>
 
         {/* Age Gate DOB verification */}
         <div className="space-y-3 pt-2">
@@ -9108,16 +9962,19 @@ const SettingsScreen = ({
               <p className="text-xs font-bold text-gray-800 pl-1">
                 {parentDob ? new Date(parentDob).toLocaleDateString() : 'Not Set'}
               </p>
-            </div>
+              
+    </div>
             <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase bg-green-100 text-green-700">
               <UserCheck className="w-3 h-3" />
               <span>Verified Adult</span>
             </span>
-          </div>
+            
+    </div>
           <p className="text-[9px] text-gray-400 pl-1 leading-normal mt-2">
             Verified parent or guardian status ensures authorized access to child profile features.
           </p>
-        </div>
+          
+    </div>
       </section>
 
       {/* Encryption & Cryptographic Decrypter */}
@@ -9125,12 +9982,15 @@ const SettingsScreen = ({
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-xl">
             üîë
-          </div>
+            
+    </div>
           <div>
             <h2 className="text-sm font-bold text-gray-800">Symmetric Cryptography Sandbox</h2>
             <p className="text-[9px] text-green-600 font-bold uppercase tracking-wider">At-Rest Obfuscated DB</p>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 space-y-3">
           <div className="flex items-center justify-between">
@@ -9138,11 +9998,13 @@ const SettingsScreen = ({
               Cryptographic Cipher Engine:
             </p>
             <span className="text-[9px] font-mono text-gray-400">XOR-BASE64</span>
-          </div>
+            
+    </div>
           <p className="text-[10px] text-gray-400 leading-normal">
             Your telemetry and log payloads are securely obfuscated using key <code className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-600">AmaBabyCareSecureKey_v1</code> at-rest prior to cloud storage, enforcing that firestore rules only expose raw keys with encrypted data.
           </p>
-        </div>
+          
+    </div>
 
         {/* Interactive Decrypter tool */}
         {userRole === 'admin' ? (
@@ -9157,7 +10019,8 @@ const SettingsScreen = ({
               >
                 Load Encrypted Session Telemetry
               </button>
-            </div>
+              
+    </div>
 
             <textarea
               value={decrypterInput}
@@ -9177,19 +10040,24 @@ const SettingsScreen = ({
                 <pre className="w-full bg-gray-900 border border-solid border-gray-900 rounded-2xl p-3 text-[10px] font-mono text-green-400 overflow-x-auto h-28 leading-normal">
                   {decrypterOutput}
                 </pre>
-              </div>
+                
+    </div>
             )}
-          </div>
+            
+    </div>
         ) : (
           <div className="p-4 bg-gray-50/70 rounded-2xl border border-gray-100 flex items-center gap-3 text-left">
             <div className="w-8 h-8 rounded-xl bg-gray-200 text-gray-500 flex items-center justify-center shrink-0">
               <Lock className="w-4 h-4" />
-            </div>
+              
+    </div>
             <div>
               <p className="text-xs font-bold text-gray-700">Live Cryptography Decoder Restricted</p>
               <p className="text-[10px] text-gray-400">Raw cryptographic decryption and session inspection is restricted to the Primary Parent (Admin).</p>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
         )}
       </section>
 
@@ -9199,12 +10067,15 @@ const SettingsScreen = ({
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl">
               üìã
-            </div>
+              
+    </div>
             <div>
               <h2 className="text-sm font-bold text-gray-800">Immutable Audit Ledger</h2>
               <p className="text-[9px] text-blue-600 font-bold uppercase tracking-wider">Telemetry Logs</p>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
           <button 
             onClick={handleCopyLogs}
             className="p-2 bg-gray-50 border border-solid border-gray-100 rounded-full hover:bg-gray-100 transition-colors cursor-pointer text-gray-500 border-none"
@@ -9212,7 +10083,8 @@ const SettingsScreen = ({
           >
             <FileCode className="w-4 h-4" />
           </button>
-        </div>
+          
+    </div>
 
         {/* Filters */}
         <div className="space-y-2">
@@ -9237,8 +10109,10 @@ const SettingsScreen = ({
                 {cat}
               </button>
             ))}
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         {/* Logs list */}
         <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
@@ -9257,16 +10131,19 @@ const SettingsScreen = ({
                   <span className="text-[8px] text-gray-400">
                     {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
-                </div>
+                  
+    </div>
                 <p className="font-bold text-gray-800">{log.action}</p>
                 <p className="text-gray-500 leading-normal text-[9px]">{log.details}</p>
                 <p className="text-[8px] font-mono text-gray-400">Actor: {log.userEmail}</p>
-              </div>
+                
+    </div>
             ))
           ) : (
             <p className="text-center text-gray-400 text-[10px] italic py-4">No matching audit logs found.</p>
           )}
-        </div>
+          
+    </div>
       </section>
 
       {/* Help Center & Comprehensive App User Guide */}
@@ -9274,12 +10151,15 @@ const SettingsScreen = ({
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl">
             üìñ
-          </div>
+            
+    </div>
           <div>
             <h2 className="text-sm font-bold text-gray-800">Help Center & User Guide</h2>
             <p className="text-[9px] text-sky-600 font-bold uppercase tracking-wider">In-App Feature Documentation</p>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         <p className="text-xs text-gray-500 font-medium leading-relaxed">
           Explore complete tutorials on feeding tracking, the AI cry acoustic analyzer, weekly meal plans & grocery generation, the Village caregiver ecosystem, vaccination schedules, and security protocols.
@@ -9301,7 +10181,8 @@ const SettingsScreen = ({
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
             <span>Privacy Policy & Terms</span>
           </button>
-        </div>
+          
+    </div>
       </section>
 
       {/* Project Contributors Section */}
@@ -9309,43 +10190,56 @@ const SettingsScreen = ({
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
             <Users className="w-5 h-5" />
-          </div>
+            
+    </div>
           <div>
             <h2 className="text-sm font-bold text-gray-800">Project Contributors</h2>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         <div className="space-y-3">
           <div className="bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100 flex items-start gap-3">
             <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-indigo-600 shrink-0">
               EO
-            </div>
+              
+    </div>
             <div>
               <p className="text-xs font-bold text-gray-800">Ekenedilichukwu Okoli</p>
               <p className="text-[10px] text-gray-500 font-medium">Software Developer and engineer</p>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
 
           <div className="bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100 flex items-start gap-3">
             <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-indigo-600 shrink-0">
               OO
-            </div>
+              
+    </div>
             <div>
               <p className="text-xs font-bold text-gray-800">Ogochukwu Okoli</p>
               <p className="text-[10px] text-gray-500 font-medium">Nutraceuticals/functional foods scientist and Developer</p>
-            </div>
-          </div>
+              
+    </div>
+            
+    </div>
 
           <div className="bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100 flex items-start gap-3">
             <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-indigo-600 shrink-0">
               NN
-            </div>
+              
+    </div>
             <div>
               <p className="text-xs font-bold text-gray-800">Ngozi Obika-Ndiri</p>
               <p className="text-[10px] text-gray-500 font-medium">Maternal and child health Nurse</p>
-            </div>
-          </div>
-        </div>
+              
+    </div>
+            
+    </div>
+          
+    </div>
       </section>
 
       {/* Purge / Account Deletion Section */}
@@ -9353,12 +10247,15 @@ const SettingsScreen = ({
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-xl">
             ‚ö†Ô∏è
-          </div>
+            
+    </div>
           <div>
             <h2 className="text-sm font-bold text-red-800">Irreversible Account Purge</h2>
             <p className="text-[9px] text-red-600 font-bold uppercase tracking-wider">Guideline 5.1.1 compliant</p>
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
 
         <p className="text-[10px] text-red-700/80 leading-normal">
           In strict compliance with Apple's developer guidelines for user-created accounts and privacy standards, you have the right to request <strong>complete, permanent erasure of your account and all telemetry data logs</strong>. This action purges all local storage and destroys cloud backups with zero data residue.
@@ -9380,9 +10277,11 @@ const SettingsScreen = ({
             <div className="flex items-center gap-2 text-xs font-bold text-red-800">
               <Lock className="w-4 h-4 text-red-500" />
               <span>Admin Action Only</span>
-            </div>
+              
+    </div>
             <span className="text-[10px] text-gray-500">Account deletion is restricted to the Primary Parent.</span>
-          </div>
+            
+    </div>
         )}
       </section>
 
@@ -9400,7 +10299,8 @@ const SettingsScreen = ({
             <div className="space-y-2">
               <h3 className="text-base font-serif font-black text-gray-800">Permanent Purge Request</h3>
               <p className="text-[10px] text-muted font-bold uppercase tracking-wider text-red-600">Verification Steps Required</p>
-            </div>
+              
+    </div>
 
             {deleteStep === 1 && (
               <div className="space-y-4">
@@ -9413,7 +10313,8 @@ const SettingsScreen = ({
                 >
                   Yes, I Understand. Continue.
                 </button>
-              </div>
+                
+    </div>
             )}
 
             {deleteStep === 2 && (
@@ -9435,10 +10336,13 @@ const SettingsScreen = ({
                 >
                   {isDeleting ? "Purging records..." : "Permanently Purge My Data"}
                 </button>
-              </div>
+                
+    </div>
             )}
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
       )}
 
       {/* In-App Interactive User Guide Modal */}
@@ -9446,8 +10350,10 @@ const SettingsScreen = ({
         <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 z-50 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-2xl rounded-[40px] max-h-[90vh] overflow-y-auto shadow-2xl relative border border-gray-100 p-2 sm:p-4">
             <AppUserGuide onClose={() => setShowGuideModal(false)} />
-          </div>
-        </div>
+            
+    </div>
+          
+    </div>
       )}
 
       {/* Terms & Privacy Policy Viewer Modal */}
@@ -9455,6 +10361,7 @@ const SettingsScreen = ({
         isOpen={showLegalViewerModal}
         onAccept={() => setShowLegalViewerModal(false)}
       />
+      
     </div>
   );
 };
@@ -9512,6 +10419,61 @@ const drawThreeRandomQuests = (): Activity[] => {
 };
 
 export default function App() {
+  const [isPremium, setIsPremium] = useState<boolean>(() => localStorage.getItem("ama_premium") === "true");
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const handleSubscribe = async (priceId: string, currency: 'NGN' | 'USD' | 'GBP' = 'NGN') => {
+    try {
+      const response = await fetch("/api/paystack/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          priceId, 
+          currency,
+          email: currentUser?.email || 'parent@ama-care.app'
+        })
+      });
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Failed to initiate Paystack checkout");
+        setIsSubscriptionModalOpen(false);
+      }
+    } catch (e) {
+      alert("Paystack billing service is currently unavailable. Please check your connection.");
+      setIsSubscriptionModalOpen(false);
+    }
+  };
+
+  // Listen for Paystack redirect callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paystackRef = urlParams.get('paystack_ref') || urlParams.get('reference') || urlParams.get('trxref');
+    const isPaystackSuccess = urlParams.get('paystack_success') === 'true';
+
+    if (paystackRef || isPaystackSuccess) {
+      const ref = paystackRef || 'pstk_demo';
+      fetch(`/api/paystack/verify/${encodeURIComponent(ref)}`)
+        .then(res => res.json())
+        .then(result => {
+          if (result.verified || result.status === 'success' || isPaystackSuccess) {
+            setIsPremium(true);
+            localStorage.setItem("ama_premium", "true");
+            alert("üéâ Payment Successful via Paystack! Welcome to Ama Premium. All AI features are now unlocked.");
+          }
+        })
+        .catch(() => {
+          if (isPaystackSuccess) {
+            setIsPremium(true);
+            localStorage.setItem("ama_premium", "true");
+          }
+        })
+        .finally(() => {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        });
+    }
+  }, []);
+
   const [activeScreen, setActiveScreen] = useState('home');
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [autoOpenLogModal, setAutoOpenLogModal] = useState(false);
@@ -10169,7 +11131,9 @@ export default function App() {
     setLastLocalUpdate(newTime);
     localStorage.setItem('lastLocalUpdate', newTime.toString());
   }, [
-    babyName,
+    isPremium,
+  setIsSubscriptionModalOpen,
+  babyName,
     parentName,
     allergenMatrix,
     weeklyPlan,
@@ -10310,1182 +11274,46 @@ export default function App() {
       await signOut(auth);
     } catch (e) {}
 
-    // Force sign in anonymously so they get a fresh guest session right away
-    try {
-      await signInAnonymously(auth);
-    } catch (e) {}
-  };
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
-        setIsInitialLoadComplete(false);
-        try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const docSnap = await getDoc(userDocRef);
-          if (docSnap.exists()) {
-            const rawData = docSnap.data();
-            const data = processCloudData(rawData);
-            
-            // Conflict Resolution: compare cloud updatedAt with local lastLocalUpdate
-            const cloudTime = data.updatedAt ? new Date(data.updatedAt).getTime() : 0;
-            const localSaved = localStorage.getItem('lastLocalUpdate');
-            const localTime = localSaved ? parseInt(localSaved, 10) : 0;
-
-            if (cloudTime >= localTime) {
-              // Cloud has newer data: update local states with cloud data
-              if (data.babyName !== undefined) setBabyName(data.babyName);
-              if (data.parentName !== undefined) setParentName(data.parentName);
-              if (data.parentDob !== undefined) {
-                setParentDob(data.parentDob);
-                // Also update onboarding state and bypass if they meet age requirement
-                if (data.parentDob) {
-                  const age = calculateAge(data.parentDob);
-                  if (age >= 18) {
-                    localStorage.setItem('ama_onboarded', 'true');
-                    setShowOnboarding(false);
-                  }
-                  setOnboardingParentDob(data.parentDob);
-                }
-              }
-              if (data.parentName !== undefined) setOnboardingParentName(data.parentName);
-              
-              if (data.allergenMatrix !== undefined) setAllergenMatrix(data.allergenMatrix);
-              if (data.weeklyPlan !== undefined) setWeeklyPlan(data.weeklyPlan);
-              if (data.groceryChecked !== undefined) setGroceryChecked(data.groceryChecked);
-              if (data.diaperLogs !== undefined) setDiaperLogs(data.diaperLogs);
-              if (data.notifications !== undefined) setNotifications(data.notifications);
-              if (data.growthLogs !== undefined) setGrowthLogs(data.growthLogs);
-              if (data.allTimePoints !== undefined) setAllTimePoints(data.allTimePoints);
-              if (data.dailyStreak !== undefined) setDailyStreak(data.dailyStreak);
-              if (data.lastQuestDate !== undefined) setLastQuestDate(data.lastQuestDate);
-              if (data.lastStreakDate !== undefined) setLastStreakDate(data.lastStreakDate);
-              if (data.activities !== undefined) setActivities(data.activities);
-              if (data.fluidMl !== undefined) setFluidMl(data.fluidMl);
-              if (data.fluidTarget !== undefined) setFluidTarget(data.fluidTarget);
-              if (data.loggedMeals !== undefined) setLoggedMeals(data.loggedMeals);
-              if (data.observationLogs !== undefined) setObservationLogs(data.observationLogs);
-              if (data.loggedMoods !== undefined) setLoggedMoods(data.loggedMoods);
-              if (data.personalRecipes !== undefined) setPersonalRecipes(data.personalRecipes);
-              if (data.scheduledMeals !== undefined) setScheduledMeals(data.scheduledMeals);
-              if (data.scheduledActivities !== undefined) setScheduledActivities(data.scheduledActivities);
-              if (data.scheduledMeds !== undefined) setScheduledMeds(data.scheduledMeds);
-              if (data.reminders !== undefined) setReminders(data.reminders);
-              if (data.vaccineSchedule !== undefined) setVaccineSchedule(data.vaccineSchedule);
-              if (data.userRole !== undefined) setUserRole(data.userRole);
-              if (data.memories !== undefined) setMemories(data.memories);
-
-              setLastLocalUpdate(cloudTime);
-              localStorage.setItem('lastLocalUpdate', cloudTime.toString());
-              addAuditLog('Database Loaded', 'End-to-end encrypted backup loaded and decrypted locally.', 'DATA_ACCESS');
-            } else {
-              // Local changes are newer: push to cloud to resolve conflict
-              const statePayload = {
-                babyName,
-                parentName,
-                parentDob,
-                allergenMatrix,
-                weeklyPlan,
-                groceryChecked,
-                diaperLogs,
-                notifications,
-                growthLogs,
-                allTimePoints,
-                dailyStreak,
-                lastQuestDate,
-                lastStreakDate,
-                activities,
-                fluidMl,
-                fluidTarget,
-                loggedMeals,
-                observationLogs,
-                loggedMoods,
-                personalRecipes,
-                scheduledMeals,
-                scheduledActivities,
-                scheduledMeds,
-                reminders,
-                vaccineSchedule,
-                userRole,
-                memories
-              };
-              const encryptedPayload = encryptString(JSON.stringify(statePayload));
-              await setDoc(userDocRef, {
-                userId: user.uid,
-                encryptedPayload,
-                updatedAt: new Date(localTime).toISOString()
-              });
-              addAuditLog('Database Synced', 'Local newer changes encrypted and synchronized to cloud.', 'DATA_ACCESS');
-            }
-          } else {
-            // No Cloud document exists: push local data to Cloud
-            const localSaved = localStorage.getItem('lastLocalUpdate');
-            const localTime = localSaved ? parseInt(localSaved, 10) : Date.now();
-            const statePayload = {
-              babyName,
-              parentName,
-              parentDob,
-              allergenMatrix,
-              weeklyPlan,
-              groceryChecked,
-              diaperLogs,
-              notifications,
-              growthLogs,
-              allTimePoints,
-              dailyStreak,
-              lastQuestDate,
-              lastStreakDate,
-              activities,
-              fluidMl,
-              fluidTarget,
-              loggedMeals,
-              observationLogs,
-              loggedMoods,
-              personalRecipes,
-              scheduledMeals,
-              scheduledActivities,
-              scheduledMeds,
-              reminders,
-              vaccineSchedule,
-              userRole,
-              memories
-            };
-            const encryptedPayload = encryptString(JSON.stringify(statePayload));
-            await setDoc(userDocRef, {
-              userId: user.uid,
-              encryptedPayload,
-              updatedAt: new Date(localTime).toISOString()
-            });
-            addAuditLog('Account Initialized', 'Secure end-to-end cloud workspace initialized for user.', 'ACCOUNT');
-          }
-        } catch (err) {
-          console.error("Failed to load user data from Firestore:", err);
-        } finally {
-          setIsInitialLoadComplete(true);
-        }
-      } else {
-        // Sign the user in silently with an Anonymous Account tied to their device
-        try {
-          await signInAnonymously(auth);
-        } catch (anonymousErr) {
-          console.error("Silent anonymous sign-in failed:", anonymousErr);
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Real-time Cloud Sync Listener
-  useEffect(() => {
-    if (!currentUser || !isInitialLoadComplete || !isOnline) return;
-
-    const userDocRef = doc(db, 'users', currentUser.uid);
-    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const rawCloudData = docSnap.data();
-        const cloudData = processCloudData(rawCloudData);
-        const cloudTime = cloudData.updatedAt ? new Date(cloudData.updatedAt).getTime() : 0;
-        
-        setLastLocalUpdate(currentLocalTime => {
-          if (cloudTime > currentLocalTime) {
-            setIsSyncing(true);
-            if (cloudData.babyName !== undefined) setBabyName(cloudData.babyName);
-            if (cloudData.parentName !== undefined) setParentName(cloudData.parentName);
-            if (cloudData.parentDob !== undefined) setParentDob(cloudData.parentDob);
-            if (cloudData.allergenMatrix !== undefined) setAllergenMatrix(cloudData.allergenMatrix);
-            if (cloudData.weeklyPlan !== undefined) setWeeklyPlan(cloudData.weeklyPlan);
-            if (cloudData.groceryChecked !== undefined) setGroceryChecked(cloudData.groceryChecked);
-            if (cloudData.diaperLogs !== undefined) setDiaperLogs(cloudData.diaperLogs);
-            if (cloudData.notifications !== undefined) setNotifications(cloudData.notifications);
-            if (cloudData.growthLogs !== undefined) setGrowthLogs(cloudData.growthLogs);
-            if (cloudData.allTimePoints !== undefined) setAllTimePoints(cloudData.allTimePoints);
-            if (cloudData.dailyStreak !== undefined) setDailyStreak(cloudData.dailyStreak);
-            if (cloudData.lastQuestDate !== undefined) setLastQuestDate(cloudData.lastQuestDate);
-            if (cloudData.lastStreakDate !== undefined) setLastStreakDate(cloudData.lastStreakDate);
-            if (cloudData.activities !== undefined) setActivities(cloudData.activities);
-            if (cloudData.fluidMl !== undefined) setFluidMl(cloudData.fluidMl);
-            if (cloudData.fluidTarget !== undefined) setFluidTarget(cloudData.fluidTarget);
-            if (cloudData.loggedMeals !== undefined) setLoggedMeals(cloudData.loggedMeals);
-            if (cloudData.observationLogs !== undefined) setObservationLogs(cloudData.observationLogs);
-            if (cloudData.loggedMoods !== undefined) setLoggedMoods(cloudData.loggedMoods);
-            if (cloudData.personalRecipes !== undefined) setPersonalRecipes(cloudData.personalRecipes);
-            if (cloudData.scheduledMeals !== undefined) setScheduledMeals(cloudData.scheduledMeals);
-            if (cloudData.scheduledActivities !== undefined) setScheduledActivities(cloudData.scheduledActivities);
-            if (cloudData.scheduledMeds !== undefined) setScheduledMeds(cloudData.scheduledMeds);
-            if (cloudData.reminders !== undefined) setReminders(cloudData.reminders);
-            if (cloudData.vaccineSchedule !== undefined) setVaccineSchedule(cloudData.vaccineSchedule);
-            if (cloudData.userRole !== undefined) setUserRole(cloudData.userRole);
-            if (cloudData.memories !== undefined) setMemories(cloudData.memories);
-            
-            localStorage.setItem('lastLocalUpdate', cloudTime.toString());
-            
-            setTimeout(() => setIsSyncing(false), 500);
-            return cloudTime;
-          }
-          return currentLocalTime;
-        });
-      }
-    });
-
-    return () => unsubscribe();
-  }, [currentUser, isInitialLoadComplete, isOnline]);
-
-  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Auto Cloud Sync Effect with network state check and conflict resolution
-  useEffect(() => {
-    if (!currentUser || !isInitialLoadComplete || !isOnline) return;
-
-    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-
-    syncTimeoutRef.current = setTimeout(async () => {
-      try {
-        setIsSyncing(true);
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        const docSnap = await getDoc(userDocRef);
-        
-        let proceedWithWrite = true;
-        if (docSnap.exists()) {
-          const rawCloudData = docSnap.data();
-          const cloudData = processCloudData(rawCloudData);
-          const cloudTime = cloudData.updatedAt ? new Date(cloudData.updatedAt).getTime() : 0;
-          const localTime = lastLocalUpdate;
-
-          if (cloudTime > localTime) {
-            // Cloud is newer: apply cloud state to resolve conflicts
-            proceedWithWrite = false;
-            if (cloudData.babyName !== undefined) setBabyName(cloudData.babyName);
-            if (cloudData.parentName !== undefined) setParentName(cloudData.parentName);
-            if (cloudData.parentDob !== undefined) setParentDob(cloudData.parentDob);
-            if (cloudData.allergenMatrix !== undefined) setAllergenMatrix(cloudData.allergenMatrix);
-            if (cloudData.weeklyPlan !== undefined) setWeeklyPlan(cloudData.weeklyPlan);
-            if (cloudData.groceryChecked !== undefined) setGroceryChecked(cloudData.groceryChecked);
-            if (cloudData.diaperLogs !== undefined) setDiaperLogs(cloudData.diaperLogs);
-            if (cloudData.notifications !== undefined) setNotifications(cloudData.notifications);
-            if (cloudData.growthLogs !== undefined) setGrowthLogs(cloudData.growthLogs);
-            if (cloudData.allTimePoints !== undefined) setAllTimePoints(cloudData.allTimePoints);
-            if (cloudData.dailyStreak !== undefined) setDailyStreak(cloudData.dailyStreak);
-            if (cloudData.lastQuestDate !== undefined) setLastQuestDate(cloudData.lastQuestDate);
-            if (cloudData.lastStreakDate !== undefined) setLastStreakDate(cloudData.lastStreakDate);
-            if (cloudData.activities !== undefined) setActivities(cloudData.activities);
-            if (cloudData.fluidMl !== undefined) setFluidMl(cloudData.fluidMl);
-            if (cloudData.fluidTarget !== undefined) setFluidTarget(cloudData.fluidTarget);
-            if (cloudData.loggedMeals !== undefined) setLoggedMeals(cloudData.loggedMeals);
-            if (cloudData.observationLogs !== undefined) setObservationLogs(cloudData.observationLogs);
-            if (cloudData.loggedMoods !== undefined) setLoggedMoods(cloudData.loggedMoods);
-            if (cloudData.personalRecipes !== undefined) setPersonalRecipes(cloudData.personalRecipes);
-            if (cloudData.scheduledMeals !== undefined) setScheduledMeals(cloudData.scheduledMeals);
-            if (cloudData.scheduledActivities !== undefined) setScheduledActivities(cloudData.scheduledActivities);
-            if (cloudData.scheduledMeds !== undefined) setScheduledMeds(cloudData.scheduledMeds);
-            if (cloudData.reminders !== undefined) setReminders(cloudData.reminders);
-            if (cloudData.vaccineSchedule !== undefined) setVaccineSchedule(cloudData.vaccineSchedule);
-            if (cloudData.userRole !== undefined) setUserRole(cloudData.userRole);
-            if (cloudData.memories !== undefined) setMemories(cloudData.memories);
-
-            setLastLocalUpdate(cloudTime);
-            localStorage.setItem('lastLocalUpdate', cloudTime.toString());
-            addAuditLog('Database Sync Conflict Solved', 'Cloud data was newer. Merged cloud updates locally.', 'DATA_ACCESS');
-          }
-        }
-
-        if (proceedWithWrite) {
-          const statePayload = {
-            babyName,
-            parentName,
-            parentDob,
-            allergenMatrix,
-            weeklyPlan,
-            groceryChecked,
-            diaperLogs,
-            notifications,
-            growthLogs,
-            allTimePoints,
-            dailyStreak,
-            lastQuestDate,
-            lastStreakDate,
-            activities,
-            fluidMl,
-            fluidTarget,
-            loggedMeals,
-            observationLogs,
-            loggedMoods,
-            personalRecipes,
-            scheduledMeals,
-            scheduledActivities,
-            scheduledMeds,
-            reminders,
-            vaccineSchedule,
-            userRole,
-            memories
-          };
-          const encryptedPayload = encryptString(JSON.stringify(statePayload));
-          await setDoc(userDocRef, {
-            userId: currentUser.uid,
-            encryptedPayload,
-            updatedAt: new Date(lastLocalUpdate).toISOString()
-          });
-          addAuditLog('Database Auto-Sync', 'Encrypted local telemetry backup uploaded to cloud.', 'DATA_ACCESS');
-        }
-      } catch (err) {
-        console.error("Failed to sync to Firestore:", err);
-      } finally {
-        setIsSyncing(false);
-      }
-    }, 1500);
-
-    return () => {
-      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    };
-  }, [
-    currentUser,
-    isInitialLoadComplete,
-    isOnline,
-    lastLocalUpdate,
-    babyName,
-    parentName,
-    parentDob,
-    allergenMatrix,
-    weeklyPlan,
-    groceryChecked,
-    diaperLogs,
-    notifications,
-    growthLogs,
-    allTimePoints,
-    dailyStreak,
-    lastQuestDate,
-    lastStreakDate,
-    activities,
-    fluidMl,
-    fluidTarget,
-    loggedMeals,
-    observationLogs,
-    loggedMoods,
-    personalRecipes,
-    scheduledMeals,
-    scheduledActivities,
-    scheduledMeds,
-    reminders,
-    vaccineSchedule
-  ]);
-
-  const applySyncData = (data: any) => {
-    try {
-      const remoteTime = data.updatedAt ? new Date(data.updatedAt).getTime() : 0;
-      const localTime = lastLocalUpdate;
-      
-      // Merge Diaper Logs (union by ID or timestamp)
-      if (data.diaperLogs) {
-        setDiaperLogs(prev => {
-          const combined = [...data.diaperLogs, ...prev];
-          const unique = Array.from(new Map(combined.map(item => [item.id || item.time || JSON.stringify(item), item])).values());
-          return unique.slice(0, 50); // Keep max 50
-        });
-      }
-      
-      if (data.growthLogs) {
-        setGrowthLogs(prev => {
-          const combined = [...data.growthLogs, ...prev];
-          const unique = Array.from(new Map(combined.map(item => [item.id || item.date || JSON.stringify(item), item])).values());
-          return unique.slice(0, 50);
-        });
-      }
-      
-      if (data.loggedMeals) {
-        setLoggedMeals(prev => {
-          const combined = [...data.loggedMeals, ...prev];
-          const unique = Array.from(new Map(combined.map(item => [item.id || item.time || JSON.stringify(item), item])).values());
-          return unique.slice(0, 50);
-        });
-      }
-      
-      if (data.loggedMoods) {
-        setLoggedMoods(prev => {
-          const combined = [...data.loggedMoods, ...prev];
-          const unique = Array.from(new Map(combined.map(item => [item.id || item.time || JSON.stringify(item), item])).values());
-          return unique.slice(0, 50);
-        });
-      }
-      
-      if (data.scheduledMeals) {
-        setScheduledMeals(prev => {
-          const combined = [...data.scheduledMeals, ...prev];
-          const unique = Array.from(new Map(combined.map(item => [item.id || JSON.stringify(item), item])).values());
-          return unique;
-        });
-      }
-
-      if (data.scheduledActivities) {
-        setScheduledActivities(prev => {
-          const combined = [...data.scheduledActivities, ...prev];
-          const unique = Array.from(new Map(combined.map(item => [item.id || JSON.stringify(item), item])).values());
-          return unique;
-        });
-      }
-
-      if (data.scheduledMeds) {
-        setScheduledMeds(prev => {
-          const combined = [...data.scheduledMeds, ...prev];
-          const unique = Array.from(new Map(combined.map(item => [item.id || JSON.stringify(item), item])).values());
-          return unique;
-        });
-      }
-
-      if (data.reminders) {
-        setReminders(prev => {
-          const combined = [...data.reminders, ...prev];
-          const unique = Array.from(new Map(combined.map(item => [item.id || JSON.stringify(item), item])).values());
-          return unique;
-        });
-      }
-
-      // Update basic fields if the remote data is newer or local is blank/default
-      if (remoteTime > localTime || !localStorage.getItem('lastLocalUpdate')) {
-        if (data.babyName) setBabyName(data.babyName);
-        if (data.parentName) setParentName(data.parentName);
-        if (data.fluidMl !== undefined) setFluidMl(data.fluidMl);
-        if (data.fluidTarget !== undefined) setFluidTarget(data.fluidTarget);
-        if (data.allTimePoints !== undefined) setAllTimePoints(data.allTimePoints);
-        if (data.dailyStreak !== undefined) setDailyStreak(data.dailyStreak);
-      }
-
-      // Update last update timestamp to the newer one
-      const finalTime = Math.max(remoteTime, localTime, Date.now());
-      setLastLocalUpdate(finalTime);
-      localStorage.setItem('lastLocalUpdate', finalTime.toString());
-
-      setNotifications(prev => [
-        {
-          id: Date.now().toString(),
-          title: 'Direct Sync Applied!',
-          desc: `Successfully synchronized baby care logs with partner's device via QR.`,
-          time: 'Just now',
-          type: 'system',
-          read: false
-        },
-        ...prev
-      ]);
-      
-      return true;
-    } catch (e) {
-      console.error("Error applying sync:", e);
-      return false;
-    }
-  };
-
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      if (hash.startsWith('#sync=')) {
-        const encodedData = hash.replace('#sync=', '');
-        try {
-          const decodedJson = decodeURIComponent(escape(atob(encodedData.replace(/-/g, '+').replace(/_/g, '/'))));
-          const parsed = JSON.parse(decodedJson);
-          if (parsed && parsed.babyName) {
-            const confirmMerge = window.confirm(`Found Baby Sync Data for "${parsed.babyName}" from your partner! Would you like to import and merge this with your device?`);
-            if (confirmMerge) {
-              const success = applySyncData(parsed);
-              if (success) {
-                alert("Sync successful! Baby logs and history have been updated.");
-              } else {
-                alert("Failed to parse or apply sync data.");
-              }
-            }
-          }
-        } catch (err) {
-          console.error("Failed to decode sync URL hash:", err);
-          alert("Invalid QR or Sync Code.");
-        }
-        window.location.hash = ''; // Clear hash
-      }
-    };
-
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [lastLocalUpdate]);
-
-  const handleNavigate = (screen: string, data?: any, autoOpenLog?: boolean) => {
-    if (screen === 'recipe-detail') {
-      setSelectedMeal(data || MOCK_MEALS[0]);
-      setAutoOpenLogModal(!!autoOpenLog);
-    } else if (screen === 'journal') {
-      setNavData(data);
-    }
-    setActiveScreen(screen);
-  };
-
-  const getSyncLink = () => {
-    const syncState = {
-      babyName,
-      parentName,
-      fluidMl,
-      fluidTarget,
-      allTimePoints,
-      dailyStreak,
-      diaperLogs: diaperLogs.slice(0, 15),
-      growthLogs: growthLogs.slice(0, 15),
-      activities: activities.slice(0, 20),
-      loggedMeals: loggedMeals.slice(0, 15),
-      loggedMoods: loggedMoods.slice(0, 15),
-      scheduledMeals,
-      scheduledActivities,
-      scheduledMeds,
-      reminders,
-      updatedAt: new Date(lastLocalUpdate).toISOString()
-    };
-    const syncString = JSON.stringify(syncState);
-    const b64 = btoa(unescape(encodeURIComponent(syncString)))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-    return `${window.location.origin}${window.location.pathname}#sync=${b64}`;
-  };
-
-  return (
-    <div className="min-h-screen bg-background font-sans text-gray-900 w-full max-w-7xl mx-auto relative overflow-x-clip transition-all duration-300 pb-28 md:pb-32">
-      <AnimatePresence mode="wait">
-        {activeScreen === 'home' && (
-          <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <Dashboard 
-              onNavigate={handleNavigate}
-              babyName={babyName}
-              parentName={parentName} 
-              fluidMl={fluidMl}
-              fluidTarget={fluidTarget}
-              currentMood={derivedMood}
-              currentFood={derivedFood}
-              scheduledMeals={scheduledMeals}
-              scheduledActivities={scheduledActivities}
-              scheduledMeds={scheduledMeds}
-              setScheduledMeals={setScheduledMeals}
-              setScheduledActivities={setScheduledActivities}
-              setScheduledMeds={setScheduledMeds}
-              activities={activities}
-              dailyStreak={dailyStreak}
-              onToggleActivity={handleToggleActivity}
-              currentUser={currentUser}
-              onGoogleSignIn={handleGoogleSignIn}
-              onSignOut={handleSignOut}
-              isSyncing={isSyncing}
-              isOnline={isOnline}
-              babyAge={babyAge}
-              setBabyAge={setBabyAge}
-              vaccineSchedule={vaccineSchedule}
-              setVaccineSchedule={setVaccineSchedule}
-              allMeals={[...MOCK_MEALS, ...personalRecipes]}
-              userRole={userRole}
-              setUserRole={setUserRole}
-            />
-          </motion.div>
-        )}
-        {activeScreen === 'feeding' && (
-          <motion.div key="feeding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <FeedingTracker 
-              fluidMl={fluidMl} 
-              fluidTarget={fluidTarget}
-              onSetTarget={setFluidTarget}
-              onAddFluid={(amount) => setFluidMl(prev => Math.min(fluidTarget + 500, prev + (amount || 50)))} 
-              scheduledMeals={scheduledMeals}
-              setScheduledMeals={setScheduledMeals}
-              onNavigate={handleNavigate}
-              allergenMatrix={allergenMatrix}
-              setAllergenMatrix={setAllergenMatrix}
-              loggedMeals={loggedMeals}
-              userRole={userRole}
-            />
-          </motion.div>
-        )}
-        {activeScreen === 'recipes' && (
-          <motion.div key="recipes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <RecipeLibrary onNavigate={handleNavigate} personalRecipes={personalRecipes} />
-          </motion.div>
-        )}
-        {activeScreen === 'journal' && (
-          <motion.div key="journal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <Journal 
-              onNavigate={handleNavigate}
-              navData={navData}
-              allMeals={[...MOCK_MEALS, ...personalRecipes]}
-              scheduledMeals={scheduledMeals} 
-              scheduledActivities={scheduledActivities} 
-              scheduledMeds={scheduledMeds} 
-              loggedMeals={loggedMeals}
-              observationLogs={observationLogs}
-              setObservationLogs={setObservationLogs}
-              setScheduledMeals={setScheduledMeals}
-              setScheduledActivities={setScheduledActivities}
-              setScheduledMeds={setScheduledMeds}
-              setLoggedMeals={setLoggedMeals}
-              weeklyPlan={weeklyPlan}
-              setWeeklyPlan={setWeeklyPlan}
-              groceryChecked={groceryChecked}
-              setGroceryChecked={setGroceryChecked}
-              diaperLogs={diaperLogs}
-              setDiaperLogs={setDiaperLogs}
-              babyName={babyName}
-              setBabyName={setBabyName}
-              parentName={parentName}
-              setParentName={setParentName}
-              growthLogs={growthLogs}
-              setGrowthLogs={setGrowthLogs}
-              allergenMatrix={allergenMatrix}
-              setFluidMl={setFluidMl}
-              loggedMoods={loggedMoods}
-              setLoggedMoods={setLoggedMoods}
-              memories={memories}
-              setMemories={setMemories}
-              setAllTimePoints={setAllTimePoints}
-              setDailyStreak={setDailyStreak}
-              setLastQuestDate={setLastQuestDate}
-              setLastStreakDate={setLastStreakDate}
-              setActivities={setActivities}
-              fluidMl={fluidMl}
-              fluidTarget={fluidTarget}
-              activities={activities}
-              dailyStreak={dailyStreak}
-              vaccineSchedule={vaccineSchedule}
-              setVaccineSchedule={setVaccineSchedule}
-              userRole={userRole}
-              setUserRole={setUserRole}
-            />
-          </motion.div>
-        )}
-        {activeScreen === 'sleep' && (
-          <motion.div key="sleep" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <ActivityTracker 
-              loggedMoods={loggedMoods} 
-              setLoggedMoods={setLoggedMoods} 
-              scheduledActivities={scheduledActivities}
-              setScheduledActivities={setScheduledActivities}
-              vaccineSchedule={vaccineSchedule}
-              setVaccineSchedule={setVaccineSchedule}
-              babyName={babyName}
-              babyAge={babyAge}
-              loggedMeals={loggedMeals}
-              diaperLogs={diaperLogs}
-              onNavigate={handleNavigate}
-              initialTab="sleep"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {activeScreen === 'recipe-detail' && selectedMeal && (
-          <motion.div key="recipe-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <RecipeDetail 
-              meal={selectedMeal} 
-              babyName={babyName}
-              onBack={() => {
-                setActiveScreen('recipes');
-                setAutoOpenLogModal(false);
-              }} 
-              autoOpenLog={autoOpenLogModal}
-              onLog={(details) => {
-                const newLog = {
-                  ...selectedMeal,
-                  logType: details.type,
-                  logTime: details.time,
-                  appetising: details.appetising,
-                  taste: details.taste,
-                  acceptance: details.acceptance,
-                  satisfaction: details.satisfaction,
-                  notes: details.notes,
-                  consistency: details.consistency,
-                  newFood: details.newFood,
-                  allergyReaction: details.allergyReaction,
-                  allergyNotes: details.allergyNotes,
-                  timestamp: new Date().toISOString()
-                };
-                setLoggedMeals(prev => [...prev, newLog]);
-                setAutoOpenLogModal(false);
-                setActiveScreen('home');
-              }}
-              onSchedule={(meal) => {
-                handleNavigate('journal', { type: 'meal', meal });
-              }}
-            />
-          </motion.div>
-        )}
-        {activeScreen === 'add-recipe' && (
-          <AddRecipeScreen 
-            onBack={() => setActiveScreen('recipes')}
-            onSave={(recipe) => {
-              const newRecipe: Meal = {
-                id: `personal-${Date.now()}`,
-                ...recipe,
-                image: 'https://picsum.photos/seed/recipe/400/300',
-                time: '20m',
-                stage: recipe.category === 'Purees' ? 'First Purees' : recipe.category === 'Solids' ? 'Soft Solids' : 'Finger Foods',
-                type: recipe.category === 'Snacks' ? 'snack' : 'lunch',
-                nutrients: [
-                  { label: 'Protein', value: '2g' },
-                  { label: 'Carbs', value: '15g' }
-                ]
-              };
-              setPersonalRecipes(prev => [...prev, newRecipe]);
-              setActiveScreen('recipes');
-            }}
-          />
-        )}
-        {activeScreen === 'activities' && (
-          <ActivitiesScreen 
-            onBack={() => setActiveScreen('home')} 
-            growthLogs={growthLogs}
-            setGrowthLogs={setGrowthLogs}
-            activities={activities}
-            setActivities={setActivities}
-            dailyStreak={dailyStreak}
-            lastStreakDate={lastStreakDate}
-            allTimePoints={allTimePoints}
-            setAllTimePoints={setAllTimePoints}
-            onToggleActivity={handleToggleActivity}
-          />
-        )}
-        {activeScreen === 'notifications' && (
-          <NotificationsScreen 
-            onBack={() => setActiveScreen('home')} 
-            notifications={notifications}
-            setNotifications={setNotifications}
-          />
-        )}
-        {activeScreen === 'reminders' && (
-          <RemindersScreen 
-            reminders={reminders} 
-            setReminders={setReminders} 
-            onBack={() => setActiveScreen('home')} 
-            setNotifications={setNotifications}
-          />
-        )}
-        {activeScreen === 'settings' && (
-          <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <SettingsScreen 
-              onBack={() => setActiveScreen('home')}
-              currentUser={currentUser}
-              onGoogleSignIn={handleGoogleSignIn}
-              onSignOut={handleSignOut}
-              babyName={babyName}
-              setBabyName={setBabyName}
-              babyAge={babyAge}
-              setBabyAge={setBabyAge}
-              babyDob={babyDob}
-              setBabyDob={setBabyDob}
-              parentName={parentName}
-              setParentName={setParentName}
-              parentDob={parentDob}
-              setParentDob={setParentDob}
-              zeroThirdPartyTracking={zeroThirdPartyTracking}
-              setZeroThirdPartyTracking={setZeroThirdPartyTracking}
-              auditLogs={auditLogs}
-              onDeleteAccount={handleDeleteAccount}
-              isOnline={isOnline}
-              addAuditLog={addAuditLog}
-              userRole={userRole}
-              setUserRole={setUserRole}
-            />
-          </motion.div>
-        )}
-
-        {/* AI Weekly Solid Meal & Localized Grocery Planner */}
-        {activeScreen === 'ai-meal-planner' && (
-          <motion.div key="ai-meal-planner" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="p-4 sm:p-6 pb-28 max-w-4xl mx-auto">
-            <AiMealPlanner 
-              onClose={() => setActiveScreen('home')}
-              babyName={babyName}
-              babyAge={babyAge}
-              allergenMatrix={allergenMatrix}
-              onApplyToWeeklyPlan={(plan) => {
-                setWeeklyPlan(plan);
-              }}
-            />
-          </motion.div>
-        )}
-
-        {/* AI Baby Cry Acoustic Analyzer - Integrated into Activity Tracker */}
-        {activeScreen === 'cry-analyzer' && (
-          <motion.div key="cry-analyzer-screen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <ActivityTracker 
-              loggedMoods={loggedMoods} 
-              setLoggedMoods={setLoggedMoods} 
-              scheduledActivities={scheduledActivities}
-              setScheduledActivities={setScheduledActivities}
-              vaccineSchedule={vaccineSchedule}
-              setVaccineSchedule={setVaccineSchedule}
-              babyName={babyName}
-              babyAge={babyAge}
-              loggedMeals={loggedMeals}
-              diaperLogs={diaperLogs}
-              onNavigate={handleNavigate}
-              initialTab="cry"
-            />
-          </motion.div>
-        )}
-
-        {/* In-App User Guide Screen */}
-        {activeScreen === 'user-guide' && (
-          <motion.div key="user-guide" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="p-4 sm:p-6 pb-28 max-w-4xl mx-auto">
-            <AppUserGuide onClose={() => setActiveScreen('home')} />
-          </motion.div>
-        )}
-        
-      </AnimatePresence>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 sm:bottom-4 left-0 right-0 w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto bg-white/95 backdrop-blur-xl border border-gray-200/80 rounded-t-3xl sm:rounded-full px-2 sm:px-4 md:px-6 py-2 sm:py-2.5 flex justify-between sm:justify-around items-center z-40 shadow-xl shadow-gray-900/10 transition-all">
-        <NavButton active={activeScreen === 'home'} icon={<Home />} label="Dashboard" onClick={() => setActiveScreen('home')} />
-        <NavButton active={activeScreen === 'feeding'} icon={<Utensils />} label="Meal Log" onClick={() => setActiveScreen('feeding')} />
-        <NavButton active={activeScreen === 'sleep' || activeScreen === 'activity'} icon={<ActivityIcon />} label="Activity" onClick={() => setActiveScreen('sleep')} />
-        <NavButton active={activeScreen === 'recipes'} icon={<BookOpen />} label="Recipes" onClick={() => setActiveScreen('recipes')} />
-        <NavButton active={activeScreen === 'journal'} icon={<Calendar />} label="Journal" onClick={() => setActiveScreen('journal')} />
-      </nav>
-
-      {/* Celebration Streak Level-Up Modal Overlay */}
-      <AnimatePresence>
-        {showStreakPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="bg-white rounded-[48px] p-8 text-center space-y-6 max-w-sm w-full border border-gray-100 shadow-2xl relative overflow-hidden"
-            >
-              {/* Animated Background Confetti sparkles */}
-              <div className="absolute inset-0 pointer-events-none opacity-20">
-                <div className="absolute top-10 left-10 text-xl animate-bounce">‚ú®</div>
-                <div className="absolute top-24 right-12 text-2xl animate-pulse">üéâ</div>
-                <div className="absolute bottom-12 left-16 text-lg animate-bounce">üéà</div>
-              </div>
-
-              <div className="w-24 h-24 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center text-5xl mx-auto shadow-inner animate-pulse">
-                üî•
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-2xl font-serif font-black text-gray-800">Streak Advanced!</h3>
-                <p className="text-xs text-muted font-medium">
-                  You have completed all 3 Growth Quests today! Baby is thriving!
-                </p>
-              </div>
-
-              <div className="bg-amber-500 text-white py-3 px-6 rounded-3xl font-black text-xs uppercase tracking-widest">
-                üî• {dailyStreak} Day Streak
-              </div>
-
-              <button 
-                onClick={() => setShowStreakPopup(false)}
-                className="w-full py-4 rounded-3xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xs uppercase tracking-widest transition-colors cursor-pointer"
-              >
-                Awesome!
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Direct QR Sync Modal Overlay */}
-      <AnimatePresence>
-        {isQrModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="bg-white rounded-[48px] p-8 max-w-sm w-full border border-gray-100 shadow-2xl space-y-6 relative overflow-hidden"
-            >
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-serif font-black text-gray-800">Multi-Device Sync</h3>
-                <button 
-                  onClick={() => setIsQrModalOpen(false)}
-                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 font-bold flex items-center justify-center cursor-pointer transition-colors"
-                >
-                  ‚úï
-                </button>
-              </div>
-
-              <p className="text-xs text-muted leading-relaxed">
-                Copy and merge your baby tracking logs directly to your partner's phone offline via QR code. No account required!
-              </p>
-
-              {/* QR Image display */}
-              <div className="flex flex-col items-center justify-center space-y-4 p-4 bg-gray-50 rounded-3xl">
-                <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-                  <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(getSyncLink())}`}
-                    alt="Sync QR Code"
-                    className="w-48 h-48"
-                  />
-                </div>
-                <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Scan with partner's camera</span>
-              </div>
-
-              <div className="space-y-2.5">
-                <button
-                  onClick={() => {
-                    const link = getSyncLink();
-                    navigator.clipboard.writeText(link);
-                    alert("Sync URL copied to clipboard! Share it with your partner.");
-                  }}
-                  className="w-full py-3 rounded-2xl bg-primary text-white font-bold text-xs uppercase tracking-wider shadow-md hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <Link className="w-3.5 h-3.5" />
-                  <span>Copy Partner Sync Link</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    const pasted = prompt("Paste your partner's Sync Link or Sync Code here:");
-                    if (pasted) {
-                      let hashData = pasted;
-                      if (pasted.includes('#sync=')) {
-                        hashData = pasted.split('#sync=')[1];
-                      }
-                      try {
-                        const decodedJson = decodeURIComponent(escape(atob(hashData.replace(/-/g, '+').replace(/_/g, '/'))));
-                        const parsed = JSON.parse(decodedJson);
-                        if (parsed && parsed.babyName) {
-                          const success = applySyncData(parsed);
-                          if (success) {
-                            alert("Sync applied! Baby logs and status are fully updated.");
-                            setIsQrModalOpen(false);
-                          } else {
-                            alert("Failed to apply sync data.");
-                          }
-                        } else {
-                          alert("Invalid sync payload structure.");
-                        }
-                      } catch (err) {
-                        console.error("Manual paste sync error:", err);
-                        alert("Invalid Sync code/link format. Please make sure to copy the entire link.");
-                      }
-                    }
-                  }}
-                  className="w-full py-3 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-solid border-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <span>Paste Partner Sync Link</span>
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Interactive First-Launch Onboarding Overlay */}
-      {showOnboarding && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md overflow-y-auto">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="w-full max-w-sm bg-white rounded-[48px] border border-solid border-gray-100 shadow-2xl p-8 space-y-6 text-center relative overflow-hidden"
-          >
-            {/* Top decorative subtle abstract pattern bubble */}
-            <div className="absolute -top-12 -right-12 w-28 h-28 bg-rose-100/40 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-sky-100/40 rounded-full blur-2xl pointer-events-none" />
-
-            {/* Playful/Elegant Header */}
-            <div className="space-y-3 relative z-10">
-              <div className="w-16 h-16 bg-gradient-to-tr from-rose-100 to-amber-50 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-inner shadow-rose-200/50">
-                üë∂‚ú®
-              </div>
-              <div>
-                <h2 className="text-2xl font-serif font-black text-gray-800 leading-tight">Welcome to Ama</h2>
-                <p className="text-[11px] text-gray-400 mt-1 font-medium leading-relaxed">Let's set up your baby's weaning, care, and milestoning journey</p>
-              </div>
-            </div>
-
-            {/* Inputs */}
-            <div className="space-y-5 text-left relative z-10">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Parent / Guardian Name
-                </label>
-                <input
-                  type="text"
-                  value={onboardingParentName}
-                  onChange={(e) => {
-                    setOnboardingParentName(e.target.value);
-                    setAgeGateError('');
-                  }}
-                  placeholder="e.g. Mom"
-                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Guardian Date of Birth (Neutral Age Gate)
-                </label>
-                <input
-                  type="date"
-                  value={onboardingParentDob}
-                  onChange={(e) => {
-                    setOnboardingParentDob(e.target.value);
-                    setAgeGateError('');
-                  }}
-                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
-                />
-                <p className="text-[9px] text-gray-400 pl-1 leading-normal">
-                  Guardian Verification Notice: Ama is designed for adult parent or guardian tracking only.
-                </p>
-              </div>
-
-              <div className="space-y-1.5 pt-2 border-t border-gray-100/50">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Baby's Name
-                </label>
-                <input
-                  type="text"
-                  value={onboardingBabyName}
-                  onChange={(e) => {
-                    setOnboardingBabyName(e.target.value);
-                  }}
-                  placeholder="e.g. Leo"
-                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Baby's Date of Birth
-                </label>
-                <input
-                  type="date"
-                  value={onboardingBabyDob}
-                  onChange={(e) => {
-                    const dob = e.target.value;
-                    setOnboardingBabyDob(dob);
-                    const calculated = calculateBabyAge(dob);
-                    setOnboardingBabyAge(calculated);
-                  }}
-                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
-                />
-                {onboardingBabyAge && (
-                  <p className="text-[11px] text-emerald-600 font-bold pl-1 mt-1">
-                    Calculated Age: {onboardingBabyAge}
-                  </p>
-                )}
-              </div>
-
-              {/* 1-Step Microphone Access Verification */}
-              <div className="space-y-2 pt-2 border-t border-gray-100">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Microphone Access (Cry Analysis & Care Notes)
-                </label>
-                <div className="p-3 bg-slate-50 rounded-2xl border border-gray-200/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Mic className="w-4 h-4 text-primary" />
-                      <span className="text-xs font-bold text-gray-800">
-                        {onboardingMicStatus === 'granted' ? 'Mic Access Granted' : onboardingMicStatus === 'denied' ? 'Mic Permission Blocked' : 'Check Mic Hardware'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleTestOnboardingMic}
-                      disabled={isOnboardingMicTesting}
-                      className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-black uppercase tracking-wider transition-all border-none cursor-pointer"
-                    >
-                      {isOnboardingMicTesting ? 'Testing...' : onboardingMicStatus === 'granted' ? 'Re-test' : 'Test Mic'}
-                    </button>
-                  </div>
-
-                  {onboardingMicStatus === 'granted' && (
-                    <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 text-[10px] text-emerald-800 font-bold flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Web audio permission verified! Ready for noise-filtered cry analysis.</span>
-                    </div>
-                  )}
-
-                  {onboardingMicStatus === 'denied' && (
-                    <div className="p-2 bg-amber-50 rounded-xl border border-amber-100 text-[10px] text-amber-800 font-medium leading-relaxed">
-                      ‚ö†Ô∏è Permission blocked. You can still use manual care logging and enable microphone permissions anytime in your browser.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {ageGateError && (
-              <div className="p-4 bg-red-50 rounded-2xl border border-solid border-red-100 text-left text-red-600 text-[10px] font-bold leading-relaxed relative z-10">
-                ‚ö†Ô∏è {ageGateError}
-              </div>
-            )}
-
-            {/* Start Button */}
-            <div className="space-y-3 relative z-10">
-              <button
-                onClick={handleFinishOnboarding}
-                disabled={!onboardingParentName.trim() || !onboardingParentDob}
-                className="w-full py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest cursor-pointer border-none shadow-lg transition-all bg-primary text-white hover:bg-primary-dark disabled:opacity-40 disabled:cursor-not-allowed shadow-primary/20"
-              >
-                Start Journey
-              </button>
-              
-              <button
-                onClick={handleGoogleSignIn}
-                className="w-full py-3.5 rounded-3xl font-black text-[10px] uppercase tracking-widest cursor-pointer border border-solid border-gray-200 transition-all bg-white text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
-              >
-                <Shield className="w-3.5 h-3.5 text-primary" />
-                Restore Backup / Log In
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {isInitialLoadComplete && (
-        <VoiceAssistant 
-          babyName={babyName || 'Baby'}
-          babyAge={babyAge || '6 Months'}
-          stage="Purees & Finger Foods"
-          lastFeedStr={loggedMeals.length > 0 ? (loggedMeals[loggedMeals.length - 1].date ? new Date(loggedMeals[loggedMeals.length - 1].date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '2 hours ago') : 'No feed logged today'}
-          lastSleepStr="1h 30m nap logged"
-          lastDiaperStr="Clean diaper logged"
-          onLogMeal={(meal) => {
-            const newMeal = { id: `m-${Date.now()}`, ...meal, date: new Date().toISOString() };
-            setLoggedMeals(prev => [...prev, newMeal]);
-          }}
-          onStartTimer={(side) => {
-            alert(`Starting ${side} breast nursing timer for ${babyName || 'baby'}.`);
-          }}
-          onAddNote={(note) => {
-            const newMood = { id: `d-${Date.now()}`, date: new Date().toISOString(), mood: 'Neutral', notes: note };
-            setLoggedMoods(prev => [...prev, newMood]);
-          }}
-          loggedMeals={loggedMeals}
-          observationLogs={observationLogs}
-          loggedMoods={loggedMoods}
-          diaperLogs={diaperLogs}
-          vaccineSchedule={vaccineSchedule}
-          memories={memories}
-        />
-      )}
-
-      {/* Mandatory Terms of Use & Privacy Policy Gate for Every New Device */}
-      <LegalConsentModal 
-        isOpen={showLegalConsent}
-        onAccept={() => setShowLegalConsent(false)}
-      />
-    </div>
-  );
-}
-
-function NavButton({ active, icon, label, onClick }: { active: boolean; icon: React.ReactNode; label?: string; onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={`relative px-2 sm:px-3.5 py-1 sm:py-2 rounded-2xl flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 transition-all cursor-pointer border-none bg-transparent shrink-0 ${
-        active ? 'text-primary sm:bg-primary/10 font-bold' : 'text-gray-400 hover:text-gray-600'
-      }`}
-    >
-      {React.cloneElement(icon as React.ReactElement<any>, { className: `w-5 h-5 shrink-0 transition-transform ${active ? 'scale-105 text-primary' : ''}` })}
-      {label && <span className="text-[9px] sm:text-xs font-bold tracking-tight whitespace-nowrap leading-none">{label}</span>}
-      {active && (
-        <motion.div 
-          layoutId="nav-indicator"
-          className="absolute -bottom-0.5 sm:-bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-full"
-        />
-      )}
-    </button>
-  );
-}
+    // Force sign in anonymously so they get xúÏ}Ÿr‹∆ñ‡ªæ"≈vò≈6k!%∫eJ%MIætk≥(]«åFa°
+…*¥P@…rôÔ›/›—3/7‚ŒÀDÙLÃ˜‹ò˚	sN.@Æ(/∑UdÊ…ƒ…Ã≥ÁA@N2öO…§§yAröÁQöê,öLúã[~E∂ KvEa£Irî$i≤ò•e/:AYL∑Ó≥Jd„)È–-≤ºÄG˜o¡ˇeNüúú–q—Èlë·Cqú&–qô‰Â(g—àí!IìÄv\=ú…ÑÜ¸6	ÚE2&Äî) âN‰C˘Ñ¿ªáeñ—§x%º¯æZzî%QÒ≥4”Ÿ<¶ÌúqNïäÍª+„hè”Òkz√”q'mìM|öon≥“^Ö
+ŸÍ'¡ZqDNhp:5<≠æóh—£ÁQ^‰ù≠-m8nú=äÄèÜ’·∂£A´∆¿+Œ≥tÛ}ßeàm;Ü—FªÈ˜…aöúƒ—∏ Øiû∆eÎe œÊAF…Åër]–† gQ1%q:byÒØﬁ≤R«∏X„7—ó é±W√yDzF`t¥£ólı Éÿ÷‘>∏^óuú“‡Úõ"ÕÇ	≈¶Gùu6ç±m:—∆öä·)0xÛú%Eß~∫Mvb@$ú–˙5k†Ê¥r\3tNÉ_üf+˚Ω≠9Óíú#öc+†ÿ:BºçÇ—‚E ]ﬂa”ÖÙ$Jh∏Ö€·kQ§W40°Ä¬˘N
+∞WU°Yy¿«È»Ñg"Ü‘=@m£±ü!Ú ŒSâ∑4•AF…Ñ#èIHFãyêÁ8òbJdF)–ø	%˝±å2:‡\{‰Æ± ÂÉ–Ü@„qCØ∫z‰ºl	KeÁû<—u.u0~ÔJC†JõEVZK[¡ËÒ4={Y·∆"ÑıÔ¬Ò⁄◊m◊òñyﬂnπô]∑ZxæûÇ8¶ŸÑ&œÉ"ãŒΩh\ç¸ã¸å“èÒ‚U$¿ﬂWÖfe?¿	RÒlq8•„è@çl†ﬂh\ç¸¿√(ò”ÏY:…ÄWÖfe?¿$-¢ìƒ‡.ò/‘rGìF<úSœPø©
+Õ ~Ä0£Hó_•QR∏`®Âé&X¢xq\d4¯ËBk]jU˜√Dˆ p»#Pü©Âé&ÕêyÔ†Î
+ÆFH—)a‘â·™–¨ÏxÉ‹ı<v@{ K¥j+‡º	`K>Xº‘™ﬁÄ…t¢Ïs
+Ñ’Ö∆∫‘™Óáôé@r<eõ√≥ˆ_Í5úÕVé9M√Ü1c©UΩÅ—Éîú&A¸öé£πsÊ_È5úÕ¸ÛÒîÜeÏGı±V¡’®É¶•{l◊Ú6oı"NÙ´Âé&~» —D *sA}-Àå™~hß¡xÕÂp0ˇ®◊p6Û√GÌËuÍ¸VÈ˝†ftñfÓ9{.äÙä[ÜO$…SÙÖZ§∑:vãf¶æ±]Î>Ω"¬âÿñ,√É2åp€u6QU9%®ærÔIvã¥KAû•…8[ÃAE"£`¸±ú√@∞ìuC*ÀÿË‚E?>xs√¡··ì„cSHº dAóÇ¬^Çåôíû‘ ô¢≤OÊe>%E*T∏»P[<•(3ı—Ä≈ed&èø
+8Xñmi7 _·z,g€∑ÑÃÌs$eœ”0à_ŒiÇ•RÉŸ∂Ä‘2°ØdUªHÒÏÚZZ≥ÀtÅÀ.Øe'ªLÄú†Ö,„r-ê8z≠%ªP‹≈5áwt]—7ªLp_Og£ék~hÕ€9ìc÷u÷bW–πCC˘A√kk¥Ÿ.Æ≠]dPJªÇ$|vâ§c¶ûe“æ+≤QoBÒH•oè_æËÂÏ::Yt‘Î†W‹Vhö∏∂Kè¬˝ tføà94§Qhø∂’ˆ ¨G«/%m5——í÷/í1ßµúÚq≥å§5—E2ã∂ iñ&—O4¨H·JR´‹9….›©0ÖÈ∏DÀ·∂AAuπ]à˘
+QÛ7f√ôΩÓÃmû\¡ÆÅ¯Äó¸7?Èo&¸~≤ﬂHÙ˝$øë‡7ê˚FbﬂLÍ˝ÑﬁCÊà|â_A‡»˚
+‚ﬁL⁄[ˆF≤Ó%Í+H∫è†;…˘Ök]')oM»WëÒUD¸“$‹$‡˘>è”»§˜ AF2|L«%H¨¥ñöπ¥zñfÛy0¶$™êì4„ØÖMÅxø|˚‚çNk⁄]{¿≤lÀr¡¥ˆ† Õ:OaKrÓ¿¶·s }í•3Ú4©®2›ﬂÿ&Íæ“(.(ªk–Ω^-4˝™≠oI(áÓrM4ÇÛ¡D	…aàI=1Cêê ÌG$ba[∞óÄfº =ç∆µÉ«Ù†µ j8dù'+êyÃJ™˙¨è.º¡	√2"QÉÂ¿«-u-e¥(≥Ñpo•‚°‰lÎbõº{œµC¿⁄k ›Ÿ gÕ((êg¿ïiB≥[>Á'™•∑«µóí¸¸3ππfPîºLb [bhB5m„íT:Q<ìnÁ+∫ÛiZh;]˙!-økì≤ÚMVN∆•‚|Ï˜PV7ÓñB©†∏}àébØ#±∫pÈ˝´œjË°∂@w1Îõ.Œ¿“AgÏYﬁ„∂Œ<ªv#»∂N=WãÄŒ=ÕïÁ®ﬂu]WçØec'm]6ÆçÄ◊u›¯Z6v“÷Ö„j—x=Wéß›*¸¥rÈ∏Z¨Z6k∏v<Ìö±ﬁ⁄≈„l”{=Wèß› ÷q˘¯Z6OBK◊è´E#‡’. ´Ójx≠\AŒ6ÕònÌr∂iÑΩæk»€∂Õ;¥p9€4≥çµ]Eﬁ∂ç˝¨Î2Úµl◊…⁄Æ£Fm_¨Ö…”Æ±ávÆ$G˝F®Îªîºm˚i„Z≤k7Çl„b≤k7E›]£…7±vZJ≠Dì?y –6Ÿ B1™∫s+¡u=CÍUÙÆ
+p≠yµTΩÖfõ8U&|Ãı%°¶	Û"ºûxkÆ+¡§¬≈ÉiHø=Óâ"Ú3I 8~ÿ¡ˇ+-Ô†îUÆ‡qïé+∆	-–p b ∆(ö13∞txqãóºa}°ËoŸ0∑`Œhê…I˜T`‹•Ä0eŸàÄ\M)‘ı˝&ïÊÚäk›zùÄ⁄Í0»ïK~s˜}®5‚Í⁄´Éo◊RoØ¢‡ﬁ∞äÎ¥ÂÎ‘EÛÇõj≠7àµ
+açrÈÊÛx!m|´8ú√∫y”1Så6}“ç?È∆üt„O∫Ò'›¯ìn¸I7˛§“çˇvucSomÅyç™≥?"®>wåb,s.sπï r&œoı»s¨BÌò\ﬁ.
+Sq.◊»@‰ö“±KEi©πr@ç/ú∆L”J„§i
+£Ò—4Ñ–¯h¬gº¡3°3MÅ3æ∞g–å7d∆0”.„ñiïi
+îY&”$„	ëiêqá«8Çc¥–òÎåi#ÉbSÜ>ˆÊ»g\åNƒ¸—1zlåõå°e´ã¥å«ëk‚§†1ùQ¥Îà`Úr.¬…€Ñ5÷¡&Ó†oH≥-¡_oå+∆a¬4lå€dáõ4mK£◊p5Zµˆ–V…ÓTÉ%7”9çñ¢àˆ¯ù1—≤ %©∂I≠*Ì¢Œ&UvQcì
+;®ØIu‘÷¢≤ÍÍ¢™&5’®®E=-™È§ñïtRGUÙRC4®üAı‡ôfºf÷3\›¬Ä»Œ™Ïì Y(ÎW5¿
+%∆Ç^œ—˙¶B^Q¸È˜π‘C∏AÖ0}´S&ògb¥ GèIöåú:;õK∫Â8Çj$wPÏ3Ûåûö°7¬`öŒF(a¬(ﬂız=‚6Ågÿ¯ΩÕ%`Ä?ñ¯vY,zè◊AD=Ê	µ7Éπfÿ˘;ºËE!ZÊŸ%ãÉÉù`Ÿ÷6´Ú~kÚñ∑!l
+¢ƒ«–ÀA¥§ùzb∂Ó#>ˇë“9ôÁ†¶≤ô´Ô8!k`R1≠áIeCﬂ(&qU]?&◊@ùjV–qßö!÷CûJÑ~áÎp}Ï1ÉÜ{Ã r)Ï1‚¸∑ç=√à¢#–0Ω¨áCÉu›Øä97≤ºhRå?\)∆£K"L·Î#Xc¶,Ô⁄Z{{ÍÇŒÔGµQN«Om¿[7µƒ˜ªƒ»\ŒΩ"è∆†Ç—8îôsÑ§…Ì^“ÈãW$·…¥àè˝êûe\(®VDT≈°Ã¬ZûNSß«Jx‘.≈ë#€L˚tFWœAqΩŸ'n"ì…uÊ0q¨(úSô¶©R	ƒ¡πñy≤ÑofäË¨SÿÁ b⁄Æ◊“∂rÓ∞Ñ√î\A¨*µ5"W-u#r›ïÓ˜ïd„]Ö^ïÄD°zPRÅ®ZÜä®àÈ>Ÿ|eàƒå—†#F4ºΩ©Vi>ﬁ'éÀ1úúîh4—®‚n c<¡£Ç∆Bö`ô	Õ6sq§áúF˘ÓuÔÉ>Ñé‡€&Ü™ıZ,ÊXñ/r¿òV+ﬁèŸgjbSWÑQ‹øØf‚ñlÕ®UØ£•T÷ábWzÇ∏ÕR¡À3{R[ UBK⁄Â.úI”?˘î'+Dµ\≥&…j˘äŒÄˆßg=\R∏
+z¯Xé wﬁÌÃÁh“Ôl˛ét∏È8WCìqRKƒft f V€dS5≈πìÜî¡˘6ç|(Óﬁæ>BìÏ∂§Ë¿⁄ïπÈ®£tZı÷Ôˆ'–”õ[ı£ÿ£>å[g4ºKv8π"cUÏÆ£Ck¡úº˛Áüãñ
+]◊m≠íÌ&'Q6„vá
+Á‚iÁ√”»An¿w√ ûÔ€¯li¿øÿ‡GÒiô…˝põ|üñqàœH}dL‡*+X¿ﬂåıZL#±ãXSæÅ}py«î¡⁄ﬁÑáÔ[årS-@/Paø‰M\9„ÇòfEgÉΩ{^QÑ€#l˚„{¿ …[¿¬:^Oi"≠–Ω´COÜê™´⁄®ÀFL‰N‰6^∆"@o˘ÓÆt“íØ3ﬁÛ€◊œÿ∆±XVC?J@`πÍª◊8j·Ó©6ﬁz<ÆÌ≥∂πyü√— cjJﬂÖ‡&%ë·ÉhÜON1êV+Ïl"$û| v∫Ÿ⁄uäQ@B˛xJ◊Ü∂lÉÎi÷IﬁËEpM¶◊…«,ú}¬Ö—m6”èòΩrõeë¢â˙Y:ÅG£&+Hå`XﬁûA¬ÿÃòŸµ“¶r≥ûlTUh¥ô+≤L‡@πÒ˘À√¸·˘ìÉg«ÔÔUÜPwÃÏ‰ù€∑ï±H„=_—Ê ˛	630yΩ{xc∂√:jìO¨å÷°«ÑÄƒq©‡‰6\Wœ¢‰£¡<ÍêeñWÒ›^¡kk˚kß£√›ËÙå:|¢µqu_πÆç;{ï¸R[˜ïkg’⁄ºøØ\◊UwUU≈¨∂Øﬁ8·*V§}ı∆YŸÌˇl|:}ûñ∑ÛíÆ=·ÿTñJñ™∏/Â‚ŸR[åæºUGEt DwŒ⁄5Œ_6.\Û¯ˇˆcÚ›MGQü˝‡(~ÒY_ëK}˙Ÿ“§ùiM¢‰¬.òÉúü sÊRŒgKxõãıÆí$è¡FßdÕq≈7 ˝›iWÏÈ—§ã.MX~(ú§I—ÕÉ$'=/∫–ºª_‰¨ã3Z‹ªg›8á´Û.RË(p{†¶ŸIúûuœª„8ï%(∂;áÑe∆FﬁΩ–Ê£ÓÓ=2˜·‚ŒÓ∆CÅ†I4COsFsò	Jf0√t1Wu@Cz¬I“4ù—Mç:
+Ûz 
+¢
+_˛#]7∞÷ÜLh0\.I:∆Q±ÿ'rqôuÆÏ`=è
+´˙C•'ËÎ1∞	ñÄ’C$ç.´K3¡´ütó˛2JöHÆ3\Í\»¨)â·pYâxFçö<óııÖô/V–Ã·R\ò`"*Í≥û#›.Å0¿Ï2"‰©˜T≠˜‘QO'SÄDÌﬁ[ª&_Jì˙aC/°ﬁIh◊5Ì‘lfèõ«Â¥◊ÍFgX/ÕÌ1JÅÆ¬`Í{9æfS1¬Ö\î˙SœcÑ¿p©‹ÿ–øISÄsÃRhHÿÍ3ª>Y≤≤∏µ≤-À»	‹∞‚“Æ√c∞
+ørm±Éâÿap·òùØeï˙⁄¨ex¬áK„ÅÍÕ&ˆ3kﬁ„X,I¥œ÷"#∑ÕÍˇ˜fcÖ4\ +«†ﬁVïîΩ^_•ß˙5ÈÆüo’-,‡ÑRL~Ωöàä7≈ûro2‡©4[I1ùZêLXŒ¥êıtÉ®]ı Y˘pŸ	fò≠Fûtî∆XiÜ„÷√(È®÷◊/¯„6auæ j{êà¨7Xì¯^Ç0∂Átz$ê5Ìﬁ1ñ£Åı»l£à◊√•r≥Ó>πÚ˙Á™aæz˝ãä7µ˛9°xç≤ [4MïKíÜ˛‡‚ÍHë™ÍJ§àä7Öîo9¯ﬂÅlòp=~∏◊ ,Vê/%Y%ò5ê [23+∑›¡FÄ‹pi<pÃ‹K≥â˝Ï˜((Í1?¨˛3?ﬁÍ»…·≤æv¿¸^©®›öuıÿÀ·Røw@˛∆h`=≤Ñ‹ l2nuÌÄ¸X©®›ÆØs)ŒŸJ&\C7≥°ΩR*j∑|
+À√•∏v„±™®›^ôÔ>ïrQ}Ì·¥hõ™ˆ)ﬁ¯W'Ø™ﬂõµeº¸p)ØûWïî∑ÙP[•P?q≠Uõ“Ô]Ô•FÛ7SüxZ‘Å¬Uì˙ëÎ-t‚ß◊•˛_Ø‚˘À(MøΩ'è)ùØpXµõo§6ÔQzº;◊‚€Õ[˜“Ú¡µÚÀ_f}≠Ê´LmÂövºÆΩ)ñÿõ`$W›Ø$ˆÆ≥µÙ”ÛC≤b⁄§Ì–∫7eÆ∏ÂZ™f¢˘Õ*hèYÊéö—ÄÒ‡zÃ÷¶[Ω0”‰k √•¢Õ≠Ê¨TWÀ˚ÌvU∫ø vaçTqh_1†ÿÉf’:˜πgË‹qî–3®Ï¸8€QÒgßËg;Ûã
+ùı0F»WëÖU#◊;–" £dR◊≠üπZ ®ÄÒ÷	y<¶Û"ÄÖØ@ÆûπZ‰†€‰'∏7´ò≤ç˙‘’*IÙl ÍÏ÷UgÄπÎ«ã∫∂Ú–	õû°ó@ÅŒ8ﬂóI™ã◊‘|£†°Ì˝U‘ßŒôêA~äÛ≥˘KéOWxbºad€b’æø“&sl^ÊzsÏF€^Yqøíœ”yKß≤‡lì••√÷pè≠∏∏f˘*√.'P∂êuÜúöäZœ:ÙΩ£~&ZÒr'ñ**ƒ;ﬂ'åπ8øã˛É¥ t?[÷¡îÏµKÖ˜jøô ÓßE1œ˜˚˝y4ŒÀYo>Mã4ÔÁîÜ}ﬁ¥w0Ëﬂ6m"Jrw0s¬¿8êﬁ∆9¡¿+6ØJ@YæIëÕßQØ.xÍßqÚ˙«È	ÀH¿Ó˜±}2wÓ"[an†	Ã&ö„%ó…xÍÄìî∞sA€2Œ±Âó$F4 Ø2 QÀôÖ§#z&õj®´—aêçr•…Œ∂±öº7wÜπUÈQúdÉ⁄î£-#◊∂døı∆´$p«∆´ .±Û8≈2ƒÖ66êˆê6m{MªùÊ™~‹†Á∫°"[)÷µj¨ÔˆmΩ ¥„‘ˆö–ÀØkYh}ó⁄≠Ö®zeÛ…•^∫äï≤_∏:|„zŸ™›pY]^X©O_◊µ‘ªã´#ÓÜ–@
+ ·-‹\≤ÊM©Q«æ˘ø¨kßÕ‰òƒØfq}ˆÎ	µ¿∆è”á(¨J}}Û∂˘*5ÖË€´∫özg÷¸âfÈõiîÖPCòÎX§ã˚π£üˇÍ‡-≤lΩ"Ô
+ryiØ°«ÅàOÎ»ï§=\?$GI˙}◊7øÆe∑&v˝ø'GÑ{Ω∏» Â˙œ˘FŸ	%·µ"ËK@é˝˚~≥uQKÍŒyı’D”h‡°ù€	ÂûóÑ≤ÚÅõê≤≤.o¨D§ŒªwI>€üwøî±°,–Ùnh∫a⁄ú#ƒéDÑµÇ„4ßkR≈´€\◊Û{µaiÇDﬂ‚ õy¯O4Ìà¬3'oR’Ÿ⁄¡ÈˆÎî∂s;gÌ%5ns›≥s7á∞¥`{ÁE4&†ñ,Ä0ë.9J@À0Ddë)FÈpX±∆Ÿ¢p´7ÅZ[Irú»n>9N™ﬂM:N`˛∂›&⁄˛=J∫@VK◊ˇMÖîà›∑b_"ÉÌN∞¡Í]Y◊˝Ms•˘±¿ë–í≠i£º%Î˘<V8#_ßEëŒàXjòg™ûäI†ù9âŒÒ3k—‡ãÎª$¶'< ¢…ˇjá@‚	VÂ◊àêP\Ô¬M<7wîì"£I˜l¥ˇ’K¢fÈº;äÀõè“4OÒá;Ÿ˙˜†s<óB√n¡ÄAóÚÀ¸ºªÀÊËÜãJŒq≤‚!¸ÌÌëìòûìBÆr≤ËéhqÜäÂ£Ä}¡‰ywí3‰ßÓ]@≈4Sˆv‚JáÈÔåÛ- Bx Xˇ∫&‹Dáæ+$ß∞5¸Ó`\pﬂp£:M≤¡Q‘B˚ÓØ9 /]ç·mA·}‚\@Å™≠ÜwâëàÜü&^#‡¢¶dôGp´U>_=Tﬁﬂ%*Õõ’XæN”èH@’qºñ·µ´ÜQ; ÷àtäT9böÑA¶‰[“∫j ’yNe ˙@$4är⁄◊à·""È≈3zJ„Ó€9aúÑº<•Y,TJ„˜ùÁ”ÙåÉyïŒÀπE˛çkúFE	Ë–O›Ωﬂ’⁄ûï˚Y‹"Ÿ∆√m1–ö>4–iN>3i∑¬q‹úyF™é—ª∑≠Kv¶&P≥ —dg[çí)µÌ@Aé$¨©|w˜ﬁ¸¸= ‡?≈'¬>Ë€] Z8qŒgí¢;®ÔŒ†¢H—Ìc~”(A2÷Üı–$Ó9&0Ÿ@u ìE£˝áî}åiÆI
+Ó%åÿ∑Éhµ
+Êh~Ü·R<√ùwì4°c¿;6Ã±4@,`Q Eg‹);‚ﬁYÃawc”çá˘”<Ëklπ‰›ªÇÅÓÏr–ª
+ÏyÁ ˙Ø˛◊Y∂‡“ ï¸K¯≤9pÄ˛œËÏÅ([1g¯&S¸\0Í˜+ƒ~´'Dc–+∑)kºß»	b’EL±7dçˇØ˛Ôˇ˚*/%˜ƒÆkΩLÔ®U´π„gdiùKFaîÛ≤˜∞˙ç<O1P"º˝†?Ω„Ëbnıp.éﬁŒ ÇäÛ∏3‡≠•IØ¯Ôø§%œN1ŸsC4Bê;Ñª¶à@°"ªE∑”òe2πm®?ø“"QóNö@ªCòp&W«âI}ÓÂ©1Êc.Ñ	±{¬t^x&üh1Úø^Î-FúÂZmlﬁy¨3.(a{_µç√E’à®Í€Æ*R;E∫∫/üÏJ‰±ªÄªu0•ä¶„4N≥˛yöu…4UK≥g4¡“\˙QÁt™,& Â≥1w»6D:ßÔ^Û|#ó1¢¸ª¨“q?	7$`¨/J‘b»ÂÑ
+kÍ\Íù:o-I{[ ˛ºåã®˚òß√≈È!Ì>ö‚¢*GÍZı“É™‹n|OÁ∂mI ^ER“8\Ω“uÚa”ì†∏H
+!˘”ˇpE¡_π^≈5c†6⁄≈˚⁄± ”˘BIU≈T±¸oíñÚ$P!£BÒì&©˘Ø6s2ü2ÅÛ‰ùM"-¡Ï!=Ú"≈∏IvL6£?ñ #¥)È‹z-${ „c≠†Á|Æì∫™©k˝„8ç”(wﬁ]Çñ-π2ˆ*Wj!7W‰`<]6›≠≠$@‹T¿)¡<àf◊&!$œ∆√ÂrÃ£ﬁèû£Y§ù˛ÈN4XÃ∫à¯˛£<˙âw˜ÁÔsLE4¸lÈHÈ¢$Ílm]|pÌ4tÊCû &Û]Ÿ´⁄ñºã{ÚÓ=WÕæÎÂ]≤BLWb-Ùw;$Ω
+yR‰Äjﬂt© à‡Ò¿I« 8Ù±´+…}ï›€s≠ æ…WìBWDuïoüÁÜ“&œP≈_¬Õû)¨ì8ö3CZÔ?Ù‘A8ûÜjV8Ãã6NÁë¸ƒá tõO1EdT(©ÌB	‹g±VˆN.˘PﬂN∞œÊp˘l°J“5Ÿ^!fr?ŒB¡§v¸’@óˆô0–˝jœÃ÷c¸ïbÄSﬂä<`Yæ4‹ÈÌ¡∆Åˇ7‹˚ÑÌÖáåhø‚∏Êb!BÚ≠ﬁöµ‹ÃzúcÃ|»?a;õ√≤yÖL6QSKùG¶øÂ‚YÜ<›#Bw•.‰?¸~/¶´©/yu78`/J∆q	ZÇ;´¶˘≥zËWää∫Òªù˜æN›T’Œ¿©ˇ.ëèSÚR…8]ΩØìö”ÖËñâ:]]ØôÂ“Ïª!„•˙SÈ\ rÂ©/ÒìO%\©„©r˝ô/ıüGömj‰MùÈsùƒruˆL≠oYãﬁç<ò¨œπ¯tV^dÂ∏(3⁄8 _˜˛‰ù˙œHÂ˘<HJ–áŸû‰√aÆûço¬V ìùw=I3P*{‰–ÄíY†√´1àƒìP√ˆã0G24hxe˜ªû^Å=J˘UWuP˘—–úÖSŒEßÖ•_˝Eô%cnúµ\Çıô%>ÅÛFl8∑ìqIÉ∞ì›gûò /&K°öeõtòoH©°YnÆ—nì«®;†7˜Æiªâ©2I,lGø◊í„	L®L._Ì±HÉ;ñπ≈±P[v\6{èT∆ü≈f’∂0L5h‡©Õ5™/©çÈF_G∏ ﬁ§s∆Ã3ﬁ6/GELI0 qÉ!ﬂ- vBFÂhœM’◊Î	È2Œ.ÈV~ñ3å÷ò‚Äâ,Õ)æŒ≥n-¡πfÔiªí,A‘ﬂ{ÌàÈrOå—˛qqπÓ-¸ΩÇùM˚Ob:	íÇ¸Å°˛Ê™ú¬;ı¥˝#≤5€„≥Û%º≈ŒóÇ÷Üx¶	ê›-2ñº¬,á ÏØô∏•OßùËNmC‡ﬁq√∫¡pê=ó	·Ø˛˜ˇÛó?˝GkR«ﬂ”e‹Ω¨ªß28∏ 7~O„1Üt`¨‚‘ÎÈn+◊œªù‹§∫?É•∫Ål„÷3ZÄ¢8Vm…ÇGgË
+Êú∆èlssHO9p$¨ÃÒO+]>˛kÅ%Û≤∞Ωπæπ'\ñ∞k÷\ö¬é€ﬁ¿b l¸~eòNÿS©c˚˝)£8Ö Û∏ª„¥`Òp{“'ﬂî»≤ÇÑ`ü¶ÃFÂmÑXs ∆„à|Ë.É;˛7\¶ßÙü"¿h∂,ç9®∂Óc•¸á)™;¥W∞‰-¸€9±cK&Ù‡dÏSùM◊ô~èƒ«Ù¥)»_4n–ﬁ§Gûß3◊{€lOë€08Uàdqc(Zˆˆ*πœê´MÆå∞ﬁû'È∏Ã˜”≤@30B‡èDØïG≥ﬁÀaˆ∏Ñ˘Ì∑∞™]ÄÁIzBæé≤4ú¥H1ÅBpâÿ«⁄/ªCP1]cá8∆‡ÔÚ‰1~‰¶˜«Ø∂ÏopÖªx‡W6ƒ•V±ΩuTóõBYyDn-<uàÈ+ÄcÏ,·hí∞–äåa‚êË&BÂJìx—s¨‘´ÖI(˚ïÃAÃêìUò≥Êy~Ÿ˝5ó&~¶Ê;ˆáøÀÏÿÍh-6lK>ıå¶ü¯‘ÔèOâe≠q©_û%yNí‚ØÂÚÛtDÜD_‘^&Ù“ÏæÕ=<K|N*à«epáGu#”6¥∂:√Í5∞ˇ‹ÏœX(aJÚ∑BY§Ë≈ç√Óóöì±MTùÀüê√zN0˘ä=◊D8Yü#X•Å*†¶∏”=.Ëú<è∆Y C)∏ÁC„›´£*«s3˝’©ç˝¢v‹Ê ñ|”ëQ¬“D≠#Ë¿êå ∂πßØzˇõ¶(XO¿â”ò#¢Ø<Îm5¥åª«¿⁄çpå∂–&»„?fÕùÒ˛ùÔá∂qaL«‹U∆éf@cxìêÂ	¬·äπ˛F>ﬁ'ﬁ¶!M"•Â+öÕ¢<«]5.-ﬁzìe,∆’D˛ PŒ`Õl˙|K>Ô ˇ˘-<¢µ◊Gé?ŒÂxw\å‚K)``óºT_ﬁ7Ó0 ÉQåâöÒ,ø“ !8r
+»ü∫Œ1‹òÀ◊rhUÿ∫‹ÿïIVÿn˝Bb£1ñ—ÄÀæôÚ†ä∏ÏızçKK]ïØiHL¡6«µ‰YB~7˛<ıÍ—xòùã™Ì‚‹I6ß–5ã¨…:;}˛4>yoE¯£Ù–yI	€ÖáQ6éÈÆNí™Hõ3Á”,J>v´h‘√ÔÈà% HÒ	íú2æàé˙◊†	/ò˙ö§QNª'QÉ.>Œ0¶ë3îﬁUvøz¿∑ÕåJ“µÓÑZ>k:yÁdÚ¢j*}÷q˛Ú?ˇ◊ˇ˚øˇ¶RŸß≤=v¶cÂ`k¡..ô#úπ€Â∑Å'∏˚–öN$TdVÛˆz¬0åbÅ9ÔHî´|ñûÂ4≥≠	-ßdΩ&ó±‡äq 5ôˆ4≤0RX{Õ≤Ü&ëcÌjBôÈü]·„/.¢ã{‘ò÷ﬁÇjzµ7jñQd[Æçc¸ 1g3ØÕ„Êa≤Î|%Q>≠ôÄ˝&5œºÌrÙ
+‡jù-ˆ-˘VÊ–«WLYÃô_B6‚$Tˆ(}Òƒ‚°ŒHìYw√ ˚X·†äsº;®üâŒì¥@∏È¨!—iÕWüã·ã‡[Ó83Á“√-/7ÂMI∂|·1ä∞s}¥"Ü∆ö.>Cµ$˝•u°Må◊VŒ«É„iDÅ<4±‡&Õ‡5:CÅ®„Ÿ‘rN˙xÿùôì”8≥˘Ö“ÿµk2"ﬁèyñ·°8ÀgÑæ¸1ç∆Ù «T«Ë¸W@€IOpßo2◊ÖQOM}¬j}Iû√BôÊZMñèu∏¡3≠Çr™&NUß≥L‚'œéãLKñ“ãi2)¶‰!Ä–ŸQJﬁ9ju…Œ˚öÃ†n˝ÿñm0Y2KëE1)•»ô¸Ó=fû¬F≈ú™›0öD&éí≤† #r±ÖÇ.´
+,{ín≤/RÇ)D2~~RCKØâôÕ7v¶‰Œ`Fí`.Zò8‚_ÜauÒÿâ»„®Ω*œÀ5fÑbIœü≥úÔæúÃUÆaôcòÁûô…Ñ1y0Ç`ﬂ∑¶˛T÷f⁄6i´±Hœ>{°ø£ 8˘∞;9–2«ã¿«¨*äoü-±‚e4¿7ÑŸ««(∞eL∂˛LﬂK,§‚¢˜°iaàˆÊ/oƒ&Ï£õ°ÖÕf$¬:f˘Ã7ÖK∂»üé¸(∆ÕÎA15†∏MJ§uæè’Ê[>´”+≠ìP™È;?}=∆`´`TòßÿÑ‰Ìc†®8ã™úAµ∂[4wñ|)Zïy…Œ‰€≈Ê·¿T“ÇQïa™zP◊¬ÙIOfAk˘>ı(>cº¢n}-ÜÛ9@ƒ£4ÚTõ=%–8¬´,|/»+ê‡JŸlﬂ<9≈Ö/pÈÚ#í
+¢û—I¬&`_˚E,Zò¬‡Oµö˙¢Ï√∆alµ≤Åújbu÷Î&˙§L∆‹?,3Ætñ‚XÃ6À´≤Õ3©lK…å\ÏYc°È¯}Vuü∞ÔÙÿˇ/“êﬁÁmÌ˛Ú˚»æ¯∂˝i
+¬‘è¯÷ø’≠≠§Bq!_≠xñ*CIÜÑ“⁄ød$M9”OBv⁄ÈJël `°æ∞è¨ÑV|ê˝Xe·jó¶†≤’¸ä@·GdS3Ãa>*ÕlW)ÖÃÑ•G
+pAS>7EÚòü\K>e„Ü˜$¶3\>8ó$»’ŸE@ôà"EÖx†€g]4˜Í∑Q¡.1û^±~3~ﬁjg†ã¶ÏE6/>¿Ç®Ç†πs@œ1@Ê• ‹8åÿR™g¡àÑ…„\ˆí°ÑRER$t„!ÔÈBòã™˛≈òu	‘˜ã¥,é¬·Fúv£$DÔM™9õ‚f≈ö™¬hE:ì˛.·HdÆåsˆ‡å≠∫)˚_—’®⁄'YÁ˚øñ‚	¯ˇ   ˇˇ ªÅDç
