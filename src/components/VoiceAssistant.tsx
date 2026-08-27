@@ -78,7 +78,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     {
       id: 'welcome',
       sender: 'assistant',
-      text: `Hi! I am Ama, your baby care assistant. I can listen in the background for "Hey Ama" to instantly help! How is sweet ${babyName} doing today? Ask me about simple recipes, sleep times, or just tell me to save a feeding, nap, or diaper change!`,
+      text: `Hi! I am Ogoo, your baby care assistant. I can listen in the background for "Hey Ogoo" to instantly help! How is sweet ${babyName} doing today? Ask me about simple recipes, sleep times, or just tell me to save a feeding, nap, or diaper change!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -86,13 +86,18 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   const recognitionRef = useRef<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // HTML5 Text to Speech helper
+  // HTML5 Text to Speech helper (with phonetic pronunciation for Ogoo as "Augur")
   const speakText = (textToSpeak: string) => {
     if ('speechSynthesis' in window) {
       try {
         window.speechSynthesis.cancel();
+        // Replace Ogoo with Augur for accurate phonetic pronunciation by speech engines
+        const phoneticText = textToSpeak
+          .replace(/\bOgoo\b/gi, 'Augur')
+          .replace(/\bOgoo's\b/gi, "Augur's");
+
         // Clean markdown, em-dashes, and emojis so they aren't spoken weirdly
-        const cleanText = textToSpeak
+        const cleanText = phoneticText
           .replace(/\*\*?/g, '')
           .replace(/—|–/g, ' ')
           .replace(/[\#\-\*\_]/g, '')
@@ -157,7 +162,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     }
   }, [babyName, babyAge, stage, lastFeedStr, lastSleepStr, lastDiaperStr, aiQueryCount, isPremium]);
 
-  // Wake-word recognition setup (Always-on 'Hey Ama' listener)
+  // Wake-word recognition setup (Always-on 'Hey Ogoo' listener)
   useEffect(() => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -193,16 +198,23 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             const transcript = event.results[i][0].transcript.toLowerCase();
             if (
+              transcript.includes('hey ogoo') ||
+              transcript.includes('hey augur') ||
+              transcript.includes('hey auger') ||
+              transcript.includes('hi ogoo') ||
+              transcript.includes('hi augur') ||
+              transcript.includes('ok ogoo') ||
+              transcript.includes('ok augur') ||
+              transcript.includes('ogoo') ||
               transcript.includes('hey ama') ||
-              transcript.includes('hey emma') ||
               transcript.includes('hi ama') ||
               transcript.includes('ok ama')
             ) {
               // Trigger wakeup!
               setIsOpen(true);
               speakText(`I'm here! What can I do for ${babyName}?`);
-              // Extract whatever came after "hey ama"
-              const match = transcript.match(/(?:hey|hi|ok)\s+(?:ama|emma)\s*(.*)/i);
+              // Extract whatever came after wake word
+              const match = transcript.match(/(?:hey|hi|ok)\s+(?:ogoo|augur|auger|ama|emma)\s*(.*)/i);
               if (match && match[1] && match[1].trim().length > 3) {
                 const command = match[1].trim();
                 setTimeout(() => {
@@ -303,7 +315,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     }
 
     if (action.type === 'add_note') {
-      onAddNote(action.note || 'Note via Ama');
+      onAddNote(action.note || 'Note via Ogoo');
       return `Saved your note to the journal.`;
     }
 
@@ -467,7 +479,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.92 }}
         className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-40 bg-gradient-to-tr from-primary to-primary-light text-white p-3.5 sm:p-4 rounded-full shadow-2xl flex items-center gap-2 border-2 border-white/50 backdrop-blur-md cursor-pointer group"
-        title="Open Ama Assistant (Voice & Chat)"
+        title="Open Ogoo Assistant (Voice & Chat)"
       >
         <div className="relative">
           <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -476,7 +488,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
           )}
         </div>
         <span className="text-xs font-black uppercase tracking-wider hidden sm:inline-block pr-1">
-          Ask Ama
+          Ask Ogoo
         </span>
       </motion.button>
 
@@ -505,7 +517,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                   </div>
                   <div>
                     <h3 className="font-serif font-black text-base sm:text-lg flex items-center gap-2">
-                      Ama Assistant
+                      Ogoo Assistant
                       {isPremium ? (
                         <span className="bg-amber-400 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
                           <Crown className="w-2.5 h-2.5" /> PRO
@@ -548,8 +560,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                       const nextState = !backgroundWakeEnabled;
                       setBackgroundWakeEnabled(nextState);
                       if (nextState) {
-                        speakText("Voice activation turned on! You can now say Hey Ama to wake me up.");
-                        setFeedback("Voice activation active! Say 'Hey Ama'.");
+                        speakText("Voice activation turned on! You can now say Hey Ogoo to wake me up.");
+                        setFeedback("Voice activation active! Say 'Hey Ogoo'.");
                         setTimeout(() => setFeedback(''), 4000);
                       } else {
                         speakText("Voice activation turned off.");
@@ -558,7 +570,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer border-none ${
                       backgroundWakeEnabled ? 'bg-amber-100 text-amber-600 border border-amber-200' : 'bg-white/20 hover:bg-white/30 text-white'
                     }`}
-                    title={backgroundWakeEnabled ? "Disable 'Hey Ama' Wake Word" : "Enable 'Hey Ama' Wake Word"}
+                    title={backgroundWakeEnabled ? "Disable 'Hey Ogoo' Wake Word" : "Enable 'Hey Ogoo' Wake Word"}
                   >
                     <Mic className={`w-4 h-4 ${backgroundWakeEnabled ? 'animate-pulse' : ''}`} />
                   </button>
@@ -575,6 +587,13 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                     <X className="w-5 h-5" />
                   </button>
                 </div>
+              </div>
+
+              {/* Clinical Non-Diagnosis Notice */}
+              <div className="bg-amber-50/90 border-b border-amber-200 px-4 py-1.5 flex items-center justify-between text-[10px] text-amber-900">
+                <span className="font-semibold">
+                  ⚠️ <strong>Notice:</strong> Ogoo AI does not diagnose any medical condition. For health concerns, consult a doctor.
+                </span>
               </div>
 
               {/* Status Bar */}
@@ -642,7 +661,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                   <div className="flex justify-start">
                     <div className="bg-white border border-primary/20 rounded-2xl p-3.5 shadow-sm flex items-center gap-2.5 text-xs text-gray-600 font-medium">
                       <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                      Ama is typing a helpful reply...
+                      Ogoo is typing a helpful reply...
                     </div>
                   </div>
                 )}
@@ -711,7 +730,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                       ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-200'
                       : 'bg-primary/10 text-primary hover:bg-primary/20'
                   }`}
-                  title={isListening ? 'Stop Listening' : 'Speak to Ama'}
+                  title={isListening ? 'Stop Listening' : 'Speak to Ogoo'}
                 >
                   {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                 </button>
@@ -724,7 +743,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSendUserMessage();
                   }}
-                  placeholder={`Ask Ama anything about ${babyName}...`}
+                  placeholder={`Ask Ogoo anything about ${babyName}...`}
                   className="flex-1 bg-gray-50 border border-primary/20 rounded-2xl px-4 py-3 text-xs sm:text-sm text-gray-800 focus:outline-none focus:border-primary font-medium"
                 />
 

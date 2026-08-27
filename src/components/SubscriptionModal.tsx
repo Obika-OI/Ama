@@ -296,7 +296,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                       </li>
                       <li className="flex items-center gap-1.5">
                         <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span><strong>Growth & Milestones:</strong> WHO standard percentiles & milestone tracking.</span>
+                        <span><strong>Growth & Milestones:</strong> Standard percentiles & milestone tracking.</span>
                       </li>
                       <li className="flex items-center gap-1.5">
                         <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />

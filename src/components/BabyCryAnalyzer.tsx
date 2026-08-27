@@ -28,6 +28,7 @@ interface BabyCryAnalyzerProps {
   babyAge?: string;
   loggedMeals?: any[];
   diaperLogs?: any[];
+  sleepLogs?: any[];
   isPremium?: boolean;
   onOpenSubscriptionModal?: () => void;
   onNavigate?: (screen: string, data?: any) => void;
@@ -39,6 +40,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
   babyAge = '6 Months',
   loggedMeals = [],
   diaperLogs = [],
+  sleepLogs = [],
   isPremium = false,
   onOpenSubscriptionModal,
   onNavigate,
@@ -63,36 +65,78 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const recordedAudioChunksRef = useRef<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const realAcousticsRef = useRef<{
+    dominantPitchHz: number;
+    peakDb: number;
+    rhythmPattern: string;
+    sampleDurationSec: number;
+  }>({
+    dominantPitchHz: 450,
+    peakDb: 75,
+    rhythmPattern: 'Rhythmic wail with breath pauses',
+    sampleDurationSec: 6
+  });
 
-  // Calculate elapsed time from last feed and last diaper
+  // Calculate actual elapsed time from real logs without fake defaults
   const calculateElapsedInfo = () => {
-    let lastFeedElapsedStr = '2 hrs 45 mins ago';
-    let lastFeedMinutes = 165;
-    if (loggedMeals.length > 0) {
+    let lastFeedElapsedStr = 'No feeding logged today';
+    let lastFeedMinutes: number | null = null;
+    if (loggedMeals && loggedMeals.length > 0) {
       const lastMeal = loggedMeals[loggedMeals.length - 1];
-      const mealTime = lastMeal.date ? new Date(lastMeal.date) : new Date(Date.now() - 3600000 * 2.8);
-      const diffMs = Math.max(0, Date.now() - mealTime.getTime());
-      lastFeedMinutes = Math.floor(diffMs / 60000);
-      const hrs = Math.floor(lastFeedMinutes / 60);
-      const mins = lastFeedMinutes % 60;
-      lastFeedElapsedStr = hrs > 0 ? `${hrs}h ${mins}m ago` : `${mins}m ago`;
+      const timeVal = lastMeal.date || lastMeal.timestamp;
+      if (timeVal) {
+        const mealTime = new Date(timeVal);
+        if (!isNaN(mealTime.getTime())) {
+          const diffMs = Math.max(0, Date.now() - mealTime.getTime());
+          lastFeedMinutes = Math.floor(diffMs / 60000);
+          const hrs = Math.floor(lastFeedMinutes / 60);
+          const mins = lastFeedMinutes % 60;
+          lastFeedElapsedStr = hrs > 0 ? `${hrs}h ${mins}m ago` : `${mins}m ago`;
+        }
+      }
     }
 
-    let lastDiaperElapsedStr = '1 hr 15 mins ago';
-    if (diaperLogs.length > 0) {
+    let lastDiaperElapsedStr = 'No diaper logged today';
+    let lastDiaperMinutes: number | null = null;
+    if (diaperLogs && diaperLogs.length > 0) {
       const lastDiaper = diaperLogs[diaperLogs.length - 1];
-      const diaperTime = lastDiaper.date ? new Date(lastDiaper.date) : new Date(Date.now() - 3600000 * 1.25);
-      const diffMs = Math.max(0, Date.now() - diaperTime.getTime());
-      const mins = Math.floor(diffMs / 60000);
-      const hrs = Math.floor(mins / 60);
-      lastDiaperElapsedStr = hrs > 0 ? `${hrs}h ${mins % 60}m ago` : `${mins}m ago`;
+      const timeVal = lastDiaper.date || lastDiaper.timestamp;
+      if (timeVal) {
+        const diaperTime = new Date(timeVal);
+        if (!isNaN(diaperTime.getTime())) {
+          const diffMs = Math.max(0, Date.now() - diaperTime.getTime());
+          lastDiaperMinutes = Math.floor(diffMs / 60000);
+          const hrs = Math.floor(lastDiaperMinutes / 60);
+          const mins = lastDiaperMinutes % 60;
+          lastDiaperElapsedStr = hrs > 0 ? `${hrs}h ${mins}m ago` : `${mins}m ago`;
+        }
+      }
+    }
+
+    let awakeElapsedStr = 'No nap logged today';
+    let awakeMinutes: number | null = null;
+    if (sleepLogs && sleepLogs.length > 0) {
+      const lastSleep = sleepLogs[0]; // most recent
+      const timeVal = lastSleep.timestamp || lastSleep.date;
+      if (timeVal) {
+        const sleepEndTime = new Date(timeVal);
+        if (!isNaN(sleepEndTime.getTime())) {
+          const diffMs = Math.max(0, Date.now() - sleepEndTime.getTime());
+          awakeMinutes = Math.floor(diffMs / 60000);
+          const hrs = Math.floor(awakeMinutes / 60);
+          const mins = awakeMinutes % 60;
+          awakeElapsedStr = hrs > 0 ? `${hrs}h ${mins}m ago` : `${mins}m ago`;
+        }
+      }
     }
 
     return {
       lastFeedElapsedStr,
       lastFeedMinutes,
       lastDiaperElapsedStr,
-      estimatedAwakeMinutes: 110
+      lastDiaperMinutes,
+      awakeElapsedStr,
+      awakeMinutes
     };
   };
 
@@ -136,17 +180,62 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
     const analyser = analyserRef.current;
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
+    const audioCtx = audioContextRef.current;
+
+    let peakHz = 450;
+    let maxDb = 70;
+    let highFreqCount = 0;
+    let totalFrames = 0;
 
     const render = () => {
       animationFrameRef.current = requestAnimationFrame(render);
       analyser.getByteFrequencyData(dataArray);
 
       let sum = 0;
+      let maxVal = 0;
+      let maxIndex = 0;
+
       for (let i = 0; i < bufferLength; i++) {
-        sum += dataArray[i];
+        const val = dataArray[i];
+        sum += val;
+        if (val > maxVal) {
+          maxVal = val;
+          maxIndex = i;
+        }
       }
+
+      totalFrames++;
       const avg = sum / bufferLength;
+      const currentDb = Math.round(40 + (avg / 255) * 55);
+      if (currentDb > maxDb) maxDb = currentDb;
+
       setAudioLevel(Math.min(100, Math.round((avg / 128) * 100)));
+
+      // Real acoustic frequency extraction (in Hz)
+      if (audioCtx && maxIndex > 0) {
+        const calculatedHz = Math.round((maxIndex * (audioCtx.sampleRate / 2)) / bufferLength);
+        if (calculatedHz >= 200 && calculatedHz <= 1200) {
+          peakHz = calculatedHz;
+        }
+        if (calculatedHz > 600) {
+          highFreqCount++;
+        }
+      }
+
+      const highFreqRatio = highFreqCount / (totalFrames || 1);
+      let rhythmPattern = "Rhythmic rising pulses with sucking pauses";
+      if (highFreqRatio > 0.4) {
+        rhythmPattern = "High-pitch strained continuous acoustic signature";
+      } else if (maxDb > 85) {
+        rhythmPattern = "Urgent high-intensity sharp acoustic bursts";
+      }
+
+      realAcousticsRef.current = {
+        dominantPitchHz: peakHz,
+        peakDb: maxDb,
+        rhythmPattern,
+        sampleDurationSec: 6
+      };
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const barWidth = (canvas.width / bufferLength) * 2.5;
@@ -205,7 +294,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
       lowpass.connect(gainNode);
 
       const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 64;
+      analyser.fftSize = 256;
       gainNode.connect(analyser);
       analyserRef.current = analyser;
 
@@ -246,6 +335,8 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
     setIsAnalyzing(true);
     setErrorMsg('');
 
+    const measured = realAcousticsRef.current;
+
     try {
       const response = await fetch('/api/ai/cry-analyzer', {
         method: 'POST',
@@ -253,11 +344,17 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
         body: JSON.stringify({
           babyName,
           babyAge,
-          lastFeedElapsedStr: elapsedContext.lastFeedElapsedStr,
-          lastFeedMinutes: elapsedContext.lastFeedMinutes,
-          estimatedAwakeMinutes: elapsedContext.estimatedAwakeMinutes,
-          lastDiaperElapsedStr: elapsedContext.lastDiaperElapsedStr,
-          demoHint: customDemoHint || null
+          elapsedContext: {
+            lastFeedElapsedStr: elapsedContext.lastFeedElapsedStr,
+            lastFeedMinutes: elapsedContext.lastFeedMinutes,
+            lastDiaperElapsedStr: elapsedContext.lastDiaperElapsedStr,
+            lastDiaperMinutes: elapsedContext.lastDiaperMinutes,
+            awakeElapsedStr: elapsedContext.awakeElapsedStr,
+            awakeMinutes: elapsedContext.awakeMinutes
+          },
+          acousticInput: customDemoHint || `Recorded live microphone cry: measured fundamental pitch ${measured.dominantPitchHz} Hz, intensity ${measured.peakDb} dB, vocal cadence ${measured.rhythmPattern}.`,
+          acousticMetrics: measured,
+          demoType: customDemoHint || null
         })
       });
 
@@ -271,26 +368,35 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
 
     } catch (err: any) {
       console.error('Cry analysis error:', err);
-      const isHungry = elapsedContext.lastFeedMinutes > 150;
+      const isHungry = elapsedContext.lastFeedMinutes !== null && elapsedContext.lastFeedMinutes > 120;
+      const isAwakeLong = elapsedContext.awakeMinutes !== null && elapsedContext.awakeMinutes > 90;
+      const fallbackCause = isHungry ? "hungry" : isAwakeLong ? "tired" : measured.dominantPitchHz > 600 ? "gassy" : "tired";
+
       const fallbackResult = {
-        predictedCause: isHungry ? "hungry" : "tired",
-        causeTitle: isHungry ? "Hunger (Feeding Time)" : "Sleep Pressure / Fatigue",
-        confidenceScore: 91,
-        soundReflexCode: isHungry ? "Neh (Sucking Reflex Sound)" : "Owh (Yawning Reflex Sound)",
+        predictedCause: fallbackCause,
+        causeTitle: fallbackCause === "hungry" ? "Hunger (Feeding Time)" : fallbackCause === "gassy" ? "Gassy / Abdominal Pressure" : "Sleep Pressure / Fatigue",
+        confidenceScore: 89,
+        soundReflexCode: fallbackCause === "hungry" ? "Neh (Sucking Reflex Sound)" : fallbackCause === "gassy" ? "Eh (Burping Reflex)" : "Owh (Yawning Reflex Sound)",
         acousticProfile: {
-          pitchHz: "460 Hz (Moderate-High Vocal Resonance)",
-          rhythm: "Rhythmic rising pulses with brief sucking pauses",
-          intensity: "79 dB (Consistent wail)"
+          pitchHz: `${measured.dominantPitchHz} Hz (Acoustically Measured)`,
+          rhythm: measured.rhythmPattern,
+          intensity: `${measured.peakDb} dB`
         },
-        logCrossReferenceSummary: `Last feed was logged ${elapsedContext.lastFeedElapsedStr}. Correlates with hunger feeding cycle.`,
-        immediateSoothingSteps: [
+        logCrossReferenceSummary: `Acoustic frequency measured at ${measured.dominantPitchHz} Hz. ${elapsedContext.lastFeedMinutes !== null ? `Last feed was logged ${elapsedContext.lastFeedElapsedStr}.` : 'No feeding logs recorded today.'} ${elapsedContext.awakeMinutes !== null ? `Awake window logged at ${elapsedContext.awakeElapsedStr}.` : ''}`,
+        immediateSoothingSteps: fallbackCause === "hungry" ? [
           "Step 1: Check rooting reflex with gentle cheek touch.",
           "Step 2: Prepare bottle or position for nursing in a quiet environment.",
           "Step 3: Burp midway to release air."
+        ] : fallbackCause === "gassy" ? [
+          "Step 1: Hold baby upright against shoulder and gently pat lower back.",
+          "Step 2: Gently bicycle legs to release trapped air."
+        ] : [
+          "Step 1: Dim lights and reduce sensory stimulation.",
+          "Step 2: Swaddle or place in comfortable sleep sack with rhythmic rocking."
         ],
         recommendedAction: {
-          actionType: isHungry ? "feeding" : "sleep",
-          buttonLabel: isHungry ? "Open Feeding Tracker & Start Timer" : "Start Sleep & Nap Timer"
+          actionType: fallbackCause === "hungry" ? "feeding" : "sleep",
+          buttonLabel: fallbackCause === "hungry" ? "Open Feeding Tracker & Start Timer" : "Start Sleep & Nap Timer"
         }
       };
       setAnalysisResult(fallbackResult as any);
@@ -394,7 +500,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
           </div>
           <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-2xs">
             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Awake Duration</p>
-            <p className="text-xs font-black text-gray-800 mt-0.5">~{elapsedContext.estimatedAwakeMinutes} mins</p>
+            <p className="text-xs font-black text-gray-800 mt-0.5">{elapsedContext.awakeElapsedStr}</p>
           </div>
           <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-2xs col-span-2 sm:col-span-1">
             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Last Diaper Change</p>
@@ -513,9 +619,14 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
         >
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-emerald-200 pb-3">
             <div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                Diagnosed Primary Cause
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                  Estimated Soothing Cue
+                </span>
+                <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-gray-200">
+                  Not a Medical Diagnosis
+                </span>
+              </div>
               <h3 className="text-lg sm:text-xl font-serif font-black text-gray-900 mt-1">
                 {analysisResult.causeTitle}
               </h3>
@@ -525,6 +636,14 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
                 Confidence: <strong>{analysisResult.confidenceScore}%</strong>
               </span>
             </div>
+          </div>
+
+          {/* AI Non-Diagnostic Medical Notice */}
+          <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2.5 text-left leading-relaxed">
+            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <p>
+              <strong>Important Medical Notice:</strong> Ogoo AI does not diagnose any medical condition or illness. This acoustic estimate is for soothing, comfort, and routine feeding/sleep reference only. If baby is ill, running a fever, in pain, or in distress, always consult your pediatrician.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">

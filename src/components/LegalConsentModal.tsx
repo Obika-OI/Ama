@@ -57,13 +57,13 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
               <div className="flex items-start gap-3">
                 <Lock className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  <strong className="text-gray-800 font-bold">100% Private & Ad-Free:</strong> Your baby's meal logs, photos, and milestones are private to your family circle.
+                  <strong className="text-gray-800 font-bold">Freemium & Private:</strong> Core tracking is free (supported by standard Google AdSense). Your private health and infant care records are never sold.
                 </p>
               </div>
               <div className="flex items-start gap-3">
                 <ShieldCheck className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  <strong className="text-gray-800 font-bold">Offline & Cloud Sync:</strong> Works offline on your device with optional encrypted multi-device sync.
+                  <strong className="text-gray-800 font-bold">Ogoo AI Companion:</strong> Built for soothing and daily guidance. Ogoo does not diagnose medical conditions.
                 </p>
               </div>
             </div>
@@ -207,15 +207,20 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                     <section className="space-y-2">
                       <h4 className="font-bold text-gray-900 text-sm">1. Commitment to Privacy</h4>
                       <p>
-                        Ama Baby Care ("Ama", "we", "us") is dedicated to protecting the sensitive personal information of infants and caregivers. We operate under strict data minimization principles.
+                        Ama Baby Care ("Ama", "we", "us") is dedicated to protecting the sensitive personal information of infants, parents, and caregivers. We operate under strict data minimization principles.
                       </p>
                     </section>
 
                     <section className="space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm">2. Zero Third-Party Advertising & Tracking</h4>
+                      <h4 className="font-bold text-gray-900 text-sm">2. Freemium Tier & Google AdSense Disclosures</h4>
                       <p>
-                        We do not sell, rent, license, or monetize your baby's data. There are zero third-party advertising SDKs, behavioural trackers, or data broker integrations embedded within the application.
+                        To ensure essential infant tracking, solid food guides, and growth tracking tools remain free for all families, our Freemium tier incorporates standard Google AdSense advertising.
                       </p>
+                      <ul className="list-disc pl-5 space-y-1 text-gray-600">
+                        <li><strong>Ad Cookies & Identifiers:</strong> Third-party vendors, including Google, may use cookies or device identifiers to serve non-intrusive ads on the Freemium tier. Users can manage or opt out of personalized ads via Google Ad Settings.</li>
+                        <li><strong>Health & Meal Data Never Shared:</strong> We strictly protect your child's data. Your baby's meal logs, diaper observations, sleep times, weight records, and photos are never sold, rented, or shared with advertisers or third-party data brokers.</li>
+                        <li><strong>Ad-Free Experience:</strong> Subscribing to Ama Pro instantly removes all Google AdSense advertisements.</li>
+                      </ul>
                     </section>
 
                     <section className="space-y-2">
@@ -226,15 +231,15 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                       <ul className="list-disc pl-5 space-y-1 text-gray-600">
                         <li><strong>Child Profile:</strong> Baby name, developmental age, milestones, and tooth emergence.</li>
                         <li><strong>Feeding & Nutrition:</strong> Solid foods introduced, breastfeeding/bottle logs, hydration, and allergen reaction history.</li>
-                        <li><strong>Care Logs:</strong> Diaper observations, sleep intervals, and medication schedules.</li>
-                        <li><strong>Acoustic Cry Analysis:</strong> Recorded cry audio samples are processed strictly for real-time routine care guidance and are not retained.</li>
+                        <li><strong>Care & Health Logs:</strong> Diaper observations, sleep intervals, immunization checklists, and medication schedules.</li>
+                        <li><strong>Ogoo AI Processing:</strong> Acoustic cry audio samples and text queries are processed ephemerally solely for real-time comforting suggestions and are not stored.</li>
                       </ul>
                     </section>
 
                     <section className="space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm">4. Data Ownership & Deletion</h4>
+                      <h4 className="font-bold text-gray-900 text-sm">4. Data Ownership & Complete Purge</h4>
                       <p>
-                        You retain 100% ownership of all records. You may export your audit log at any time and may trigger a permanent purge of all data via Settings.
+                        You retain 100% ownership of all records. You may export your audit log at any time and may trigger a permanent purge of all local and cloud data via Settings.
                       </p>
                     </section>
                   </>
@@ -255,14 +260,24 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                     </section>
 
                     <section className="space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm">3. Medical Disclaimer</h4>
+                      <h4 className="font-bold text-gray-900 text-sm">3. Clinical Medical Disclaimer — AI Does Not Diagnose</h4>
                       <p>
-                        Ama Baby Care, including its AI meal planning and cry acoustic predictor, is designed solely for informational and routine child-care tracking purposes. <strong>Ama is not a medical device and does not provide clinical diagnosis or treatment.</strong> Always consult a qualified doctor regarding any health questions or distress.
+                        Ama Baby Care, including the <strong>Ogoo AI Care Assistant</strong>, Baby Cry Acoustic Analyzer, and meal planning tools, is designed solely for educational, organizational, comforting, and routine care tracking purposes.
+                      </p>
+                      <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-950 font-medium">
+                        <strong>Important:</strong> Ogoo AI and Ama tools are <strong>NOT medical devices and DO NOT diagnose any illness, medical condition, or clinical disorder. No baby is diagnosed by the AI.</strong> Never disregard professional pediatric medical advice or delay seeking care because of information provided by this application.
+                      </div>
+                    </section>
+
+                    <section className="space-y-2">
+                      <h4 className="font-bold text-gray-900 text-sm">4. Freemium Plan & Premium Subscriptions</h4>
+                      <p>
+                        Ama offers a <strong>Freemium Plan</strong> providing free access to core feeding, diaper, sleep, and immunization tracking (ad-supported). The <strong>Ama Premium / Pro Subscription</strong> removes all advertising and unlocks unlimited Ogoo AI queries, acoustic cry analysis, and advanced pediatric PDF exports. Subscriptions can be managed or cancelled at any time via Paystack checkout.
                       </p>
                     </section>
 
                     <section className="space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm">4. Role-Based Access Control</h4>
+                      <h4 className="font-bold text-gray-900 text-sm">5. Role-Based Access Control</h4>
                       <p>
                         Workspace owners (Admin) may invite Family Members and Nannies. When Nanny/Caregiver mode is active, privacy restrictions are enforced to safeguard family archives.
                       </p>

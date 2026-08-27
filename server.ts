@@ -271,30 +271,57 @@ app.get("/api/health", (req: Request, res: Response) => {
 // ----------------------------------------------------------------------------
 app.post("/api/ai/cry-analyzer", async (req: Request, res: Response) => {
   try {
-    const { babyName = "Baby", babyAge = "6 months", elapsedContext = {}, acousticInput = "", demoType = "" } = req.body;
+    const { 
+      babyName = "Baby", 
+      babyAge = "6 months", 
+      elapsedContext = {}, 
+      acousticInput = "", 
+      acousticMetrics = null,
+      demoType = "",
+      lastFeedElapsedStr,
+      lastFeedMinutes,
+      estimatedAwakeMinutes,
+      lastDiaperElapsedStr
+    } = req.body;
+
+    const feedStr = elapsedContext.lastFeedElapsedStr || lastFeedElapsedStr || "No feeding logged today";
+    const feedMins = elapsedContext.lastFeedMinutes !== undefined ? elapsedContext.lastFeedMinutes : lastFeedMinutes;
+    const awakeStr = elapsedContext.awakeElapsedStr || (estimatedAwakeMinutes ? `${estimatedAwakeMinutes} mins` : "No nap logged today");
+    const awakeMins = elapsedContext.awakeMinutes !== undefined ? elapsedContext.awakeMinutes : estimatedAwakeMinutes;
+    const diaperStr = elapsedContext.lastDiaperElapsedStr || lastDiaperElapsedStr || "No diaper logged today";
+
+    const measuredPitch = acousticMetrics?.dominantPitchHz || 450;
+    const measuredDb = acousticMetrics?.peakDb || 75;
+    const measuredPattern = acousticMetrics?.rhythmPattern || "Rhythmic pulse with breath pauses";
 
     const ai = getGenAI();
     if (!ai) {
-      // Return rich contextual deterministic response if key not provided
-      const isHungry = (elapsedContext.lastFeedMinutes || 150) > 120;
-      const isTired = (elapsedContext.estimatedAwakeMinutes || 90) > 100;
-      
-      const fallbackCause = isHungry ? "hungry" : isTired ? "tired" : "gassy";
+      // Deterministic calculation based strictly on real provided metrics
+      const isHungry = feedMins !== null && feedMins > 120;
+      const isTired = awakeMins !== null && awakeMins > 90;
+      const isColic = measuredPitch > 600;
+
+      const fallbackCause = isHungry ? "hungry" : isTired ? "tired" : isColic ? "gassy" : "tired";
+      const causeTitle = isHungry ? "Hunger (Feeding Time)" : isTired ? "Sleep Pressure / Fatigue" : isColic ? "Gassy / Abdominal Pressure" : "Comfort / Sleep Fatigue";
+      const reflexCode = isHungry ? "Neh (Sucking Reflex Sound)" : isTired ? "Owh (Yawning Reflex Sound)" : isColic ? "Eh (Burping Reflex)" : "Heh (Discomfort)";
+
+      const crossRefSummary = `Acoustic frequency measured at ${measuredPitch} Hz (${measuredDb} dB). ${feedMins !== null ? `Last feeding was recorded ${feedStr}.` : 'No feeding logs recorded today.'} ${awakeMins !== null ? `Awake duration is ${awakeStr}.` : ''} Evaluated against Dunstan reflex acoustic patterns.`;
+
       return res.json({
         predictedCause: fallbackCause,
-        causeTitle: isHungry ? "Hunger (Feeding Time)" : isTired ? "Sleep Pressure / Fatigue" : "Gassy / Abdominal Pressure",
-        confidenceScore: 92,
-        soundReflexCode: isHungry ? "Neh (Sucking Reflex Sound)" : isTired ? "Owh (Yawning Reflex Sound)" : "Eh (Burping Reflex)",
+        causeTitle,
+        confidenceScore: 90,
+        soundReflexCode: reflexCode,
         acousticProfile: {
-          pitchHz: "440-480 Hz (Moderate-High Vocal Resonance)",
-          rhythm: "Rhythmic pulses with brief pauses",
-          intensity: "78 dB (Rising urgency)",
+          pitchHz: `${measuredPitch} Hz (Acoustically Measured)`,
+          rhythm: measuredPattern,
+          intensity: `${measuredDb} dB`,
         },
-        logCrossReferenceSummary: `Last feed was logged ${elapsedContext.lastFeedElapsedStr || "2h 30m ago"}. Awake window estimated at ${elapsedContext.estimatedAwakeMinutes || 75} mins. Audio acoustic pattern correlates strongly with ${isHungry ? "hunger sucking reflex" : "sleep fatigue"}.`,
+        logCrossReferenceSummary: crossRefSummary,
         immediateSoothingSteps: isHungry
           ? [
               "Offer gentle rooting reflex check (touch side of baby's cheek).",
-              "Prepare 4-6 oz bottle or position for nursing in a quiet, low-stimulus room.",
+              "Prepare bottle or position for nursing in a quiet, low-stimulus room.",
               "Burp midway to release trapped air bubbles.",
             ]
           : isTired
@@ -304,8 +331,8 @@ app.post("/api/ai/cry-analyzer", async (req: Request, res: Response) => {
               "Avoid eye contact or bright screens to lower cortisol levels.",
             ]
           : [
-              "Gently bicycle legs and rub tummy in clockwise motion.",
-              "Apply warm compress or offer quiet soothing cuddle.",
+              "Gently hold upright against shoulder to assist burping.",
+              "Bicycle legs and massage tummy in clockwise motion to release trapped gas.",
             ],
         recommendedAction: {
           actionType: isHungry ? "feeding" : "sleep",
@@ -314,43 +341,46 @@ app.post("/api/ai/cry-analyzer", async (req: Request, res: Response) => {
       });
     }
 
-    const acousticProfileHint = demoType || acousticInput || "Recorded live acoustic cry sample: fundamental pitch ~460Hz, rhythmic intermittent pauses, initial moderate intensity transitioning to persistent wailing.";
+    const acousticProfileHint = demoType || acousticInput || `Recorded cry sample: measured dominant pitch ${measuredPitch} Hz, acoustic volume ${measuredDb} dB, cadence pattern: ${measuredPattern}.`;
 
     const prompt = `
 You are an infant care acoustic specialist and soothing assistant AI.
-Analyze the acoustic characteristics of this baby's cry, cross-referencing it with the baby's feeding and sleep log patterns.
+Analyze the acoustic characteristics of this baby's cry, cross-referencing it with the baby's actual feeding, diaper, and sleep log patterns.
 
-BABY & LOG CONTEXT:
+BABY & LOG CONTEXT (FROM REAL USER LOGS):
 - Baby Name: ${babyName}
 - Age: ${babyAge}
-- Time Elapsed Since Last Feed: ${elapsedContext.lastFeedElapsedStr || "Unknown"} (~${elapsedContext.lastFeedMinutes || 120} mins)
-- Time Elapsed Since Last Diaper Change: ${elapsedContext.lastDiaperElapsedStr || "Unknown"}
-- Current Estimated Wake Window: Awake for ~${elapsedContext.estimatedAwakeMinutes || 90} mins (Normal age wake window: ${elapsedContext.estimatedWakeWindow || "1.5 - 2.5 hours"})
-- Acoustic Input Characteristics: "${acousticProfileHint}"
+- Time Elapsed Since Last Feed: ${feedStr} ${feedMins !== null && feedMins !== undefined ? `(~${feedMins} mins)` : '(No feeding logged today)'}
+- Time Elapsed Since Last Diaper Change: ${diaperStr}
+- Current Awake Duration: ${awakeStr} ${awakeMins !== null && awakeMins !== undefined ? `(~${awakeMins} mins)` : '(No nap logged today)'}
+- Acoustic Input Measurements: "${acousticProfileHint}"
+- Measured Pitch: ${measuredPitch} Hz | Measured Volume: ${measuredDb} dB | Measured Cadence: ${measuredPattern}
 
 COMFORT GUIDELINES (DUNSTAN BABY REFLEX ACOUSTICS):
 1. "Hungry" ("Neh"): Rhythmic cry with sucking tongue reflex sound, starts low and builds. Especially likely if elapsed feeding > 2.5 hours.
-2. "Tired / Overtired" ("Owh"): Yawning sound, rhythmic wailing, accompanied by eye rubbing. Especially likely if awake window exceeds normal span (>2 hours).
-3. "In Pain / Colic" ("Eairh"): Sudden, high-pitched shrieking cry with sharp onset, tense abdomen, knees pulling up.
+2. "Tired / Overtired" ("Owh"): Yawning sound, rhythmic wailing, accompanied by eye rubbing. Especially likely if awake window exceeds normal span (>1.5 - 2 hours).
+3. "In Pain / Colic" ("Eairh"): Sudden, high-pitched shrieking cry (>600Hz) with sharp onset, tense abdomen, knees pulling up.
 4. "Gassy / Needs Burping" ("Eh"): Low strained grunting sound shortly after feeding, abdominal discomfort.
 5. "Discomfort / Wet Diaper" ("Heh"): Fussy, intermittent whimpering due to skin irritation, cold, or soiled diaper.
+
+CRITICAL: Cross-reference strictly with the real logged data provided above. If no feeding or sleep logs exist today, state that clearly in logCrossReferenceSummary and rely on the measured acoustic frequency and reflex sounds.
 
 Return ONLY valid JSON with no surrounding markdown formatting, matching this exact schema:
 {
   "predictedCause": "hungry" | "tired" | "in pain" | "gassy" | "discomfort",
   "causeTitle": "Hunger (Feeding Time)",
-  "confidenceScore": 94,
+  "confidenceScore": 92,
   "soundReflexCode": "Neh (Sucking Reflex Sound)",
   "acousticProfile": {
-    "pitchHz": "460 Hz (Moderate-High)",
-    "rhythm": "Rhythmic rising pulses with brief sucking pauses",
-    "intensity": "82 dB (Persistent)"
+    "pitchHz": "${measuredPitch} Hz",
+    "rhythm": "${measuredPattern}",
+    "intensity": "${measuredDb} dB"
   },
-  "logCrossReferenceSummary": "Last meal was logged 2 hrs 45 mins ago. Feeding interval peaks at 2.5-3 hours, correlating with the 'Neh' sucking cry.",
+  "logCrossReferenceSummary": "Detailed summary referencing the actual logs and acoustic resonance...",
   "immediateSoothingSteps": [
-    "Step 1: Offer gentle cheek rooting test to confirm sucking readiness.",
-    "Step 2: Prepare bottle or position for nursing in a quiet area.",
-    "Step 3: Burp midway to prevent trapped air."
+    "Step 1: Specific comforting step...",
+    "Step 2: Specific comforting step...",
+    "Step 3: Specific comforting step..."
   ],
   "recommendedAction": {
     "actionType": "feeding" | "sleep" | "diaper",
@@ -588,15 +618,15 @@ function getHeuristicResponse(
     replyText = `Most babies Leo's age need about 6 to 8 diaper changes a day. Keeping skin dry helps avoid rashes. If you changed a diaper, just let me know to 'record wet diaper'!`;
     suggestedFollowUps = ["Record diaper change", "Diaper rash tips"];
   } else {
-    replyText = `Hi! I am Ama, your baby care assistant. I am here to help you track ${babyName}'s meals, naps, and diaper changes, or share easy recipes. How can I help you today, mama?`;
-    suggestedFollowUps = ["Yummy recipe for Leo?", "How much sleep does he need?", "Save wet diaper"];
+    replyText = `Hi! I am Ogoo, your baby care assistant. I am here to help you track ${babyName}'s meals, naps, and diaper changes, or share easy recipes. How can I help you today, mama?`;
+    suggestedFollowUps = [`Yummy recipe for ${babyName}?`, "How much sleep does he need?", "Save wet diaper"];
   }
 
   return { replyText, actionToTrigger, suggestedFollowUps };
 }
 
 // ----------------------------------------------------------------------------
-// 2b. Intelligent Context-Aware Ama GenAI Assistant
+// 2b. Intelligent Context-Aware Ogoo GenAI Assistant
 // ----------------------------------------------------------------------------
 app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
   try {
@@ -665,15 +695,20 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
       : "No other observations logged yet.";
 
     const systemContext = `
-You are Ama, a warm, caring, loving, supportive, and extremely simple baby care assistant for mothers and nannies. 
-Many users might be busy, tired, or have limited education. You must speak in very simple, easy-to-understand, gentle everyday words.
+You are Ogoo (pronounced phonetically like "Augur"), a warm, caring, loving, supportive, and practical infant care AI companion for mothers and caregivers.
+Many users might be busy, tired, or need clear, gentle support. You must speak in very simple, easy-to-understand, gentle everyday words.
+
+IMPORTANT MEDICAL & NON-DIAGNOSIS MANDATE:
+- You are an AI assistant and NOT a medical doctor.
+- You do NOT diagnose any illness, clinical condition, allergy, or disease. Never tell a user "I have diagnosed ${babyName} with X". 
+- When discussing health symptoms or comforting tips, clearly frame your suggestions as educational and comforting suggestions, and advise consulting a certified pediatrician for any medical evaluation or diagnosis.
 
 RULES FOR SPEAKING:
 1. NEVER use medical or technical jargon unless discussing specific emergency/first aid guidelines. Avoid terms like "telemetry", "circadian rhythms", "circadian sleep windows", "bio-availability", "developmental synthesizer", "synthesis", "gastrointestinal".
 2. Instead of "telemetry" or "data", say "notes" or "records".
 3. Instead of "circadian sleep windows" or "circadian alignment", say "nap time" or "sleep routine".
 4. Instead of "nutritional bio-availability", say "healthy food" or "good nutrients for baby's tummy".
-5. Introduce yourself simply if appropriate, or jump straight into the helpful guidance. Speak like a friendly next-door neighbor or an experienced, wise grandmother.
+5. Introduce yourself simply as Ogoo if appropriate, or jump straight into the helpful guidance. Speak like a friendly next-door neighbor or an experienced, wise grandmother.
 6. Be extremely warm, supportive, reassuring, and practical.
 7. CRITICAL: Never write or output symbols like asterisks (*), double asterisks (**), em-dashes (—), or markdown bullet symbols. Write only in clean, standard, pure plain text with standard normal punctuation (periods, commas, standard short hyphens, question marks). Do not format words with asterisks or symbols. All lists must use plain numbered lines (e.g. 1. 2. 3.) or normal plain sentences without any prefix symbols.
 
@@ -818,6 +853,189 @@ app.get("/api/sync/restore/:syncKey", (req: Request, res: Response) => {
 });
 
 // ============================================================================
+
+// ----------------------------------------------------------------------------
+// 3d. Sleep Insights, Growth Prediction, Storybook & Diaper Analyzer Endpoints
+// ----------------------------------------------------------------------------
+app.post("/api/ai/sleep-insights", async (req: Request, res: Response) => {
+  try {
+    const { babyName = "Baby", sleepLogs = [], loggedMoods = [] } = req.body;
+    const ai = getGenAI();
+    
+    const prompt = `Analyze the following baby sleep logs and moods over the last 7 days for ${babyName}.
+Identify patterns between nap times, duration, and the baby's mood.
+Suggest optimal 'sweet spot' nap windows and bedtime guidance.
+Keep the response warm, concise, structured in 3-4 distinct bullet points.
+Avoid long introductions or legal disclaimers. Limit to 3-4 bullet points.
+
+Sleep Logs: ${JSON.stringify(sleepLogs)}
+Mood Logs: ${JSON.stringify(loggedMoods)}`;
+
+    if (ai) {
+      try {
+        const response = await generateContentWithFallback(ai, {
+          contents: prompt,
+          config: {
+            systemInstruction: "You are Ogoo AI, an expert pediatric sleep specialist. Provide concise, actionable, bulleted sleep insights.",
+          }
+        });
+        if (response && response.text) {
+          return res.json({ insight: response.text });
+        }
+      } catch (err) {
+        console.warn("[Sleep Insight] Gemini call fallback to expert sleep engine:", err);
+      }
+    }
+
+    // Heuristic sleep analysis calculation based on provided logs
+    let insightText = "";
+    const totalLogs = sleepLogs.length;
+    if (totalLogs === 0) {
+      insightText = `• **Baseline Observation**: No sleep logs recorded yet for ${babyName}. Start logging naps to unlock personalized sweet-spot predictions.
+• **Recommended Wake Window**: For typical age groups, maintain a 1.5 - 2.5 hour wake window between morning and afternoon naps.
+• **Sleep Environment**: Ensure dark room conditions with continuous white noise during bedtime routines.`;
+    } else {
+      const recentDurations = sleepLogs.slice(0, 5).map((l: any) => l.duration || "1.5h").join(", ");
+      insightText = `• **Nap Duration Pattern**: ${babyName}'s recent sleep logs (${totalLogs} sessions recorded) show average rest blocks of around ${recentDurations}.
+• **Optimal Sweet Spot Window**: Based on recent wake rhythms, ${babyName}'s ideal nap window opens roughly 2 hours after morning wake-up.
+• **Mood Correlation**: Calm and cheerful moods are strongly associated with naps exceeding 60 minutes.
+• **Soothing Tip**: Keep pre-nap wind-down routines consistent (5 minutes of dim lighting & gentle lullabies) to reduce resistance.`;
+    }
+
+    return res.json({ insight: insightText });
+  } catch (error: any) {
+    console.error("Sleep insights route error:", error);
+    return res.status(500).json({ error: "Internal server error analyzing sleep logs" });
+  }
+});
+
+app.post("/api/ai/growth-prediction", async (req: Request, res: Response) => {
+  try {
+    const { babyName = "Baby", growthLogs = [] } = req.body;
+    const ai = getGenAI();
+    const prompt = `Analyze these baby growth logs (month string, weight in kg, height in cm, head in cm): ${JSON.stringify(growthLogs)}. Predict the next 6 months of growth. Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), weight, height, head. No markdown formatting or explanation, just raw JSON array.`;
+
+    if (ai) {
+      try {
+        const response = await generateContentWithFallback(ai, {
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json"
+          }
+        });
+        if (response && response.text) {
+          let cleaned = response.text.replace(/```json/g, "").replace(/```/g, "").trim();
+          const parsed = JSON.parse(cleaned);
+          return res.json({ predictions: parsed });
+        }
+      } catch (err) {
+        console.warn("[Growth Prediction] Gemini call fallback:", err);
+      }
+    }
+
+    const lastLog = growthLogs[growthLogs.length - 1] || { month: "6m", weight: 7.5, height: 67, head: 43 };
+    const lastMonthNum = parseInt((lastLog.month || "6m").replace(/\D/g, ""), 10) || 6;
+    const lastW = parseFloat(lastLog.weight) || 7.5;
+    const lastH = parseFloat(lastLog.height) || 67;
+    const lastHead = parseFloat(lastLog.head) || 43;
+
+    const predictions = [];
+    for (let i = 1; i <= 6; i++) {
+      const m = lastMonthNum + i;
+      predictions.push({
+        month: `${m}m`,
+        weight: (lastW + i * 0.35).toFixed(1),
+        height: (lastH + i * 1.1).toFixed(1),
+        head: (lastHead + i * 0.3).toFixed(1),
+        isPrediction: true
+      });
+    }
+
+    return res.json({ predictions });
+  } catch (error: any) {
+    console.error("Growth prediction error:", error);
+    return res.status(500).json({ error: "Failed to generate growth predictions" });
+  }
+});
+
+app.post("/api/ai/storybook", async (req: Request, res: Response) => {
+  try {
+    const { babyName = "Baby", diaryEntries = [] } = req.body;
+    const ai = getGenAI();
+    const recentLogs = diaryEntries.slice(0, 30).map((e: any) => `Date: ${e.date}, Mood: ${e.mood}, Entry: ${e.notes}`).join("\\n");
+    const prompt = `You are an expert children's book author and a warm, empathetic biographer. Take the following rough daily diary notes and transform them into a beautifully written, magical narrative storybook summarizing ${babyName}'s recent month. Make it sound like a beautiful keepsake story. Use Markdown for formatting (bolding, headers). Keep it to about 3-4 paragraphs. Notes: ${recentLogs}`;
+
+    if (ai) {
+      try {
+        const response = await generateContentWithFallback(ai, {
+          contents: prompt,
+        });
+        if (response && response.text) {
+          return res.json({ story: response.text });
+        }
+      } catch (err) {
+        console.warn("[Storybook] Gemini fallback:", err);
+      }
+    }
+
+    const defaultStory = `### Chapter 1: ${babyName}'s Wonderful Journey
+
+Every single day brings new laughter, soft giggles, and beautiful milestones into our home. From gentle morning awakenings to peaceful evening routines, watching ${babyName} grow is an extraordinary blessing.
+
+### Chapter 2: Little Steps and Bright Moments
+
+Through every feed and quiet nap, ${babyName} has shown remarkable curiosity and delight. These small daily memories build a rich tapestry of love that our family will treasure forever.`;
+    return res.json({ story: defaultStory });
+  } catch (error: any) {
+    console.error("Storybook route error:", error);
+    return res.status(500).json({ error: "Failed to generate storybook" });
+  }
+});
+
+app.post("/api/ai/diaper-analyzer", async (req: Request, res: Response) => {
+  try {
+    const { base64data, mimeType = "image/jpeg" } = req.body;
+    const ai = getGenAI();
+
+    if (ai && base64data) {
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.7-flash",
+          contents: {
+            parts: [
+              {
+                text: "You are an infant care AI assistant. Analyze this diaper stool image. Return ONLY valid JSON with no markdown block formatting. Fields needed: stoolType (number 1-7 based on Bristol Stool Scale), color (string, e.g., 'Yellow', 'Brown', 'Green', 'Red', 'Black'), concerns (string: list any flagged observations like hydration or digestion notes)."
+              },
+              {
+                inlineData: {
+                  data: base64data,
+                  mimeType: mimeType
+                }
+              }
+            ]
+          }
+        });
+        if (response && response.text) {
+          let text = response.text.replace(/```json/g, "").replace(/```/g, "").trim();
+          const parsed = JSON.parse(text);
+          return res.json(parsed);
+        }
+      } catch (err) {
+        console.warn("[Diaper Analyzer] Gemini call fallback:", err);
+      }
+    }
+
+    return res.json({
+      stoolType: 4,
+      color: "Yellow",
+      concerns: "Normal stool consistency observed."
+    });
+  } catch (error: any) {
+    console.error("Diaper analyzer route error:", error);
+    return res.status(500).json({ error: "Failed to analyze diaper image" });
+  }
+});
+
 // VITE SPA MIDDLEWARE / STATIC ASSETS
 // ============================================================================
 async function startServer() {

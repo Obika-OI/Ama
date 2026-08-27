@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, Sparkles, X, Printer, Loader2 } from 'lucide-react';
-import { model } from '../firebase';
+
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import ReactMarkdown from 'react-markdown';
@@ -33,9 +33,13 @@ export const StorybookGenerator = ({ diaryEntries, babyName }: { diaryEntries: a
         ${recentLogs}
       `;
 
-      const result = await model.generateContent(prompt);
-      setStory(result.response.text() || '');
-    } catch (error) {
+      const response = await fetch("/api/ai/storybook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ babyName, diaryEntries })
+      });
+      const data = await response.json();
+      setStory(data.story || '');    } catch (error) {
       console.error(error);
       setStory("Failed to generate the story. Please try again later.");
     } finally {

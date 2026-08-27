@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Camera, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { model } from '../firebase';
+
 
 interface DiaperAnalyzerProps {
   onAnalyze: (data: { stoolType: number, poopColor: string, symptoms: string }) => void;
@@ -32,20 +32,12 @@ export const DiaperAnalyzer: React.FC<DiaperAnalyzerProps> = ({ onAnalyze }) => 
           - concerns (string: list any flagged observations like hydration or digestion notes based on general infant care guidelines. If none, say "Normal stool")
         `;
 
-        const result = await model.generateContent([
-          prompt,
-          {
-            inlineData: {
-              data: base64data,
-              mimeType: file.type
-            }
-          }
-        ]);
-        
-        const rawText = result.response.text() || '';
-        const text = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const parsed = JSON.parse(text);
-        
+        const response = await fetch("/api/ai/diaper-analyzer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ base64data, mimeType: file.type })
+        });
+        const parsed = await response.json();
         onAnalyze({
           stoolType: parsed.stoolType || 4,
           poopColor: parsed.color || 'Yellow',

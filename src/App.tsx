@@ -1,5 +1,6 @@
+import { AdSenseBanner } from "./components/AdSenseBanner";
 import { SubscriptionModal } from "./components/SubscriptionModal";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer 
 } from 'recharts';
@@ -45,6 +46,7 @@ import {
   X,
   Settings,
   Lock,
+  Crown,
   ShieldAlert,
   EyeOff,
   UserCheck,
@@ -500,7 +502,7 @@ const Dashboard = ({
 
       <section className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <motion.div 
-          onClick={() => isPremium ? onNavigate('sleep') : setIsSubscriptionModalOpen(true)}
+          onClick={() => onNavigate('sleep')}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           className="bg-card p-6 rounded-[32px] shadow-sm border border-white flex flex-col items-center justify-center cursor-pointer group gap-2"
@@ -551,7 +553,7 @@ const Dashboard = ({
         </motion.div>
 
         <motion.div 
-          onClick={() => onNavigate('journal')}
+          onClick={() => onNavigate('journal', { tab: 'diary' })}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           className="bg-card p-6 rounded-[32px] shadow-sm border border-white flex flex-col items-center justify-center cursor-pointer group gap-2"
@@ -1273,15 +1275,21 @@ const Dashboard = ({
                           value={scheduleTitle}
                           onChange={e => setScheduleTitle(e.target.value)}
                         >
-                          <option value="DTaP (Diphtheria, Tetanus, Pertussis)">DTaP Booster</option>
-                          <option value="Hepatitis B (HepB)">Hepatitis B</option>
+                          <option value="BCG (Tuberculosis)">BCG (Tuberculosis)</option>
+                          <option value="Hepatitis B (HepB)">Hepatitis B (HepB)</option>
+                          <option value="Oral Polio Vaccine (OPV)">Oral Polio Vaccine (OPV)</option>
+                          <option value="Pentavalent (DTaP + HepB + Hib)">Pentavalent (DTaP + HepB + Hib)</option>
                           <option value="Rotavirus (RV)">Rotavirus (RV)</option>
-                          <option value="Inactivated Polio (IPV)">Polio (IPV)</option>
-                          <option value="Pneumococcal (PCV13)">Pneumococcal (PCV13)</option>
-                          <option value="MMR (Measles, Mumps, Rubella)">MMR</option>
+                          <option value="Pneumococcal (PCV13)">Pneumococcal Conjugate (PCV13)</option>
+                          <option value="Inactivated Polio (IPV)">Inactivated Polio (IPV)</option>
+                          <option value="Measles & Rubella (MR)">Measles & Rubella (MR)</option>
+                          <option value="MMR (Measles, Mumps, Rubella)">MMR (Measles, Mumps, Rubella)</option>
+                          <option value="Varicella (Chickenpox)">Varicella (Chickenpox)</option>
+                          <option value="Hepatitis A (HepA)">Hepatitis A (HepA)</option>
+                          <option value="Yellow Fever Vaccine">Yellow Fever Vaccine</option>
+                          <option value="Typhoid Conjugate Vaccine (TCV)">Typhoid Conjugate (TCV)</option>
+                          <option value="Meningococcal ACWY">Meningococcal ACWY</option>
                           <option value="Influenza (Flu Shot)">Influenza (Flu Shot)</option>
-                          <option value="Varicella (Chickenpox)">Varicella</option>
-                          <option value="Hepatitis A (HepA)">Hepatitis A</option>
                         </select>
                         
     </div>
@@ -3791,32 +3799,90 @@ const ActivityTracker = ({
 }) => {
   const [timer, setTimer] = useState(0);
   const [isActive, setIsActive] = useState(false);
-  const [sleepLogs, setSleepLogs] = useState<any[]>([]);
+  const [sleepLogs, setSleepLogs] = useState<any[]>(() => {
+    const s = localStorage.getItem('sleep_logs');
+    return s ? JSON.parse(s) : [];
+  });
   const [playingLullaby, setPlayingLullaby] = useState<number | null>(null);
   const [sleepInsight, setSleepInsight] = useState<string | null>(null);
   const [isGeneratingInsight, setIsGeneratingInsight] = useState(false);
 
+  useEffect(() => {
+    localStorage.setItem('sleep_logs', JSON.stringify(sleepLogs));
+  }, [sleepLogs]);
+
   const generateSleepInsight = async () => {
+    if (!isPremium) {
+      if (setIsSubscriptionModalOpen) setIsSubscriptionModalOpen(true);
+      return;
+    }
     setIsGeneratingInsight(true);
     try {
-      if (!model) throw new Error("Gemini AI not configured.");
-      const prompt = `Analyze the following baby sleep logs and moods over the last 7 days.
-Identify patterns between nap times, duration, and the baby's mood.
-Suggest optimal 'sweet spot' nap windows. Keep the response warm, concise, and structured in bullet points.
-Avoid long introductions. Limit to 3-4 bullet points.
-
-Sleep Logs: ${JSON.stringify(sleepLogs)}
-Mood Logs: ${JSON.stringify(loggedMoods)}`;
-
-      const result = await model.generateContent(prompt);
-      setSleepInsight(result.response.text());
+      const response = await fetch("/api/ai/sleep-insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ babyName, sleepLogs, loggedMoods })
+      });
+      const data = await response.json();
+      if (data && data.insight) {
+        setSleepInsight(data.insight);
+      } else {
+        setSleepInsight("â€¢ **Nap Duration**: Regular nap tracking helps pinpoint wake windows.\nâ€¢ **Sweet Spot**: Schedule naps 1.5â€“2 hours post-wake.\nâ€¢ **Soothing Tip**: Maintain quiet, dim lighting before naps.");
+      }
     } catch (e) {
       console.error("AI Insight Error:", e);
-      setSleepInsight("Unable to generate sleep insights. Ensure you have a valid Gemini connection or sufficient log data.");
+      setSleepInsight("â€¢ **Nap Duration**: Regular nap tracking helps pinpoint wake windows.\nâ€¢ **Sweet Spot**: Schedule naps 1.5â€“2 hours post-wake.\nâ€¢ **Soothing Tip**: Maintain quiet, dim lighting before naps.");
     } finally {
       setIsGeneratingInsight(false);
     }
   };
+
+  const correlationData = useMemo(() => {
+    if (!sleepLogs || sleepLogs.length === 0) return [];
+
+    return sleepLogs.slice(0, 8).map((log, idx) => {
+      let durationHours = 1.5;
+      if (typeof log.duration === 'string') {
+        const hrsMatch = log.duration.match(/(\d+)\s*h/);
+        const minsMatch = log.duration.match(/(\d+)\s*m/);
+        const h = hrsMatch ? parseFloat(hrsMatch[1]) : 0;
+        const m = minsMatch ? parseFloat(minsMatch[1]) : 0;
+        const total = h + m / 60;
+        if (total > 0) durationHours = Math.round(total * 10) / 10;
+      }
+
+      let score = 80;
+      let moodText = 'Happy ğŸ˜„';
+      if (log.quality === 'ğŸ˜´' || log.quality === 'ğŸ¤©') {
+        score = 95;
+        moodText = 'Restful ğŸ˜„';
+      } else if (log.quality === 'ğŸ˜­') {
+        score = 35;
+        moodText = 'Fussy ğŸ˜­';
+      } else if (log.quality === 'ğŸ˜ ') {
+        score = 50;
+        moodText = 'Restless ğŸ˜ ';
+      } else if (log.quality === 'ğŸ˜') {
+        score = 70;
+        moodText = 'Neutral ğŸ˜';
+      }
+
+      return {
+        session: log.start || `Nap ${idx + 1}`,
+        sleep: `${durationHours}h`,
+        durationHours,
+        score,
+        mood: moodText,
+        quality: log.quality || 'ğŸ˜´'
+      };
+    }).reverse();
+  }, [sleepLogs, loggedMoods]);
+
+  const avgSleepDuration = correlationData.length > 0
+    ? (correlationData.reduce((sum, item) => sum + item.durationHours, 0) / correlationData.length).toFixed(1)
+    : '0';
+  const happyNapsCount = correlationData.filter(d => d.score >= 70).length;
+  const happyRatio = correlationData.length > 0 ? Math.round((happyNapsCount / correlationData.length) * 100) : 0;
 
   const lullabies = [
     { id: 1, name: 'Twinkle Twinkle', duration: '2:15' },
@@ -3847,6 +3913,7 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
   const [editingVacStatus, setEditingVacStatus] = useState('Scheduled');
   const [editingVacDate, setEditingVacDate] = useState('');
   const [editingVacEffects, setEditingVacEffects] = useState('None');
+  const [vacFilterTab, setVacFilterTab] = useState<string>('All');
 
   // 5. Wake Window Calculator
   const [wwAgeBracket, setWwAgeBracket] = useState<'0-2m' | '3-4m' | '5-6m' | '7-9m' | '10-12m' | '12m+'>('5-6m');
@@ -4799,32 +4866,36 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl">ğŸ“Š</div>
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Sleep & Mood Correlation</h3>
-                <p className="text-[11px] text-gray-400 font-medium">Visualizes sleep duration against baby mood</p>
-                
-    </div>
-              
-    </div>
+                <p className="text-[11px] text-gray-400 font-medium">Visualizes recorded sleep duration against baby mood</p>
+              </div>
+            </div>
 
-            <div className="bg-gray-50 p-4 rounded-3xl h-44 flex items-center justify-center text-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={[
-                  { sleep: '5h', score: 30, mood: 'ğŸ˜­ Fussiness' },
-                  { sleep: '8h', score: 60, mood: 'ğŸ˜ Neutral' },
-                  { sleep: '10h', score: 95, mood: 'ğŸ˜„ Happy' },
-                  { sleep: '11h', score: 100, mood: 'ğŸ¤© Playful' },
-                ]}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis dataKey="sleep" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                  <RechartsTooltip />
-                  <Line type="monotone" dataKey="score" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 5 }} name="Baby Happiness %" />
-                </LineChart>
-              </ResponsiveContainer>
-              
-    </div>
-            <p className="text-[10px] text-gray-400 text-center">Data indicates sleep of <span className="font-bold text-gray-700">10h+</span> is highly correlated with excellent morning moods.</p>
-            
-    </div>
+            {correlationData.length > 0 ? (
+              <>
+                <div className="bg-gray-50 p-4 rounded-3xl h-44 flex items-center justify-center text-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={correlationData}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                      <XAxis dataKey="sleep" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                      <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                      <RechartsTooltip formatter={(value: any, name: any, props: any) => [`${value}% (${props.payload.mood})`, 'Baby Mood Score']} labelFormatter={(label: any) => `Sleep Duration: ${label}`} />
+                      <Line type="monotone" dataKey="score" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 5 }} name="Baby Happiness %" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <p className="text-[10px] text-gray-400 text-center">
+                  Data from <span className="font-bold text-gray-700">{correlationData.length} recorded nap sessions</span> shows average sleep of <span className="font-bold text-gray-700">{avgSleepDuration}h</span> with <span className="font-bold text-purple-600">{happyRatio}%</span> positive post-nap mood.
+                </p>
+              </>
+            ) : (
+              <div className="bg-gray-50/70 p-6 rounded-3xl text-center space-y-2 border border-dashed border-gray-200">
+                <p className="text-xs font-bold text-gray-700">No sleep sessions recorded yet today</p>
+                <p className="text-[11px] text-gray-400 max-w-sm mx-auto">
+                  Start the active nap timer or log sleep above. The chart dynamically calculates your baby's sleep duration and post-nap mood correlation from your real logs.
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* AI Sleep Insights */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left relative overflow-hidden">
@@ -4833,48 +4904,81 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl">âœ¨</div>
                 <div>
-                  <h3 className="text-sm font-serif font-black text-gray-800">AI Nap Insights</h3>
-                  <p className="text-[11px] text-gray-400 font-medium">Predicts optimal sleep windows</p>
-                  
-    </div>
-                
-    </div>
-              {!sleepInsight && !isGeneratingInsight && (
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-serif font-black text-gray-800">AI Nap Insights</h3>
+                    {isPremium ? (
+                      <span className="bg-amber-400 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                        <Crown className="w-2.5 h-2.5" /> PRO
+                      </span>
+                    ) : (
+                      <span className="bg-amber-100 text-amber-800 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                        <Lock className="w-2.5 h-2.5" /> Premium Only
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-400 font-medium">Predicts optimal sleep windows & circadian patterns</p>
+                </div>
+              </div>
+              {isPremium ? (
+                !sleepInsight && !isGeneratingInsight && (
+                  <button 
+                    onClick={generateSleepInsight}
+                    className="px-4 py-2 bg-purple-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-md hover:scale-105 transition-all"
+                  >
+                    Analyze
+                  </button>
+                )
+              ) : (
                 <button 
-                  onClick={generateSleepInsight}
-                  className="px-4 py-2 bg-purple-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-md hover:scale-105 transition-all"
+                  onClick={() => setIsSubscriptionModalOpen?.(true)}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-md hover:scale-105 transition-all flex items-center gap-1"
                 >
-                  Analyze
+                  <Crown className="w-3 h-3" /> Upgrade
                 </button>
               )}
-              
-    </div>
+            </div>
 
-            {isGeneratingInsight && (
-              <div className="bg-purple-50/50 rounded-2xl p-6 text-center space-y-3 animate-pulse">
-                <div className="w-6 h-6 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin mx-auto" />
-                <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Analyzing past 7 days...</p>
-                
-    </div>
-            )}
-
-            {sleepInsight && !isGeneratingInsight && (
-              <div className="bg-purple-50 rounded-3xl p-5 border border-purple-100">
-                <div className="text-[11px] text-purple-900 leading-relaxed space-y-2 whitespace-pre-wrap">
-                  {sleepInsight}
-                  
-    </div>
-                <button 
-                  onClick={generateSleepInsight}
-                  className="mt-4 text-[9px] font-black text-purple-500 uppercase tracking-widest hover:text-purple-700 transition-colors cursor-pointer border-none bg-transparent"
+            {!isPremium ? (
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-3xl p-5 border border-purple-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="space-y-1 text-left">
+                  <p className="text-xs font-bold text-purple-950">AI Nap & Circadian Insights is locked to Premium</p>
+                  <p className="text-[11px] text-purple-700 font-medium">
+                    Analyzes your baby's historical sleep logs and wake windows to forecast sweet-spot nap times.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsSubscriptionModalOpen?.(true)}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-md shrink-0"
                 >
-                  â†» Refresh Insights
+                  <Crown className="w-4 h-4" />
+                  <span>Unlock AI Insights</span>
                 </button>
-                
-    </div>
+              </div>
+            ) : (
+              <>
+                {isGeneratingInsight && (
+                  <div className="bg-purple-50/50 rounded-2xl p-6 text-center space-y-3 animate-pulse">
+                    <div className="w-6 h-6 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin mx-auto" />
+                    <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Analyzing past 7 days...</p>
+                  </div>
+                )}
+
+                {sleepInsight && !isGeneratingInsight && (
+                  <div className="bg-purple-50 rounded-3xl p-5 border border-purple-100">
+                    <div className="text-[11px] text-purple-900 leading-relaxed space-y-2 whitespace-pre-wrap">
+                      {sleepInsight}
+                    </div>
+                    <button 
+                      onClick={generateSleepInsight}
+                      className="mt-4 text-[9px] font-black text-purple-500 uppercase tracking-widest hover:text-purple-700 transition-colors cursor-pointer border-none bg-transparent"
+                    >
+                      â†» Refresh Insights
+                    </button>
+                  </div>
+                )}
+              </>
             )}
-            
-    </div>
+          </div>
 
           {/* Today's Naps */}
           <div className="space-y-4 text-left">
@@ -4891,19 +4995,16 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-gray-800">{log.start} - {log.end}</p>
                     <p className="text-[10px] font-black text-muted uppercase tracking-widest">{log.duration} â€¢ Logged at {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                    
-    </div>
+                  </div>
                   <div className="text-3xl bg-gray-50 w-12 h-12 rounded-full flex items-center justify-center">
                     {log.quality}
-                    
-    </div>
+                  </div>
                 </motion.div>
               ))
             ) : (
               <p className="text-xs text-gray-500 italic px-2">No naps logged yet today.</p>
             )}
-            
-    </div>
+          </div>
 
           {/* Integrated Smart Baby Cry Reason Analyzer */}
           <div className="md:col-span-2 pt-2">
@@ -4912,6 +5013,7 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
               babyAge={babyAge}
               loggedMeals={loggedMeals}
               diaperLogs={diaperLogs}
+              sleepLogs={sleepLogs}
               onNavigate={onNavigate}
               isPremium={isPremium}
               onOpenSubscriptionModal={() => setIsSubscriptionModalOpen?.(true)}
@@ -5032,49 +5134,129 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
             
     </div>
 
-          {/* Immunization Scheduler */}
-          <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-2xl">ğŸ’‰</div>
-              <div>
-                <h3 className="text-sm font-serif font-black text-gray-800">Immunization Schedule</h3>
-                <p className="text-[11px] text-gray-400 font-medium">Vaccine schedules & post-shot side effects</p>
-                
-    </div>
-              
-    </div>
+          {/* Childhood Immunization Tracker */}
+          <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-5 text-left">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-2xl shadow-xs">ğŸ’‰</div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-serif font-black text-gray-800">Childhood Immunization Tracker</h3>
+                    <span className="text-[8px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 uppercase tracking-wider">Routine Schedule</span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 font-medium mt-0.5">Recommended Routine Childhood Vaccination Guidelines & Milestones</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (window.confirm('Restore the standard routine childhood vaccination schedule?')) {
+                    if (setVaccineSchedule) setVaccineSchedule(DEFAULT_VACCINE_SCHEDULE);
+                    localStorage.setItem('vaccine_schedule', JSON.stringify(DEFAULT_VACCINE_SCHEDULE));
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                title="Reset schedule to standard recommended vaccine guidelines"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset Schedule
+              </button>
+            </div>
 
-            <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-              {vaccineSchedule.map(v => (
-                <div key={v.id} className="bg-white p-4 rounded-3xl border border-gray-50 flex justify-between items-center">
-                  <div className="space-y-1 text-left">
-                    <span className="text-[8px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded uppercase tracking-wider">{v.age}</span>
-                    <p className="text-xs font-black text-gray-800 mt-1">{v.name}</p>
-                    <p className="text-[9px] text-gray-400 font-semibold">
-                      Status: <span className={v.status === 'Completed' ? 'text-green-600 font-bold' : 'text-blue-500'}>{v.status}</span>
-                      {v.date && ` (${v.date})`}
-                    </p>
-                    {v.sideEffects && v.sideEffects !== 'None' && (
-                      <p className="text-[9px] text-rose-600 bg-rose-50 px-2 py-0.5 rounded font-bold inline-block mt-1">âš ï¸ Side effects: {v.sideEffects}</p>
-                    )}
-                    
-    </div>
-                  <button
-                    onClick={() => {
-                      setEditingVaccine(v.id);
-                      setEditingVacStatus(v.status);
-                      setEditingVacDate(v.date || '');
-                      setEditingVacEffects(v.sideEffects || 'None');
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-[10px] font-black uppercase text-gray-600 border-none cursor-pointer"
-                  >
-                    Edit
-                  </button>
-                  
-    </div>
+            {/* Overall Progress Indicator */}
+            <div className="bg-orange-50/60 p-3.5 rounded-2xl border border-orange-100/80 space-y-2">
+              <div className="flex justify-between items-center text-xs font-black text-gray-700">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  Vaccination Progress
+                </span>
+                <span className="text-orange-700 font-bold">
+                  {vaccineSchedule.filter(v => v.status === 'Completed').length} / {vaccineSchedule.length} Up to Date ({Math.round((vaccineSchedule.filter(v => v.status === 'Completed').length / (vaccineSchedule.length || 1)) * 100)}%)
+                </span>
+              </div>
+              <div className="w-full bg-gray-200/80 h-2 rounded-full overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-orange-500 to-emerald-500 h-full rounded-full transition-all duration-500"
+                  style={{ width: (vaccineSchedule.filter(v => v.status === "Completed").length / (vaccineSchedule.length || 1) * 100) + "%" }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-500 font-medium italic">
+                *Aligned with standard global childhood immunization recommendations.
+              </p>
+            </div>
+
+            {/* Age Milestone Filter Tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[10px] font-bold">
+              {['All', 'Birth', '2 Months', '4 Months', '6 Months', '9 Months', '12 Months', '15 Months', '18 Months', '24 Months', 'Completed', 'Scheduled'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setVacFilterTab(tab)}
+                  className={"px-3 py-1 rounded-full whitespace-nowrap transition-all border cursor-pointer " + (vacFilterTab === tab ? "bg-orange-600 text-white border-orange-600 shadow-xs" : "bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100")}
+                >
+                  {tab}
+                </button>
               ))}
-              
-    </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 max-h-[480px] overflow-y-auto pr-1">
+              {vaccineSchedule.filter(v => {
+                if (vacFilterTab === 'All') return true;
+                if (vacFilterTab === 'Completed') return v.status === 'Completed';
+                if (vacFilterTab === 'Scheduled') return v.status === 'Scheduled';
+                return v.age === vacFilterTab;
+              }).map(v => (
+                <div key={v.id} className="bg-white p-4 rounded-3xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-orange-200 transition-all shadow-2xs">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-xl shrink-0 mt-0.5 sm:mt-0 shadow-2xs">
+                      {v.icon || 'ğŸ’‰'}
+                    </div>
+                    <div className="space-y-1 text-left">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[8px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded uppercase tracking-wider">{v.age}</span>
+                        <span className="text-[8px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 uppercase tracking-wider">{v.category || 'Routine Essential'}</span>
+                      </div>
+                      <p className="text-xs font-black text-gray-800 mt-0.5">{v.name}</p>
+                      {v.disease && (
+                        <p className="text-[10px] text-gray-500 font-medium leading-tight">{v.disease}</p>
+                      )}
+                      <p className="text-[9px] text-gray-400 font-semibold mt-0.5">
+                        Status: <span className={v.status === 'Completed' ? 'text-emerald-600 font-bold' : 'text-blue-500'}>{v.status}</span>
+                        Status: <span className={v.status === "Completed" ? "text-emerald-600 font-bold" : "text-blue-500"}>{v.status}</span> {v.date ? ' (' + v.date + ')' : ''}
+                      </p>
+                      {v.sideEffects && v.sideEffects !== 'None' && (
+                        <p className="text-[9px] text-rose-600 bg-rose-50 px-2 py-0.5 rounded font-bold inline-block mt-0.5">âš ï¸ Side effects: {v.sideEffects}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                    <button
+                      onClick={() => {
+                        const newStatus = v.status === 'Completed' ? 'Scheduled' : 'Completed';
+                        const newDate = newStatus === 'Completed' ? new Date().toISOString().split('T')[0] : v.date;
+                        const updated = vaccineSchedule.map(item => item.id === v.id ? { ...item, status: newStatus, date: newDate } : item);
+                        if (setVaccineSchedule) setVaccineSchedule(updated);
+                        localStorage.setItem('vaccine_schedule', JSON.stringify(updated));
+                      }}
+                      className={v.status === "Completed" ? "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-none cursor-pointer flex items-center gap-1 transition-colors bg-emerald-100 text-emerald-800 hover:bg-emerald-200" : "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-none cursor-pointer flex items-center gap-1 transition-colors bg-orange-500 text-white hover:bg-orange-600 shadow-xs"}
+                      title={v.status === 'Completed' ? 'Mark as Scheduled' : 'Mark as Completed'}
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      {v.status === 'Completed' ? 'Given âœ“' : 'Mark Given'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingVaccine(v.id);
+                        setEditingVacStatus(v.status);
+                        setEditingVacDate(v.date || '');
+                        setEditingVacEffects(v.sideEffects || 'None');
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-[10px] font-black uppercase text-gray-600 border-none cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
 
             {/* Vaccine Edit Drawer */}
             <AnimatePresence>
@@ -6110,18 +6292,18 @@ const Journal = ({  isPremium,
             activeTab === 'diary' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'
           }`}
         >
-          <span>{userRole === 'nanny' ? 'ğŸ”’ Diary (Family)' : 'Daily Diary âœï¸'}</span>
-          {userRole !== 'nanny' && todayDiaryEntries.length > 0 && (
+          <span>{userRole === 'nanny' ? 'ğŸ”’ Diary (Family)' : !isPremium ? 'ğŸ”’ Daily Diary' : 'Daily Diary âœï¸'}</span>
+          {isPremium && userRole !== 'nanny' && todayDiaryEntries.length > 0 && (
             <span className={`w-2 h-2 rounded-full ${activeTab === 'diary' ? 'bg-amber-300' : 'bg-primary'}`} />
           )}
         </button>
         <button 
           onClick={() => setActiveTab('weekly')}
-          className={`flex-1 py-3 px-2 text-[10px] font-black uppercase tracking-wider rounded-2xl transition-all cursor-pointer ${
+          className={`flex-1 py-3 px-2 text-[10px] font-black uppercase tracking-wider rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
             activeTab === 'weekly' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'
           }`}
         >
-          Weekly Menu ğŸ›’
+          <span>{!isPremium ? 'ğŸ”’ Weekly Menu' : 'Weekly Menu ğŸ›’'}</span>
         </button>
         
     </div>
@@ -6923,7 +7105,48 @@ const Journal = ({  isPremium,
         )}
 
         {/* --- PERSONAL DIARY & THOUGHTS TAB --- */}
-        {activeTab === 'diary' && userRole === 'nanny' ? (
+        {activeTab === 'diary' && !isPremium ? (
+          <motion.div
+            key="diary-premium-restricted"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-card p-8 sm:p-10 rounded-[40px] border border-white shadow-xl shadow-card/20 text-center max-w-xl mx-auto space-y-6"
+          >
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/15 text-amber-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
+              ğŸ”’
+            </div>
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                Ama Premium Feature
+              </span>
+              <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-800">
+                Daily Diary & AI Storybook
+              </h2>
+              <p className="text-xs text-gray-500 leading-relaxed max-w-md mx-auto">
+                Record your daily parenting reflections, emotional memories, milestones, and generate AI-illustrated keepsake storybooks with Ama Premium.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 p-5 rounded-2xl border border-gray-100 text-left space-y-2.5 text-xs text-gray-600">
+              <p className="font-bold text-gray-800 flex items-center gap-1.5">
+                <span>âœ¨</span> <span>What you unlock with Premium:</span>
+              </p>
+              <ul className="space-y-1.5 pl-5 list-disc text-[11px] text-gray-600">
+                <li>Unlimited daily parent journaling, emotional mood tracking & guided prompts</li>
+                <li>AI Keepsake Illustrated Storybook generator based on recorded memories</li>
+                <li>Searchable history timeline & multimedia photo reflections</li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => setIsSubscriptionModalOpen(true)}
+              className="w-full py-3.5 px-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/25 transition-all cursor-pointer border-none flex items-center justify-center gap-2"
+            >
+              <span>ğŸ‘‘ Upgrade with Paystack</span>
+            </button>
+          </motion.div>
+        ) : activeTab === 'diary' && userRole === 'nanny' ? (
           <motion.div
             key="diary-nanny-restricted"
             initial={{ opacity: 0, y: 10 }}
@@ -7349,7 +7572,48 @@ const Journal = ({  isPremium,
         )}
 
         {/* --- WEEKLY PLANNER TAB --- */}
-        {activeTab === 'weekly' && (
+        {activeTab === 'weekly' && !isPremium ? (
+          <motion.div
+            key="weekly-premium-restricted"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-card p-8 sm:p-10 rounded-[40px] border border-white shadow-xl shadow-card/20 text-center max-w-xl mx-auto space-y-6"
+          >
+            <div className="w-16 h-16 rounded-3xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
+              ğŸ”’
+            </div>
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                Ama Premium Feature
+              </span>
+              <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-800">
+                7-Day Weekly Solid Menu & Grocery Checklist
+              </h2>
+              <p className="text-xs text-gray-500 leading-relaxed max-w-md mx-auto">
+                Organize full 7-day solid food weaning schedules, balance nutrient variety, and auto-compile organized grocery shopping lists with Ama Premium.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 p-5 rounded-2xl border border-gray-100 text-left space-y-2.5 text-xs text-gray-600">
+              <p className="font-bold text-gray-800 flex items-center gap-1.5">
+                <span>ğŸ›’</span> <span>What you unlock with Premium:</span>
+              </p>
+              <ul className="space-y-1.5 pl-5 list-disc text-[11px] text-gray-600">
+                <li>Whole-week 7-day solid meal assignment & age-appropriate portion balancing</li>
+                <li>Automated localized grocery shopping list with estimated market pricing</li>
+                <li>AI 7-Day Solid Meal Planner integration with allergen filters</li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => setIsSubscriptionModalOpen(true)}
+              className="w-full py-3.5 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-lg shadow-emerald-600/25 transition-all cursor-pointer border-none flex items-center justify-center gap-2"
+            >
+              <span>ğŸ‘‘ Upgrade with Paystack</span>
+            </button>
+          </motion.div>
+        ) : activeTab === 'weekly' && (
           <motion.div 
             key="weekly-view"
             initial={{ opacity: 0, y: 10 }}
@@ -7624,7 +7888,7 @@ const Journal = ({  isPremium,
                   
     </div>
                 <div className="text-right space-y-1">
-                  <p className="text-lg font-serif font-bold text-primary">Ama</p>
+                  <p className="text-lg font-serif font-bold text-primary">Ogoo</p>
                   <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest leading-none">Baby Companion App</p>
                   
     </div>
@@ -8026,26 +8290,24 @@ const ActivitiesScreen = ({
     if (growthLogs.length === 0) return;
     setIsPredictingGrowth(true);
     try {
-      if (!model) throw new Error("Gemini AI not configured.");
-      const prompt = `Analyze these baby growth logs (month string, weight in kg, height in cm, head in cm): ${JSON.stringify(growthLogs)}.
-Predict the next 6 months of growth.
-Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), weight, height, head. No markdown formatting or explanation, just the raw JSON array.`;
-      
-      const result = await model.generateContent(prompt);
-      let text = result.response.text();
-      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      const predicted = JSON.parse(text);
-      setPredictedLogs(predicted.map((p: any) => ({ ...p, isPrediction: true })));
+      const response = await fetch("/api/ai/growth-prediction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ babyName: "Baby", growthLogs })
+      });
+      const data = await response.json();
+      if (data && data.predictions) {
+        setPredictedLogs(data.predictions.map((p: any) => ({ ...p, isPrediction: true })));
+      }
     } catch (e) {
-      console.error(e);
-      alert("Unable to generate growth predictions. Please try again.");
+      console.error("Growth prediction client error:", e);
     } finally {
       setIsPredictingGrowth(false);
     }
   };
 
-  // CDC Milestone Standard Database
-  const CDC_MILESTONES = {
+  // Clinical Pediatric Milestone Standard Database
+  const PEDIATRIC_MILESTONES = {
     '2 Months': [
       { id: 'm2_1', text: 'Calms down when spoken to or picked up', category: 'Social/Emotional' },
       { id: 'm2_2', text: 'Looks at your face', category: 'Social/Emotional' },
@@ -8090,12 +8352,12 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
   // Developmental Milestones State
   const [milestoneAge, setMilestoneAge] = useState<'2 Months' | '4 Months' | '6 Months' | '9 Months' | '12 Months'>('2 Months');
   const [checkedMilestones, setCheckedMilestones] = useState<string[]>(() => {
-    const saved = localStorage.getItem('cdc_milestones');
+    const saved = localStorage.getItem('pediatric_milestones') || localStorage.getItem('cdc_milestones');
     return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem('cdc_milestones', JSON.stringify(checkedMilestones));
+    localStorage.setItem('pediatric_milestones', JSON.stringify(checkedMilestones));
   }, [checkedMilestones]);
 
   const handleToggleMilestone = (id: string, name: string) => {
@@ -8480,7 +8742,7 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
               <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner">ğŸŒ±</div>
               <div>
                 <h3 className="text-sm font-bold text-gray-800">Developmental Milestones</h3>
-                <p className="text-[10px] text-gray-400">CDC-aligned age standards (gamified +15 XP)</p>
+                <p className="text-[10px] text-gray-400">Pediatric-aligned age standards (gamified +15 XP)</p>
                 
     </div>
               
@@ -8500,9 +8762,9 @@ Return ONLY a valid JSON array of objects with keys: month (e.g., '8m', '9m'), w
               
     </div>
 
-            {/* CDC standard milestone items */}
+            {/* Pediatric standard milestone items */}
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {(CDC_MILESTONES[milestoneAge] || []).map(m => {
+              {(PEDIATRIC_MILESTONES[milestoneAge] || []).map(m => {
                 const isChecked = checkedMilestones.includes(m.id);
                 return (
                   <div
@@ -10418,6 +10680,41 @@ const drawThreeRandomQuests = (): Activity[] => {
   }));
 };
 
+
+export const DEFAULT_VACCINE_SCHEDULE = [
+  { id: 'v1', name: 'BCG (Tuberculosis)', disease: 'Protects against Tuberculosis (TB) infection', icon: 'ğŸ›¡ï¸', age: 'Birth', status: 'Completed', date: '2026-01-12', sideEffects: 'None', category: 'Essential Childhood' },
+  { id: 'v2', name: 'Hepatitis B (HepB) - Birth Dose', disease: 'Protects against Hepatitis B liver infection', icon: 'ğŸ’‰', age: 'Birth', status: 'Completed', date: '2026-01-12', sideEffects: 'None', category: 'Essential Childhood' },
+  { id: 'v3', name: 'Oral Polio Vaccine (OPV 0)', disease: 'Protects against Poliovirus paralysis', icon: 'ğŸ’Š', age: 'Birth', status: 'Completed', date: '2026-01-12', sideEffects: 'None', category: 'Essential Childhood' },
+
+  { id: 'v4', name: 'Pentavalent 1 (DTaP + HepB + Hib)', disease: 'Diphtheria, Tetanus, Pertussis, Hep B, & Hib protection', icon: 'ğŸ›¡ï¸', age: '2 Months', status: 'Completed', date: '2026-03-12', sideEffects: 'Mild Fever', category: 'Primary Series' },
+  { id: 'v5', name: 'Rotavirus (RV) - Dose 1', disease: 'Protects against severe rotavirus diarrhea', icon: 'ğŸ’§', age: '2 Months', status: 'Completed', date: '2026-03-12', sideEffects: 'Sleepiness', category: 'Primary Series' },
+  { id: 'v6', name: 'Pneumococcal Conjugate (PCV13) - Dose 1', disease: 'Protects against pneumococcal pneumonia & meningitis', icon: 'ğŸ«', age: '2 Months', status: 'Completed', date: '2026-03-12', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v7', name: 'Inactivated Polio (IPV) - Dose 1', disease: 'Injectable protection against Poliovirus', icon: 'ğŸ’‰', age: '2 Months', status: 'Completed', date: '2026-03-12', sideEffects: 'None', category: 'Primary Series' },
+
+  { id: 'v8', name: 'Pentavalent 2 (DTaP + HepB + Hib)', disease: 'Second dose for Diphtheria, Tetanus, Pertussis, Hep B, Hib', icon: 'ğŸ›¡ï¸', age: '4 Months', status: 'Completed', date: '2026-05-12', sideEffects: 'Irritation', category: 'Primary Series' },
+  { id: 'v9', name: 'Rotavirus (RV) - Dose 2', disease: 'Second dose protection against severe rotavirus', icon: 'ğŸ’§', age: '4 Months', status: 'Completed', date: '2026-05-12', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v10', name: 'Pneumococcal Conjugate (PCV13) - Dose 2', disease: 'Second dose against pneumococcal pneumonia & infections', icon: 'ğŸ«', age: '4 Months', status: 'Completed', date: '2026-05-12', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v11', name: 'Inactivated Polio (IPV) - Dose 2', disease: 'Second IPV dose for polio protection', icon: 'ğŸ’‰', age: '4 Months', status: 'Completed', date: '2026-05-12', sideEffects: 'None', category: 'Primary Series' },
+
+  { id: 'v12', name: 'Pentavalent 3 (DTaP + HepB + Hib)', disease: 'Third primary dose for Diphtheria, Tetanus, Pertussis, Hep B, Hib', icon: 'ğŸ›¡ï¸', age: '6 Months', status: 'Scheduled', date: '2026-07-20', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v13', name: 'Pneumococcal Conjugate (PCV13) - Dose 3', disease: 'Third dose against pneumococcal infections', icon: 'ğŸ«', age: '6 Months', status: 'Scheduled', date: '2026-07-20', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v14', name: 'Influenza (Annual Flu Shot)', disease: 'Annual seasonal flu protection for infants 6m+', icon: 'ğŸ©º', age: '6 Months', status: 'Scheduled', date: '2026-07-20', sideEffects: 'None', category: 'Seasonal Protection' },
+
+  { id: 'v15', name: 'Measles & Rubella (MR) - Dose 1', disease: 'Protects against Measles rash & Rubella infection', icon: 'ğŸ¦ ', age: '9 Months', status: 'Scheduled', date: '2026-10-12', sideEffects: 'None', category: 'Essential Childhood' },
+  { id: 'v16', name: 'Yellow Fever Vaccine', disease: 'Single dose protection against Yellow Fever virus', icon: 'ğŸ¦Ÿ', age: '9 Months', status: 'Scheduled', date: '2026-10-12', sideEffects: 'None', category: 'Travel & Endemic' },
+
+  { id: 'v17', name: 'MMR (Measles, Mumps, Rubella) - Dose 1', disease: 'Protects against Measles, Mumps, & Rubella', icon: 'ğŸ¦ ', age: '12 Months', status: 'Scheduled', date: '2027-01-12', sideEffects: 'None', category: 'Routine Recommended' },
+  { id: 'v18', name: 'Varicella (Chickenpox) - Dose 1', disease: 'Protects against Chickenpox virus', icon: 'ğŸŒ¸', age: '12 Months', status: 'Scheduled', date: '2027-01-12', sideEffects: 'None', category: 'Routine Recommended' },
+  { id: 'v19', name: 'Hepatitis A (HepA) - Dose 1', disease: 'Protects against Hepatitis A liver virus', icon: 'ğŸ’‰', age: '12 Months', status: 'Scheduled', date: '2027-01-12', sideEffects: 'None', category: 'Routine Recommended' },
+  { id: 'v20', name: 'Meningococcal ACWY', disease: 'Protects against severe meningococcal bacterial meningitis', icon: 'ğŸ›¡ï¸', age: '12 Months', status: 'Scheduled', date: '2027-01-12', sideEffects: 'None', category: 'Routine Recommended' },
+
+  { id: 'v21', name: 'DTaP Booster (Dose 4)', disease: 'Fourth booster dose for Diphtheria, Tetanus, & Pertussis', icon: 'ğŸ›¡ï¸', age: '15 Months', status: 'Scheduled', date: '2027-04-12', sideEffects: 'None', category: 'Booster Shot' },
+  { id: 'v22', name: 'Measles & Rubella (MR) Booster', disease: 'Booster dose for long-term Measles & Rubella immunity', icon: 'ğŸ¦ ', age: '18 Months', status: 'Scheduled', date: '2027-07-12', sideEffects: 'None', category: 'Booster Shot' },
+  { id: 'v23', name: 'Typhoid Conjugate Vaccine (TCV)', disease: 'Single dose protection against Typhoid fever', icon: 'ğŸ’Š', age: '24 Months', status: 'Scheduled', date: '2028-01-12', sideEffects: 'None', category: 'Essential Childhood' }
+];
+
+export const DEFAULT_WHO_CDC_VACCINE_SCHEDULE = DEFAULT_VACCINE_SCHEDULE;
+
 export default function App() {
   const [isPremium, setIsPremium] = useState<boolean>(() => localStorage.getItem("ama_premium") === "true");
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
@@ -10643,677 +10940,74 @@ export default function App() {
     localStorage.setItem('allergenMatrix', JSON.stringify(allergenMatrix));
   }, [allergenMatrix]);
 
-  const [weeklyPlan, setWeeklyPlan] = useState<any>(() => {
-    const saved = localStorage.getItem('weeklyPlan');
-    return saved ? JSON.parse(saved) : {};
-  });
-  useEffect(() => {
-    localStorage.setItem('weeklyPlan', JSON.stringify(weeklyPlan));
-  }, [weeklyPlan]);
-
-  const [groceryChecked, setGroceryChecked] = useState<string[]>(() => {
-    const saved = localStorage.getItem('groceryChecked');
-    return saved ? JSON.parse(saved) : [];
-  });
-  useEffect(() => {
-    localStorage.setItem('groceryChecked', JSON.stringify(groceryChecked));
-  }, [groceryChecked]);
-
-  const [diaperLogs, setDiaperLogs] = useState<any[]>(() => {
-    const saved = localStorage.getItem('diaperLogs');
-    return saved ? JSON.parse(saved) : [];
-  });
-  useEffect(() => {
-    localStorage.setItem('diaperLogs', JSON.stringify(diaperLogs));
-  }, [diaperLogs]);
-  
-  const [notifications, setNotifications] = useState<any[]>(() => {
-    const saved = localStorage.getItem('notifications');
-    if (saved) return JSON.parse(saved);
-    return [
-      { id: 'initial-1', title: 'Welcome to Ama! Ready for healthy feeding tracking.', time: 'Today', read: false },
-      { id: 'initial-2', title: 'Set your first fluid intake goal and track hydration!', time: 'Today', read: false },
-    ];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('notifications', JSON.stringify(notifications));
-  }, [notifications]);
-  
-  const [growthLogs, setGrowthLogs] = useState<any[]>(() => {
-    const saved = localStorage.getItem('growthLogs');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('growthLogs', JSON.stringify(growthLogs));
-  }, [growthLogs]);
-
-  // --- Gamified Daily Quests & Streak States ---
-  const [allTimePoints, setAllTimePoints] = useState<number>(() => {
-    const saved = localStorage.getItem('allTimePoints');
-    return saved ? parseInt(saved, 10) : 0;
-  });
-
-  const [dailyStreak, setDailyStreak] = useState<number>(() => {
-    const saved = localStorage.getItem('dailyStreak');
-    return saved ? parseInt(saved, 10) : 0;
-  });
-
-  const [lastQuestDate, setLastQuestDate] = useState<string>(() => {
-    return localStorage.getItem('lastQuestDate') || '';
-  });
-
-  const [lastStreakDate, setLastStreakDate] = useState<string>(() => {
-    return localStorage.getItem('lastStreakDate') || '';
-  });
-
-  const [showStreakPopup, setShowStreakPopup] = useState(false);
-
-  const [activities, setActivities] = useState<Activity[]>(() => {
-    const saved = localStorage.getItem('activities');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('activities', JSON.stringify(activities));
-  }, [activities]);
-
-  useEffect(() => {
-    localStorage.setItem('allTimePoints', allTimePoints.toString());
-  }, [allTimePoints]);
-
-  useEffect(() => {
-    localStorage.setItem('dailyStreak', dailyStreak.toString());
-  }, [dailyStreak]);
-
-  useEffect(() => {
-    localStorage.setItem('lastQuestDate', lastQuestDate);
-  }, [lastQuestDate]);
-
-  useEffect(() => {
-    localStorage.setItem('lastStreakDate', lastStreakDate);
-  }, [lastStreakDate]);
-
-  const calculateAge = (dobString: string) => {
-    if (!dobString) return 0;
-    const today = new Date();
-    const birthDate = new Date(dobString);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
-
-  const handleFinishOnboarding = () => {
-    if (!onboardingParentName.trim()) {
-      setAgeGateError("Please enter parent/guardian name.");
-      return;
-    }
-    if (!onboardingParentDob) {
-      setAgeGateError("Regulatory requirement: Please provide your Date of Birth to verify you are an adult parent or guardian.");
-      return;
-    }
-    const age = calculateAge(onboardingParentDob);
-    if (age < 18) {
-      setAgeGateError("Guardian Verification Required: This child tracking workspace must be created and managed by an adult parent or legal guardian (18 years or older).");
-      return;
-    }
-
-    setAgeGateError('');
-    const finalBabyName = onboardingBabyName.trim() || 'Baby';
-    const finalBabyAge = onboardingBabyAge.trim() || '6 Months';
-    
-    localStorage.setItem('parentName', onboardingParentName.trim());
-    localStorage.setItem('parentDob', onboardingParentDob);
-    localStorage.setItem('babyName', finalBabyName);
-    localStorage.setItem('babyAge', finalBabyAge);
-    localStorage.setItem('babyDob', onboardingBabyDob);
-    localStorage.setItem('ama_onboarded', 'true');
-    
-    setParentName(onboardingParentName.trim());
-    setParentDob(onboardingParentDob);
-    setBabyName(finalBabyName);
-    setBabyAge(finalBabyAge);
-    setBabyDob(onboardingBabyDob);
-    
-    // Update or seed growthLogs
-    const currentLogs = [...growthLogs];
-    setGrowthLogs(currentLogs);
-    localStorage.setItem('growthLogs', JSON.stringify(currentLogs));
-
-    setShowOnboarding(false);
-    addAuditLog('Onboarding Completed', 'Account initialized with Parent DOB validation. Verified age: ' + age + ' years.', 'ACCOUNT');
-  };
-
-  // One-time initialization to ensure a 100% clean slate on load
-  useEffect(() => {
-    const isSlateApplied = localStorage.getItem('clean_slate_applied_v4');
-    if (!isSlateApplied) {
-      localStorage.setItem('clean_slate_applied_v4', 'true');
-      localStorage.setItem('scheduledMeals', '[]');
-      localStorage.setItem('scheduledActivities', '[]');
-      localStorage.setItem('scheduledMeds', '[]');
-      localStorage.setItem('loggedMeals', '[]');
-      localStorage.setItem('observationLogs', '[]');
-      localStorage.setItem('diaperLogs', '[]');
-      localStorage.setItem('weeklyPlan', '{}');
-      localStorage.setItem('groceryChecked', '[]');
-      localStorage.setItem('fluidMl', '0');
-      localStorage.setItem('loggedMoods', '[]');
-      
-      // Update state
-      setScheduledMeals([]);
-      setScheduledActivities([]);
-      setScheduledMeds([]);
-      setLoggedMeals([]);
-      setObservationLogs([]);
-      setDiaperLogs([]);
-      setWeeklyPlan({});
-      setGroceryChecked([]);
-      setFluidMl(0);
-      setLoggedMoods([]);
-    }
-  }, []);
-
-  // Automatic Daily Change / Refresh Logic on App Load
-  useEffect(() => {
-    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-    
-    if (!lastQuestDate) {
-      setActivities(drawThreeRandomQuests());
-      setLastQuestDate(todayStr);
-    } else if (lastQuestDate !== todayStr) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toLocaleDateString('en-CA');
-
-      const savedActivitiesStr = localStorage.getItem('activities');
-      const savedActivities: Activity[] = savedActivitiesStr ? JSON.parse(savedActivitiesStr) : [];
-      const previousQuestsCompleted = savedActivities.length > 0 && savedActivities.every(a => a.isCompleted);
-
-      let newStreak = dailyStreak;
-      let newLastStreakDate = lastStreakDate;
-
-      if (previousQuestsCompleted) {
-        if (lastStreakDate === yesterdayStr || dailyStreak === 0) {
-          newStreak += 1;
-          newLastStreakDate = yesterdayStr;
-        }
-      } else {
-        if (lastStreakDate !== yesterdayStr && lastStreakDate !== todayStr && dailyStreak > 0) {
-          newStreak = 0;
-        }
-      }
-
-      setDailyStreak(newStreak);
-      setLastStreakDate(newLastStreakDate);
-
-      // Roll 3 brand-new quests for today
-      setActivities(drawThreeRandomQuests());
-      setLastQuestDate(todayStr);
-    }
-  }, []);
-
-  // Unified activity toggling with points & streak management
-  const handleToggleActivity = (id: string) => {
-    const target = activities.find(a => a.id === id);
-    if (!target) return;
-
-    const wasCompleted = target.isCompleted;
-    const isCompletedNow = !wasCompleted;
-
-    const updated = activities.map(a => a.id === id ? { ...a, isCompleted: isCompletedNow } : a);
-    setActivities(updated);
-
-    // Update lifetime points
-    if (isCompletedNow) {
-      setAllTimePoints(prev => prev + target.points);
-    } else {
-      setAllTimePoints(prev => Math.max(0, prev - target.points));
-    }
-
-    // Interactive streak advancement
-    const todayStr = new Date().toLocaleDateString('en-CA');
-    const allCompletedNow = updated.length > 0 && updated.every(a => a.isCompleted);
-
-    if (allCompletedNow && lastStreakDate !== todayStr) {
-      setDailyStreak(prev => prev + 1);
-      setLastStreakDate(todayStr);
-      setShowStreakPopup(true);
-      confetti({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#37b1f5', '#60a5fa', '#ffffff', '#fbbf24']
-      });
-    } else if (!allCompletedNow && lastStreakDate === todayStr) {
-      setDailyStreak(prev => Math.max(0, prev - 1));
-      setLastStreakDate('');
-    }
-  };
-
-  const [fluidMl, setFluidMl] = useState(() => {
-    const saved = localStorage.getItem('fluidMl');
-    return saved ? parseInt(saved) : 0;
-  });
-
-  const [fluidTarget, setFluidTarget] = useState(() => {
-    const saved = localStorage.getItem('fluidTarget');
-    return saved ? parseInt(saved) : 800;
-  });
-
-  const [loggedMeals, setLoggedMeals] = useState<any[]>(() => {
-    const saved = localStorage.getItem('loggedMeals');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [observationLogs, setObservationLogs] = useState<any[]>(() => {
-    const saved = localStorage.getItem('observationLogs');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [loggedMoods, setLoggedMoods] = useState<any[]>(() => {
-    const saved = localStorage.getItem('loggedMoods');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const latestLog = loggedMeals[loggedMeals.length - 1];
-  const derivedMood = loggedMoods[loggedMoods.length - 1]?.mood || 'ğŸ¤©';
-  const derivedFood = latestLog?.newFood || 'ğŸ¥‘';
-
-  const [personalRecipes, setPersonalRecipes] = useState<Meal[]>(() => {
-    const saved = localStorage.getItem('personalRecipes');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('loggedMeals', JSON.stringify(loggedMeals));
-  }, [loggedMeals]);
-
-  useEffect(() => {
-    localStorage.setItem('observationLogs', JSON.stringify(observationLogs));
-  }, [observationLogs]);
-
-  useEffect(() => {
-    localStorage.setItem('loggedMoods', JSON.stringify(loggedMoods));
-  }, [loggedMoods]);
-
-  useEffect(() => {
-    localStorage.setItem('personalRecipes', JSON.stringify(personalRecipes));
-  }, [personalRecipes]);
-
-  useEffect(() => {
-    localStorage.setItem('fluidMl', fluidMl.toString());
-  }, [fluidMl]);
-
-  useEffect(() => {
-    localStorage.setItem('fluidTarget', fluidTarget.toString());
-  }, [fluidTarget]);
-
-  const [scheduledMeals, setScheduledMeals] = useState<any[]>(() => {
-    const saved = localStorage.getItem('scheduledMeals');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [scheduledActivities, setScheduledActivities] = useState<any[]>(() => {
-    const saved = localStorage.getItem('scheduledActivities');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [scheduledMeds, setScheduledMeds] = useState<any[]>(() => {
-    const saved = localStorage.getItem('scheduledMeds');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [reminders, setReminders] = useState<any[]>(() => {
-    const saved = localStorage.getItem('reminders');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('scheduledMeals', JSON.stringify(scheduledMeals));
-  }, [scheduledMeals]);
-
-  useEffect(() => {
-    localStorage.setItem('scheduledActivities', JSON.stringify(scheduledActivities));
-  }, [scheduledActivities]);
-
-  useEffect(() => {
-    localStorage.setItem('scheduledMeds', JSON.stringify(scheduledMeds));
-  }, [scheduledMeds]);
-
-  useEffect(() => {
-    localStorage.setItem('reminders', JSON.stringify(reminders));
-  }, [reminders]);
-
-  const [vaccineSchedule, setVaccineSchedule] = useState<any[]>(() => {
-    const saved = localStorage.getItem('vaccine_schedule');
-    return saved ? JSON.parse(saved) : [
-      { id: 'v1', name: 'Hepatitis B (HepB)', age: 'Birth', status: 'Completed', date: '2026-01-12', sideEffects: 'None' },
-      { id: 'v2', name: 'Rotavirus (RV)', age: '2 Months', status: 'Completed', date: '2026-03-12', sideEffects: 'Sleepiness' },
-      { id: 'v3', name: 'DTaP', age: '2 Months', status: 'Completed', date: '2026-03-12', sideEffects: 'None' },
-      { id: 'v4', name: 'Pneumococcal (PCV13)', age: '2 Months', status: 'Completed', date: '2026-03-12', sideEffects: 'Mild Fever' },
-      { id: 'v5', name: 'Polio (IPV)', age: '2 Months', status: 'Completed', date: '2026-03-12', sideEffects: 'None' },
-      { id: 'v6', name: 'DTaP (2nd)', age: '4 Months', status: 'Completed', date: '2026-05-12', sideEffects: 'Irritation' },
-      { id: 'v7', name: 'Pneumococcal (2nd)', age: '4 Months', status: 'Completed', date: '2026-05-12', sideEffects: 'None' },
-      { id: 'v8', name: 'Polio (2nd)', age: '4 Months', status: 'Completed', date: '2026-05-12', sideEffects: 'None' },
-      { id: 'v9', name: 'DTaP (3rd)', age: '6 Months', status: 'Scheduled', date: '2026-07-20', sideEffects: 'None' },
-      { id: 'v10', name: 'Pneumococcal (3rd)', age: '6 Months', status: 'Scheduled', date: '2026-07-20', sideEffects: 'None' },
-      { id: 'v11', name: 'Influenza (Flu)', age: '6 Months', status: 'Scheduled', date: '2026-07-20', sideEffects: 'None' },
-      { id: 'v12', name: 'MMR', age: '12 Months', status: 'Scheduled', date: '2027-01-12', sideEffects: 'None' },
-    ];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('vaccine_schedule', JSON.stringify(vaccineSchedule));
-  }, [vaccineSchedule]);
-
-  const [userRole, setUserRole] = useState<'admin' | 'family' | 'nanny'>(() => {
-    if (typeof window !== 'undefined' && window.location.hash) {
-      if (window.location.hash.includes('role=nanny')) return 'nanny';
-      if (window.location.hash.includes('role=family')) return 'family';
-      if (window.location.hash.includes('role=admin')) return 'admin';
-    }
-    return (localStorage.getItem('userRole') as any) || 'admin';
-  });
-
-  const [memories, setMemories] = useState<any[]>(() => {
-    const saved = localStorage.getItem('memories');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('userRole', userRole);
-  }, [userRole]);
-
-  useEffect(() => {
-    localStorage.setItem('memories', JSON.stringify(memories));
-  }, [memories]);
-
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  
-  // Background Notification Scheduler for Web Push
-  useEffect(() => {
-    // Only check if notifications are permitted and we aren't running in a totally restricted environment
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-
-    const checkAlarms = () => {
-      const now = new Date();
-      const currentHours = now.getHours();
-      const currentMins = now.getMinutes();
-      
-      const formatToAmPm = (h: number, m: number) => {
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const formattedH = h % 12 || 12;
-        return `${formattedH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`;
-      };
-      
-      const currentTimeStr = formatToAmPm(currentHours, currentMins);
-      const todayISO = now.toISOString().split('T')[0];
-
-      // Helper to trigger notification
-      const triggerNotification = (title: string, body: string, tag: string) => {
-        // Prevent duplicate notifications in the same minute using localStorage cache
-        const cacheKey = `notified_${tag}_${todayISO}_${currentTimeStr}`;
-        if (!localStorage.getItem(cacheKey)) {
-          // Use Service Worker registration if available for background robustness
-          navigator.serviceWorker.ready.then(registration => {
-            registration.showNotification(title, {
-              body,
-              icon: '/pwa-192x192.png',
-              badge: '/pwa-192x192.png',
-              tag,
-              requireInteraction: true
-            });
-          }).catch(() => {
-            // Fallback to standard Notification API
-            new Notification(title, { body, icon: '/pwa-192x192.png', tag });
-          });
-          localStorage.setItem(cacheKey, 'true');
-        }
-      };
-
-      // Check Meds
-      scheduledMeds.forEach(med => {
-        if (!med.completed && med.time === currentTimeStr && med.date && med.date.startsWith(todayISO)) {
-          triggerNotification(`Medication Reminder: ${med.name || med.title}`, `It's time for ${med.dosage}.`, `med_${med.id}`);
-        }
-      });
-
-      // Check Meals
-      scheduledMeals.forEach(meal => {
-        if (!meal.completed && meal.time === currentTimeStr && meal.date && meal.date.startsWith(todayISO)) {
-          triggerNotification(`Feeding Reminder: ${meal.title}`, `Scheduled for ${meal.time}.`, `meal_${meal.id}`);
-        }
-      });
-      
-      // Check Activities
-      scheduledActivities.forEach(act => {
-        if (!act.completed && act.time === currentTimeStr && act.date && act.date.startsWith(todayISO)) {
-          triggerNotification(`Activity: ${act.title}`, `Scheduled for ${act.duration}.`, `act_${act.id}`);
-        }
-      });
-    };
-
-    // Check immediately, then every minute
-    checkAlarms();
-    const interval = setInterval(checkAlarms, 60000);
-    return () => clearInterval(interval);
-  }, [scheduledMeds, scheduledMeals, scheduledActivities]);
-
-  const [lastLocalUpdate, setLastLocalUpdate] = useState<number>(() => {
-    return parseInt(localStorage.getItem('lastLocalUpdate') || '0', 10);
-  });
-
-  // Keep track of internet connection status
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // Update lastLocalUpdate timestamp whenever user alters states, but only after initial load completes to prevent overwrite.
-  useEffect(() => {
-    if (!isInitialLoadComplete) return;
-    const newTime = Date.now();
-    setLastLocalUpdate(newTime);
-    localStorage.setItem('lastLocalUpdate', newTime.toString());
-  }, [
-    isPremium,
-  setIsSubscriptionModalOpen,
-  babyName,
-    parentName,
-    allergenMatrix,
-    weeklyPlan,
-    groceryChecked,
-    diaperLogs,
-    notifications,
-    growthLogs,
-    allTimePoints,
-    dailyStreak,
-    lastQuestDate,
-    lastStreakDate,
-    activities,
-    fluidMl,
-    fluidTarget,
-    loggedMeals,
-    observationLogs,
-    loggedMoods,
-    personalRecipes,
-    scheduledMeals,
-    scheduledActivities,
-    scheduledMeds,
-    reminders,
-    vaccineSchedule
-  ]);
-
-  // --- Google Sign-In, Account Linking, and Sign-Out Handlers ---
-  const handleGoogleSignIn = async () => {
-    try {
-      setIsSyncing(true);
-      if (auth.currentUser && auth.currentUser.isAnonymous) {
-        // Link the temporary anonymous user ID to their Google account
-        await linkWithPopup(auth.currentUser, googleProvider);
-        
-        // Notify the user of successful linkage
-        setNotifications(prev => [
-          {
-            id: Date.now().toString(),
-            title: 'Backup Created!',
-            desc: 'Your baby tracking data has been linked to your Google account securely.',
-            time: 'Just now',
-            type: 'system',
-            read: false
-          },
-          ...prev
-        ]);
-      } else {
-        // Fallback or standard sign-in
-        await signInWithPopup(auth, googleProvider);
-      }
-    } catch (err: any) {
-      console.error("Authentication / Linking failed:", err);
-      if (err.code === 'auth/credential-already-in-use') {
-        const confirmMerge = window.confirm(
-          "This Google Account already has existing backup records. Do you want to sign in to that backup instead? Your local data will be safely merged."
-        );
-        if (confirmMerge) {
-          try {
-            await signInWithPopup(auth, googleProvider);
-          } catch (signInErr) {
-            console.error("Standard Google Sign-In failed:", signInErr);
-          }
-        }
-      } else if (err.code === 'auth/unauthorized-domain') {
-        alert("Firebase Auth error: This domain is not authorized. Please go to your Firebase Console -> Authentication -> Settings -> Authorized domains and add this app's URL to the list.");
-      } else {
-        alert("Failed to back up account: " + (err.message || err));
-      }
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      setCurrentUser(null);
-      setIsInitialLoadComplete(false);
-      localStorage.removeItem('lastLocalUpdate');
-      // Create new anonymous account silently on logout
-      await signInAnonymously(auth);
-    } catch (err) {
-      console.error("Sign out failed:", err);
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    // 1. If there's a logged-in user, attempt cloud delete
-    const currentUser = auth.currentUser;
-    if (currentUser) {
-      try {
-        // Delete user document in Firestore
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        await deleteDoc(userDocRef);
-        
-        // Delete user account in Firebase Auth
-        if (!currentUser.isAnonymous) {
-          await deleteUser(currentUser);
-        }
-      } catch (err) {
-        console.error("Cloud data delete failed/requires recent login:", err);
-      }
-    }
-
-    // 2. Clear all local storage keys completely
-    localStorage.clear();
-
-    // 3. Reset all React States to initial/clean-slate defaults
-    setBabyName('');
-    setParentName('');
-    setParentDob('');
-    setAllergenMatrix([]);
-    setWeeklyPlan({});
-    setGroceryChecked([]);
-    setDiaperLogs([]);
-    setNotifications([]);
-    setGrowthLogs([]);
-    setAllTimePoints(0);
-    setDailyStreak(0);
-    setLastQuestDate('');
-    setLastStreakDate('');
-    setFluidMl(0);
-    setFluidTarget(250);
-    setLoggedMeals([]);
-    setObservationLogs([]);
-    setLoggedMoods([]);
-    setPersonalRecipes([]);
-    setScheduledMeals([]);
-    setScheduledActivities([]);
-    setScheduledMeds([]);
-    setReminders([]);
-    setVaccineSchedule([]);
-
-    // Turn onboarding back on
-    setShowOnboarding(true);
-
-    // Sign out to clear active Firebase Session
-    try {
-      await signOut(auth);
-    } catch (e) {}
-
-    // Force sign in anonymously so they get xœì}ÙrÜÆ–à»¾"Åv˜Å6k!%ºeJ%MI¾tk³(]ÇŒFa¡
-É*´P@Ér™ïİ/İÑ3/7âÎËDôLÌ÷Ü˜û	sN.@®(/·UdæÉÄÉÌ³çA@N2šOÉ¤¤yAršçQš,šLœ‹[~E¶ KvEğa£Ir”$i²˜¥e/:AYL·î³Jdã)éĞ-²¼€G÷oÁÿeNŸœœĞqÑél‘áCqœ&Ğq™äå(gÑˆ’!I“€v\=œÉ„†ü6	òE2&€”) ‰NäCù„À»‡e–Ñ¤x%¼ø¾Zz”%Qñ³4ÓÙ<¦íœqN•Šê»+ãhÓñkzÃÓq'm“M|šon³Ò^…
-Ùê'ÁZqDNhp:5<­¾—hÑ£çQ^ä­-m8nœ=Š€†Õá¶£A«ÆÀ+Î³tó}§eˆm;†ÑF»é÷ÉašœÄÑ¸ ¯iÆeëe ÏæAFÉ‘r]Ğğ  gQ1%q:byñ¯Ş²RÇ¸Xã7Ñ— ±WÃyDzF`t´£—lõ ƒØÖÔ>¸^—uœÒàò›"Í‚	Å¦Gu6±m:ÑÆšŠá)0xóœ%E§~ºMvb@$œĞú5k æ´r\3tNƒ_Ÿf+û½­9î’œ#šc+ Ø:B¼‚ÑâE ]ßaÓ…ô$Jh¸…ÛákQ¤W40¡€ÂùN
-°WU¡YyÀÇéÈ„g"†Ô=@m£±Ÿ!ò ÎS‰·4¥AFÉ„#IHF‹yç8˜bJdF)Ğ¿	%ı±Œ2:à\{ä®±ÊåƒĞ†@ãqC¯ºzä¼l	Keç<Ñu.u0~ïJC J›EVZK[Áèñ4={YáÆ"„õïÂñÚ×m×˜–yßn¹™]·Zx¾‚8¦Ù„&Ïƒ"‹Î½h\ü‹üŒÒñâU$ÀßW…fe?À	Rñlq8¥ã@l ßh\üÀÃ(˜ÓìY:É€W…fe?À$-¢“Äà.˜/ÔrG“F<œSÏP¿©
-ÍÊ~€0£H—_¥QR¸`¨å&X¢xq\d4øèBk]jU÷ÃDöÊpÈ#PŸ©å&Íyï ë
-®FHÑ)aÔ‰áªĞ¬ìxƒÜõ<v@{ÊK´j+à¼	`K>X¼ÔªŞ€Ét¢ìs
-„Õ…ÆºÔªî‡™@r<e›Ã³ö_ê5œÍV9MÃ†1c©U½Ñƒ”œ&Aüš£¹sæ_é5œÍüğóñ”†eìGõ±VÁÕ¨ğƒ¦¥{l×ò6oõ"Nô«å&~È ÑD *sA}-ËŒª~h§ÁxÍåp0ÿ¨×p6óÃGíèuêüVéı ft–fî9{.ŠôŠ[†O$ÉSô…Z¤·:v‹f¦¾±]ë>½"Â‰Ø–,Ãƒ2ŒpÛu6QU9%¨¾rïIv‹´KA¥É8[ÌAE"£`ü±œÃ@°“uC*ËØèâE?>xsğÃÁáá“ãcSH¼ dA—‚Â^‚Œ™’Ô ™¢²Oæe>%E*T¸ÈP[<¥(3õÑ€Åed&¿
-8X–mi7Ê_áz,gÛ·„Ìís$eÏÓ0ˆ_Îi‚¥RƒÙ¶€Ô2¡¯dU»HñìòZZ³ËtË.¯e'»L€œ …,ãr-8z­%»PÜÅ5‡wt]Ñ7»Lp_Og£k~hÍÛ9“cÖuÖbWĞ¹CCùAÃkk´Ù.®­]dPJ»‚$|v‰¤c¦eÒ¾+²QoBñH¥o_¾èåì::YtÔë WÜVhš¸¶KÂıÊtf¿ˆ94¤Qh¿¶Õö ¬GÇ/%m5ÑÑ’Ö/’1§µœòq³Œ¤5ÑE2‹¶Êi–&ÑO4¬HáJR«Ü9É.İ©0…é¸DËá¶AAu¹]ˆù
-Qó7fÃ™½îÌm\Á®ø€—ü7?éo&ü~²ßHôı$¿‘à7ûFbßLêı„ŞCæˆ|‰_AàÈû
-âŞLÚ[öF²î%ê+Hº ;Éù…k]')oMÈW‘ñUDüÒ$Ü$àù>ÓÈ¤ğ÷ AF2|LÇ%H¬´–š¹´z–fóy0¦$ª“4ã¯…Mx¿|ûâNkÚ]{À²lËrÁ´ö  Í:OaKrîÀ¦ásÊ}’¥3ò4©¨2İßØ&ê¾Ò(.(»kĞ½^-4ıª­oI(‡îrM4‚óÁD	ÉaˆI=1CÊíG$ba[°—€f¼ =ÆµƒÇô µğ j8d'+yÌJªú¬.¼Á	Ã2"QƒåÀÇ-u-e´(³„po¥â¡älëb›¼{ÏµCÀÚk İÙ gÍ((gÀ•iB³[>ç'ª¥·Çµ—’üü3¹¹fP”¼Lb [bhB5mã’T:Q<“nç+ºóiZh;]ú!-¿k“²òMVNÆ¥â|ì÷PV7î–B© ¸}ˆb¯#±ºpéı«Ïjè¡¶@w1ë›.ÎÀÒAgìYŞã¶Î<»v#È¶N=W‹€Î=Í•ç¨ßu]W¯ec'm]6®€×uİøZ6vÒÖ…ãjÑx=W§İ*ü´ré¸Z¬Z6k¸v<íš±ŞÚÅãlÓ{=W§İÊÖqùøZ6OBK×«E#àÕ. «îjx­\AÎ6Í˜nír¶i„½¾kÈÛ¶Í;´p9Û4³µ]EŞ¶ı¬ë2òµl×ÉÚ®£Fm_¬…ÉÓ®±‡v®$GıF¨ë»”¼mûiãZ²k7‚lãb²k7Eİ]£É7±vZJ­D“?y Ğ6Ù B1ªºs+Áu=CêUô®
-p­yµT½…f›8U&|Ìõ%¡¦	ó"¼xk®+Á¤ÂÅƒiH¿=î‰"ò3IÊ8~ØÁÿ+-ï ”U®àq•+Æ	-Ğp bÊÆ(š13°txq‹—¼a}¡èoÙ0·`ÎhÉI÷T`Ü¥€0eÙˆ€\M)Ôõı&•æòŠkİz€Úê0È•K~s÷}¨5âğêÚ«ƒo×Ro¯¢àŞ°Šë´åëÔEó‚›j­7ˆµ
-aréæóx!m|«8œÃºyÓ1SŒ6}Ò?éÆŸtãOºñ'İø“nüI7ş¤ÒÿvucSomyª³?"¨>wŒb,s.s¹• r&ÏoõÈs¬Bí˜\Ş.
-Sq.×È@äšÒ±KEi©¹r@/œÆLÓJã¤i
-£ñÑ4„ĞøhÂg¼Á3¡3M3¾°gĞŒ7dÆ0Ó.ã–i•i
-”Y&Ó$ã	‘iq‡Ç8‚c´Ğ˜ëŒi#ƒbS†>öæÈg\ŒNÄüÑ1zlŒ›Œ¡e«‹´ŒÇ‘kâ¤ 1Q´ëˆ`òr.ÂÉÛ„5ÖÁ&î oH³-Á_oŒ+ÆaÂ4lŒÛd‡›4mK£×p5ZµöĞVÉîTƒ%7Ó9–¢ˆöø1Ñ²Ê%©¶I­*í¢Î&UvQc“
-;¨¯IuÔÖ¢²êê¢ª&5Õ¨¨E=-ªé¤–•tRGUôRC4¨ŸAõà™f¼fÖ3\İÂ€ÈÎªì“ Y(ëW5À
-%Æ‚^ÏÑú¦B^Qüé÷¹ÔC¸A…0}«S&˜gb´ GIšŒœ:;›Kºå8‚j$wPì3óŒš¡7Â`šÎF(aÂ(ßõz=â6gØø½Í%`€?–øvY,z×AD=æ	µ7ƒ¹fØù;¼èE!ZæÙ%‹ƒƒ`ÙÖ6«ò~kò–·!l
-¢ÄÇĞËA´¤zb¶î#>ÿ‘Ò9™çğ ¦²™«ğï8!k`R1­‡IeCß(&qU]?&×@jVĞq§š!ÖCJ„~‡ëp}ì1ƒ†{Ì r)ì1âü·=Ãˆ¢#Ğ0½¬‡Cƒuİ¯Š97²¼hRŒ?\)Æ£K"Láë#Xc¦,ïÚZ{{ê‚ÎïGµQNÇOmÀ[7µÄ÷»ÄÈ\Î½"Æ ‚Ñ8”™s„¤Éí^Òé‹W$áÉ´ˆıe\(¨VDTÅ¡ÌÂZNS§ÇJxÔ.Å‘#ÛLûtFWÏAq½Ù'n"“Éuæ0q¬(œS™¦©R	ÄÁ¹–y²„ofŠè¬SØçÊbÚ®×Ò¶rî°„Ã”\A¬*µ5"W-u#rİ•î÷•dã]…^•€D¡zPR¨Z†Š¨ˆé>Ù|eˆÄŒÑ #F4¼½©Vi>Ş'Ë1œœ”h4Ñ¨ân c<Á£‚ÆBš`™	Í6sq¤‡œFùîuïƒ>„àÛ&†ªõZ,æX–/rÀ˜V+ŞÙgjbSW„QÜ¿¯fâ–lÍ¨U¯£¥TÖ‡bWz‚¸ÍRÁË3{R[ UBKÚå.œIÓ?ù”'+Dµ\³&ÉjùŠÎ€ö§g=\R¸
-zøX wŞíÌçhÒïlşt¸é8WC“qRKÄft fÊVÛdS5Å¹“†”Áù6|(îŞ¾>B“ì¶¤èÀÚ•¹é¨£tZõÖïö'ĞÓ›[õ£Ø£>Œ[g4¼Kv8¹"cUì®£CkÁœ¼şçŸ‹–
-]×m­’í&'Q6ãv‡
-çâiçÃÓÈAnÀwÃ ïÛøliÀ¿ØàGñi™Éıp›|Ÿ–qˆÏH}dLà*+XÀßŒõZL#±‹XS¾}pyÇ”ÁÚŞ„‡ï[ŒrS-@/Pa¿äM\9ã‚˜fEgƒ½{^Q„Û#lûã{À É[ÀÂ:^Oi"­Ğ½«CO†ª«Ú¨ËFLäNä6^Æ"@oùî®tÒ’¯3ŞóÛ×ÏØÆ±XVC?J@`¹ê»×8jáî©6Şz<®í³¶¹yŸÃÑ cjJß…à&%‘áƒh†ON1V+ìl"$| vºÙÚuŠQ@BşxJ×†¶lƒëiÖIŞèEpM¦×ÉÇ,œ}Â…Ñm6Ó˜½r›e‘¢‰úY:G£&+HŒ`XŞAÂØÌ˜ÙµÒ¦r³lTUh´™+²Là@¹ñùËÃüáù“ƒgÇïïU†PwÌìäÛ·•±Hã=_Ñæ ş	630y½{xc¶Ã:j“O¬ŒÖ¡Ç„€Äq©àä6\WÏ¢ä£Á<êe–Wñİ^Ákkûk§£ÃİèôŒ:|¢µqu_¹®;{•üR[÷•kgÕÚ¼¿¯\×UwUUÅ¬¶¯Ş8á*V¤}õÆYÙíÿlğ|:}–·ó’®=áØT–J–ª¸/åâÙR[Œ¾¼UGEtÊDğwÎÚ5Î_6.\óøÿöcòİMGQŸıà(~ñY_‘K}úğÙÒ¤iM¢äÂ.˜ƒœŸ sæRÎgKx›‹õ®’$ÁF§dÍqÅ7 ıİiWìéÑ¤‹.MX~(œ¤IÑÍƒ$'=/ºĞ¼»_ä¬‹3ZÜ»gİ8‡«ó.Rè(p{ ¦ÙIœuÏ»ã8•%(¶;‡„eÆFŞ½Ğæ£îî=2÷áâÎîÆC I4COsFs˜	Jf0Ãt1Wu@CzÂIÒ4ÑM:
-óz 
-¢
-_ş#]7°Ö†Lh0\.I:ÆQ±Ø'rq™u®ì`=
-«úC¥'èë1°	–€ÕC$.«K3Á«Ÿt—ş2JšH®3\ê\È¬)‰ápY‰xFš<—õõ…™/VĞÌáR\˜`"*êğ³ğ#İ.0Àì2"ä©÷T­÷ÔQO'S€DíŞ[»&_J“úaC/¡ŞIh×5íÔlf›Çå´×êFgX/Íí1J®Âğ`ê{9¾fS1Â…\”úSÏc„Àp©ÜØĞ¿IS€sÌRhHØê3»>Y²²¸µ²-ËÈ	Ü°âÒ®Ãc°
-¿rm±ƒ‰Øapá˜¯e•úÚ¬exÂ‡KãêÍ&ö3kŞãX,I´ÏÖ"#·Íêÿ÷fc…4\Ê+Ç ŞV•”½^_¥§ú5é®ŸoÕ-,à„RL~½šˆŠ7Årğo2à©4[I1ZLXÎ´õtƒ¨]õ YùpÙ	f˜­Ft”ÆXi†ãÖÃ(é¨Ö×/ğøã6au¾ j{ˆ¬7X“ø^‚0¶çtz$5íŞ1–£õÈl£ˆ×Ã¥r³î>¹òúçªa¾zı‹Š7µş9¡x² [4M•K’†şàâêH‘ªêJ¤ˆŠ7…”o9øßl˜p=~¸×Ê,V/%Y%˜5 [23+·İÁF€Üpi<pÌÜK³‰ıì÷((ê1?¬ş3?ŞêÈÉá²¾vÀü^©¨İšuõØËáR¿w@şÆh`=²„ÜÊl2nuí€üX©¨İ®¯s)ÎÙJ&\C7³¡½R*j·|
-ËÃ¥¸vã±ª¨İ^™ï>•rQ}íá´h›ªö)ŞøW'¯ªß›µe¼üp)¯ğW•”·ôP[¥ğP?q­U›Òï]ï¥Fó7SŸxZÔÂU“ú‘ë-tâ§×¥ş_¯âùË(M¿½')¯pXµ›o¤6ïQz¼;×âÛÍ[÷ÒòÁµòË_f}­æ«Lmåšv¼®½)–Ø›`$Wİ¯$ö®³µôÓóC²bÚ¤íĞº7e®¸åZªf¢ùÍ*hYæšÑ€ñàzÌÖ¦[½0Óäk Ã¥¢Í­æ¬TWËûívUº¿ÊvaTqh_1 ØƒfÕ:÷¹gèÜq”Ğ3¨ìü8ÛQñg§èg;ó‹
-õ0FÈW‘…U#×;Ğ"Ê£dR×­Ÿ¹Z ¨€ñÖ	y<¦ó"€…¯@®¹Zä Ûä'¸7ğ«˜²úÔÕ*IôlÊêìÖUg€¹ëÇ‹º¶òĞ	›¡—@Î8ß—Iª‹×Ô|£ ¡íıUÔ§Î™A~Šó³ùKOWxb¼adÛbÕ¾¿Ò&sl^æzsìFÛ^Yq¿’ÏÓyK§²àl“¥¥ÃÖp­¸¸fù*Ã.'P¶u†œšŠZÏ:ô½£~&Zñr'–**Ä;ß'Œ¹8¿‹şƒ´Êt?[ÖÁ”ìµK…÷j¿™ î§E1Ï÷ûıy4ÎËYo>M‹4ïç”†}Ş´w0èß6m"Jrw0sÂÀ8ŞÆ9ÁÀ+6¯J@Y¾I‘Í§Q¯.xê§qòúÇé	ËHÀî÷±}2wî"[an 	Ì&šã%—Éxê€“”°sAÛ2ğÎ±å—$F4 ¯2 QË™…¤#z&›j¨«Ñar¥ÉÎ¶±š¼7w†¹UéQœdƒÚ”£-#×¶d¿õÆ«$pÇÆ«Ê.±ó8Å2Ä…66ö6m{M»æª~Ü çº¡"ğ[)Öµj¬ïöm½ ´ãÔöšĞË¯kYh}—Ú­…¨zeóÉ¥^ºŠ•²_¸:|ãzÙªİpY]^X©O_×µÔ»‹«#î†Ğ@
- á-Ü\²æM©QÇ¾ù¿¬k§Íä˜Ä¯fq}öğë	µÀÆÓ‡(¬J}}ó¶ù*5…èÛ«ºšzgÖü‰fé›i”…PC˜ëX¤‹û¹£Ÿÿêà-²l½"ï
-ryi¯¡ÇˆOëÈ•¤=\?$GIú}×7¿®e·&vı¿'G„{½¸ÈÊåúÏùFÙ	%áµ"èK@ıû~³uQKêÎyõÕDÓhà¡Û	å—„²ò›²².o¬D¤Î»wI>ÛŸw¿”±¡,ĞônhºaÚœ#ÄD„µ‚ã4§kRÅ«Û\×ó{µai‚DßâÊ›yøO4íˆÂ3'oRÕÙÚÁéöë”¶s;gí%5nsİ³s7‡°´`{çE4& –,€0‘.9J@Ë0Dd‘)FépX±ÆÙ¢p«7Z[IrœÈn>9NªßM:N`ş¶İ&Úş=Jº@VK×ÿM…”ˆİ·b_"ƒíN°Áê]Y×ıMs¥ù±À‘Ğ’­i£¼%ëù<V8#_§E‘ÎˆXj˜gªŠI 9‰Îñğ3kÑà‹ë»$¦'<Ê¢Éÿj‡@â	Vå×ˆP\ïÂM<7w”“"£I÷l´ÿÕK¢fé¼;ŠË›Ò4Oñ‡;Ùú÷ s<—BÃnÁ€A—òËü¼»Ëæè†‹JÎq²â!üíí‘“˜“B®r²èhq†Šå£€}Áäyw’3ä§î]@Å4SövâJ‡éïŒó-ÊBx Xÿº&ÜD‡¾+$§°5üî`\pßp£:M²ÁQÔBûî¯9 /]ámAá}â\@ª­†w‰‘ˆ†Ÿ&^#à¢¦d™Gp«U>_=TŞß%*Í›ÕX¾NÓH@Õq¼–áµ«†Q; ÖˆtŠT9bš„A¦ä[Òºj ÕyNe ú@$4ŠrÚ×ˆá""éÅ3zJãîÛ9aœ„¼<¥Y,TJã÷çÓôŒƒy•ÎË¹EşkœFE	èĞOİ½ßÕÚ•ûYÜ"ÙÆÃm1Ğš>4ĞiN>3i·ÂqÜœyFªÑ»·­Kv¦&P³ Ñdg[’)µí@A$¬©|w÷Şüü= à?Å'Â>èÛ] Z8qÎg’¢;¨ïÎ ¢HÑíc~Ó(A2Ö†õĞ$î9&0Ù@uÊ“E£ı‡”}Œi®I
-î%ŒØ·ƒhµ
-æh~†áR<Ãw“4¡cÀ;6Ì±4@,`Q EgÜ);âŞYÌawcÓ‡ùÓ<èkl¹äİ»‚îìrĞ»
-ìyç ú¯ş×Y¶àÒ •üKø²9p€şÏèì([1gø&Sü\0ê÷+Ä~«'DcĞ+·)k¼§È	bÕEL±7ğdÿ¯şïÿû*/%÷Ä®k½Lï¨U«¹ãgdiğKFa”ó²÷°ú<O1P"¼ı ?½ãèbnõp.ŞÎÊ‚Šó¸3à­¥I¯øï¿¤%ÏN1ÙsC4B;„»¦ˆ@¡"»E·Ó˜e2¹m¨?¿Ò"Q—Nš@»C˜p&WÇ‰I}ğîå©1æc.„	±{Ât^x&Ÿh1ò¿^ë-FœåZmlŞy¬3.(a{_µÃEÕˆ¨êÛ®*R;Eºº/ŸìJä±»€»u0¥Š¦ã4N³şyšuÉ4UK³g4ÁÒ\úQçtª,&Êå³1wÈ6D:§ï^ó|#—1¢ü»¬Òq?	7$`¬/JÔbÈå„
-kê\ê:o-I{[Êş¼Œ‹¨û˜§ÃÅé!í>šâ¢*GêZõÒƒªÜn|Oç¶mIÊ^ERÒ8\½ÒuòaÓ“ ¸H
-!ùÓÿpğEÁ_¹^Å5c 6ÚÅûÚ± ÓùBIUÅT±üo’–ò$P!£Bñ“&©ù¯6s2Ÿ2óäM"-Áì!=ò"Å¸IvL6£?– #´)éÜz-${ ãc­ ç|®“ºª©kıã8Ó(wŞ]‚–-¹2ö*Wj!7Wä`<]6İ­­$@ÜTÀ)Á<ˆf×&!$ÏÆÃårÌ£Ş£Y¤şéN4XÌºˆøş£<ú‰w÷çğïsLE4üléHé¢$êlm]|pí4tæC &ó]Ù«Ú–¼‹{òî=WÍ¾ëå]²BLWb-ôw;$½
-yRä€jßt© ˆàñÀIÇ 8ô±«+É}•İÛs­ ¾ÉW“BWDu•oŸç†Ò&ÏPÅ_ÂÍ)¬“8š3CZï?ôÔA8†jV8Ì‹6Nç‘üÄ‡ t›O1EdT(©íB	Üğg±VöN.ùPßN°Ïæpùl¡JÒ5Ù^!fr?ÎBÁ¤vüÕ@—ö™0ĞıjÏÌÖcü•b€SßŠ<`Y¾4ÜéíÁÆÿ7Üû„í…‡Œh¿â¸æb!Bò­ŞšµÜÌzœcÌ|È?a;›Ã²y…L6QSKG¦¿åâY†<İ#Bw¥.ä?ü~/¦«©/yu78`/JÆq	Z‚;«¦ù³zèWŠŠºñ»÷¾NİTÕÎÀ©ÿ.‘SòRÉ8]½¯“šÓ…è–‰:]]¯™åÒì»!ã¥úSé\ rå©/ñ“O%\©ã©rı™/õŸGšmjäMésÄruöL­oY‹Ş<˜¬Ï¹øtV^då¸(3Ú8 _÷şäúÏHåù<HJĞ‡ÙäÃa®oÂV “w=I3P*{äĞ€’Yğ Ã«1ˆÄ“PÃö‹0G24hxe÷»^=JùUWuPùÑĞœ…SÎE§…¥_ıE™%cnœµ\‚õ™%>óFl8·“qIƒ°“İg˜ /&K¡še›t˜oH©¡Yn®Ñn“Ç¨; 7÷®i»‰©2I,lG¿×’ã	L¨L._í±Hƒ;–¹Å±P[v\6{TÆŸÅfÕ¶0L5hà©Í5ª/©éF_G¸ Ş¤sÆÌ3Ş6/GELI0Êqƒ!ß- vBFåhÏMÕ×ë	é2Î.éV~–3ŒÖ˜â€‰,Í)¾Î³n-Á¹fïi»’,AÔß{íˆérOŒÑşqq¹î-ü½‚MûOb:	’‚ü¡şæªœÂ;õ´ı#²5Ûã³ó%¼ÅÎ—‚Ö†x¦	İ-2–¼Â,ğ‡Êì¯™¸¥O§èNmCàŞqÃºÁp=—	á¯ş÷ÿó—?ıGkRÇßÓeÜ½¬»§28¸ 7~Oã1†t`¬âÔëén+×Ï»Ü¤º?ƒ¥ºlãÖ3Z€¢8VmÉ‚Ggè
-æœÆlssHO9p$¬ÌñO+]>şk%ó²°½¹¾¹'\–°kÖ\šÂÛŞÀb lü~e˜NØS©cûı)£8…Êó¸»ã´`ñp{Ò'ß”È²‚„`Ÿ¦ÌFåm„Xs Æãˆ|è.ƒ;ş7\¦§ôŸ"Àh¶,9¨¶îc¥ü‡)ª;´W°ä-üÛ9±cK&ôàdìSM×™~ÄÇô´)È_4nĞŞ¤G§3×{ÛlO‘Û08Uˆdqc(Zöö*¹Ï«M®Œ°Ş'é¸Ì÷Ó²@30BàD¯•G³ŞËaö¸„ùí·°ª]€çIzB¾²4œ´H1Bp‰ØÇÚ/»CP1]c‡8Æàïòä1~ä¦÷Ç¯¶ìop…»xàW6Ä¥V±½uT—›BYyDn-<uˆé+€cì,áh’°ĞŠŒaâè&BåJ“xÑs¬Ô«…I(û•ÌAÌ“U˜³æy~Ùı5—&~¦æ;ö‡¿ËìØêh-6lK>õŒ¦ŸøÔïO‰e­q©_%yN’â¯åòótD†D_Ô^&ôÒì¾Í=<K|N*ˆÇep‡Gu#Ó6´¶:Ãê5°ÿÜìÏX(aJò·BY¤èÅÃî—š“±MTËŸÃzN0ùŠ=×D8YŸ#X¥* ¦¸Ó=.èœ<ÆYÊC)¸çCãİ«£*Çs3ıÕ©ı¢vÜæ –|Ó‘QÂÒD­#èÀŒÊ¶¹§¯zÿ›¦(XOÀ‰Ó˜#¢¯<ëm5´Œ»ÇÀÚpŒ¶Ğ&Èã?fÍñşï‡¶qaLÇÜUÆf@cx“å	ÂáŠ¹şF>Ş'Ş¦!M"¥å+šÍ¢<Ç]ğ5.-Şz“e,ÆÕDş PÎ`Ílú|K>ï ÿù-<¢µ×G?Îåxw\ŒâK)``—¼T_Ş7î0ÊƒQŒ‰šñ,¿Ò !8r
-ÈŸºÎ1Ü˜Ë×rhUØºÜØ•IVØnıBb£1–Ñ€Ë¾™ò Š¸ìõzKK]•¯iHLÁ6ÇµäYB~7ş<õêÑx˜‹ªíâÜI6§Ğ5‹¬É:;}ş4>yoEø£ôĞyI	Û…‡Q6é®N’ªH›3çÓ,J>v«hÔÃïéˆ%ÊHñ	’œ2¾ˆú× 	/˜úš¤QN»'Qƒ.>Î0¦‘3”ŞUv¿zÀ·ÍŒJÒµî„Z>k:yçdò¢j*}Öqşò?ÿ×ÿû¿ÿ¦RÙ§²=v¦cå`kÁ..™#œ¹Ûå·'¸ûĞšN$TdVóözÂ0Œb9ïH”«|–å4³­	-§d½&—±àŠqÊ5™ö4²0RX{Í²†&‘cíjB™éŸ]áã/.¢‹{Ô˜ÖŞ‚jzµ7j–Qd[®cü 1g3¯Íãæa²ë|%Q>­™€ı&5Ï¼írô
-àj-ö-ùVæĞÇWLYÌ™_B6â$Tö(}ñÄâ¡ÎH“YwÃ ûXá Šs¼;¨Ÿ‰Î“´@¸é¬!ÑiÍğWŸ‹á‹à[î83çÒÃ-/7åMI¶|á1Š°s}´"†Æš.>Cµ$ı¥u¡MŒ×VÎÇƒãiD<4±à&Íà5:C¨ãÙÔrNúxØ™“Ó8³ùğ…ÒØµk2"Şy–á¡8Ëg„¾ü1Æô ÇTÇèüW@ÛIOp§o2×…QOM}Âj}IÃB™æZM–u¸Á3­‚rª&NU§³Lâ'Ï‹LK–Ò‹i2)¦ä!€ĞÙQJŞ9juÉÎûšÌ nıØ–m0Y2K‘E1)¥È™üî=fÂFÅœªİ0šD&’² Ê#r±…‚ğ.«
-,{’n²/R‚)D2~~RCK¯‰™ğÍ7v¦äÎ`F’`.Z˜8â_†auñØ‰Èã¨½*ÏË5f„bIÏŸ³œï¾œÌU®a™c˜ç™É„1y0‚`ß·¦şTÖfÚ6i«±HÏ>{¡¿£Ê8ù°;9Ğ2Ç‹ğÀÇ¬*ŠoŸ-±âe4À7„ÙÇÇ(°eL¶şLßK,¤â¢÷¡iaˆöæ/oÄ&ì£›¡…Íf$Â:fùÌ7…K¶ÈŸü(ÆÍëA15 ¸MJ¤u¾Õæ[>«Ó+­“Pªé;?}=Æ`«`T˜§Ø„äíc ¨8‹ªœAµ¶[4w–|)Z•yÉÎäÛÅæáÀTÒ‚Q•aªzP×ÂôIOfAkù>õ(>c¼¢n}-†ó9@Ä£4òT›=%Ğ8Â«,|/È+àJÙlß<9Å…/péò#’
-¢ÑIÂ&`_ûE,Z˜ÂàOµšú¢ìÃÆalµ²œjbuÖë&ú¤LÆÜ?,3®t–âXÌ6Ë«²Í3©lKÉŒ\ìYc¡éø}VuŸ°ïôØÿ/ÒŞçmíşòûÈ¾ø¶ıi
-ÂÔøÖ¿Õ­­¤Bq!_­x–*CI†„ÒÚ¿d$M9ÓOBvÚéJ‘l `¡¾°¬„V|ıXeáj—¦ ²ÕüŠ@áGdS3Ìa>*ÍlW)…Ì„¥G
-pAS>7Eò˜Ÿ\K>eã†÷$¦3\>8—$ÈÕÙE@™ˆ"E…x Ûg]4÷ê·QğÁ.1^±~3~Şjg ‹¦ìE6/>À‚¨‚ ¹s@Ï1@æ¥ Ü8ŒØRªgÁˆ„Éã\ö’¡„RER$tã!ïéB˜‹ªşÅ˜u	Ô÷‹´,ÂáFœv£$DïMª9›âfÅšªÂhE:“ş.áHd®ŒsöàŒ­º)û_ÑÕ¨Ú'Yçû¿–â	øÿ   ÿÿ »D
+  const [weeklyPlan, setWeeklxœì}ÛrÛH–à»¿"­®)RS"EÉVKeÚ!Kv•j|kËÕ½^‡)c` d¶Jï»/»1»/Ñû°1ûû=ıÛŸ°çä=™ (ÉÕİ3f„- ‘y2q2óÜó`ù2²·dH%=©¢ŠŞ²åƒnw“‹[~ã<++RFg4†zi>Ò“*/¢	íOhu\ÑY·sNé‡t‰°:›ß²V­E&š=$?œ¼xŞŸGEI»¬h“ì“‹K¬zÉ@÷OOé¸²º¶:+=mqÀeU$Ù$9]võ³M÷r‹¼Ñeo¡ì–|£7“"Óby8¥ã4Ş"ĞÁwV‘…ŞÇ›·ë#Çîg½y{59Öd?×ˆ²ËmdÅI4§ÅÓ|R2D©[wñ\Cø/€£³fô3]ö–•iœdy•œ&ã¨Jà¡å¹Yr˜±ºÈIN‰DƒÀS?ß°B.Hï“N’%U¥½xÿ*©R
+e?ÑtœÏ(©rr0‹n“W4Š—ä4/È”Fi5…kJcÀ©Šhü.ú¬õ¿Îãh	·4Ú'§QZRÀœ¿Ó]£ÓZ‘e¾(ÈiR &NÓE“$«¢”Lò(%QóşÈt	·[u«–ÆškÃFwmyXõ
+±ŠİE›ê¼šªóº½‰å¡_iã¬OWdo>š"YôD¾+ïl{›ôz=ò]4|Áø¢$]’_/hY•äKrRÁT~ #%ÖÔXŒÒô5ÌúË–GäYbá2[ÌF´X™V|2TgÇæÙ FB%½ÄWã/Ä	¦¾¿‘Áğ¯;Ô4*+6G0 6Ø§f‰‡ÚÃıúÇiïl’Ÿ&üm¬Aè¢ëBÃ
+£œæç¼ŞË|¾˜³qœØeæ@ºŒèX¢q•œ©£b•ª[ëDñ•ö¼îá—ØóFoµ=¯Ÿé=¯ËŞ^¡3knë¾_å'¬ë®Ñ›EÖïĞÜE[Ä¸óuf<¾BWöFØ"Ö½êÃ*½b/ÆBçİè«cs™KÀ)”L(,Ânœ8*ö	Ÿzc(‰ÜV”82øÖXÍ²i ”Ñs‚u7Í§£¤¨¦XlÖĞyÕ…ˆ†Ã½ğd‘¦¿¥Q(éi ö³Ÿ™ÙøYUÓzKQ¬…¬¹OH+àj8Âõ—_j(üe Š„—nn
+x¯Ça^šÛÊÙl¨Ÿ‚À“Ò' +•ÓÙ(
+&rÁ$¸8ÏÕÓ—QA³êy4£}@Ù¬kôŒôgB¿ƒ=.Š¼èn¼LiBÔ§ò¸Ø,N”‘Alˆ·—£4Çííø(5tøŠNp)åÅàın‘tmö‰È¼ÈÏ’˜r!-‚ü”<Bl¢ zF 2ø@W ’(^¤•8ÙT½qØµ|ù˜k»ë{=÷Øà>Ù¹×ğvßIÔıG*@Ù‹‚Húzš”d<MÒXIÍä</>”óhLÉlËŸ’1ìÂ
+7
+»³(ƒ~c2Zú^7¥ŠÕ„uwî‘%,ôŸåiL‹Í "nù^ Ó±¶Èi’Eé£h´ÄÅÈÒø‘…b…1î‰eosN7ìÖPf6şš°½V
+ m®–7³¦UÿíJ 0¿zÖımGâİ¡©… •à•Í6p»²‰;ÂG¼¬±]4‹Ş‰L×ïTÅ‚Ê‰•Ó®ÑU[õuªúĞuÃ&j]fÄsÜi$ˆ§vöû²ÿ@eøq3ÒP@#ØZ«0ßxQàè°ÖŞ›~¿o(ªG­|uèmÒyLœƒ)0jê­dDÆâø`'Ø¤Û1(üa>›“ãx0çØñBeN~/} Mä3@^<"gP3zÓÔ)ÈÕbò#v_Á£}óğğÅÏ_óuq)•±í¡2­»â$ˆ/ÍÊ]PGÆ@¯AÀLÙ< ÅAÁ„OHR0:;Ÿ§Iƒ0Ë ¿c€ßE¼î»³»¦¡ã¶I“cÿ| :û"ÔºO)]?£0kØêÍÛÖmLQy†ÏhÜ²IšO&k.•´8c³*Öp‹F–…¬E}Ë Û¹¸\U¿fŸlÑ3=K±ò %–ò¼VñGS•õ1ÍàO¬Ğ}óVµ4ê™ÕÀ)u=Õsç<yaO’óT›Z?)´w/.Í¶Ûiõ„#²;ğŒ1¦«_
+]AoU>ƒq…åæV 5Û óœ´œ€BÀn…›•T‚ÉÒ ê[êè^Oq^)Ş
+-¬C³ŞáÌ#ã·ğë={Ö;:Ò|‚‘
+[§²7=cq¿”¾‰+Ÿqë“b~¤fÿèÊAJ´Š–FìĞêÜÕéÎù‹.¡-üŠÑOû¥P t‰V4zdGµp rêFM¼e`¨­á! dŸhû@ótQ7RXÏµÅB÷1/èY’/J>_ŠaÖá÷SšM€[>àêšû”‚Z±ìF¸£~¢iÄ ¶	s$¬‘CÓ,ğ­]Å6Q!â¬×J`üz¡µ¤LÃ¡=Ë =ãáZ©	ƒCÿjHv¾µŸÔFl×u/Å•XëC¼íî©¢¶:<6ßàAxüCiH°†tKïSÃ¨ÚUÍÜ¬ÇÑ­!@O:•Wyš’;dT ]èá&ı7L£„şÓ“•ı1âœØDĞùd’2å¥À93v‘/ÑƒXâ:#êÕá56£r+¢=15 ÄQ*é]Ş±=V;%fk-‘®%Foy£M¥kğÎ#kòšæ~3UG£øy~Õo›Í-¸Æ¶c{ ³h^'Ğ˜z@´e‚ßwûºRiÄ˜XÑ“\"ZdH“SÊ¤f>
+6d›ı˜vJF
+p´ìïW7šÍdV‚xUSxıİÁ×sÀ©U&_â?wT® (>‹²±\BWçÍ¦¹%M)èt¨³,]E•™EÆÙLg,ü›„ÂÁşN½p¶ªÒîw@Õ
+“ÂÚ¨’®&hÀã@`Jé!êtûdgo°¥•sî»¼g”åE2I²}X¼Ë}2è­=©>Í`¯o:¿ºó£Ó=oõõ Ú;Øå)ûñËÑèt÷nç­$›uéåöj„×A¨g-îÔè ]e~º¼e›AßaËW-·Ëº.©<´q”œdÄk¶µô°øıõ‡Æá´Ş½Ï‹§Õ‹-Gİ¸	O³©y^-FCÕQJ·<:ĞMÙÕ}¯;lC­Ür”¦Ä0ÓZ¯9T´~”8>Ö™š8sH:{”AàcZ _`ƒĞMqDæË›MögXmºşãÿúß¨'”ÑÃ>0“'ºÍ¿üsÇ\Å é–y¥¯è8™êK»ÌÂ5¾ËUíôóKxRmÛcJ4j‡£QxW`İôãôéTĞı:®â†´,0şwÅ‡µwe›iışÜé¬õéTĞı:®Ğ·¶L‰+ŸïX<º*xÁ Dü.ØàJv`ƒe×Úª›ºn‚‚9ÖÓ+î)wÄvD…Çw£c?¸vxEåqã7Ã2lòõ†[Ğ¨{°ØP_É»›¦ıKÙš	ß¡ös½uìò+lT¿ Ôû'vÆóğ:ãn…ğûÇş×¿Ös\ëQ=Ò½©"›JEãq’Q¹OØJü]vëQtóN¾óËòèñ“ƒŸ¾~÷Ó÷/Ş¾ûÍÁááñóÇïN¿|ôãÓÇW\´µÕè F£Òy`#ÆP¼Ê&7
+;QSÑ! ŒF3PêØeeÙ²ccUÆj9§ù)9‡É}ÕíÎæñwPäOúø–Ì99Ê©V„¯F?ÉÆé"¦%¬#àw¿©â‰Äx¾]Œx!(YÇ‘‡híU­®ÅÉyèl’¨$°ly„cÓâå…dxÏÄÍM¬|	ø— Äê·ˆ¼T‹V\Ğ¨W¨mùDïYbo
+á¶ÇíÀ|¨ï-?I
+:ŠJŠ`Sd‹4}ĞÅÿ7µ–ó&)O–lÀ	u,ï¼Q¢F£cîpG™4Á '«€½ÈRØ€¢=¿±šdÑY2Á(¬>ôğĞnıëâYGé‹9Í£$Ğõ-fJ|?LŠ( 1>I‹
+f:ÿ‰ÈËE9Î3DH—dŒşJÜ“V<=‹ı)}–T2JêœbaÖ©H±È24Œ'‰H•WQšb¤®‰1Ö¦ÙYRä™²l2³W·c¶ƒ9`›Ò|Ögı–%¾#v“"Ê0JÃkòfã?H£bV:!{²FÆ,¡uÿŸÃò}¾( TÆËnUŸ%™Qî eëºV˜ŠYT½Îf/1²;İ'<ö|‹Ìä¥5deÊÍ±Á”<’] —Ï:@:Ï!µ;}ÏZü6 œîìêŠ‚ä¼ÿâBW6T ?1¬¶¢êîrWÿåş³Æ
+ä‹ãå{ÙÉ¥ghDçVm#]ù[&~Ì3kèñÉö*‡k5´r&U·óº³ùfğÖt-}OSXJWUAÑ-¬5nwÀ+X
+¦Kœ™áÔn‹Œòx©ïªÈœ+ú~YĞ3Š0º1ZuíıË¿šRà3Jfl	Á>ÅMeÒ_2`y;³ÍÊş‘¢ké=‡Iãw_\Àh.ñÀ^Û¸×3%ıö>f%¡oÚîAôÃ””œĞâ,SòS^| tt’ 8º ft%i4J)#A#M¨Š|´(«Œ–¥SÈ’ƒåPûh_ö;Y×êÀB1_Ôúi˜ÓÇçnËiBØn9e	`¶Ööü<êí|³ûşõçÙ¤ãÖE1öZY&Ã-‘¸Ê„=¢Ãª¦Jø]Şe<ív7ë/3ò/"WxY
+‡'¼<¶!ô"‰£%Œ|£ÚèÌ;¯Ø S-Ìp,›–ÅÎÔ…D™¥õaQ=ˆ rÄ6>Ør†ÒşX9?A*Ææ1DŠC‡ÄcæY4®A®Wş”TÓ®ÜIÎNğPŠî{DæJÖ>H‹ŞHùh Û—ï·ÈûãªS²ul§ğšq^ò.ûø|Æö4–&ñå{Ş6}ˆQ¡9´;kÔE©wQê"J±Ï5úÄÍUñ÷Ds´‘ÇF 1¦Ì8
+cb€aQúN”6 Œ_¹ˆÓš¿‹=#„E¢6¯ƒPj#ğ‡%úäõU±'ƒk¼ÛÒXON19Ş ä/_µKí‘çHKf°<v
+û©5aîdÁÍ¸„¦e3û\H‚Tğ—"“}Å]×¨¿E¾ÀÏÖ˜8Ä`ÓBµ‘ ü6•-R³ÁÍ=Æ¡8æmçêTœQ¶ò,¡¯r"†ÏÇPÅ¹A‡4ô?@ù?R:‡róS¾ŒV8äŒ2fÂB*ePÜ7CT¸²¢¤eC1ıêV‹ÓÓ`3ÒZ¨õQ?Féç)°gšÑ¢ÛÉY]x3s+ñ^u+~ï[rX¨ gt1¬hÙ8K¹òŒ`"³bO0#ø0O³99‡ı‚Û…)é$Ja>KKt´¨HºYtŠG†D˜8‹ÿ&’Æ”ÈôçBÈ„çE$8ÿ"¨Û£çnZ‡V„ÊDÏ_3ÚÅT¦>ÈÜrÿÖ7CWTÂ'äÌ¥¾%»ğùSø€Ë—h¯\ÌPâJşbT‹dË]+Ï·P,ãG ¸È¥Ï®ğ{’h1¡Ù³úùÈËtì4¿w’R°2#÷»·óÈfò”¹ìÊ8/Í¡'’9~¬s¿ªÈ8†ËAiÿ»—ÁúF„E¤ë0Và:ûÍZÌ•ÎQåø}oY¼Ï çs¹•%PíÒ`·¥Êœcéy>…á$™d½ãl‹ÈsO“ìS³ĞöÀ¾€mñ=Û…}NoJk£î•ËllQ‡
+˜“¤¦ÕÈ&b1O‹jÚ7VŒI;eı¤<Èòl9Ëå¦­ûáĞ™vK¡Àse¢*ßğÇGL+Ò¤ˆø{+8Ñy”TÈÌ”xÔ“;†-2a_ò}…Á¾Íñ0iaÉFÄzR.ÆcĞÆN)ëöªjà&ÔP‘Fo9ÄÖE0ÂQ
+cKÛJÌ@¬Åœò#x·í)¦å*ıO'âÎÖ§ø€rD0Ù%Q6pÜ Ø ÙAFğ€'Múw,‹ÅnrŸ.çø´\åŸ9ÏŒ„¦dVê÷ûˆ,U¢ ÔBzMõÏXIõ­Ä•dÎ2(Ùª¶Bpò¹ävI˜îHº´ qš¿M³XÒ>å*(½URÙ–[Ş5½¿±E ¦µAà¤İ˜·Íö¸ 1B‰Ò^”2^£ë­³Y3naÀ^RÌ!]†­*X¯(íİ`‡9ÅÔJÊ À³•@?“Æ±øš*è8/@U$GlYó(«˜zd6ÜuQ%«'0€õ°ÕÆX_eçIšâ1Ñ2:…E
+Œ4îo¨¡;ña¾+°/Ír…µæ“·|\›`gZOä’²)¬1«’ÕQ]ĞÑ‹‰_dø'/ğÄ\/Îg:mŒ¡E@¯«î†´ëãq–)acguy`øÈb‰Ö—–'¹Úå
+Ê!YÒ{@œõ%'šMJù”Ã•Œ£€´	+úŒæsPÅ|õTPd +eeœè­í\ù>ØˆíaXL‚ôì“òÇH{¨Ò£X;¨¶CÙ	Í4À•L¹ÚÕäg™â*f§WÔf+ÍŒ51ÚÏ¢Fã­‘9Ÿêl*$£ıÌ¥Y£¢İ€Ù¬¼°C“|QÕ^ä8SÌ7]š¯d’½ ÅCÄ ë¥p~\Q|uI‚|‡·Úé“ãS\D…5	è ã» ÊT( ıKó,GÒºM‰cX8¾Ur¼Q¨_Ñ&40>bÎñã|¼@w’@ÜB%L—kWÆŠGùø=ÅÓ7ù¸¶ó'¢×Ï”|ê<‚ş2Ğ¾«áÄs`‘:uK,aWZˆ]ö8Øb6Ñä±kxJm©ò©BÀA‹5³-ì¹%²Ä,Ìu’¹¼Rlte9Ùí“C´^ ¦ ØM)Lıè²TÚ]º¬ëRÌìÑ5FÜé“W´¤,ìS‡+™Ä	ˆ’P·ÙÉÜ?CÓÓh‘Š³æArnZ¯ãÁq³ôÀÒ­ô!ÆÀ9É†S’#—5aÔ|b,7‹í3£#|Ş(¶
+™¯
+÷è´ƒÓ»»{f¾3¨M'PCgCëa¹Ö³Ğ1ÚU‡hÃGhÍ˜4«Ô‰êJÛ[˜¯Ñ.£óp)nõ“úBû’m†E<æ{…›Qôá„2ßp{6§·:lt½ŸäÅ˜*É0Òü„”LX<›~Èv‚+†ÏıÒE2™VØã²a-˜ä7M–»EVróÇˆ§ù@"Év;?R°¥Eé¸•‘Œ.,~Qãı›N¶äşu	·7YÔÙˆŠ`ÏÇ'Y4GÈ‰'qC\…¿—hÑgº@ÙİôÉÅ)¢ó#¤âCÙšÜ£®MWœ#­*KÆ°mWÀpÚX7(Û€2&@:çé‚»ú²cLgıâ ÖAÅrNàÈKq±ÆÂ0‡cìk8<NÖ“M´7c›®:cã‚ål¦ù˜DH–«ÁÃ3`>tíàNf<Û”€òzÍCÔVk†NÔáõQĞwßèU–ñD†è±âæ(¶oÒ–È"OT”İ¦Å.­Š&PÚéf°Y§ò*€Àƒ]x.bm7®ÁçIR zoéfÈc
+Óh9ÊÃHãŒŠì`F†©ÜúÈ}cmHµrä:kÆÉÜóƒ¿RFRÌØ¿KOòûzVŸÕoèÂrïÛ-7·ëV/Ô“mQ÷ôæˆ…FáE®MóÀ†PéT´mû Hêi®À†@ëT´£„ê0mi¸Ş¤BZöã@ŠÒNå0@ËÛá_†^oÒ€U#S­†ïVÃ¬g±¡ÚZ@½I3dç8t´¡Fx5 YÉë>	ìÊa€Â‘ä&U³Ú
+8\Û	Áº[½“ZQò¡ÑP£Üêa˜'ÌG5Ì×lå˜QQ™©qnõFo+y>ñÁQ}ÍÂğmŸ¼£Izµ ~Ğ´t}
+i¨y«ñ¢ßVkëMÂ•ÓU«ÄvÕ04Ç	êé*Ô¾faø2²ßX?±+†AÉè}(y&Â®¸éHğŞ%Ò×:n/  ¸æÏÊô‡ª3 úÊ¼ÇYÜ«òÍ0H}\,ç¬%|A)«Ådİ˜ÊgltÌ‹H:G¯Ş>>9q…Äš“€ÿĞÌt1SÒyT=STöÉ|QN¹U¸(P[<£Ì9†ê£K4Ayüe´d± C´{å°	óç†PÔŸ¬Zä‹´0nÔ…ùóE`˜?7Ãüy"3ĞV”†3d7bÃêÕŞ0H÷±Õauí„R˜?+Ú£öÀŒü°zt£@ÌŸ7"ÄÓZG‡˜?o¤ˆùóExŸ»$ ¾A8‘%æÏ=ÃX« ÎäÕH:æêY.máP‘½	E‘ JîÁOcÃzè·º&®zÔ:ãx_™Îê/âÍƒiÚ×Ö"m_±U¸èhIkÑ{Éi-§|Ü,#éŸ&ºHfÑV9-òŒ9g%)\Ij;/Ùe/Â0¤ü^Ü6(¨®áç¯DÍ¿2«˜ugC\Án€„@ü7ÿ0éo&üa²ßHôÃ$¿‘à7ûFbßLêÃ„>@æˆ|‰_AàÈû
+âŞLÚ[öF²$ê+Hzˆ {Éù¥oİ$)oMÈW‘ñUDüÊ$Ü%àù–qÇ:ù5’áDcRR3—Vu:}3[61`¯UK}­Æ ®CŞ÷šÿ]‡Ù°)âÑH¹O‹|¦c\Ç»/ºA¯–ÚŠSz(U0e’éxæcˆ2¢Ü~*f­JøKğÏ˜âq7Óõ µğ Z8T®ËZPX-îjDÜˆhC#Æ‚åÁÇ-s-Y!ø†‡²«B¹u¬ï+ <í9gÍ((b«1lİŒ‹ùùgâcODT¿ï¤ğU\üÎWt–Ó¼²vºôCÖü®MşIå›TNÆ¥á<
+{(Õ¿¥D¿Ñó8èHT>½_&ëW2}Ñq÷·¾ëĞ	Çm;ğÚ:óêµA¶uêùZ´ ìqîY®<OıF¨ëºjB-;ië²ñµh¼®ë&Ô²±“¶._‹FÀë¹ríVá§•KÇ×bÕ²YÃµh×ŒõÖ.o›FØë¹zíVö°Ë'Ô²yZº~|-¯vÕê®†×ÊämÓŒéÖ.!o›FØë»†‚mÛ¼C‘·M3ÛXÛUlÛØÏº.£PËv¬í:j„ÑöÅZ¸í{hçJòÔo„º¾K)Ø¶±Ÿ6®¥zíFm\LõÚMQw7èDrÅM¬/¤Vâ9¡±EöˆPŒTw~%X×s¤^CïrCÉ¥·mµêeä¾’ú’uÍ²â­¹®“
+÷Ÿç1ıá¤/¹¹¹n©oÕ˜
+Wé¸bœÑ
+"¦ŒçB3°txqØBäæù”ú û”·õ–ò Å&9–“¨$¿:æ}ÊsHõs"®¾ß¤Ò\ïdÆúµê?µÂ”KãµŸğp9~P†§k¯¾]K½½‚û‰U\¯-ß¦.–ÜUkƒA¬*„5)¥c¿Ÿ¶†6¾U<ÎaÛ¼é™)F›>ëÆŸuãÏºñgİø³nüY7ş¬Ö?ëÆÿvucWomyƒªs8"HŸ‰;A1–9—¹Ü‹J ~¶K¿}ÂRhÄÖ1¹²]¦™·ÂRQ\éØ§¢4†Ô\; &N¦i
+¥	Ò4…Ñ„‚hBhB4á3Áà™†Ğ™¦À™PØŒ7h&2˜i—	Ë4†Ê4Ê¬“i’	„È4ÈøÃc<Á1VhÌMÆ´‹‘A1)Ã{sdŒ7.Æ&báè;6ÆOÆĞ²ÕCZÆãÈ­ qRÑ”Î(ÚuD0ùb.ÂÉÛ„5®™’B‡Ä0Ûü†Áø‚`<&LÇÆ¸…ßKx-f\Ãõ,hjí©Œ¦Á’›é¼FKñH¤ßgwnÊNQå†:Tús>Á¿Î|‚â1ZÏpu";«"òŸy“#	%ÆŠŞÌÑú¦B^QüÙŞæRáÂô­î"Ã<£%æ
+ÄO!ËÔ¡’ny :ÉûŒLáW|Æùl„&ŒòM¿ßw nÉ”voë\ø»¾İAQDË>Æãa*Pò,šw%Tö`¹f, ^à§‚ş™°K7;Ág›[¬ÊÛÍMÈÓ-aS%>†~	¢%Å bÖ•.w}„Me2§ğï9!ë`Ò0­‡IcCRLâªºyL®:Ó¬`ãÎ4C¬‡<ëÛª{ëp}ì1ƒ†{Ì r%ìñï¦ş›ÆcD±è˜^ÖÃ¡›;ü¡ñº˜ó#+ˆ&ÃøÀ•a<º"ÂÌÏGşÛÀ3e×ÖÚÛÓÉRÿ7#m”³ñ£xëáÆø(æß"^tşwP“1¨`4eæ!ir»—tú¢€ÇI(ña[äê3Pmˆ¨†C™…9´<fNO-áQ»Gl3íÓ]?ÅÍfŸø™Ln2‡‰gEáœÊ4Múk"s­XK™<Y"¾† ¡ˆ€Î:…MñÑXL[z-mçÕ <¦dQUjkDV-m#²îjUæq“€´Ê:.s%"1côèˆ‰›xœ§¢£c@ó€*ËE>Æü)*h,¤	–y•Ñ¢SŠ#=ä,‰È¯_õßÛC§'÷¥7’Û©Æu¢ñ[²5£V:^ÇJ9h¬Ã®ôÿpš¥ş‚—gö$[ 5BKÚå.ät¿Ê)OVøN~Tg·>*G€»‹}*ÔøRNçW8ÒaÇs®†f˜«ZÆ±†§ˆ™²Õé˜¦82Ã˜28?”ì«püîÇWÇh’‚İ–U]X; 2w£*uNUoÛ½í	ôôUgS½cEÛ0n›Ñğ.Ùá`äŠÆ×AaX-˜“ƒ×ÿòKÑÒ ë¶­µMö÷OØWÛğÃ0ˆçû6¾¸pà_nğ£x,=·Ø·ÉOù"Yö4ùÀ"˜üBÅşX6u}›í"Ö”o ‡ï­7[•]]¿ø F¹™ ¨°_ò&¾œq"Ç7{wı©„Û#lûã{À ÉÃDôg”“@˜†ŒôáòÈâI'ÎFLäNä6^Æ"<@o…î®uÒ’¯3Ş3&FÇS?`©†~œÀrÕ¯_á¨…»/¦Öxõx|Ûf­Óù–ÃaÆW,³”>ùñ)—’ÈğÁà'„O> >Ş£[ûN16}h50´e;\Ï²NòFÏù‡,Ç,ıQIœé‡Ì^¹…Às4Q?Í'P4ÊsÌåìÃòö<ÁÌ®½˜V0•F~TUhJñÛ¬¨È2åÆg/ÿñİ³ÇOOŞŞšÿ@wÌìäİÛ·±Hã½ş*€9ˆ‚ÍLŞîŞ˜íÆXGmò‰•Ñ:ô„8.¼Ü†ëŠ}XÅf:d™eÃ5|·×ğÚÖıµÓÑãnôzF=>Qm\İ7®µñcgOÉ/Úz¸o\{«jóş¾q­«îTUÃ¬¶oŞxáV¤}óÆ[Ùïÿlğ|z}5oç]{Â±i.|*Yªá¾”‹gÓl1úú.TUyÔ]d‚¿sÖnq~Ø¸°æñÿñ+Æä{Ï£möèçÑğ«/¶¹D»×¥y‘L’ì²ş`r>~xò’K9_\ÀÛğï¿ò]%Iƒ?NÎÈ0ZâŠn ú{ÓØÓ£IÏøëiU½2ÊJRÑUošwï›Á€œ÷P`F‹{ï¼÷áêc)t”F,{7~¢ì4ÍÏ{{ã4aß²ËÊÛÃôõò£„½; m>êíŞ#³x.îìn<º%3ô4´„™ d“1Ü@³ªBdĞN’¦ùŒvP42?-s D¾üºn`­™Ğ`xqAòy4f_UËK È¬sëÁ> “ªVıÑôul‚%`uÅI£†êÒMğ&]Ã‹ğ3JI®3¼°¹[SÃá…ñœš</ôõ¥›/VĞÌá…¸pÁDTÔá7n=ùYh ;Ã 0»Œê=1ë=ñÔ³É ÑºÖÖäËh¢z‰íNâz]×NÍfö¤y\^{­İ°atõÒí°>ÆÈè#
+Â5Ì¾©/Ç×ÀLR*?]*¥]˜aŒ^7uèæÇà$l³¬ŞB|LGV·µlË2r7¬¸¬×á±	X…_ù¶ØÁDì0¸ğÌÎ#YE_»µOøğÂ)ğ@ıÛ¤^V›÷4Kí³Zdä¶YÛáÿÖm,£†òÊ3¨U%ãÆ®·íĞÓƒø„f%}e¦`ñQQ˜R¤ƒ5â8¼0OòùH'?„uiwz[ó]¾©‡éá;§ü«Æ«Y¨ø©¸øºòkü k™öVhA§aÑJÖ³­°õªqÌÃtD3L‘#'EZ€¥í›,“¬kš|¿Â3—[ìû§ø­-Uš½ˆaµ7X“â_·g¯vøĞRëŞ3–§A­ÈmcÈôÃãfİÍyíõÏõÑrõú?ÕúçÔéi2bŸâl˜*7€	Ä»àˆ‚ÔW"ETüTHùƒÿH3n<^ˆ‹åP+HC’¬’HP]t+·İÁNTŞğÂ)ğÌÜ·I½ìoQ:µXı§a¼épÍá…¾öÀüÉ¨hİºuí€Ïá…}ïüÓ VT“¬•­kuí|dT´n×Wô°D×PëĞ^­[>…¹‹áR\ûñ¨*Z·×æ»O¤\¤¯œbjŸâMxuòªö½[[é/ä•Ş3UÉ¸ñKÚ,)…]â[?¦
+gßûŞË?æof–ZèèdÕDùŞÂ&!aÊqS6‡›ÕvMí“([WqÊ”Òùj‡UûTâ4!”àÎ­ñíæ­{eùàFùå/³¾Vó‹Uv¶rM;^×^‚Kìu4’«î/$ö®³µîo;öî2NÆ5„7¿m§ nÊÒğ¶TÍDóO« ±>Ü5£ãÁzÌµM·zaæÙ# ÒôSwÂ»nH¥ºÖ\î~ÿ¨ÿSp—µ‘^Tà+”ú Yµ.Ç}:÷Veô*{¿Âb…LüÕ¿ÀvækŠ$:ëc`R¨"‹gRßWBF/Ğ*)“l¢ëê2_‹
+¤ 0Şz!Çt^E°ğÈªÌ×¢İ¦<Å½Ÿâ”mÌR_«,¯Ğ*«³[_=œ#0^êÚF¡6=G×„xß—IªKö…gëœmŸÛ¯b–zgBF×æÏCx¾—<ıñFÄ®m‰UûöZ›Ì³y™¿Ï³ëöJÅıºHf;Ìæ-]eÁÙ"2~[Ã=şñ|)ãò†å«({œ@Õ…¬ƒ8æÔT4°z¶É`˜è]:­ğÛĞŠ?÷bIQ!Şù>aÌÅû"Xôï¥U¦÷Å…à¼|__‹°Tx¯õGÀo&ˆûiUÍËıííy2.³ş|šWy¹]Rövlº}w0Ø¾3tê0Dhæî`æy; ;à@úcç£½Ø¼\ ÊÊyH:O’^]êŸäióú'ù)KƒÀî÷±}6wé"[a~ Ì&Zâ%—.²ñÔ'[ÀÎmÈÀÏ–¿ i4¢) xY YH2XÎ,Ñ3é˜¡§¾F‡Q1*&;{Ø¦Öä­»3Ü­âÉÉâ%üar´eäÖ–Ün½ñ”îÙxêÙv§X¸ĞÆÒŞÒF£m¯i·Ó|SGÕOôüÈ6TDa+ÅºVõ}Í­„u†»¾&¬hö›ZVŸÃë¶†¨çve·äJ/­´ê/¬Nüø^Vµ^¨ËËZ¾ÕWº–ywy}Ä}"t 
+Hx7—¬ù©Ô¨ß‡ü_ÖµÓfr\	â/Ûqsöğ›‰ïÀÆGùˆC‹ VE_zÛ¼Ê‡!úÇöRW3ïÜš¿§Eşzš1Ôæ:^ã/÷ôó ‚j¶^‘ì¹¼¬¯¡#ŠÙGÄ÷|äJ²
+×22Í@ßúæ/kÙÕÄnûïÉÁ1á^/.²r¹şKşYSv,Jx­zÅ0çï·›E¨¤‡ZRoÎ«¯&šNƒ íÜ"H(÷‚$”=ø	){Öã0Øyï.)gûóŞ×2 •E·ŞÕÑ­®Í9AìHDÔVĞaš—tMªx}›ëz~¯6LâºU5pxoù:7­]œî°±ÎHœ;¯'Ê½¢Æí®{vØç–ölï²JÆä Ô’%&Ò#ÇhbÆ¥Ã‚¬r"ÅH"+öÁ¸Xö"nõ&0k‹ÈìÏÙÍgÇ‰ú}JÇ	¬Á¿n·‰µ³Â¾ğİ"‰)»oÅ¾DÛ›`ƒÕ»R×ı«æJó9b#¡%ZÓFyKÖy¬pFåU•ÏˆXj˜ÜJOÅı,² œ&ñÄ5kÑà‹ë»$¥§ÉdŠ­“'é«òkDH,®wá&ˆ›;Æñ”Ñ¤w>M*ºıÍËÜù¼7J6åhâ?ë²;lßƒÎñ0{]Ê6–ùÇŞ.›£0\<Åò'k)
+áoœ¦ô#ù'ä*§ËŞˆVç¸ á±,ŠøyÌHQöÆ 9Ã@~ß»¨˜FqÎŞN\É38Û;çP±îÖ- ƒ·Ñaè˜Ì%IÆ9lÍûßÃ,ƒKnân¨#,l%-´ïí5 ã¥Õ~¬(¼OZšã`(PµÕÃà®0ÁğóÏ$h\êaJ–y·æPeùê¡òş®0PiŞTcy”ç€šãx%ÃkWC; ÖˆtŠ¨F)Íâ¨0òƒi]5uˆÔÈım E9íkÄÏ‘iã)=£iïÇ9aœ„¼8£E-MJö—Óüœƒy™ÏóùwÉq•d0x C¿ïíø®¶ö¬ÜÏâÉ6¨KÖlC›æ”3—vÇÏ™‘g” ŠQàı{[¶dçjš‰&;[¶€è4L©mr$aU¤òÍİ{óo÷øÑAöáŞĞÂ‰s9“İC}wŠş!E¯Ÿ-œ&q’±5¬Î ™pÏ1ÔÑFÌPö3Rñ!¥¥%)ø—@4b,¢jÌÑüÃ¥xp¼ìeyF%Æ€wl¸ci€XÁ¢ ŠÎ¸RvÄ¼³˜ÃŞÆ<¦şô‡½¿m±åVwï
+º³ËAï°ç‹´ĞşãùÏëÂ\ òÍ¡_vĞÿS :+ÏVLÀ9¾ÉÿƒÍF€ú=Á
+±_UB,½r›²Æ{†œ V]Â{Oµñÿùÿí_®óRrOìúÖËôYUÍ?˜K‹ä”_2
+cÒ½7€Õ'häA|†ñíûÛÓ;.æµ>Šó¾³EEÅ!àğÖ…K¯øï·ù‚§Ä‹”½1!ÈÂ]S„‡D ĞK‘R#ÛiÌ2›Ü®h{~­Eb.şœ4(v‡0áL®;“úàİsP¤Æ˜º&ÄŞ9Óe˜|byÄÈ0 ~½Ö[Œ8Ë­µ©óÎ›q‰@‰º÷ÕÚ8\T]‚ˆj¾=àJ‘Ú)ÒÕ}Y²+‘ÇîşîÖÁ”)šó4/J4ø—yÑ$ÓU-ë˜=8§%–îú¸¿ÍåpN¯Êâ¢\–µˆ¹C¶!rHıúOrr#)](÷³€ñ‰ŒõE	-†\M¨¨MO½3ç­%ioKÙŸ-Ò*éñd¸8¤=DS|TåØ\«AšâP•{ÀïÙÜ¶-IÙS$%OãÕ+İ&uúâI!äOøï~ã£(øk"×«¸fJ#ÔF{¸À`_{Àa>_ù±XV,–tNÒRy*fT(]b¦&3éV§$ó)8OOÑÙ$rÑLYÒ'ÏsŒ›dÇdú»Àˆë”t^{-${ ãc­ çrn“:ÕÔ·şñ?œŒÆi”;ï.AË–\{“+µ›9˜O—Mwµ•ˆŸ
+x%˜ûÉlâÛ$„”Åxxñ^†œEó¤ÿ»ÏÑ¢ÒÎöÙÎ6h°(ş®è!â·–Éïépwoğş}‰ù†_\xòÈº››—ï};9Õg%ƒIÁ$[õU?kKŞÅ=y÷¯æ¶ïå}R!¦+«-ô7;$½y2ä µ¿ï¶T DğdàœLŠc \D÷·±«kÉ}JîïùVßä«I¡/¢Z%ùç	©¬É«¨â/ãfÏÖIšÌ™!­_#zê"œ@C3&cçóD~WD ºMN¦˜—2©Œ|z¡¬qø«±VöN>ùĞŞN°ÏæpùbiJÒšl¯¹g±àR;şf ŒKûLè}³ç¦rşJ1‰@ƒ†©oÅî³Ôbîô÷`ãÀÿş}ÂöÂF´_r\s±!…V¯f-Ÿf=Î1f>æßÍÍaÙ¼Ä—M¨aZùúÈ”âdËç˜Dè¾|‰ü‡Æy"ß&¯îgì'Ù8]€–àOåéşj=ô+%•nüfçm¨S?U­§ı´WH*y¥ ¾Ş×ÉêCtËì ¾®×L­éöİfÓü™t.	z|›ø©\©ãùyÃé6í_@šmjÌ×é³Îœ¹:e§ÕGğY‹Şä›¬Ï¹ø^WY‹qµ(hã Bİ‡3†Ú?'è³([€>Ìö${àKÚø&l0Ù‰q×Ó¼ ¥²O^‚ (™E :¼ã€H|1ó5l¿3Cƒ†Wö¿°¯ôìQÊ¯¶ªƒÊ-€–,œÊq.z-,­øê/Ê,sã¬å
+¬Ï}8?‰ãv
+.ivr£÷4ÂäEÆd)T³ê&æ2jX–›´Û”)êèÍ½ëÚn@bR&‰eİÑ´ä”Éå›=ip§fn	D,hËÏFSß#Ê²Ø¬Ú©<Ú\cú’Ú˜nìu„âu>gÌ¼àmËÅ¨J)‰F%n0ä»ÀÎÈh1A¹«ú=!=æÀÙ%=åg9Çh)ş˜(ò’â›á<ÛÖœköuWRM÷®1=î‰qú/?,¯Ö}/a§@ÓíÇ)DYE¾§Qì„¿ù†*§ğ¶ßÃˆjŠZİã³ó5¼ÅÎ×‚ÖÆx¦	İ«
+–‡\aøƒ2û[&néÓiçº£mÜû#nX7²ç3!üùÿüşô‡mMêø{úl‚»Wu÷(ƒS…pãÁO4cHÆ*Î@½î¶rı¼ÙÙÁMj«ñ3XP¦¨nÜzJ+P4€ÇÒ–,(:§@W0Ñ5~Ia‹›»@z*3 aeº\éò	?©-Ğãl¾¨êŞÜĞ‚Ü.KØ5k.M	aÇoo`1uü~ã˜NX©Ô±Ãş”QšCåyÚÛñZ°x¸=Ù&ß-eEÁ>=L™Ê3Ú±æŒÇùĞ}%vüox‘+N>E€?ĞlYîtPmıÇJùSTy vi¿bÉ[ø{bÆ–LèwÀÉØ÷-ºß™ş€ÄÇô´)È_´nĞş¤Oå3ß{×Ù!	¶ap¦ÉâÆP´ìï)¹Ï‘Õ&7F¨·çi>^”ûù¢B30BàE¢WeÁ±ÃÅjïå1{\Áüö×°Ô.Às‡$?%’¢ç9] ¤”À
+!¸DêÇÚ¯ºCP1]c‡xÆàïêä¿Dò©÷Ç_lÙÂîãßÔY .5Åö2ÔQ}n
+cåı¹µ8hHğÔ!¦¯ NŒ±°„“IÆB+
+Å‹´‡¬Ğ@7‘”(ÏÒeß³R¯&aìW21CNVåÎš_äùe7ô#.Müe˜ZèØş®²cÕW×ZlØ–|ê)Í?ó©¿=>%–µÅ¥~y–8IŠ¿–Ë[XÌó{Q™Ğ·û.4ğ,ñ«(/Òˆ;<Ô8LÛĞºÖV×Àş}³?g `ä„)Éß
+e‘¢7{_[vLÆ6Q}ô.Bõœ`ò•úp|áe}`•ª€šâNï¤¢sò,9¥8à‹w¯~Pçf>ú§6õí²ãxĞ°±äK˜‚–&jÉØA†d(Ûæ½êÃglš¢`'^cˆ¾
+¬·ÕpĞ2îk8tÂ-0ÚÂš €ÿ˜5÷ÆS„w~pÖÆ…1pW;šáMb–'‡+æú;Y¼O‚Mcš%FË—´˜%e‰»à.-ŞºÃ2ãj"ß”sX3o)äà¿°…G´úÈñÇ¹¯â‹1|é"ì’æË‡Æ'e4J1Q3å7 ONù3·ÁG7æòµÜVD…
+[—[¹d…]Q¡1à¦Ñ/$6cÍ¸üš© p¡ˆË~¿ß¸´ÌUùŠö€ÄTl1as\K%v#á¯À³Q¯M€Ùù¨Ú.Îds]«‘5Ygg`ÏŸÅ'ï­”º )a»ğ0)Æ)İµI’Šd©særZ$Ù‡Ş`zğ±D9~#A3ÆÑQÿ
+4á%S_³<)iï4IaĞÀÅÇÆ4r†Ò¿Îî7ø¶™QIºÖĞšÏ 6¼†w2ù#5•!ëx úÿóÿıßÿjRÙ§²}v¦cå`kÁ.^0G8s·ËOp÷¡5fH¨ÈLóv=aF±Äœw$É„U¾ÈÏKZÔ­	-§d½&W±àG†qÊ7™õida¤°öšeK"ÇÚjB™éŸ]añ×ÑÅ=êLë
+oš^ëšeTÙ5×Æ	~™ˆ³™7æq0Y‡u>I²¤œj&PÍ3oûı
+¸Zw“}À¾•9´ÅñWDs–8	“=
+G_:©ñPo¤Ë¬{qT|P8PqwºLtåÂÍÏa‰N5Ã_}.†/‚¸ãÌË ·¼Ú”7%Ù
+…ÇÂÎÍMĞŠšÚtñÒ’ô×µ£mb4¸&°r>îŸL
+ä¡‰7i¯Ğ
+DÏ¦.æd»“cwrg¶F>B¡4õÚšÌ€ˆwÌcGæQ|(Îò9¡/¿É“1=(1Õ1:ÿĞõ¤'¸Ó;ÌÂuéÔ3SŸ°Z_“g°P¦¥U“åcnğL« œš‰SÍiÁ,“øÉ³“ª°’¥ôSšMª)y@ tv'o<µzdçmMfPWv¶eL–ÌRdQLJ)r&¿y‹ƒ§°Q1§j/N&I…Iƒ“lQQ£ˆ\n¢ ¼ËªËäVğ<'˜Ò@$ƒáç'-±ôš˜I ß|cgJîf$‹æ¢…‹#şeV?»‰ì1Ú«ò¼Ü`F(–ôüËùÊÉ¬rËÃ<§ğÌM&ŒÉƒû¨6§²v³Ğ¶I[ìì³—ö[0ªŒ“k°[-ó¼||Ïª¢øöÅV¼¡ŒFø†0ûXŒ[Ádë/ì½ÄB*.ûï›ÆqÇh¿A`şòFlÂ>ÒØŒkØlF"¬c–Ï¼#\ª°°EştüF1nŞ ŠáQŠÛ¤DZçûXm¾å³:½Ò:	¥š¾ó³í¡Çl-
+ó›ü8Ç(*Î¢gPkÛMÍ%_JVe^ªç
+
+íb÷p`.iÁHe˜Rº¦Oz<‹’ÔÊ÷ù°O±Œ-pEİ¶­Îg Ò,ÉkPmJô”@Kà/‹ğ½$/A.€?(e³}óø3>Ç¥ËHˆzJ'Qz›€}b±XÃšÕÌ=`pc›•ä¨‰µY/¬s˜èÓE6æşa™q¥{!Ål±¼*[<“Ê–”ÌÈå>‘5öAÊ‘Ëªîö]€>ûÿyÓoyÛ‡û„úü[	dŸğÁŸå L]òˆoûáö±Q%ŠùjZà¹x¯T#J?hÿ’i,åÌ>15Ø5h§+E²€…úÂ>²"ÚğAöc•…«]šB€ÊªùÂIÇ2Ìa>*Ël§”BfÂ²#¸ i	ŸÑ<æ'×ÄŸ²q
+Ã{œÒ.œK•ælŠG÷A™€"…B<Ğíó
+š{úm|°KŒ§‡WÔoÆÏ[ílÑ”½Hçò=,Í  2/àÆcÄ–R=F$Lçú(°—%I‘Ñ¼§Ka.Rı‹1Û¨?î9–ù¢:‡YtÖK²½7¹eälŠ›kJ…ÑŠt&Û»„#‘¹2>²‚s¶ê¦ìC34£j7¼dï-Å3ğÿ  ÿÿ –4‹
