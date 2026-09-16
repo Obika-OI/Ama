@@ -262,7 +262,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                 AI Baby Nutrition
               </span>
-              <span className="text-[9px] font-black text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full">
+              <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                 Age: {targetAge}
               </span>
             </div>
@@ -274,11 +274,11 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
 
         <div className="flex items-center gap-2">
           {isPremium ? (
-            <span className="bg-amber-400 text-slate-950 text-[9px] font-black uppercase px-2.5 py-1 rounded-full flex items-center gap-1">
+            <span className="bg-primary text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-full flex items-center gap-1">
               <Crown className="w-3 h-3" /> PRO
             </span>
           ) : (
-            <span className="bg-amber-100 text-amber-800 text-[9px] font-black uppercase px-2.5 py-1 rounded-full flex items-center gap-1">
+            <span className="bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase px-2.5 py-1 rounded-full flex items-center gap-1">
               <Lock className="w-3 h-3" /> Premium Only
             </span>
           )}
@@ -296,17 +296,17 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
 
       {/* Premium Lock Banner if not subscribed */}
       {!isPremium && (
-        <div className="bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50 border-2 border-amber-300 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="bg-primary/5 border-2 border-primary/20 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-primary text-white flex items-center justify-center shadow-md shrink-0">
               <Lock className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h4 className="text-xs sm:text-sm font-bold text-amber-950">7-Day AI Meal Planner is a Premium Feature</h4>
-                <span className="text-[9px] font-black uppercase bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">Locked</span>
+                <h4 className="text-xs sm:text-sm font-bold text-gray-800">7-Day AI Meal Planner is a Premium Feature</h4>
+                <span className="text-[9px] font-black uppercase bg-primary/10 text-primary px-2 py-0.5 rounded-full">Locked</span>
               </div>
-              <p className="text-[11px] text-amber-800 font-medium mt-0.5">
+              <p className="text-[11px] text-gray-600 font-medium mt-0.5">
                 Generate localized 7-day solid meal menus, allergen filters, and priced grocery market lists.
               </p>
             </div>
@@ -314,7 +314,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
           {onOpenSubscriptionModal && (
             <button
               onClick={onOpenSubscriptionModal}
-              className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-md shadow-amber-500/20 shrink-0"
+              className="w-full sm:w-auto px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-md shadow-primary/20 shrink-0"
             >
               <Crown className="w-4 h-4" />
               <span>Upgrade with Paystack</span>
@@ -403,7 +403,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
             </>
           ) : (
             <>
-              <Sparkles className="w-4 h-4 text-amber-300" />
+              <Sparkles className="w-4 h-4 text-white" />
               <span>{planData ? 'Regenerate Age-Optimized Weekly Plan' : 'Generate Full Weekly Plan with AI'}</span>
             </>
           )}
@@ -411,8 +411,8 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
       </div>
 
       {errorMsg && (
-        <div className="p-4 rounded-2xl bg-red-50 text-red-700 text-xs font-bold flex items-center gap-2 border border-red-100">
-          <AlertCircle className="w-4 h-4 shrink-0" />
+        <div className="p-4 rounded-2xl bg-primary/10 text-gray-800 text-xs font-bold flex items-center gap-2 border border-primary/20">
+          <AlertCircle className="w-4 h-4 text-primary shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -489,9 +489,9 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
               {currentDay && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {/* Breakfast */}
-                  <div className="bg-amber-50/60 border border-amber-100/80 rounded-3xl p-4 sm:p-5 space-y-2">
+                  <div className="bg-primary/5 border border-primary/20 rounded-3xl p-4 sm:p-5 space-y-2">
                     <div className="flex justify-between items-start">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                         🌅 Breakfast
                       </span>
                       <span className="text-[9px] font-bold text-gray-500">
@@ -504,15 +504,15 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
                     <p className="text-xs text-gray-600 leading-relaxed">
                       {currentDay.breakfast?.description}
                     </p>
-                    <div className="text-[10px] font-bold text-amber-700 pt-1">
+                    <div className="text-[10px] font-bold text-primary pt-1">
                       ⭐ Target: {currentDay.breakfast?.keyNutrient}
                     </div>
                   </div>
 
                   {/* Lunch */}
-                  <div className="bg-emerald-50/60 border border-emerald-100/80 rounded-3xl p-4 sm:p-5 space-y-2">
+                  <div className="bg-primary/5 border border-primary/20 rounded-3xl p-4 sm:p-5 space-y-2">
                     <div className="flex justify-between items-start">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                         ☀️ Lunch
                       </span>
                       <span className="text-[9px] font-bold text-gray-500">
@@ -525,15 +525,15 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
                     <p className="text-xs text-gray-600 leading-relaxed">
                       {currentDay.lunch?.description}
                     </p>
-                    <div className="text-[10px] font-bold text-emerald-700 pt-1">
+                    <div className="text-[10px] font-bold text-primary pt-1">
                       ⭐ Target: {currentDay.lunch?.keyNutrient}
                     </div>
                   </div>
 
                   {/* Dinner */}
-                  <div className="bg-sky-50/60 border border-sky-100/80 rounded-3xl p-4 sm:p-5 space-y-2">
+                  <div className="bg-primary/5 border border-primary/20 rounded-3xl p-4 sm:p-5 space-y-2">
                     <div className="flex justify-between items-start">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-sky-800 bg-sky-100 px-2 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                         🌙 Dinner
                       </span>
                       <span className="text-[9px] font-bold text-gray-500">
@@ -546,15 +546,15 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
                     <p className="text-xs text-gray-600 leading-relaxed">
                       {currentDay.dinner?.description}
                     </p>
-                    <div className="text-[10px] font-bold text-sky-700 pt-1">
+                    <div className="text-[10px] font-bold text-primary pt-1">
                       ⭐ Target: {currentDay.dinner?.keyNutrient}
                     </div>
                   </div>
 
                   {/* Snack */}
-                  <div className="bg-purple-50/60 border border-purple-100/80 rounded-3xl p-4 sm:p-5 space-y-2">
+                  <div className="bg-primary/5 border border-primary/20 rounded-3xl p-4 sm:p-5 space-y-2">
                     <div className="flex justify-between items-start">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                         🍎 Healthy Snack
                       </span>
                       <span className="text-[9px] font-bold text-gray-500">
@@ -567,7 +567,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
                     <p className="text-xs text-gray-600 leading-relaxed">
                       {currentDay.snack?.description}
                     </p>
-                    <div className="text-[10px] font-bold text-purple-700 pt-1">
+                    <div className="text-[10px] font-bold text-primary pt-1">
                       ⭐ Target: {currentDay.snack?.keyNutrient}
                     </div>
                   </div>
@@ -594,7 +594,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
               <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Estimated Weekly Budget</p>
-                  <p className="text-xl font-serif font-black text-emerald-700 mt-0.5">
+                  <p className="text-xl font-serif font-black text-primary mt-0.5">
                     {planData.currencySymbol}{planData.totalEstBudget} <span className="text-xs font-sans text-gray-400 font-medium">({selectedRegion.rateName})</span>
                   </p>
                 </div>
@@ -603,7 +603,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
                   onClick={handleCopyGroceries}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-xs font-bold hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  {copySuccess ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copySuccess ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copySuccess ? 'Copied!' : 'Copy List'}</span>
                 </button>
               </div>
@@ -625,7 +625,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
                             onClick={() => toggleGroceryItem(item.name)}
                             className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none ${
                               isChecked
-                                ? 'bg-emerald-50/50 border-emerald-200 line-through text-gray-400'
+                                ? 'bg-primary/5 border-primary/20 line-through text-gray-400'
                                 : 'bg-gray-50/80 border-gray-100 text-gray-800 hover:bg-gray-100'
                             }`}
                           >
@@ -641,7 +641,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
                                 <p className="text-[10px] text-gray-500 font-medium">Quantity: {item.quantity}</p>
                               </div>
                             </div>
-                            <span className="text-xs font-black text-emerald-700">
+                            <span className="text-xs font-black text-primary">
                               ~{item.currency}{item.estCost}
                             </span>
                           </div>
@@ -653,6 +653,11 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
               </div>
             </div>
           )}
+
+          {/* AI Accuracy Disclaimer */}
+          <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/15 text-[10px] text-gray-600 leading-relaxed">
+            ℹ️ <strong>AI Accuracy Disclaimer:</strong> Nutritional suggestions, menus, and shopping estimates are generated using AI for educational and planning support. Always introduce new foods one at a time, check textures for choking safety, and consult your pediatrician or pediatric dietitian regarding specific dietary needs and allergies.
+          </div>
         </div>
       )}
     </div>

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { Plus, Calendar, Clock, ChevronLeft, CheckCircle2, Star, Sparkles, Heart, Activity as ActivityIcon, Droplet, Award, Flame, AlertCircle, Edit3, Trash2, Check, Mic, Search, Crown, Lock, RotateCcw, ShieldCheck } from 'lucide-react';
-import { TEETH_LIST, DEFAULT_VACCINE_SCHEDULE } from '../constants/babyData';
+import { TEETH_LIST } from '../constants/babyData';
 import { motion, AnimatePresence } from 'motion/react';
 import { MOCK_ACTIVITIES, THEME } from '../constants';
 import { Activity } from '../types';
 import { BabyCryAnalyzer } from './BabyCryAnalyzer';
+import { ImmunizationScheduler } from './ImmunizationScheduler';
 
 export const ActivityTracker = ({ 
   loggedMoods, 
@@ -150,11 +151,6 @@ export const ActivityTracker = ({
   const [selectedToothDate, setSelectedToothDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedToothSymptoms, setSelectedToothSymptoms] = useState<string[]>([]);
   const [selectedToothRemedies, setSelectedToothRemedies] = useState<string[]>([]);
-  const [editingVaccine, setEditingVaccine] = useState<string | null>(null);
-  const [editingVacStatus, setEditingVacStatus] = useState('Scheduled');
-  const [editingVacDate, setEditingVacDate] = useState('');
-  const [editingVacEffects, setEditingVacEffects] = useState('None');
-  const [vacFilterTab, setVacFilterTab] = useState<string>('All');
 
   // 5. Wake Window Calculator
   const [wwAgeBracket, setWwAgeBracket] = useState<'0-2m' | '3-4m' | '5-6m' | '7-9m' | '10-12m' | '12m+'>('5-6m');
@@ -276,13 +272,6 @@ export const ActivityTracker = ({
     setSelectedTooth(null);
   };
 
-  const handleSaveVaccine = () => {
-    if (!editingVaccine) return;
-    const updated = vaccineSchedule.map(v => v.id === editingVaccine ? { ...v, status: editingVacStatus, date: editingVacDate, sideEffects: editingVacEffects } : v);
-    setVaccineSchedule(updated);
-    localStorage.setItem('vaccine_schedule', JSON.stringify(updated));
-    setEditingVaccine(null);
-  };
 
   const stopAllAudio = () => {
     if (noiseSourceRef.current) {
@@ -799,45 +788,40 @@ export const ActivityTracker = ({
               <button
                 onClick={isListening ? stopListening : startListening}
                 className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer border-none ${
-                  isListening ? 'bg-red-500 text-gray-800 shadow-md shadow-red-200' : 'bg-primary text-white shadow-md shadow-primary/20'
+                  isListening ? 'bg-primary/20 text-primary shadow-md' : 'bg-primary text-white shadow-md shadow-primary/20'
                 }`}
               >
                 {isListening ? 'Stop Listening' : 'Start Monitor'}
               </button>
-              
-    </div>
+            </div>
 
             <div className="bg-white/60 p-4 rounded-3xl space-y-3 border border-white/50">
               <div className="flex items-center justify-between text-[10px]">
                 <span className="font-black text-gray-400 uppercase tracking-widest">Status:</span>
-                <span className={`font-black uppercase tracking-wider ${isListening ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
-                  {isListening ? '🟢 LISTENING ACTIVE' : '🔴 OFFLINE'}
+                <span className={`font-black uppercase tracking-wider ${isListening ? 'text-primary animate-pulse' : 'text-gray-400'}`}>
+                  {isListening ? '🟢 LISTENING ACTIVE' : '⚪ OFFLINE'}
                 </span>
-                
-    </div>
+              </div>
 
               {isListening && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-[10px]">
                     <span className="font-black text-gray-400 uppercase tracking-widest">Mic Amplitude:</span>
                     <span className="font-mono font-bold text-gray-700">{decibels} dB</span>
-                    
-    </div>
+                  </div>
                   <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                     <motion.div 
-                      className={`h-full rounded-full ${decibels > 40 ? 'bg-red-500' : 'bg-primary'}`}
+                      className={`h-full rounded-full ${decibels > 40 ? 'bg-primary' : 'bg-primary'}`}
                       animate={{ width: `${Math.min(100, (decibels / 100) * 100)}%` }}
                       transition={{ type: 'spring', stiffness: 200, damping: 20 }}
                     />
-                    
-    </div>
+                  </div>
                   {decibels > 40 && (
-                    <p className="text-[9px] font-black text-red-500 uppercase tracking-wider animate-pulse">
+                    <p className="text-[9px] font-black text-primary uppercase tracking-wider animate-pulse">
                       ⚠️ Sound detected! Threshold exceeded.
                     </p>
                   )}
-                  
-    </div>
+                </div>
               )}
 
               <p className="text-[10px] text-muted leading-relaxed font-medium">
@@ -896,7 +880,7 @@ export const ActivityTracker = ({
               <motion.button 
                 whileTap={{ scale: 0.9, rotate: -3 }}
                 onClick={handleStop}
-                className="px-10 py-4 rounded-full font-black uppercase tracking-widest text-xs transition-all shadow-lg bg-red-50 text-red-500 shadow-red-100 cursor-pointer border-none"
+                className="px-10 py-4 rounded-full font-black uppercase tracking-widest text-xs transition-all shadow-lg bg-primary/20 text-primary shadow-primary/10 cursor-pointer border-none"
               >
                 Wake Up
               </motion.button>
@@ -904,7 +888,7 @@ export const ActivityTracker = ({
               <motion.button 
                 whileTap={{ scale: 0.9, rotate: 3 }}
                 onClick={() => setIsActive(true)}
-                className="px-10 py-4 rounded-full font-black uppercase tracking-widest text-xs transition-all shadow-lg bg-indigo-500 text-gray-800 shadow-indigo-500/20 cursor-pointer border-none"
+                className="px-10 py-4 rounded-full font-black uppercase tracking-widest text-xs transition-all shadow-lg bg-primary text-white shadow-primary/20 cursor-pointer border-none"
               >
                 Start Sleep
               </motion.button>
@@ -914,14 +898,12 @@ export const ActivityTracker = ({
           {/* Wake Window Calculator */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl">⏳</div>
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl">⏳</div>
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Wake Window Calculator</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Maintains age-appropriate bedtime windows</p>
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
 
             <div className="bg-gray-50 p-5 rounded-3xl space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -939,8 +921,7 @@ export const ActivityTracker = ({
                     <option value="10-12m">10-12 Months</option>
                     <option value="12m+">12m+ Months</option>
                   </select>
-                  
-    </div>
+                </div>
                 <div>
                   <label className="text-[8px] font-bold text-gray-400 block mb-1 uppercase">Last Wake Up</label>
                   <input
@@ -950,34 +931,26 @@ export const ActivityTracker = ({
                     placeholder="e.g. 11:30 AM"
                     className="w-full bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-800 focus:outline-none"
                   />
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
 
-              <div className="bg-indigo-50/50 p-4 rounded-2xl border border-solid border-indigo-100/50 text-center">
-                <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest leading-none mb-1">Recommended Next Nap Window</p>
-                <p className="text-xl font-serif font-black text-indigo-700">{calculatedNapWindow}</p>
-                <p className="text-[9px] text-indigo-400 font-medium mt-1">Calculated based on baby sleep science guidelines.</p>
-                
-    </div>
-
-              
-    </div>
-            
-    </div>
+              <div className="bg-primary/5 p-4 rounded-2xl border border-solid border-primary/20 text-center">
+                <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mb-1">Recommended Next Nap Window</p>
+                <p className="text-xl font-serif font-black text-gray-800">{calculatedNapWindow}</p>
+                <p className="text-[9px] text-gray-500 font-medium mt-1">Calculated based on baby sleep science guidelines.</p>
+              </div>
+            </div>
+          </div>
 
           {/* Procedural Ambient Sound Machine & Lullabies Merged Card */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-sky-100 rounded-2xl flex items-center justify-center text-2xl">🔊</div>
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl">🔊</div>
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Lullabies & Sound Machine</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Soothing audio synthesized directly in browser</p>
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
 
             <div className="bg-gray-50 p-5 rounded-3xl space-y-5">
               <div className="grid grid-cols-3 gap-2">
@@ -1004,8 +977,7 @@ export const ActivityTracker = ({
                     <span className="text-[8px] opacity-60 uppercase mt-0.5 font-bold">{snd.desc}</span>
                   </button>
                 ))}
-                
-    </div>
+              </div>
 
               {(activeSound !== 'none' || playingLullaby !== null) && (
                 <button
@@ -1013,7 +985,7 @@ export const ActivityTracker = ({
                     stopAllAudio();
                     setPlayingLullaby(null);
                   }}
-                  className="w-full bg-red-100 text-red-600 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest cursor-pointer border-none"
+                  className="w-full bg-primary/20 text-primary py-2 rounded-xl font-black text-[9px] uppercase tracking-widest cursor-pointer border-none"
                 >
                   ⏹ Stop All Audio
                 </button>
@@ -1024,8 +996,7 @@ export const ActivityTracker = ({
                 <div className="flex justify-between text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
                   <span>Volume</span>
                   <span>{Math.round(volume * 100)}%</span>
-                  
-    </div>
+                </div>
                 <input
                   type="range"
                   min="0"
@@ -1035,8 +1006,7 @@ export const ActivityTracker = ({
                   onChange={e => setVolume(parseFloat(e.target.value))}
                   className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
                 />
-                
-    </div>
+              </div>
 
               {/* Sleep Timer */}
               <div className="space-y-1">
@@ -1051,10 +1021,8 @@ export const ActivityTracker = ({
                       {timer}
                     </button>
                   ))}
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
 
               {/* Lullabies for Baby Embedded Section */}
               <div className="border-t border-gray-200/50 pt-4 mt-2 space-y-3">
@@ -1065,15 +1033,12 @@ export const ActivityTracker = ({
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${playingLullaby === lullaby.id ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
                           🎵
-                          
-    </div>
+                        </div>
                         <div>
                           <p className="text-xs font-bold text-gray-800 leading-tight">{lullaby.name}</p>
                           <p className="text-[8px] font-black text-muted uppercase tracking-widest">{lullaby.duration}</p>
-                          
-    </div>
-                        
-    </div>
+                        </div>
+                      </div>
                       <button 
                         onClick={() => {
                           if (playingLullaby === lullaby.id) {
@@ -1085,26 +1050,21 @@ export const ActivityTracker = ({
                             startLullabyMelody(lullaby.id);
                           }
                         }}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center shadow-xs transition-all border-none cursor-pointer ${playingLullaby === lullaby.id ? 'bg-red-50 text-red-500 font-bold' : 'bg-white text-primary hover:scale-105'}`}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center shadow-xs transition-all border-none cursor-pointer ${playingLullaby === lullaby.id ? 'bg-primary/20 text-primary font-bold' : 'bg-white text-primary hover:scale-105'}`}
                       >
                         {playingLullaby === lullaby.id ? '■' : '▶'}
                       </button>
-                      
-    </div>
+                    </div>
                   ))}
-                  
-    </div>
-                
-    </div>
-              
-    </div>
-            
-    </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Sleep & Mood correlation charts */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl">📊</div>
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl">📊</div>
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Sleep & Mood Correlation</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Visualizes recorded sleep duration against baby mood</p>
@@ -1125,7 +1085,7 @@ export const ActivityTracker = ({
                   </ResponsiveContainer>
                 </div>
                 <p className="text-[10px] text-gray-400 text-center">
-                  Data from <span className="font-bold text-gray-700">{correlationData.length} recorded nap sessions</span> shows average sleep of <span className="font-bold text-gray-700">{avgSleepDuration}h</span> with <span className="font-bold text-purple-600">{happyRatio}%</span> positive post-nap mood.
+                  Data from <span className="font-bold text-gray-700">{correlationData.length} recorded nap sessions</span> shows average sleep of <span className="font-bold text-gray-700">{avgSleepDuration}h</span> with <span className="font-bold text-primary">{happyRatio}%</span> positive post-nap mood.
                 </p>
               </>
             ) : (
@@ -1140,19 +1100,19 @@ export const ActivityTracker = ({
 
           {/* AI Sleep Insights */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300" />
+            <div className="absolute top-0 left-0 w-full h-1 bg-primary/20" />
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl">✨</div>
+                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl text-primary">✨</div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-serif font-black text-gray-800">AI Nap Insights</h3>
                     {isPremium ? (
-                      <span className="bg-amber-400 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                      <span className="bg-primary text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
                         <Crown className="w-2.5 h-2.5" /> PRO
                       </span>
                     ) : (
-                      <span className="bg-amber-100 text-amber-800 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                      <span className="bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
                         <Lock className="w-2.5 h-2.5" /> Premium Only
                       </span>
                     )}
@@ -1164,7 +1124,7 @@ export const ActivityTracker = ({
                 !sleepInsight && !isGeneratingInsight && (
                   <button 
                     onClick={generateSleepInsight}
-                    className="px-4 py-2 bg-purple-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-md hover:scale-105 transition-all"
+                    className="px-4 py-2 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-md hover:scale-105 transition-all border-none"
                   >
                     Analyze
                   </button>
@@ -1172,7 +1132,7 @@ export const ActivityTracker = ({
               ) : (
                 <button 
                   onClick={() => setIsSubscriptionModalOpen?.(true)}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-md hover:scale-105 transition-all flex items-center gap-1"
+                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-md hover:scale-105 transition-all flex items-center gap-1 border-none"
                 >
                   <Crown className="w-3 h-3" /> Upgrade
                 </button>
@@ -1180,16 +1140,16 @@ export const ActivityTracker = ({
             </div>
 
             {!isPremium ? (
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-3xl p-5 border border-purple-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="bg-primary/5 rounded-3xl p-5 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="space-y-1 text-left">
-                  <p className="text-xs font-bold text-purple-950">AI Nap & Circadian Insights is locked to Premium</p>
-                  <p className="text-[11px] text-purple-700 font-medium">
+                  <p className="text-xs font-bold text-gray-800">AI Nap & Circadian Insights is locked to Premium</p>
+                  <p className="text-[11px] text-gray-600 font-medium">
                     Analyzes your baby's historical sleep logs and wake windows to forecast sweet-spot nap times.
                   </p>
                 </div>
                 <button
                   onClick={() => setIsSubscriptionModalOpen?.(true)}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-md shrink-0"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-md shrink-0"
                 >
                   <Crown className="w-4 h-4" />
                   <span>Unlock AI Insights</span>
@@ -1198,20 +1158,20 @@ export const ActivityTracker = ({
             ) : (
               <>
                 {isGeneratingInsight && (
-                  <div className="bg-purple-50/50 rounded-2xl p-6 text-center space-y-3 animate-pulse">
-                    <div className="w-6 h-6 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin mx-auto" />
-                    <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Analyzing past 7 days...</p>
+                  <div className="bg-primary/5 rounded-2xl p-6 text-center space-y-3 animate-pulse">
+                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest">Analyzing past 7 days...</p>
                   </div>
                 )}
 
                 {sleepInsight && !isGeneratingInsight && (
-                  <div className="bg-purple-50 rounded-3xl p-5 border border-purple-100">
-                    <div className="text-[11px] text-purple-900 leading-relaxed space-y-2 whitespace-pre-wrap">
+                  <div className="bg-primary/5 rounded-3xl p-5 border border-primary/20">
+                    <div className="text-[11px] text-gray-800 leading-relaxed space-y-2 whitespace-pre-wrap">
                       {sleepInsight}
                     </div>
                     <button 
                       onClick={generateSleepInsight}
-                      className="mt-4 text-[9px] font-black text-purple-500 uppercase tracking-widest hover:text-purple-700 transition-colors cursor-pointer border-none bg-transparent"
+                      className="mt-4 text-[9px] font-black text-primary uppercase tracking-widest hover:text-primary/80 transition-colors cursor-pointer border-none bg-transparent"
                     >
                       ↻ Refresh Insights
                     </button>
@@ -1271,20 +1231,18 @@ export const ActivityTracker = ({
           {/* Outdoor & Sunlight Exposure */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-2xl">☀️</div>
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl">☀️</div>
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Outdoor & Sunlight</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Perfect for strollers, circadian rhythm & Vitamin D</p>
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
 
             {/* Circular Gauge */}
             <div className="flex flex-col items-center justify-center py-4 relative">
               <svg className="w-32 h-32 transform -rotate-90">
                 <circle cx="64" cy="64" r="50" stroke="#f3f4f6" strokeWidth="10" fill="transparent" />
-                <circle cx="64" cy="64" r="50" stroke="#f59e0b" strokeWidth="10" fill="transparent"
+                <circle cx="64" cy="64" r="50" stroke="var(--color-primary, #ec4899)" strokeWidth="10" fill="transparent"
                   strokeDasharray={314.15}
                   strokeDashoffset={314.15 - (314.15 * Math.min(100, (sunlightToday / sunlightGoal) * 100)) / 100}
                 />
@@ -1292,28 +1250,25 @@ export const ActivityTracker = ({
               <div className="absolute text-center">
                 <span className="text-3xl font-serif font-black text-gray-800">{Math.round(sunlightToday)}</span>
                 <span className="text-[10px] text-muted block font-bold">/ {sunlightGoal} min</span>
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
 
             <div className="bg-gray-50 p-4 rounded-3xl space-y-4">
               <div className="flex justify-between items-center text-xs font-bold text-gray-600">
                 <span>Stroll Timer</span>
                 <span className="font-mono text-base">{Math.floor(sunSeconds / 60)}m {(sunSeconds % 60).toString().padStart(2, '0')}s</span>
-                
-    </div>
+              </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setSunTimerActive(!sunTimerActive)}
-                  className={`flex-1 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest cursor-pointer border-none transition-all ${sunTimerActive ? 'bg-amber-600 text-white' : 'bg-amber-500 text-white hover:bg-amber-600/90'}`}
+                  className={`flex-1 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest cursor-pointer border-none transition-all ${sunTimerActive ? 'bg-primary text-white' : 'bg-primary hover:bg-primary/90 text-white'}`}
                 >
                   {sunTimerActive ? 'Pause' : 'Start Playtime'}
                 </button>
                 {sunSeconds > 0 && (
                   <button
                     onClick={() => saveSunlight(sunSeconds / 60)}
-                    className="px-4 bg-green-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest cursor-pointer border-none hover:bg-green-600"
+                    className="px-4 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest cursor-pointer border-none hover:bg-primary/90"
                   >
                     Save
                   </button>
@@ -1362,210 +1317,32 @@ export const ActivityTracker = ({
     </div>
                     <button
                       onClick={() => toggleHygiene(item.id)}
-                      className={`w-10 h-10 rounded-full flex items-center justify-center border-none cursor-pointer transition-colors ${loggedDate ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'}`}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center border-none cursor-pointer transition-colors ${loggedDate ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'}`}
                     >
                       <CheckCircle2 className="w-5 h-5" />
                     </button>
-                    
-    </div>
+                  </div>
                 );
               })}
-              
-    </div>
-            
-    </div>
-
-          {/* Childhood Immunization Tracker */}
-          <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-5 text-left">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-2xl shadow-xs">💉</div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-serif font-black text-gray-800">Childhood Immunization Tracker</h3>
-                    <span className="text-[8px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 uppercase tracking-wider">Routine Schedule</span>
-                  </div>
-                  <p className="text-[11px] text-gray-500 font-medium mt-0.5">Recommended Routine Childhood Vaccination Guidelines & Milestones</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  if (window.confirm('Restore the standard routine childhood vaccination schedule?')) {
-                    if (setVaccineSchedule) setVaccineSchedule(DEFAULT_VACCINE_SCHEDULE);
-                    localStorage.setItem('vaccine_schedule', JSON.stringify(DEFAULT_VACCINE_SCHEDULE));
-                  }
-                }}
-                className="px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
-                title="Reset schedule to standard recommended vaccine guidelines"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Reset Schedule
-              </button>
             </div>
+          </div>
 
-            {/* Overall Progress Indicator */}
-            <div className="bg-orange-50/60 p-3.5 rounded-2xl border border-orange-100/80 space-y-2">
-              <div className="flex justify-between items-center text-xs font-black text-gray-700">
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  Vaccination Progress
-                </span>
-                <span className="text-orange-700 font-bold">
-                  {vaccineSchedule.filter(v => v.status === 'Completed').length} / {vaccineSchedule.length} Up to Date ({Math.round((vaccineSchedule.filter(v => v.status === 'Completed').length / (vaccineSchedule.length || 1)) * 100)}%)
-                </span>
-              </div>
-              <div className="w-full bg-gray-200/80 h-2 rounded-full overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-orange-500 to-emerald-500 h-full rounded-full transition-all duration-500"
-                  style={{ width: (vaccineSchedule.filter(v => v.status === "Completed").length / (vaccineSchedule.length || 1) * 100) + "%" }}
-                />
-              </div>
-              <p className="text-[10px] text-gray-500 font-medium italic">
-                *Aligned with standard global childhood immunization recommendations.
-              </p>
-            </div>
-
-            {/* Age Milestone Filter Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[10px] font-bold">
-              {['All', 'Birth', '2 Months', '4 Months', '6 Months', '9 Months', '12 Months', '15 Months', '18 Months', '24 Months', 'Completed', 'Scheduled'].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setVacFilterTab(tab)}
-                  className={"px-3 py-1 rounded-full whitespace-nowrap transition-all border cursor-pointer " + (vacFilterTab === tab ? "bg-orange-600 text-white border-orange-600 shadow-xs" : "bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100")}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 max-h-[480px] overflow-y-auto pr-1">
-              {vaccineSchedule.filter(v => {
-                if (vacFilterTab === 'All') return true;
-                if (vacFilterTab === 'Completed') return v.status === 'Completed';
-                if (vacFilterTab === 'Scheduled') return v.status === 'Scheduled';
-                return v.age === vacFilterTab;
-              }).map(v => (
-                <div key={v.id} className="bg-white p-4 rounded-3xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-orange-200 transition-all shadow-2xs">
-                  <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-xl shrink-0 mt-0.5 sm:mt-0 shadow-2xs">
-                      {v.icon || '💉'}
-                    </div>
-                    <div className="space-y-1 text-left">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[8px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded uppercase tracking-wider">{v.age}</span>
-                        <span className="text-[8px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 uppercase tracking-wider">{v.category || 'Routine Essential'}</span>
-                      </div>
-                      <p className="text-xs font-black text-gray-800 mt-0.5">{v.name}</p>
-                      {v.disease && (
-                        <p className="text-[10px] text-gray-500 font-medium leading-tight">{v.disease}</p>
-                      )}
-                      <p className="text-[9px] text-gray-400 font-semibold mt-0.5">
-                        Status: <span className={v.status === 'Completed' ? 'text-emerald-600 font-bold' : 'text-blue-500'}>{v.status}</span>
-                        Status: <span className={v.status === "Completed" ? "text-emerald-600 font-bold" : "text-blue-500"}>{v.status}</span> {v.date ? ' (' + v.date + ')' : ''}
-                      </p>
-                      {v.sideEffects && v.sideEffects !== 'None' && (
-                        <p className="text-[9px] text-rose-600 bg-rose-50 px-2 py-0.5 rounded font-bold inline-block mt-0.5">⚠️ Side effects: {v.sideEffects}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-                    <button
-                      onClick={() => {
-                        const newStatus = v.status === 'Completed' ? 'Scheduled' : 'Completed';
-                        const newDate = newStatus === 'Completed' ? new Date().toISOString().split('T')[0] : v.date;
-                        const updated = vaccineSchedule.map(item => item.id === v.id ? { ...item, status: newStatus, date: newDate } : item);
-                        if (setVaccineSchedule) setVaccineSchedule(updated);
-                        localStorage.setItem('vaccine_schedule', JSON.stringify(updated));
-                      }}
-                      className={v.status === "Completed" ? "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-none cursor-pointer flex items-center gap-1 transition-colors bg-emerald-100 text-emerald-800 hover:bg-emerald-200" : "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-none cursor-pointer flex items-center gap-1 transition-colors bg-orange-500 text-white hover:bg-orange-600 shadow-xs"}
-                      title={v.status === 'Completed' ? 'Mark as Scheduled' : 'Mark as Completed'}
-                    >
-                      <CheckCircle2 className="w-3 h-3" />
-                      {v.status === 'Completed' ? 'Given ✓' : 'Mark Given'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingVaccine(v.id);
-                        setEditingVacStatus(v.status);
-                        setEditingVacDate(v.date || '');
-                        setEditingVacEffects(v.sideEffects || 'None');
-                      }}
-                      className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-[10px] font-black uppercase text-gray-600 border-none cursor-pointer"
-                    >
-                      Edit
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Vaccine Edit Drawer */}
-            <AnimatePresence>
-              {editingVaccine && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="bg-gray-50 p-5 rounded-3xl border border-gray-100 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs font-black text-gray-800 uppercase tracking-widest">
-                      Edit vaccine status
-                    </p>
-                    <button onClick={() => setEditingVaccine(null)} className="text-xs font-bold text-gray-400 bg-none border-none cursor-pointer">Cancel</button>
-                    
-    </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[8px] font-bold text-gray-400 block mb-1 uppercase">Status</label>
-                      <select value={editingVacStatus} onChange={e => setEditingVacStatus(e.target.value)} className="w-full bg-white border border-gray-100 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:outline-none">
-                        <option value="Scheduled">Scheduled</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Deferred">Deferred</option>
-                      </select>
-                      
-    </div>
-                    <div>
-                      <label className="text-[8px] font-bold text-gray-400 block mb-1 uppercase">Date</label>
-                      <input type="date" value={editingVacDate} onChange={e => setEditingVacDate(e.target.value)} className="w-full bg-white border border-gray-100 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-800 focus:outline-none" />
-                      
-    </div>
-                    
-    </div>
-
-                  <div>
-                    <label className="text-[8px] font-bold text-gray-400 block mb-1.5 uppercase">Track Side Effects</label>
-                    <div className="flex flex-wrap gap-1.5 font-bold">
-                      {['Mild Fever', 'Sleepiness', 'Irritation', 'Redness', 'None'].map(eff => (
-                        <button
-                          key={eff}
-                          onClick={() => setEditingVacEffects(eff)}
-                          className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border-none cursor-pointer ${editingVacEffects === eff ? 'bg-orange-100 text-orange-700 font-extrabold' : 'bg-white text-gray-400 border border-solid border-gray-100'}`}
-                        >
-                          {eff}
-                        </button>
-                      ))}
-                      
-    </div>
-                    
-    </div>
-
-                  <button onClick={handleSaveVaccine} className="w-full bg-primary text-white py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest cursor-pointer border-none hover:bg-primary/95 transition-all">
-                    Save Vaccine Record
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
-    </div>
+          {/* Immunization Tracker */}
+          <ImmunizationScheduler 
+            vaccineSchedule={vaccineSchedule} 
+            setVaccineSchedule={setVaccineSchedule} 
+            onNavigate={onNavigate}
+          />
 
           {/* Teething Map */}
           <div className="bg-card rounded-[40px] border border-white shadow-sm p-6 space-y-6 text-left">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-2xl">🦷</div>
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl">🦷</div>
               <div>
                 <h3 className="text-sm font-serif font-black text-gray-800">Teething Map</h3>
                 <p className="text-[11px] text-gray-400 font-medium">Interactive Baby Dental Emergence Map</p>
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
 
             <div className="bg-gray-50 p-6 rounded-3xl space-y-6 text-center">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tap on any tooth to edit emergence</p>
@@ -1581,7 +1358,7 @@ export const ActivityTracker = ({
                         <button
                           key={t.id}
                           onClick={() => handleToothClick(t.id)}
-                          className={`w-10 h-11 rounded-b-2xl border-none cursor-pointer flex flex-col items-center justify-center text-[10px] font-black transition-all shadow-sm ${data?.emerged ? 'bg-amber-400 text-gray-800 font-black' : 'bg-white text-gray-300 border border-solid border-gray-100'}`}
+                          className={`w-10 h-11 rounded-b-2xl border-none cursor-pointer flex flex-col items-center justify-center text-[10px] font-black transition-all shadow-sm ${data?.emerged ? 'bg-primary text-white font-black' : 'bg-white text-gray-300 border border-solid border-gray-100'}`}
                           title={t.name}
                         >
                           <span>🦷</span>
@@ -1589,10 +1366,8 @@ export const ActivityTracker = ({
                         </button>
                       );
                     })}
-                    
-    </div>
-                  
-    </div>
+                  </div>
+                </div>
 
                 {/* Lower Teeth Row */}
                 <div className="space-y-2">
@@ -1604,7 +1379,7 @@ export const ActivityTracker = ({
                         <button
                           key={t.id}
                           onClick={() => handleToothClick(t.id)}
-                          className={`w-10 h-11 rounded-t-2xl border-none cursor-pointer flex flex-col items-center justify-center text-[10px] font-black transition-all shadow-sm ${data?.emerged ? 'bg-amber-400 text-gray-800 font-black' : 'bg-white text-gray-300 border border-solid border-gray-100'}`}
+                          className={`w-10 h-11 rounded-t-2xl border-none cursor-pointer flex flex-col items-center justify-center text-[10px] font-black transition-all shadow-sm ${data?.emerged ? 'bg-primary text-white font-black' : 'bg-white text-gray-300 border border-solid border-gray-100'}`}
                           title={t.name}
                         >
                           <span className="text-[7px] leading-none uppercase mb-0.5">{t.id.split('_')[1].toUpperCase()}</span>
@@ -1612,14 +1387,10 @@ export const ActivityTracker = ({
                         </button>
                       );
                     })}
-                    
-    </div>
-                  
-    </div>
-                
-    </div>
-              
-    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Selected Tooth Drawer Panel */}
             <AnimatePresence>
@@ -1630,19 +1401,17 @@ export const ActivityTracker = ({
                       Configure: {TEETH_LIST.find(t => t.id === selectedTooth)?.name}
                     </p>
                     <button onClick={() => setSelectedTooth(null)} className="text-xs font-bold text-gray-400 bg-none border-none cursor-pointer">Close</button>
-                    
-    </div>
+                  </div>
 
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-gray-600">Has Emerged / Erupted?</span>
                     <button
                       onClick={() => setSelectedToothEmerged(!selectedToothEmerged)}
-                      className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer border-none transition-all ${selectedToothEmerged ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}
+                      className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer border-none transition-all ${selectedToothEmerged ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'}`}
                     >
                       {selectedToothEmerged ? 'Emerged' : 'Not yet'}
                     </button>
-                    
-    </div>
+                  </div>
 
                   {selectedToothEmerged && (
                     <div>
@@ -1653,8 +1422,7 @@ export const ActivityTracker = ({
                         onChange={e => setSelectedToothDate(e.target.value)}
                         className="w-full bg-white border border-gray-100 rounded-xl px-4 py-2 text-xs font-bold text-gray-800 focus:outline-none"
                       />
-                      
-    </div>
+                    </div>
                   )}
 
                   <div className="space-y-2">
@@ -1664,15 +1432,13 @@ export const ActivityTracker = ({
                         <button
                           key={sym}
                           onClick={() => setSelectedToothSymptoms(prev => prev.includes(sym) ? prev.filter(x => x !== sym) : [...prev, sym])}
-                          className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border-none cursor-pointer ${selectedToothSymptoms.includes(sym) ? 'bg-rose-100 text-rose-700' : 'bg-white text-gray-400 border border-solid border-gray-100'}`}
+                          className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border-none cursor-pointer ${selectedToothSymptoms.includes(sym) ? 'bg-primary/20 text-primary' : 'bg-white text-gray-400 border border-solid border-gray-100'}`}
                         >
                           {sym}
                         </button>
                       ))}
-                      
-    </div>
-                    
-    </div>
+                    </div>
+                  </div>
 
                   <div className="space-y-2">
                     <label className="text-[8px] font-bold text-gray-400 block uppercase">Remedies Applied</label>
@@ -1681,15 +1447,13 @@ export const ActivityTracker = ({
                         <button
                           key={rem}
                           onClick={() => setSelectedToothRemedies(prev => prev.includes(rem) ? prev.filter(x => x !== rem) : [...prev, rem])}
-                          className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border-none cursor-pointer ${selectedToothRemedies.includes(rem) ? 'bg-sky-100 text-sky-700' : 'bg-white text-gray-400 border border-solid border-gray-100'}`}
+                          className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border-none cursor-pointer ${selectedToothRemedies.includes(rem) ? 'bg-primary/20 text-primary' : 'bg-white text-gray-400 border border-solid border-gray-100'}`}
                         >
                           {rem}
                         </button>
                       ))}
-                      
-    </div>
-                    
-    </div>
+                    </div>
+                  </div>
 
                   <button
                     onClick={saveToothStatus}
@@ -1729,7 +1493,7 @@ export const ActivityTracker = ({
                           const updated = scheduledActivities.map(a => a.id === scheduled.id ? { ...a, completed: !a.completed } : a);
                           setScheduledActivities(updated);
                         }}
-                        className={`w-10 h-10 rounded-full flex items-center justify-center text-gray-800 transition-all border-none cursor-pointer ${isCompleted ? 'bg-green-500 shadow-md shadow-green-100' : 'bg-gray-100 hover:bg-gray-200'}`}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-white transition-all border-none cursor-pointer ${isCompleted ? 'bg-primary shadow-md shadow-primary/20' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
                       >
                         <CheckCircle2 className="w-5 h-5" />
                       </button>

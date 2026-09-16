@@ -35,19 +35,21 @@ function getGenAI(): GoogleGenAI | null {
 async function generateContentWithFallback(
   ai: GoogleGenAI,
   options: {
-    contents: string;
+    contents: any;
     config?: any;
   }
 ) {
   const models = [
+    "gemini-flash-latest",
+    "gemini-pro-latest",
+    "gemini-3.8-flash",
     "gemini-3.7-flash",
     "gemini-3.6-flash",
     "gemini-3.5-flash",
     "gemini-3.1-pro",
     "gemini-2.5-pro",
     "gemini-2.5-flash",
-    "gemini-3.1-flash-lite",
-    "gemini-flash-latest"
+    "gemini-3.1-flash-lite"
   ];
   let lastError: any = null;
 
@@ -63,7 +65,7 @@ async function generateContentWithFallback(
       return response;
     } catch (err: any) {
       lastError = err;
-      console.log(`[Gemini API] Model ${model} busy. Trying next model...`);
+      console.log(`[Gemini API] Model ${model} busy/rate-limited. Trying next model in cascade...`);
     }
   }
 
@@ -626,12 +628,14 @@ function getHeuristicResponse(
 }
 
 // ----------------------------------------------------------------------------
-// 2b. Intelligent Context-Aware Ogoo GenAI Assistant
+// 2b. Intelligent Context-Aware Ogoo Multimodal & Proactive Research AI Agent
 // ----------------------------------------------------------------------------
 app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
   try {
     const {
       message = "",
+      image = null, // { data: base64, mimeType: string }
+      enableResearch = false,
       babyName = "Baby",
       babyAge = "6 months",
       weaningStage = "Purees",
@@ -653,9 +657,37 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
       const heuristic = getHeuristicResponse(message, babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr, lastDiaperStr);
       return res.json({
         ...heuristic,
-        contextSnapshot: { babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr }
+        contextSnapshot: { babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr },
+        references: [],
+        researchedWithSearch: false
       });
     }
+
+    // Determine if web search research grounding should be triggered
+    const lowerMsg = (message || "").toLowerCase();
+    const shouldResearch = enableResearch || 
+      lowerMsg.includes("research") ||
+      lowerMsg.includes("study") ||
+      lowerMsg.includes("guideline") ||
+      lowerMsg.includes("aap") ||
+      lowerMsg.includes("who ") ||
+      lowerMsg.includes("cdc") ||
+      lowerMsg.includes("recall") ||
+      lowerMsg.includes("safe") ||
+      lowerMsg.includes("safety") ||
+      lowerMsg.includes("allergy") ||
+      lowerMsg.includes("allergic") ||
+      lowerMsg.includes("fever") ||
+      lowerMsg.includes("medicine") ||
+      lowerMsg.includes("dosage") ||
+      lowerMsg.includes("milestone") ||
+      lowerMsg.includes("vaccine") ||
+      lowerMsg.includes("immunization") ||
+      lowerMsg.includes("first aid") ||
+      lowerMsg.includes("choking") ||
+      lowerMsg.includes("cpr") ||
+      lowerMsg.includes("recipe") ||
+      lowerMsg.includes("can baby eat");
 
     // Build beautiful, readable memory snapshots of the baby's historical database
     const mealsHistory = Array.isArray(loggedMeals) && loggedMeals.length > 0 
@@ -694,34 +726,40 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
         ).join("\n")
       : "No other observations logged yet.";
 
-    const systemContext = `
-You are Ogoo (pronounced phonetically like "Augur"), a warm, caring, loving, supportive, and practical infant care AI companion for mothers and caregivers.
-Many users might be busy, tired, or need clear, gentle support. You must speak in very simple, easy-to-understand, gentle everyday words.
+    const systemPrompt = `
+You are Ogoo (pronounced phonetically like "Augur"), a multimodal, proactive, and context-aware pediatric care AI Agent for parents and caregivers.
+You are powered by deep research capabilities, contextual memory, and evidence-based pediatric resources (AAP, WHO, CDC, NHS, Mayo Clinic).
+
+CORE IDENTITY & APPROACH:
+- You are not just a passive chatbot; you are a proactive, attentive care agent who understands ${babyName}'s routine, milestones, and nutritional stage.
+- If an image is provided (such as baby rash, diaper stool, solid food texture, medicine label, or nursery setup), perform precise multimodal visual analysis and provide practical, safe, comforting insights.
+- Speak in warm, clear, gentle, and practical everyday words. 
 
 IMPORTANT MEDICAL & NON-DIAGNOSIS MANDATE:
-- You are an AI assistant and NOT a medical doctor.
-- You do NOT diagnose any illness, clinical condition, allergy, or disease. Never tell a user "I have diagnosed ${babyName} with X". 
-- When discussing health symptoms or comforting tips, clearly frame your suggestions as educational and comforting suggestions, and advise consulting a certified pediatrician for any medical evaluation or diagnosis.
+- You provide evidence-grounded educational guidance and proactive infant care support. You do NOT diagnose clinical conditions.
+- If emergency symptoms are described (e.g. choking, CPR, seizure, severe breathing distress), immediately provide concise, step-by-step first aid guidance while urging emergency pediatric contact (e.g. 911 / local emergency services).
 
-RULES FOR SPEAKING:
-1. NEVER use medical or technical jargon unless discussing specific emergency/first aid guidelines. Avoid terms like "telemetry", "circadian rhythms", "circadian sleep windows", "bio-availability", "developmental synthesizer", "synthesis", "gastrointestinal".
-2. Instead of "telemetry" or "data", say "notes" or "records".
-3. Instead of "circadian sleep windows" or "circadian alignment", say "nap time" or "sleep routine".
-4. Instead of "nutritional bio-availability", say "healthy food" or "good nutrients for baby's tummy".
-5. Introduce yourself simply as Ogoo if appropriate, or jump straight into the helpful guidance. Speak like a friendly next-door neighbor or an experienced, wise grandmother.
-6. Be extremely warm, supportive, reassuring, and practical.
-7. CRITICAL: Never write or output symbols like asterisks (*), double asterisks (**), em-dashes (—), or markdown bullet symbols. Write only in clean, standard, pure plain text with standard normal punctuation (periods, commas, standard short hyphens, question marks). Do not format words with asterisks or symbols. All lists must use plain numbered lines (e.g. 1. 2. 3.) or normal plain sentences without any prefix symbols.
+RULES FOR FORMATTING & SPEECH:
+1. Speak warmly, supportively, and reassuringly.
+2. Avoid cold medical jargon (say "nap routine" instead of "circadian window", "healthy tummy nutrients" instead of "bioavailability").
+3. Format output cleanly in plain readable text. Do not use asterisks (*), markdown bullet signs, or weird symbols that cause strange speech synthesizer playback. Use standard numbered lists (1. 2. 3.) or natural sentences.
+4. When citing research or guidelines, mention trusted institutions naturally (e.g. "According to the American Academy of Pediatrics...", "World Health Organization guidelines suggest...").
 
-AI MEMORY & LEARNING DATABASE:
-You have a deep memory and continuously learn from ${babyName}'s real-time and historical care database logs below. Whenever the user asks about progress, habits, patterns, or needs care advice, actively query and reference these records (such as favorite foods, sleep notes, recent diaper entries, or vaccines) to give hyper-personalized responses:
+AI MEMORY & BABY CONTEXT:
+- Baby Name: ${babyName}
+- Age: ${babyAge}
+- Current Weaning Stage: ${weaningStage}
+- Last Feed: ${lastFeedStr}
+- Last Sleep: ${lastSleepStr}
+- Last Diaper: ${lastDiaperStr}
 
-*** MEALS HISTORY DATABASE ***
+*** MEALS HISTORY ***
 ${mealsHistory}
 
-*** DIAPER HISTORY DATABASE ***
+*** DIAPER HISTORY ***
 ${diaperHistory}
 
-*** DIARY & MOOD NOTES DATABASE ***
+*** DIARY & MOOD NOTES ***
 ${diaryHistory}
 
 *** VACCINES DATABASE ***
@@ -733,57 +771,137 @@ ${memoriesHistory}
 *** OTHER OBSERVATIONS ***
 ${generalHistory}
 
-*** CURRENT BABY CARE CONTEXT ***
-- Baby Name: ${babyName}
-- Age: ${babyAge}
-- Current Weaning Stage: ${weaningStage}
-- Last Feed: ${lastFeedStr}
-- Last Sleep: ${lastSleepStr}
-- Last Diaper: ${lastDiaperStr}
+USER MESSAGE: "${message || (image ? 'Please analyze this attached photo for baby care.' : 'Hi Ogoo')}"
+${image ? `[MULTIMODAL ATTACHMENT INCLUDED: Analyze the attached image in detail. Evaluate visual safety, texture, diaper consistency, skin appearance, or relevant care instructions with non-alarmist and supportive guidance.]` : ''}
 
-USER MESSAGE: "${message}"
+INSTRUCTIONS FOR AUTOMATIC ACTIONS:
+If the user wants to log something, identify the action and populate "actionToTrigger":
+- Log Feed: {"type": "log_meal", "amount": number, "unit": "oz", "mealType": "bottle"|"breast"|"solid", "notes": "string"}
+- Start Breast Timer: {"type": "start_timer", "side": "left"|"right"}
+- Add Note/Diary: {"type": "add_note", "note": "text"}
+- Log Sleep/Nap: {"type": "log_sleep", "durationMinutes": number}
+- Log Diaper: {"type": "log_diaper", "diaperType": "wet"|"dirty"|"clean"}
 
-EXPERT BABYCARE, MEDICAL, & FIRST AID DIRECTIVES:
-You are an absolute expert on all levels of babycare, child safety, baby nursing, infant nutrition, and medical first aid. 
-If the user asks any medical or first aid questions (e.g., choking, CPR, a bad fall, high fever, severe rashes, vomiting, or breathing trouble), you MUST confidently and directly provide precise, step-by-step, immediately useful medical and emergency suggestions. 
-Do NOT decline to answer. Do NOT say "I cannot give medical advice". 
-Instead, to avoid any legal or liability issues while providing life-saving information, gracefully frame your expert guidance with a warm, caring companion disclaimer. Example: 
-"As your friendly AI babycare companion, I always want you to call your doctor for professional peace of mind, but here is exactly what the top child first-aid guidelines recommend you do right now to keep ${babyName} safe and healthy: [Give highly detailed, clear, numbered steps for CPR, fever control, or safety check...]"
-
-INSTRUCTIONS FOR ACTIONS:
-If the user wants to log something, identify the action and set "actionToTrigger":
-- Log Feed: {"action": "log_meal", "details": {"amount": number, "unit": "oz", "type": "bottle"|"breast"|"solid"}}
-- Start Breast Timer: {"action": "start_timer", "details": {"side": "left"|"right"}}
-- Add Diary Note: {"action": "add_note", "details": {"note": "text"}}
-- Log Sleep/Nap: {"action": "log_sleep", "details": {"durationMinutes": number}}
-- Log Diaper: {"action": "log_diaper", "details": {"type": "wet"|"dirty"}}
+PROACTIVE CARE SUGGESTIONS:
+Proactively evaluate if ${babyName} has an upcoming care need based on the context above (e.g. wake window ending, feeding due in 30 mins, upcoming 6M vaccine, or introducing a new vegetable puree).
 
 Return ONLY valid JSON matching this schema:
 {
-  "replyText": "Warm, super simple, friendly answer without any hard words...",
-  "actionToTrigger": null or object with action and details,
-  "suggestedFollowUps": ["Short simple question?", "Another simple question?"]
+  "replyText": "Warm, reassuring, researched guidance for parent...",
+  "actionToTrigger": null or object with type and parameters,
+  "suggestedFollowUps": ["Short suggested question?", "Another practical question?"],
+  "proactiveInsight": "Optional short 1-sentence proactive reminder or recommendation for ${babyName}"
 }
 `;
 
+    // Multimodal payload assembly
+    let contentsPayload: any;
+    if (image && image.data) {
+      const mimeType = image.mimeType || "image/jpeg";
+      // Ensure clean base64 data without data-url prefix
+      const cleanBase64 = image.data.includes("base64,") ? image.data.split("base64,")[1] : image.data;
+      contentsPayload = {
+        parts: [
+          {
+            inlineData: {
+              mimeType,
+              data: cleanBase64
+            }
+          },
+          {
+            text: systemPrompt
+          }
+        ]
+      };
+    } else {
+      contentsPayload = systemPrompt;
+    }
+
+    // Config options: enable Google Search grounding if research is requested or relevant
+    const configOptions: any = {
+      temperature: 0.3
+    };
+
+    if (shouldResearch) {
+      configOptions.tools = [{ googleSearch: {} }];
+    } else {
+      configOptions.responseMimeType = "application/json";
+    }
+
     try {
       const response = await generateContentWithFallback(ai, {
-        contents: systemContext,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.3,
-        },
+        contents: contentsPayload,
+        config: configOptions
       });
 
-      const text = response.text || "{}";
-      const parsed = JSON.parse(text);
-      res.json(parsed);
+      const rawText = response.text || "{}";
+      
+      // Extract Google Search grounding citations & web references
+      const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+      const searchQueries = response.candidates?.[0]?.groundingMetadata?.webSearchQueries || [];
+      
+      const references: { title: string; uri: string; domain: string }[] = [];
+      const seenUrls = new Set<string>();
+
+      for (const chunk of groundingChunks) {
+        if (chunk.web && chunk.web.uri) {
+          const uri = chunk.web.uri;
+          if (!seenUrls.has(uri)) {
+            seenUrls.add(uri);
+            let domain = "web";
+            try {
+              domain = new URL(uri).hostname.replace(/^www\./, '');
+            } catch (e) {}
+            references.push({
+              title: chunk.web.title || domain,
+              uri,
+              domain
+            });
+          }
+        }
+      }
+
+      // Parse JSON from rawText (handling possible markdown backticks if search was active)
+      let parsed: any = {};
+      try {
+        let jsonStr = rawText.trim();
+        if (jsonStr.startsWith("```json")) {
+          jsonStr = jsonStr.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
+        } else if (jsonStr.startsWith("```")) {
+          jsonStr = jsonStr.replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+        }
+        
+        // If the response is pure JSON
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          parsed = { replyText: jsonStr };
+        }
+      } catch (parseErr) {
+        parsed = {
+          replyText: rawText.replace(/[\*\#\_]/g, '').trim(),
+          suggestedFollowUps: [`What else should I know for ${babyName}?`, `Tell me about safe sleep times.`]
+        };
+      }
+
+      res.json({
+        replyText: parsed.replyText || "I am right here to help you take care of " + babyName + "!",
+        actionToTrigger: parsed.actionToTrigger || null,
+        suggestedFollowUps: parsed.suggestedFollowUps || [],
+        proactiveInsight: parsed.proactiveInsight || null,
+        researchedWithSearch: shouldResearch || references.length > 0,
+        references,
+        searchQueries
+      });
     } catch (aiError: any) {
       console.warn("Gemini API request failed. Falling back to local heuristic.", aiError);
       const heuristic = getHeuristicResponse(message, babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr, lastDiaperStr);
       res.json({
         ...heuristic,
-        contextSnapshot: { babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr }
+        contextSnapshot: { babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr },
+        references: [],
+        researchedWithSearch: false
       });
     }
   } catch (error: any) {
@@ -791,6 +909,106 @@ Return ONLY valid JSON matching this schema:
     res.status(500).json({ error: "Sorry, I had a little trouble processing that. Can you please try again?" });
   }
 });
+
+// ----------------------------------------------------------------------------
+// 2c. Ogoo Proactive Context & Care Insights Generator
+// ----------------------------------------------------------------------------
+app.post("/api/ai/ogoo-proactive-insights", async (req: Request, res: Response) => {
+  try {
+    const {
+      babyName = "Baby",
+      babyAge = "6 Months",
+      stage = "Purees & Finger Foods",
+      lastFeedStr = "",
+      lastSleepStr = "",
+      lastDiaperStr = "",
+      loggedMeals = [],
+      diaperLogs = [],
+      vaccineSchedule = []
+    } = req.body;
+
+    const insights = [];
+    const now = new Date();
+    const currentHour = now.getHours();
+
+    // 1. Time-of-Day & Nap Routine Insight
+    if (currentHour >= 12 && currentHour <= 15) {
+      insights.push({
+        id: "nap-window",
+        type: "sleep",
+        title: "Afternoon Nap Window",
+        description: `For a ${babyAge} baby, an afternoon nap between 1:00 PM - 3:00 PM supports healthy mood and rest.`,
+        actionLabel: "Log 60m Nap",
+        actionPayload: { type: "log_sleep", durationMinutes: 60 },
+        icon: "moon",
+        badge: "Routine"
+      });
+    } else if (currentHour >= 18 && currentHour <= 21) {
+      insights.push({
+        id: "bedtime-routine",
+        type: "sleep",
+        title: "Bedtime Soothing Window",
+        description: `Dimming nursery lights and starting a gentle lullaby helps ${babyName} settle into deep restorative sleep.`,
+        actionLabel: "Start White Noise",
+        actionPayload: { type: "soothe" },
+        icon: "moon",
+        badge: "Bedtime"
+      });
+    }
+
+    // 2. Feeding Check
+    if (lastFeedStr.toLowerCase().includes("no feed") || lastFeedStr.toLowerCase().includes("3 hours") || lastFeedStr.toLowerCase().includes("4 hours")) {
+      insights.push({
+        id: "feeding-reminder",
+        type: "feeding",
+        title: "Feeding Time Approaching",
+        description: `${babyName} usually thrives with feeds every 3 to 4 hours. Ready for milk or a nutritious puree?`,
+        actionLabel: "Log 4 oz Feed",
+        actionPayload: { type: "log_meal", amount: 4, unit: "oz", mealType: "bottle" },
+        icon: "utensils",
+        badge: "Nutrition"
+      });
+    }
+
+    // 3. Weaning & Recipe Suggestion
+    insights.push({
+      id: "weaning-idea",
+      type: "recipe",
+      title: `${stage} Inspiration`,
+      description: `Try introducing steamed sweet potato mash or avocado puree with rich healthy fats for ${babyName}.`,
+      actionLabel: "Ask Recipe",
+      actionPayload: { query: `Yummy ${stage} recipe for ${babyName}` },
+      icon: "sparkles",
+      badge: "Pediatric Nutrition"
+    });
+
+    // 4. Diaper & Hydration Check
+    const wetCount = (diaperLogs || []).filter((d: any) => d.type === "wet" || d.type === "dirty").length;
+    if (wetCount < 4) {
+      insights.push({
+        id: "hydration-check",
+        type: "diaper",
+        title: "Daily Hydration Watch",
+        description: `Healthy babies average 5 to 6+ wet diapers per day. Track changes to monitor optimal hydration.`,
+        actionLabel: "Log Clean Diaper",
+        actionPayload: { type: "log_diaper", diaperType: "wet" },
+        icon: "check",
+        badge: "Health"
+      });
+    }
+
+    res.json({
+      babyName,
+      babyAge,
+      generatedAt: now.toISOString(),
+      insights
+    });
+  } catch (err: any) {
+    console.error("Proactive Insights Error:", err);
+    res.status(500).json({ error: "Failed to generate proactive insights" });
+  }
+});
+
 app.post("/api/village/invite", (req: Request, res: Response) => {
   try {
     const { babyName = "Baby", role = "nanny", inviterName = "Parent", villageId = "" } = req.body;
@@ -999,8 +1217,7 @@ app.post("/api/ai/diaper-analyzer", async (req: Request, res: Response) => {
 
     if (ai && base64data) {
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-3.7-flash",
+        const response = await generateContentWithFallback(ai, {
           contents: {
             parts: [
               {

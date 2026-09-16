@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { DiaperAnalyzer } from './DiaperAnalyzer';
 import { StorybookGenerator } from './StorybookGenerator';
 import { MemorySlideshow } from './MemorySlideshow';
+import { FlexibleScheduleBuilder } from './FlexibleScheduleBuilder';
 import { Plus, Calendar, Search, Star, Heart, FileText, Printer, Trash2, Edit3, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Sparkles, Award, Shield, Info, Copy, Share2, Crown, ChevronDown, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { MOCK_MEALS, THEME } from '../constants';
-import { Meal } from '../types';
+import { Meal, ScheduleType, IntervalSchedule, SpecificTimesSchedule, WeeklySchedule, PRNSchedule, Reminder } from '../types';
+import { calculateIntervalTimes, parseToMinutes, minutesToAmPm } from '../utils/scheduleEngine';
 import { TEETH_LIST, COMMON_INGREDIENTS, DEFAULT_VACCINE_SCHEDULE } from '../constants/babyData';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -104,7 +106,9 @@ export const Journal = ({  isPremium,
   vaccineSchedule?: any[],
   setVaccineSchedule?: (schedule: any[]) => void,
   userRole?: 'admin' | 'family' | 'nanny',
-  setUserRole?: React.Dispatch<React.SetStateAction<'admin' | 'family' | 'nanny'>>
+  setUserRole?: React.Dispatch<React.SetStateAction<'admin' | 'family' | 'nanny'>>,
+  reminders?: Reminder[],
+  setReminders?: React.Dispatch<React.SetStateAction<Reminder[]>>
 }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(selectedDate.getMonth());
@@ -112,6 +116,16 @@ export const Journal = ({  isPremium,
   const [showAddPlan, setShowAddPlan] = useState(false);
   const [newPlanType, setNewPlanType] = useState('meal');
   const [newPlanTitle, setNewPlanTitle] = useState('');
+  
+  // Flexible Schedule States for Add Plan
+  const [formScheduleType, setFormScheduleType] = useState<ScheduleType>('specific_times');
+  const [formIntervalConfig, setFormIntervalConfig] = useState<IntervalSchedule>({ intervalHours: 4, anchorTime: '08:00 AM', mode: 'continuous_24h', wakingStart: '07:00 AM', wakingEnd: '09:00 PM' });
+  const [formSpecificTimesConfig, setFormSpecificTimesConfig] = useState<SpecificTimesSchedule>({ times: ['08:00 AM'] });
+  const [formWeeklyConfig, setFormWeeklyConfig] = useState<WeeklySchedule>({ days: [1, 3, 5], times: ['08:00 AM'] });
+  const [formPRNConfig, setFormPRNConfig] = useState<PRNSchedule>({ minIntervalHours: 4, maxDosesPer24h: 4, dosage: '', doseLogs: [] });
+  const [formDosage, setFormDosage] = useState('');
+
+  // Legacy field still used for non-flexible default if needed, or we just rely on flexible schedule
   const [newPlanTime, setNewPlanTime] = useState('08:00 AM');
 
   // Tab state: 'daily' | 'diary' | 'weekly'
@@ -149,12 +163,12 @@ export const Journal = ({  isPremium,
 
   const DIARY_MOODS = [
     { label: '✨ Grateful', color: 'bg-primary/10 text-primary border-primary/20' },
-    { label: '😊 Happy & Calm', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    { label: '💖 Loving Moment', color: 'bg-rose-50 text-rose-700 border-rose-200' },
-    { label: '☕ Peaceful', color: 'bg-sky-50 text-sky-700 border-sky-200' },
-    { label: '🎉 Milestone', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-    { label: '😴 Exhausted', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-    { label: '🌱 Growing Together', color: 'bg-teal-50 text-teal-700 border-teal-200' }
+    { label: '😊 Happy & Calm', color: 'bg-primary/10 text-primary border-primary/20' },
+    { label: '💖 Loving Moment', color: 'bg-[#FFD6E8] text-gray-800 border-pink-200' },
+    { label: '☕ Peaceful', color: 'bg-primary/10 text-primary border-primary/20' },
+    { label: '🎉 Milestone', color: 'bg-[#FFD6E8] text-gray-800 border-pink-200' },
+    { label: '😴 Exhausted', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+    { label: '🌱 Growing Together', color: 'bg-primary/10 text-primary border-primary/20' }
   ];
 
   const DIARY_CATEGORIES = [
@@ -258,14 +272,19 @@ export const Journal = ({  isPremium,
 
   useEffect(() => {
     if (navData) {
-      if (navData.tab) {
+      if (navData.tab === 'planner' || navData.tab === 'schedule' || navData.tab === 'daily') {
+        setActiveTab('daily');
+      } else if (navData.tab) {
         setActiveTab(navData.tab);
       }
-      if (navData.openAddPlan) {
+      if (navData.openAddPlan || navData.preselectPlanType) {
         setShowAddPlan(true);
       }
-      if (navData.planType) {
-        setNewPlanType(navData.planType);
+      if (navData.planType || navData.preselectPlanType) {
+        setNewPlanType(navData.planType || navData.preselectPlanType);
+      }
+      if (navData.vaccineName) {
+        setNewPlanTitle(navData.vaccineName);
       }
       if (navData.date) {
         setSelectedDate(new Date(navData.date));
@@ -341,6 +360,16 @@ export const Journal = ({  isPremium,
   const [obsSymptoms, setObsSymptoms] = useState('');
   const [obsNotes, setObsNotes] = useState('');
 
+  // Unified Log Medication / Vaccine state
+  const [showMedVacLogModal, setShowMedVacLogModal] = useState(false);
+  const [medVacLogType, setMedVacLogType] = useState<'medication' | 'vaccine'>('medication');
+  const [logMedName, setLogMedName] = useState('');
+  const [logMedDosage, setLogMedDosage] = useState('');
+  const [logMedNotes, setLogMedNotes] = useState('');
+
+  const [logVacId, setLogVacId] = useState('');
+  const [logVacSideEffects, setLogVacSideEffects] = useState('None');
+
   // Expandable log card state
   const [expandedLogIndex, setExpandedLogIndex] = useState<number | null>(null);
   
@@ -398,36 +427,74 @@ export const Journal = ({  isPremium,
   const dayItems = getDayItems();
 
   const handleAddPlan = () => {
-    const newPlan = { id: Date.now().toString(), time: newPlanTime, completed: false, date: selectedDate.toISOString() };
-    if (newPlanType === 'meal') {
-      const targetId = newPlanTitle || (allMeals[0] ? allMeals[0].id : '');
-      const selectedMealObj = allMeals.find(m => m.id === targetId) || allMeals[0];
-      if (!selectedMealObj) return;
-      setScheduledMeals([...scheduledMeals, { ...newPlan, title: selectedMealObj.title, meal: selectedMealObj, type: newMealPeriod }]);
-    } else if (newPlanType === 'activity') {
-      if (!newPlanTitle.trim()) return;
-      setScheduledActivities([...scheduledActivities, { ...newPlan, title: newPlanTitle.trim(), duration: newActivityDuration }]);
-    } else if (newPlanType === 'med') {
-      if (!newPlanTitle.trim()) return;
-      setScheduledMeds([...scheduledMeds, { ...newPlan, title: newPlanTitle.trim(), name: newPlanTitle.trim(), dosage: newMedDosage }]);
-    } else if (newPlanType === 'vaccine') {
-      const vName = newPlanTitle.trim() || 'DTaP Booster';
-      const newV = {
-        id: `v-${Date.now()}`,
-        name: vName,
-        age: newVaccineAge,
-        status: newVaccineStatus,
-        date: selectedDate.toISOString().split('T')[0],
-        sideEffects: 'None',
-        time: newPlanTime
-      };
-      if (setVaccineSchedule) {
-        setVaccineSchedule([...(vaccineSchedule || []), newV]);
+    let timesToCreate = [newPlanTime];
+    
+    if (formScheduleType === 'interval') {
+      const calculatedStrings = calculateIntervalTimes(
+        formIntervalConfig.anchorTime,
+        formIntervalConfig.intervalHours,
+        formIntervalConfig.mode,
+        formIntervalConfig.wakingStart,
+        formIntervalConfig.wakingEnd
+      );
+      timesToCreate = calculatedStrings;
+    } else if (formScheduleType === 'specific_times') {
+      if (formSpecificTimesConfig.times && formSpecificTimesConfig.times.length > 0) {
+        timesToCreate = [...formSpecificTimesConfig.times];
       }
-    } else if (newPlanType === 'routine') {
-      const rName = newPlanTitle.trim() || newRoutineCategory;
-      setScheduledActivities([...scheduledActivities, { ...newPlan, title: rName, duration: newActivityDuration, isRoutine: true, category: 'Routine' }]);
+    } else if (formScheduleType === 'weekly') {
+      if (formWeeklyConfig.times && formWeeklyConfig.times.length > 0) {
+        timesToCreate = [...formWeeklyConfig.times];
+      }
+    } else if (formScheduleType === 'prn') {
+      // PRN is on-demand, just add one generic entry or set time to 'PRN'
+      timesToCreate = ['PRN (As Needed)'];
     }
+
+    const newMeals: any[] = [...scheduledMeals];
+    const newActs: any[] = [...scheduledActivities];
+    const newMeds: any[] = [...scheduledMeds];
+    const newVacs: any[] = [...(vaccineSchedule || [])];
+
+    timesToCreate.forEach((t, idx) => {
+      const newPlan = { id: `${Date.now()}-${idx}`, time: t, completed: false, date: selectedDate.toISOString() };
+      
+      if (newPlanType === 'meal') {
+        const targetId = newPlanTitle || (allMeals[0] ? allMeals[0].id : '');
+        const selectedMealObj = allMeals.find(m => m.id === targetId) || allMeals[0];
+        if (selectedMealObj) {
+          newMeals.push({ ...newPlan, title: selectedMealObj.title, meal: selectedMealObj, type: newMealPeriod });
+        }
+      } else if (newPlanType === 'activity') {
+        if (newPlanTitle.trim()) {
+          newActs.push({ ...newPlan, title: newPlanTitle.trim(), duration: newActivityDuration });
+        }
+      } else if (newPlanType === 'med') {
+        if (newPlanTitle.trim()) {
+          newMeds.push({ ...newPlan, title: newPlanTitle.trim(), name: newPlanTitle.trim(), dosage: formDosage || newMedDosage });
+        }
+      } else if (newPlanType === 'vaccine') {
+        const vName = newPlanTitle.trim() || 'DTaP Booster';
+        newVacs.push({
+          id: `v-${Date.now()}-${idx}`,
+          name: vName,
+          age: newVaccineAge,
+          status: newVaccineStatus,
+          date: selectedDate.toISOString().split('T')[0],
+          sideEffects: 'None',
+          time: t
+        });
+      } else if (newPlanType === 'routine') {
+        const rName = newPlanTitle.trim() || newRoutineCategory;
+        newActs.push({ ...newPlan, title: rName, duration: newActivityDuration, isRoutine: true, category: 'Routine' });
+      }
+    });
+
+    if (newPlanType === 'meal') setScheduledMeals(newMeals);
+    else if (newPlanType === 'activity' || newPlanType === 'routine') setScheduledActivities(newActs);
+    else if (newPlanType === 'med') setScheduledMeds(newMeds);
+    else if (newPlanType === 'vaccine' && setVaccineSchedule) setVaccineSchedule(newVacs);
+
     setShowAddPlan(false);
     setNewPlanTitle('');
   };
@@ -673,15 +740,13 @@ export const Journal = ({  isPremium,
                 </button>
                 <button 
                   onClick={handleClearAllData} 
-                  className="flex-1 py-3 rounded-2xl bg-red-500 text-gray-800 font-bold text-xs uppercase tracking-widest shadow-lg shadow-red-500/20 cursor-pointer border-none"
+                  className="flex-1 py-3 rounded-2xl bg-primary text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 cursor-pointer border-none"
                 >
                   Clear All
                 </button>
-                
-    </div>
+              </div>
             </motion.div>
-            
-    </div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -694,7 +759,7 @@ export const Journal = ({  isPremium,
             exit={{ opacity: 0, y: -20 }}
             className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-5 py-3 rounded-full text-xs font-bold shadow-2xl flex items-center gap-2 border border-white/20"
           >
-            <Sparkles className="w-4 h-4 text-amber-400" />
+            <Sparkles className="w-4 h-4 text-primary" />
             <span>{toastMsg}</span>
           </motion.div>
         )}
@@ -718,7 +783,7 @@ export const Journal = ({  isPremium,
         >
           <span>{userRole === 'nanny' ? '🔒 Diary (Family)' : !isPremium ? '🔒 Daily Diary' : 'Daily Diary ✍️'}</span>
           {isPremium && userRole !== 'nanny' && todayDiaryEntries.length > 0 && (
-            <span className={`w-2 h-2 rounded-full ${activeTab === 'diary' ? 'bg-amber-300' : 'bg-primary'}`} />
+            <span className={`w-2 h-2 rounded-full ${activeTab === 'diary' ? 'bg-white' : 'bg-primary'}`} />
           )}
         </button>
         <button 
@@ -778,7 +843,7 @@ export const Journal = ({  isPremium,
               >
                 <span>{i + 1}</span>
                 {hasDiary && (
-                  <span className={`w-1.5 h-1.5 rounded-full absolute bottom-1 ${isSelected ? 'bg-amber-300' : 'bg-primary'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full absolute bottom-1 ${isSelected ? 'bg-white' : 'bg-primary'}`} />
                 )}
               </button>
             );
@@ -929,17 +994,23 @@ export const Journal = ({  isPremium,
               </>
             )}
 
-            <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Time</label>
-              <input type="time" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium outline-none text-gray-700" value={newPlanTime.replace(/ [AP]M/, '')} onChange={e => {
-                const [h, m] = e.target.value.split(':');
-                const hour = parseInt(h);
-                const ampm = hour >= 12 ? 'PM' : 'AM';
-                const formattedHour = hour % 12 || 12;
-                setNewPlanTime(`${formattedHour.toString().padStart(2, '0')}:${m} ${ampm}`);
-              }} />
-              
-    </div>
+            <div className="pt-2 border-t border-gray-100">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Schedule Configuration</label>
+              <FlexibleScheduleBuilder
+                scheduleType={formScheduleType}
+                onChangeScheduleType={setFormScheduleType}
+                intervalConfig={formIntervalConfig}
+                onChangeIntervalConfig={setFormIntervalConfig}
+                specificTimesConfig={formSpecificTimesConfig}
+                onChangeSpecificTimesConfig={setFormSpecificTimesConfig}
+                weeklyConfig={formWeeklyConfig}
+                onChangeWeeklyConfig={setFormWeeklyConfig}
+                prnConfig={formPRNConfig}
+                onChangePRNConfig={setFormPRNConfig}
+                dosage={formDosage}
+                onChangeDosage={setFormDosage}
+              />
+            </div>
 
             <div className="flex gap-2">
               <button onClick={() => setShowAddPlan(false)} className="flex-1 py-3 rounded-full bg-gray-100 text-gray-600 font-bold text-xs uppercase tracking-widest cursor-pointer border-none">Close</button>
@@ -979,7 +1050,7 @@ export const Journal = ({  isPremium,
     </div>
                   <button 
                     onClick={() => toggleItemCompletion(item)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-gray-800 transition-colors cursor-pointer border-none ${item.completed ? 'bg-green-500' : 'bg-gray-200'}`}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer border-none ${item.completed ? 'bg-primary' : 'bg-gray-200'}`}
                   >
                     <CheckCircle2 className="w-5 h-5 text-white" />
                   </button>
@@ -1041,68 +1112,58 @@ export const Journal = ({  isPremium,
                           <p className="text-[8px] font-black text-primary uppercase tracking-widest">Appetising</p>
                           <div className="flex gap-0.5 mt-1 justify-center">
                             {[1, 2, 3, 4, 5].map(star => (
-                              <Star key={star} className={`w-3 h-3 ${meal.appetising >= star ? 'text-amber-500 fill-amber-500' : 'text-gray-200'}`} />
+                              <Star key={star} className={`w-3 h-3 ${meal.appetising >= star ? 'text-primary fill-primary' : 'text-gray-200'}`} />
                             ))}
-                            
-    </div>
-                          
-    </div>
+                          </div>
+                        </div>
                         <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-xs">
                           <p className="text-[8px] font-black text-primary uppercase tracking-widest">Acceptance</p>
                           <div className="flex gap-0.5 mt-1 justify-center">
                             {[1, 2, 3, 4, 5].map(star => (
-                              <Star key={star} className={`w-3 h-3 ${meal.acceptance >= star ? 'text-amber-500 fill-amber-500' : 'text-gray-200'}`} />
+                              <Star key={star} className={`w-3 h-3 ${meal.acceptance >= star ? 'text-primary fill-primary' : 'text-gray-200'}`} />
                             ))}
-                            
-    </div>
-                          
-    </div>
+                          </div>
+                        </div>
                         <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-xs">
                           <p className="text-[8px] font-black text-primary uppercase tracking-widest">Satisfaction</p>
                           <div className="flex gap-0.5 mt-1 justify-center">
                             {[1, 2, 3, 4, 5].map(star => (
-                              <Star key={star} className={`w-3 h-3 ${meal.satisfaction >= star ? 'text-amber-500 fill-amber-500' : 'text-gray-200'}`} />
+                              <Star key={star} className={`w-3 h-3 ${meal.satisfaction >= star ? 'text-primary fill-primary' : 'text-gray-200'}`} />
                             ))}
-                            
-    </div>
-                          
-    </div>
+                          </div>
+                        </div>
                         
     </div>
 
                       {meal.allergyReaction && (
-                        <div className="bg-red-50 p-3 rounded-xl text-red-900 font-bold text-[10px] space-y-1.5 border border-red-200 flex flex-col items-start w-full shadow-xs">
+                        <div className="bg-primary/5 p-3 rounded-xl text-gray-800 font-bold text-[10px] space-y-1.5 border border-primary/20 flex flex-col items-start w-full shadow-xs">
                           <div className="flex items-center gap-1.5">
-                            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                            <span className="font-black text-[9px] uppercase tracking-wider text-red-700">⚠️ ALLERGIC REACTION SUSPECTED</span>
-                            
-    </div>
+                            <AlertCircle className="w-4 h-4 text-primary shrink-0" />
+                            <span className="font-black text-[9px] uppercase tracking-wider text-primary">⚠️ ALLERGIC REACTION SUSPECTED</span>
+                          </div>
                           {meal.allergyNotes && (
-                            <p className="text-[10px] text-gray-700 bg-white p-2.5 rounded-xl w-full leading-relaxed border border-red-100 border-solid">
+                            <p className="text-[10px] text-gray-700 bg-white p-2.5 rounded-xl w-full leading-relaxed border border-primary/10 border-solid">
                               {meal.allergyNotes}
                             </p>
                           )}
-                          
-    </div>
+                        </div>
                       )}
 
                       {meal.notes && (
                         <div className="bg-white p-3.5 rounded-2xl border border-gray-100 shadow-xs">
                           <p className="text-[8px] font-black text-primary uppercase tracking-widest mb-1 leading-none">Feedback / Notes</p>
                           <p className="text-gray-800 font-bold text-[11px] leading-relaxed">"{meal.notes}"</p>
-                          
-    </div>
+                        </div>
                       )}
 
                       <div className="flex justify-end pt-2">
                         <button 
                           onClick={() => deleteLoggedMeal(meal.timestamp)}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-red-500 hover:bg-red-50 border border-gray-200 transition-colors cursor-pointer text-[10px] font-black uppercase tracking-widest shadow-xs"
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-gray-500 hover:text-primary hover:bg-primary/5 border border-gray-200 transition-colors cursor-pointer text-[10px] font-black uppercase tracking-widest shadow-xs"
                         >
                           <Trash2 className="w-3.5 h-3.5" /> Delete Log
                         </button>
-                        
-    </div>
+                      </div>
                     </motion.div>
                   )}
                   
@@ -1384,7 +1445,7 @@ export const Journal = ({  isPremium,
                     )}
 
                     {diaper.symptoms && (
-                      <p className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg inline-block">
+                      <p className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-lg inline-block">
                         ⚠️ Symptom: {diaper.symptoms}
                       </p>
                     )}
@@ -1393,15 +1454,15 @@ export const Journal = ({  isPremium,
                       <p className="text-[11px] text-gray-500 leading-normal font-medium italic">"{diaper.notes}"</p>
                     )}
                     
-    </div>
+                  </div>
                   <button 
                     onClick={() => handleDeleteDiaper(diaper.id)}
-                    className="p-2 text-gray-300 hover:text-red-500 transition-colors cursor-pointer border-none bg-transparent"
+                    className="p-2 text-gray-300 hover:text-primary transition-colors cursor-pointer border-none bg-transparent"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                   
-    </div>
+                </div>
               ))
             ) : (
               <div className="text-center py-6">
@@ -1412,73 +1473,293 @@ export const Journal = ({  isPremium,
                 >
                   Quick Log Now
                 </button>
-                
-    </div>
+              </div>
             )}
-            
-    </div>
-          
-    </div>
-        
-    </div>
+            </div>
+          </div>
+        </div>
 
-      {/* Dynamic Date Reflection & Thoughts Preview Card */}
-      <div className="space-y-4">
+      {/* Medication & Immunization Log Card */}
+      <div className="space-y-6">
         <div className="flex justify-between items-center px-2">
-          <div className="space-y-0.5">
-            <h2 className="text-xl font-serif font-black text-gray-800 text-left">
-              {isToday ? "Today's" : isYesterday ? "Yesterday's" : selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} Reflection & Thoughts ✍️
-            </h2>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider text-left">
-              {selectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
-            
-    </div>
+          <h2 className="text-xl font-serif font-black text-gray-800 text-left flex items-center gap-2">
+            Medication & Immunization Log 💊💉
+          </h2>
           <button 
-            onClick={() => setActiveTab('diary')}
-            className="px-3.5 py-1.5 rounded-full bg-white text-primary border border-gray-200 text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 cursor-pointer shadow-xs font-bold transition-transform active:scale-95"
+            type="button"
+            onClick={() => {
+              setMedVacLogType('medication');
+              setShowMedVacLogModal(true);
+            }}
+            className="px-3.5 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all cursor-pointer border border-primary/20 flex items-center gap-1.5"
           >
-            Open Diary 📖
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ Log Dose / Vaccine</span>
           </button>
-          
-    </div>
-        <div className="bg-card rounded-[48px] shadow-xl shadow-card/20 border border-white p-6 sm:p-8 text-left space-y-4">
-          {todayDiaryEntries.length > 0 ? (
-            <div className="space-y-3">
-              {todayDiaryEntries.map(entry => (
-                <div key={entry.id} className="bg-white p-4 sm:p-5 rounded-3xl border border-gray-100 space-y-2 shadow-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-                      {entry.mood || '✨ Grateful'} • {entry.category || 'Thought'}
-                    </span>
-                    <span className="text-[10px] text-gray-400 font-bold">{entry.timestamp || ''}</span>
-                    
-    </div>
-                  <h4 className="font-serif font-bold text-gray-800 text-sm">{entry.title || 'Daily Reflection'}</h4>
-                  <p className="text-xs text-gray-600 leading-relaxed font-sans">{entry.notes}</p>
-                  
-    </div>
-              ))}
-              
-    </div>
-          ) : (
-            <div className="bg-white p-5 sm:p-6 rounded-3xl border border-gray-100 text-center py-5 space-y-3 shadow-xs">
-              <p className="text-xs text-gray-500 font-medium">
-                No personal thoughts or diary entries written for {isToday ? 'today' : selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}.
-              </p>
-              <button 
-                onClick={() => setActiveTab('diary')}
-                className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-full text-xs font-bold shadow-md shadow-primary/20 cursor-pointer border-none uppercase tracking-wider transition-transform active:scale-95"
-              >
-                ✍️ Write {isToday ? "Today's" : isYesterday ? "Yesterday's" : selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} Story or Thought
-              </button>
-              
-    </div>
-          )}
-          
-    </div>
-        
-    </div>
+        </div>
+
+        <div className="bg-card rounded-[48px] shadow-xl shadow-card/20 border border-white p-6 sm:p-8 text-left space-y-6">
+          {(() => {
+            const dateStr = selectedDate.toISOString().split('T')[0];
+            const medsForDate = (scheduledMeds || []).filter(m => !m.date || m.date === dateStr || isSameDay(new Date(m.date || Date.now()), selectedDate));
+            const vacsForDate = (vaccineSchedule || []).filter(v => v.date === dateStr || (v.status === 'Completed' && isSameDay(new Date(v.date || Date.now()), selectedDate)));
+
+            const hasItems = medsForDate.length > 0 || vacsForDate.length > 0;
+
+            return (
+              <div className="space-y-6">
+                {medsForDate.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full inline-block border border-primary/20">
+                      💊 Scheduled & Given Medications ({medsForDate.length})
+                    </p>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {medsForDate.map(m => (
+                        <div key={m.id || m.title || m.name} className="bg-white p-4 rounded-3xl border border-gray-100 flex items-center justify-between gap-3 shadow-2xs">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-lg shrink-0">
+                              💊
+                            </div>
+                            <div>
+                              <p className="text-xs font-black text-gray-800">{m.name || m.title || 'Medication'}</p>
+                              {m.dosage && <p className="text-[10px] text-gray-500 font-medium">Dosage: {m.dosage}</p>}
+                              {m.notes && <p className="text-[10px] text-gray-400 italic">"{m.notes}"</p>}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = scheduledMeds.map(item => (item.id === m.id || item.title === m.title) ? { ...item, completed: !item.completed } : item);
+                              setScheduledMeds(updated);
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase cursor-pointer border-none shrink-0 ${m.completed ? 'bg-primary/20 text-primary font-bold' : 'bg-primary text-white hover:bg-primary/90'}`}
+                          >
+                            {m.completed ? 'Given ✓' : 'Mark Given'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {vacsForDate.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full inline-block border border-primary/20">
+                      💉 Immunization Records ({vacsForDate.length})
+                    </p>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {vacsForDate.map(v => (
+                        <div key={v.id} className="bg-white p-4 rounded-3xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-lg shrink-0 mt-0.5 sm:mt-0">
+                              💉
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[8px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">{v.age}</span>
+                                <p className="text-xs font-black text-gray-800">{v.name}</p>
+                              </div>
+                              <p className="text-[10px] text-gray-500 font-medium">
+                                Status: <span className="text-primary font-bold">{v.status}</span>
+                                {v.date ? ` (${v.date})` : ''}
+                              </p>
+                              {v.sideEffects && v.sideEffects !== 'None' && (
+                                <p className="text-[9px] text-gray-700 font-bold bg-[#FFD6E8] px-2 py-0.5 rounded mt-0.5 inline-block border border-pink-200">
+                                  🩺 Side effects: {v.sideEffects}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newStatus = v.status === 'Completed' ? 'Scheduled' : 'Completed';
+                              const updated = vaccineSchedule.map(item => item.id === v.id ? { ...item, status: newStatus, date: dateStr } : item);
+                              if (setVaccineSchedule) setVaccineSchedule(updated);
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase cursor-pointer border-none shrink-0 self-end sm:self-center ${v.status === 'Completed' ? 'bg-primary/20 text-primary font-bold' : 'bg-primary text-white hover:bg-primary/90'}`}
+                          >
+                            {v.status === 'Completed' ? 'Given ✓' : 'Mark Given'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!hasItems && (
+                  <div className="text-center py-8 space-y-3">
+                    <p className="text-xs text-gray-500 font-medium">
+                      No medication doses or immunizations logged for {isToday ? 'today' : selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}.
+                    </p>
+                    <div className="flex justify-center pt-1">
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setMedVacLogType('medication');
+                          setShowMedVacLogModal(true);
+                        }}
+                        className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-2xl text-xs font-black uppercase tracking-wider shadow-sm cursor-pointer border-none flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Log Dose or Vaccine</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+
+      {/* Quick Unified Modal: Log Medication Dose or Immunization */}
+      <AnimatePresence>
+        {showMedVacLogModal && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 text-left">
+              <div className="flex justify-between items-center">
+                <h3 className="text-base font-serif font-black text-gray-800">Log Dose or Immunization 💊💉</h3>
+                <button onClick={() => setShowMedVacLogModal(false)} className="text-xs font-bold text-gray-400 border-none bg-transparent cursor-pointer">✕</button>
+              </div>
+
+              {/* Segmented Selector */}
+              <div className="flex p-1 bg-gray-100 rounded-2xl gap-1">
+                <button
+                  type="button"
+                  onClick={() => setMedVacLogType('medication')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-black transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${medVacLogType === 'medication' ? 'bg-white text-gray-800 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+                >
+                  💊 Medication Dose
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMedVacLogType('vaccine')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-black transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${medVacLogType === 'vaccine' ? 'bg-white text-gray-800 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
+                >
+                  💉 Immunization
+                </button>
+              </div>
+
+              {medVacLogType === 'medication' ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Medication Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Paracetamol, Ibuprofen, Vitamin D" 
+                      value={logMedName} 
+                      onChange={e => setLogMedName(e.target.value)} 
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-bold text-gray-800 outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Dosage</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. 2.5 ml, 1 drop, 100 mg" 
+                      value={logMedDosage} 
+                      onChange={e => setLogMedDosage(e.target.value)} 
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-bold text-gray-800 outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Notes / Caregiver Instructions</label>
+                    <input 
+                      type="text" 
+                      placeholder="Optional notes or reaction" 
+                      value={logMedNotes} 
+                      onChange={e => setLogMedNotes(e.target.value)} 
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-bold text-gray-800 outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Select Vaccine</label>
+                    <select 
+                      value={logVacId} 
+                      onChange={e => setLogVacId(e.target.value)} 
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-bold text-gray-800 outline-none focus:border-primary"
+                    >
+                      <option value="">-- Choose Vaccine --</option>
+                      {(vaccineSchedule || []).map(v => (
+                        <option key={v.id} value={v.id}>
+                          {v.name} ({v.age})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Track Side Effects</label>
+                    <div className="flex flex-wrap gap-1.5 font-bold">
+                      {['Mild Fever', 'Sleepiness', 'Irritation', 'Redness', 'Soreness at site', 'Fussiness', 'None'].map(eff => (
+                        <button
+                          key={eff}
+                          type="button"
+                          onClick={() => setLogVacSideEffects(eff)}
+                          className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border-none cursor-pointer ${logVacSideEffects === eff ? 'bg-primary/20 text-primary font-extrabold' : 'bg-gray-100 text-gray-500'}`}
+                        >
+                          {eff}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setShowMedVacLogModal(false)} 
+                  className="px-4 py-2 text-xs font-bold text-gray-500 bg-gray-100 rounded-xl border-none cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (medVacLogType === 'medication') {
+                      if (!logMedName) return;
+                      const newMed = {
+                        id: 'med-' + Date.now(),
+                        title: logMedName,
+                        name: logMedName,
+                        dosage: logMedDosage,
+                        notes: logMedNotes,
+                        date: selectedDate.toISOString().split('T')[0],
+                        completed: true,
+                      };
+                      setScheduledMeds([...(scheduledMeds || []), newMed]);
+                      setShowMedVacLogModal(false);
+                      setLogMedName('');
+                      setLogMedDosage('');
+                      setLogMedNotes('');
+                    } else {
+                      if (!logVacId) return;
+                      const dateStr = selectedDate.toISOString().split('T')[0];
+                      const updated = (vaccineSchedule || []).map(v => 
+                        v.id === logVacId ? { ...v, status: 'Completed', date: dateStr, sideEffects: logVacSideEffects } : v
+                      );
+                      if (setVaccineSchedule) setVaccineSchedule(updated);
+                      setShowMedVacLogModal(false);
+                      setLogVacId('');
+                      setLogVacSideEffects('None');
+                    }
+                  }} 
+                  className="px-5 py-2 bg-primary hover:bg-primary/90 text-white font-black text-xs uppercase tracking-wider rounded-xl border-none cursor-pointer shadow-xs"
+                >
+                  Save Record
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Observation Notes (Caregiver Observations & Notes) */}
       <div className="space-y-6">
@@ -1537,11 +1818,11 @@ export const Journal = ({  isPremium,
             exit={{ opacity: 0, y: -10 }}
             className="bg-card p-8 sm:p-10 rounded-[40px] border border-white shadow-xl shadow-card/20 text-center max-w-xl mx-auto space-y-6"
           >
-            <div className="w-16 h-16 rounded-3xl bg-amber-500/15 text-amber-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
+            <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary flex items-center justify-center text-3xl mx-auto shadow-inner">
               🔒
             </div>
             <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
                 Ama Premium Feature
               </span>
               <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-800">
@@ -1565,7 +1846,7 @@ export const Journal = ({  isPremium,
 
             <button
               onClick={() => setIsSubscriptionModalOpen(true)}
-              className="w-full py-3.5 px-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/25 transition-all cursor-pointer border-none flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-6 bg-primary hover:bg-primary/90 text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-lg shadow-primary/25 transition-all cursor-pointer border-none flex items-center justify-center gap-2"
             >
               <span>👑 Upgrade with Paystack</span>
             </button>
@@ -1578,12 +1859,11 @@ export const Journal = ({  isPremium,
             exit={{ opacity: 0, y: -10 }}
             className="bg-card p-8 sm:p-10 rounded-[40px] border border-white shadow-xl shadow-card/20 text-center max-w-xl mx-auto space-y-6"
           >
-            <div className="w-16 h-16 rounded-3xl bg-amber-100/80 text-amber-700 flex items-center justify-center text-3xl mx-auto shadow-inner">
+            <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary flex items-center justify-center text-3xl mx-auto shadow-inner">
               🔒
-              
-    </div>
+            </div>
             <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
                 Village Privacy Protection
               </span>
               <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-800">
@@ -1960,7 +2240,7 @@ export const Journal = ({  isPremium,
                           </button>
                           <button
                             onClick={() => handleDeleteDiaryEntry(entry.id)}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold cursor-pointer transition-colors border-none"
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold cursor-pointer transition-colors border-none"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                             <span>Delete</span>
@@ -2004,11 +2284,11 @@ export const Journal = ({  isPremium,
             exit={{ opacity: 0, y: -10 }}
             className="bg-card p-8 sm:p-10 rounded-[40px] border border-white shadow-xl shadow-card/20 text-center max-w-xl mx-auto space-y-6"
           >
-            <div className="w-16 h-16 rounded-3xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
+            <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary flex items-center justify-center text-3xl mx-auto shadow-inner">
               🔒
             </div>
             <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
                 Ama Premium Feature
               </span>
               <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-800">
@@ -2032,7 +2312,7 @@ export const Journal = ({  isPremium,
 
             <button
               onClick={() => setIsSubscriptionModalOpen(true)}
-              className="w-full py-3.5 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-lg shadow-emerald-600/25 transition-all cursor-pointer border-none flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-6 bg-primary hover:bg-primary/90 text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-lg shadow-primary/25 transition-all cursor-pointer border-none flex items-center justify-center gap-2"
             >
               <span>👑 Upgrade with Paystack</span>
             </button>
@@ -2051,49 +2331,42 @@ export const Journal = ({  isPremium,
                 <div>
                   <h3 className="font-serif font-black text-gray-800 text-lg">Weekly Menu</h3>
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Plan Whole-Week Solid Foods</p>
-                  
-    </div>
+                </div>
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => isPremium ? onNavigate('ai-meal-planner') : setIsSubscriptionModalOpen(true)}
-                    className="px-3.5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border-none font-bold flex items-center gap-1 shadow-sm"
+                    className="px-3.5 py-1.5 rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border-none font-bold flex items-center gap-1 shadow-sm"
                   >
                     <Sparkles className="w-3 h-3" />
                     <span>AI Generate Plan</span>
                   </button>
                   <button 
                     onClick={handleResetWeeklyPlanner}
-                    className="px-3 py-1.5 rounded-full bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest hover:bg-red-100 cursor-pointer transition-colors border-none font-bold"
+                    className="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 cursor-pointer transition-colors border-none font-bold"
                   >
                     Reset
                   </button>
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
 
               {/* AI Meal Plan CTA Banner */}
-              <div className="bg-gradient-to-r from-emerald-500/10 to-primary/10 p-4 rounded-3xl border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="bg-primary/10 p-4 rounded-3xl border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-white text-emerald-600 flex items-center justify-center text-xl shrink-0 shadow-xs">
+                  <div className="w-10 h-10 rounded-2xl bg-white text-primary flex items-center justify-center text-xl shrink-0 shadow-xs">
                     🥗
-                    
-    </div>
+                  </div>
                   <div>
                     <p className="text-xs font-bold text-gray-800">Need an Age-Optimized Solid Food Plan?</p>
                     <p className="text-[10px] text-gray-500 font-medium">Auto-generate 7 days of nutrient-targeted meals + localized grocery list</p>
-                    
-    </div>
-                  
-    </div>
+                  </div>
+                </div>
                 <button
                   onClick={() => isPremium ? onNavigate('ai-meal-planner') : setIsSubscriptionModalOpen(true)}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-2xl cursor-pointer border-none transition-transform active:scale-95 whitespace-nowrap self-stretch sm:self-auto"
+                  className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-2xl cursor-pointer border-none transition-transform active:scale-95 whitespace-nowrap self-stretch sm:self-auto"
                 >
                   Generate 7-Day Plan →
                 </button>
-                
-    </div>
+              </div>
 
               <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
                 {WEEK_DAYS.map(day => (
@@ -2112,12 +2385,11 @@ export const Journal = ({  isPremium,
                                 <span className="text-xs font-bold text-gray-700 leading-tight line-clamp-2">{recipe.title}</span>
                                 <button 
                                   onClick={() => handleClearSlot(day, slot)}
-                                  className="text-gray-300 hover:text-red-500 font-black text-sm shrink-0 cursor-pointer border-none bg-transparent"
+                                  className="text-gray-300 hover:text-gray-500 font-black text-sm shrink-0 cursor-pointer border-none bg-transparent"
                                 >
                                   ✕
                                 </button>
-                                
-    </div>
+                              </div>
                             ) : (
                               <button 
                                 onClick={() => setShowRecipePicker({ day, slot })}
@@ -2126,19 +2398,14 @@ export const Journal = ({  isPremium,
                                 + Add
                               </button>
                             )}
-                            
-    </div>
+                          </div>
                         );
                       })}
-                      
-    </div>
-                    
-    </div>
+                    </div>
+                  </div>
                 ))}
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
 
             {/* Automated Grocery Checklist */}
             <div className="bg-card p-6 rounded-[48px] shadow-xl shadow-card/15 border border-white space-y-5 text-left">
@@ -2147,10 +2414,8 @@ export const Journal = ({  isPremium,
                 <div>
                   <h3 className="font-serif font-black text-gray-800 text-lg leading-tight">Automated Grocery Checklist</h3>
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Consolidated Ingredients for Shopping</p>
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
 
               <div className="space-y-2">
                 {consolidatedGroceries.length > 0 ? (
@@ -2161,21 +2426,19 @@ export const Journal = ({  isPremium,
                         key={idx}
                         onClick={() => handleToggleGrocery(item.name)}
                         className={`w-full bg-white p-3.5 rounded-2xl border border-solid text-left flex items-center justify-between cursor-pointer transition-all ${
-                          isChecked ? 'bg-green-50/40 border-green-200 opacity-60' : 'bg-white border-gray-100 hover:border-primary/20'
+                          isChecked ? 'bg-primary/5 border-primary/20 opacity-60' : 'bg-white border-gray-100 hover:border-primary/20'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-5 h-5 rounded-md border border-solid flex items-center justify-center transition-colors ${
-                            isChecked ? 'bg-green-500 border-green-500 text-white' : 'border-gray-200 bg-gray-50'
+                            isChecked ? 'bg-primary border-primary text-white' : 'border-gray-200 bg-gray-50'
                           }`}>
                             {isChecked && '✓'}
-                            
-    </div>
+                          </div>
                           <span className={`text-xs font-bold text-gray-700 ${isChecked ? 'line-through text-gray-400' : ''}`}>
                             {item.name}
                           </span>
-                          
-    </div>
+                        </div>
                         <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full shrink-0">
                           {item.count} meals ({item.amounts.join(', ')})
                         </span>
@@ -2188,13 +2451,10 @@ export const Journal = ({  isPremium,
                     <p className="text-[10px] text-gray-400 font-medium px-6 mt-1">
                       Assign recipes to days in the planner above to automatically parse and compile ingredients here!
                     </p>
-                    
-    </div>
+                  </div>
                 )}
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -2225,17 +2485,14 @@ export const Journal = ({  isPremium,
                   >
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl shrink-0 shadow-sm">
                       {recipe.newFood || '🥣'}
-                      
-    </div>
+                    </div>
                     <div className="space-y-0.5 leading-tight">
                       <p className="font-bold text-gray-800 text-xs">{recipe.title}</p>
                       <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">{recipe.stage}</p>
-                      
-    </div>
+                    </div>
                   </button>
                 ))}
-                
-    </div>
+              </div>
 
               <button 
                 onClick={() => setShowRecipePicker(null)} 
@@ -2244,8 +2501,7 @@ export const Journal = ({  isPremium,
                 Close
               </button>
             </motion.div>
-            
-    </div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -2292,8 +2548,7 @@ export const Journal = ({  isPremium,
                 <Printer className="w-4 h-4" />
                 <span>Export PDF</span>
               </button>
-              
-    </div>
+            </div>
 
             {/* Document body container */}
             <div id="print-report-content" className="max-w-2xl mx-auto w-full border border-solid border-gray-100 rounded-3xl p-8 space-y-8 bg-white shadow-xl print:shadow-none print:border-none print:p-0">
@@ -2306,18 +2561,14 @@ export const Journal = ({  isPremium,
                     <h2 className="text-3xl font-serif font-black text-gray-800">
                       Baby's Progress
                     </h2>
-                    
-    </div>
+                  </div>
                   <p className="text-xs text-gray-500 font-medium">Generated on {new Date().toLocaleDateString('default', { dateStyle: 'long' })} • Patient age: {latestGrowthLog ? latestGrowthLog.month : 'Not Set'}</p>
-                  
-    </div>
+                </div>
                 <div className="text-right space-y-1">
                   <p className="text-lg font-serif font-bold text-primary">Ogoo</p>
                   <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest leading-none">Baby Companion App</p>
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
 
               {/* Quick Health Indicators Cards Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -2329,8 +2580,7 @@ export const Journal = ({  isPremium,
                   <p className="text-[9px] font-bold text-gray-400 leading-none mt-1">
                     {latestGrowthLog ? `${getLatestWeightPercentile(latestGrowthLog.weight)}th percentile` : 'No data logged'}
                   </p>
-                  
-    </div>
+                </div>
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 text-center space-y-1">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Latest Height</p>
                   <p className="text-xl font-bold text-gray-800 leading-none">
@@ -2339,26 +2589,22 @@ export const Journal = ({  isPremium,
                   <p className="text-[9px] font-bold text-gray-400 leading-none mt-1">
                     {latestGrowthLog ? `${getLatestHeightPercentile(latestGrowthLog.height)}th percentile` : 'No data logged'}
                   </p>
-                  
-    </div>
+                </div>
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 text-center space-y-1">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Fluid Intake Today</p>
                   <p className="text-xl font-bold text-gray-800 leading-none">{fluidMl} ml</p>
                   <p className="text-[9px] font-bold text-gray-400 leading-none mt-1">Target: {fluidTarget} ml</p>
-                  
-    </div>
+                </div>
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 text-center space-y-1">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Growth Quests Completed</p>
                   <p className="text-xl font-bold text-gray-800 leading-none">
                     {activities.length > 0 ? Math.round((activities.filter(a => a.isCompleted).length / activities.length) * 100) : 0}%
                   </p>
-                  <p className="text-[9px] font-bold text-green-600 leading-none mt-1">
+                  <p className="text-[9px] font-bold text-primary leading-none mt-1">
                     {dailyStreak > 0 ? `${dailyStreak} Day Streak Active` : 'No Active Streak'}
                   </p>
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
 
               {/* Solids & Foods Milestone Summary Section */}
               <div className="space-y-4">
@@ -2369,35 +2615,30 @@ export const Journal = ({  isPremium,
                     {clearedAllergensList.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {clearedAllergensList.map((a, i) => (
-                          <span key={i} className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                          <span key={i} className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                             ✓ {a.name}
                           </span>
                         ))}
-                        
-    </div>
+                      </div>
                     ) : (
                       <p className="text-[11px] text-gray-400 italic">No allergens cleared yet.</p>
                     )}
-                    
-    </div>
+                  </div>
                   <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 space-y-2">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Under-monitoring / Suspected</p>
                     {suspectedAllergensList.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {suspectedAllergensList.map((a, i) => (
-                          <span key={i} className="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                          <span key={i} className="text-[10px] font-bold bg-[#FFD6E8] text-gray-800 px-2 py-0.5 rounded-full border border-pink-200">
                             ⚠️ {a.name}
                           </span>
                         ))}
-                        
-    </div>
+                      </div>
                     ) : (
                       <p className="text-[11px] text-gray-400 italic">No suspected reaction allergens recorded.</p>
                     )}
-                    
-    </div>
-                  
-    </div>
+                  </div>
+                </div>
 
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 space-y-2">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Introduced Ingredients Log</p>
@@ -2408,10 +2649,8 @@ export const Journal = ({  isPremium,
                   ) : (
                     <p className="text-xs text-gray-400 italic font-medium">No solid meals logged yet. Baby is fully on milk/formula plan.</p>
                   )}
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
 
               {/* Digestive & Symptoms Tracker Section */}
               <div className="space-y-4">
@@ -2421,40 +2660,33 @@ export const Journal = ({  isPremium,
                     <div className="leading-none space-y-1">
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Wet Diapers</p>
                       <p className="font-bold text-gray-800 text-sm">{totalWetDiapers} Logged</p>
-                      
-    </div>
+                    </div>
                     <div className="leading-none space-y-1">
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Dirty Diapers</p>
                       <p className="font-bold text-gray-800 text-sm">{totalDirtyDiapers} Logged</p>
-                      
-    </div>
+                    </div>
                     <div className="leading-none space-y-1">
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Average Stool Type</p>
                       <p className="font-bold text-gray-800 text-sm">
                         Type {avgStoolType} - {avgStoolType === 4 ? 'Optimal Smooth' : avgStoolType > 4 ? 'Loose' : 'Hard'}
                       </p>
-                      
-    </div>
-                    
-    </div>
+                    </div>
+                  </div>
 
                   {reactionMealsList.length > 0 && (
-                    <div className="bg-red-50 border border-solid border-red-100 p-3 rounded-xl space-y-1">
-                      <p className="text-[9px] font-black text-red-800 uppercase tracking-widest">Recent Symptoms/Reactions under doctor audit:</p>
-                      <ul className="list-disc pl-4 text-[11px] font-bold text-red-700 space-y-0.5">
+                    <div className="bg-primary/5 border border-solid border-primary/20 p-3 rounded-xl space-y-1">
+                      <p className="text-[9px] font-black text-primary uppercase tracking-widest">Recent Symptoms/Reactions under doctor audit:</p>
+                      <ul className="list-disc pl-4 text-[11px] font-bold text-gray-700 space-y-0.5">
                         {reactionMealsList.map((m, idx) => (
                           <li key={idx}>
                             {m.title}: {m.allergyNotes || 'Mild skin rashes reported.'}
                           </li>
                         ))}
                       </ul>
-                      
-    </div>
+                    </div>
                   )}
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
 
               {/* Medication History Section */}
               <div className="space-y-4">
@@ -2471,8 +2703,7 @@ export const Journal = ({  isPremium,
                     ) : (
                       <p className="text-[11px] text-gray-400 italic">No recent medications logged.</p>
                     )}
-                    
-    </div>
+                  </div>
                   
                   <div className="space-y-2 mt-4 pt-4 border-t border-gray-100">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Vaccine Status</p>
@@ -2485,34 +2716,26 @@ export const Journal = ({  isPremium,
                     ) : (
                       <p className="text-[11px] text-gray-400 italic">No vaccines recorded.</p>
                     )}
-                    
-    </div>
-                  
-    </div>
-                
-    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Notes block for caregiver use */}
               <div className="border-t border-gray-200 pt-6 space-y-3">
                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Review & Recommendations</p>
                 <div className="h-24 w-full border border-dashed border-gray-200 rounded-2xl bg-gray-50/30 p-4">
                   <p className="text-[10px] text-gray-300 italic">Review notes space... (Print to write down or fill manually)</p>
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
 
               {/* Footer details */}
               <footer className="text-center text-[10px] text-gray-400 font-medium pt-4 border-t border-gray-100">
                 Ama - Smart Weaning Companion App • Secured caregiver PDF report document.
               </footer>
-              
-    </div>
-            
-    </div>
+            </div>
+          </div>
         )}
       </AnimatePresence>
-      
     </div>
   );
 };

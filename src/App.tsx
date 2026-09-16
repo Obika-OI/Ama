@@ -8,10 +8,12 @@ import {
   Dna, Activity as ActivityIcon, Users, Check, HelpCircle, Mic
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MOCK_MEALS, THEME, MOCK_ACTIVITIES, MOCK_REMINDERS, QUEST_POOL } from './constants';
-import { Meal, Activity, Reminder } from './types';
-import { TEETH_LIST, LOCAL_REGIONS_DATABASE, COMMON_INGREDIENTS, DEFAULT_VACCINE_SCHEDULE, DEFAULT_WHO_CDC_VACCINE_SCHEDULE } from './constants/babyData';
+import { MOCK_MEALS, THEME, MOCK_ACTIVITIES, MOCK_REMINDERS, DEFAULT_REMINDERS, QUEST_POOL } from './constants';
+import { Meal, Activity, Reminder, PRNDoseLog, PRNSchedule } from './types';
+import { TEETH_LIST, LOCAL_REGIONS_DATABASE, COMMON_INGREDIENTS, DEFAULT_VACCINE_SCHEDULE, DEFAULT_WHO_CDC_VACCINE_SCHEDULE, sanitizeVaccineSchedule } from './constants/babyData';
 import { formatCost, getIngredientImage, calculateBabyAge, drawThreeRandomQuests, encryptString, decryptString, encryptPayload, decryptPayload, processCloudData } from './utils/helpers';
+import { getDueRemindersNow, playSynthesizedChime, evaluatePRNSafety } from './utils/scheduleEngine';
+import { ActiveAlarmModal } from './components/ActiveAlarmModal';
 import { VoiceAssistant } from './components/VoiceAssistant';
 import { StorybookGenerator } from './components/StorybookGenerator';
 import { DiaperAnalyzer } from './components/DiaperAnalyzer';
@@ -588,30 +590,205 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [reminders, setReminders] = useState<any[]>(() => {
+  const [reminders, setReminders] = useState<Reminder[]>(() => {
     const saved = localStorage.getItem('reminders');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return DEFAULT_REMINDERS as Reminder[];
   });
 
-  useEffect(() => {
-    localStorage.setItem('scheduledMeals', JSON.stringify(scheduledMeals));
-  }, [scheduledMeals]);
+  const [activeAlarm, setActiveAlarm] = useState<{
+    reminder: Reminder;
+    triggerTime: string;
+    title: string;
+    body: string;
+    tag: string;
+  } | null>(null);
 
+  // Background Notification Scheduler for Web Push & In-App Alarms
   useEffect(() => {
-    localStorage.setItem('scheduledActivities', JSON.stringify(scheduledActivities));
-  }, [scheduledActivities]);
+    const checkAlarms = () => {
+      const now = new Date();
+      const currentHours = now.getHours();
+      const currentMins = now.getMinutes();
+      
+      const formatToAmPm = (h: number, m: number) => {
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const formattedH = h % 12 || 12;
+        return `${formattedH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`;
+      };
+      
+      const currentTimeStr = formatToAmPm(currentHours, currentMins);
+      const todayISO = now.toISOString().split('T')[0];
 
-  useEffect(() => {
-    localStorage.setItem('scheduledMeds', JSON.stringify(scheduledMeds));
-  }, [scheduledMeds]);
+      // Helper to trigger notification
+      const triggerNotification = (title: string, body: string, tag: string, reminderObj?: Reminder) => {
+        const cacheKey = `notified_${tag}_${todayISO}_${currentTimeStr}`;
+        if (!localStorage.getItem(cacheKey)) {
+          // Play in-app audio chime
+          playSynthesizedChime('alert');
 
-  useEffect(() => {
-    localStorage.setItem('reminders', JSON.stringify(reminders));
-  }, [reminders]);
+          // If a reminderObj is provided, trigger in-app active alarm modal
+          if (reminderObj) {
+            setActiveAlarm({
+              reminder: reminderObj,
+              triggerTime: currentTimeStr,
+              title,
+              body,
+              tag
+            });
+          }
+
+          // Trigger Web Push Notification if supported and granted
+          if ('Notification' in window && Notification.permission === 'granted') {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(title, {
+                  body,
+                  icon: '/pwa-192x192.png',
+                  badge: '/pwa-192x192.png',
+                  tag,
+                  requireInteraction: true
+                });
+              }).catch(() => {
+                try {
+                  new Notification(title, { body, icon: '/pwa-192x192.png', tag });
+                } catch (e) {}
+              });
+            } else {
+              try {
+                new Notification(title, { body, icon: '/pwa-192x192.png', tag });
+              } catch (e) {}
+            }
+          }
+
+          // Add to in-app notifications feed
+          setNotifications(prev => [
+            {
+              id: `alarm-notif-${Date.now()}-${tag}`,
+              title: `${title}: ${body}`,
+              time: 'Just now',
+              read: false
+            },
+            ...prev
+          ]);
+
+          localStorage.setItem(cacheKey, 'true');
+        }
+      };
+
+      // 1. Check all flexible timing reminders using the scheduleEngine
+      const dueReminders = getDueRemindersNow(reminders, now);
+      dueReminders.forEach(({ reminder, triggerTime, title, body, tag }) => {
+        triggerNotification(title, body, tag, reminder);
+      });
+
+      // 2. Check Scheduled Meds
+      scheduledMeds.forEach(med => {
+        if (!med.completed && med.time === currentTimeStr && med.date && med.date.startsWith(todayISO)) {
+          triggerNotification(`Medication Reminder: ${med.name || med.title}`, `It's time for ${med.dosage}.`, `med_${med.id}`);
+        }
+      });
+
+      // 3. Check Scheduled Meals
+      scheduledMeals.forEach(meal => {
+        if (!meal.completed && meal.time === currentTimeStr && meal.date && meal.date.startsWith(todayISO)) {
+          triggerNotification(`Feeding Reminder: ${meal.title}`, `Scheduled for ${meal.time}.`, `meal_${meal.id}`);
+        }
+      });
+      
+      // 4. Check Scheduled Activities
+      scheduledActivities.forEach(act => {
+        if (!act.completed && act.time === currentTimeStr && act.date && act.date.startsWith(todayISO)) {
+          triggerNotification(`Activity: ${act.title}`, `Scheduled for ${act.duration}.`, `act_${act.id}`);
+        }
+      });
+    };
+
+    // Check immediately, then every 20 seconds for tight synchronization
+    checkAlarms();
+    const interval = setInterval(checkAlarms, 20000);
+    return () => clearInterval(interval);
+  }, [reminders, scheduledMeds, scheduledMeals, scheduledActivities]);
+
+  const handleTakeActiveAlarm = (rem: Reminder) => {
+    if (rem.scheduleType === 'prn') {
+      // Log PRN dose
+      const newLog: PRNDoseLog = {
+        id: `dose-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        dosage: rem.dosage || rem.prnConfig?.dosage || '1 dose',
+        notes: 'Logged via active alarm'
+      };
+      setReminders(prev => prev.map(r => {
+        if (r.id === rem.id) {
+          const logs = r.prnConfig?.doseLogs || [];
+          const updatedPrn: PRNSchedule = {
+            minIntervalHours: r.prnConfig?.minIntervalHours || 4,
+            maxDosesPer24h: r.prnConfig?.maxDosesPer24h || 4,
+            dosage: r.prnConfig?.dosage || r.dosage || '1 dose',
+            instructions: r.prnConfig?.instructions,
+            doseLogs: [newLog, ...logs]
+          };
+          return {
+            ...r,
+            prnConfig: updatedPrn,
+            lastTriggered: new Date().toISOString()
+          };
+        }
+        return r;
+      }));
+    } else {
+      // Standard dose completion
+      setReminders(prev => prev.map(r => r.id === rem.id ? { ...r, lastTriggered: new Date().toISOString() } : r));
+    }
+
+    setNotifications(prev => [
+      {
+        id: `taken-${Date.now()}`,
+        title: `Completed dose: ${rem.title}`,
+        time: 'Just now',
+        read: false
+      },
+      ...prev
+    ]);
+
+    playSynthesizedChime('success');
+    setActiveAlarm(null);
+  };
+
+  const handleSnoozeActiveAlarm = (rem: Reminder, minutes: number = 10) => {
+    setActiveAlarm(null);
+    setNotifications(prev => [
+      {
+        id: `snooze-${Date.now()}`,
+        title: `Snoozed "${rem.title}" for ${minutes} minutes`,
+        time: 'Just now',
+        read: false
+      },
+      ...prev
+    ]);
+  };
+
+  const handleDismissActiveAlarm = () => {
+    setActiveAlarm(null);
+  };
 
   const [vaccineSchedule, setVaccineSchedule] = useState<any[]>(() => {
     const saved = localStorage.getItem('vaccine_schedule');
-    return saved ? JSON.parse(saved) : DEFAULT_WHO_CDC_VACCINE_SCHEDULE;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return sanitizeVaccineSchedule(parsed);
+        }
+      } catch (e) {}
+    }
+    return sanitizeVaccineSchedule(DEFAULT_WHO_CDC_VACCINE_SCHEDULE);
   });
 
   useEffect(() => {
@@ -645,75 +822,6 @@ export default function App() {
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  
-  // Background Notification Scheduler for Web Push
-  useEffect(() => {
-    // Only check if notifications are permitted and we aren't running in a totally restricted environment
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-
-    const checkAlarms = () => {
-      const now = new Date();
-      const currentHours = now.getHours();
-      const currentMins = now.getMinutes();
-      
-      const formatToAmPm = (h: number, m: number) => {
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const formattedH = h % 12 || 12;
-        return `${formattedH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`;
-      };
-      
-      const currentTimeStr = formatToAmPm(currentHours, currentMins);
-      const todayISO = now.toISOString().split('T')[0];
-
-      // Helper to trigger notification
-      const triggerNotification = (title: string, body: string, tag: string) => {
-        // Prevent duplicate notifications in the same minute using localStorage cache
-        const cacheKey = `notified_${tag}_${todayISO}_${currentTimeStr}`;
-        if (!localStorage.getItem(cacheKey)) {
-          // Use Service Worker registration if available for background robustness
-          navigator.serviceWorker.ready.then(registration => {
-            registration.showNotification(title, {
-              body,
-              icon: '/pwa-192x192.png',
-              badge: '/pwa-192x192.png',
-              tag,
-              requireInteraction: true
-            });
-          }).catch(() => {
-            // Fallback to standard Notification API
-            new Notification(title, { body, icon: '/pwa-192x192.png', tag });
-          });
-          localStorage.setItem(cacheKey, 'true');
-        }
-      };
-
-      // Check Meds
-      scheduledMeds.forEach(med => {
-        if (!med.completed && med.time === currentTimeStr && med.date && med.date.startsWith(todayISO)) {
-          triggerNotification(`Medication Reminder: ${med.name || med.title}`, `It's time for ${med.dosage}.`, `med_${med.id}`);
-        }
-      });
-
-      // Check Meals
-      scheduledMeals.forEach(meal => {
-        if (!meal.completed && meal.time === currentTimeStr && meal.date && meal.date.startsWith(todayISO)) {
-          triggerNotification(`Feeding Reminder: ${meal.title}`, `Scheduled for ${meal.time}.`, `meal_${meal.id}`);
-        }
-      });
-      
-      // Check Activities
-      scheduledActivities.forEach(act => {
-        if (!act.completed && act.time === currentTimeStr && act.date && act.date.startsWith(todayISO)) {
-          triggerNotification(`Activity: ${act.title}`, `Scheduled for ${act.duration}.`, `act_${act.id}`);
-        }
-      });
-    };
-
-    // Check immediately, then every minute
-    checkAlarms();
-    const interval = setInterval(checkAlarms, 60000);
-    return () => clearInterval(interval);
-  }, [scheduledMeds, scheduledMeals, scheduledActivities]);
 
   const [lastLocalUpdate, setLastLocalUpdate] = useState<number>(() => {
     return parseInt(localStorage.getItem('lastLocalUpdate') || '0', 10);
@@ -943,7 +1051,7 @@ export default function App() {
               if (data.scheduledActivities !== undefined) setScheduledActivities(data.scheduledActivities);
               if (data.scheduledMeds !== undefined) setScheduledMeds(data.scheduledMeds);
               if (data.reminders !== undefined) setReminders(data.reminders);
-              if (data.vaccineSchedule !== undefined) setVaccineSchedule(data.vaccineSchedule);
+              if (data.vaccineSchedule !== undefined) setVaccineSchedule(sanitizeVaccineSchedule(data.vaccineSchedule));
               if (data.userRole !== undefined) setUserRole(data.userRole);
               if (data.memories !== undefined) setMemories(data.memories);
 
@@ -1056,52 +1164,59 @@ export default function App() {
     if (!currentUser || !isInitialLoadComplete || !isOnline) return;
 
     const userDocRef = doc(db, 'users', currentUser.uid);
-    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const rawCloudData = docSnap.data();
-        const cloudData = processCloudData(rawCloudData);
-        const cloudTime = cloudData.updatedAt ? new Date(cloudData.updatedAt).getTime() : 0;
-        
-        setLastLocalUpdate(currentLocalTime => {
-          if (cloudTime > currentLocalTime) {
-            setIsSyncing(true);
-            if (cloudData.babyName !== undefined) setBabyName(cloudData.babyName);
-            if (cloudData.parentName !== undefined) setParentName(cloudData.parentName);
-            if (cloudData.parentDob !== undefined) setParentDob(cloudData.parentDob);
-            if (cloudData.allergenMatrix !== undefined) setAllergenMatrix(cloudData.allergenMatrix);
-            if (cloudData.weeklyPlan !== undefined) setWeeklyPlan(cloudData.weeklyPlan);
-            if (cloudData.groceryChecked !== undefined) setGroceryChecked(cloudData.groceryChecked);
-            if (cloudData.diaperLogs !== undefined) setDiaperLogs(cloudData.diaperLogs);
-            if (cloudData.notifications !== undefined) setNotifications(cloudData.notifications);
-            if (cloudData.growthLogs !== undefined) setGrowthLogs(cloudData.growthLogs);
-            if (cloudData.allTimePoints !== undefined) setAllTimePoints(cloudData.allTimePoints);
-            if (cloudData.dailyStreak !== undefined) setDailyStreak(cloudData.dailyStreak);
-            if (cloudData.lastQuestDate !== undefined) setLastQuestDate(cloudData.lastQuestDate);
-            if (cloudData.lastStreakDate !== undefined) setLastStreakDate(cloudData.lastStreakDate);
-            if (cloudData.activities !== undefined) setActivities(cloudData.activities);
-            if (cloudData.fluidMl !== undefined) setFluidMl(cloudData.fluidMl);
-            if (cloudData.fluidTarget !== undefined) setFluidTarget(cloudData.fluidTarget);
-            if (cloudData.loggedMeals !== undefined) setLoggedMeals(cloudData.loggedMeals);
-            if (cloudData.observationLogs !== undefined) setObservationLogs(cloudData.observationLogs);
-            if (cloudData.loggedMoods !== undefined) setLoggedMoods(cloudData.loggedMoods);
-            if (cloudData.personalRecipes !== undefined) setPersonalRecipes(cloudData.personalRecipes);
-            if (cloudData.scheduledMeals !== undefined) setScheduledMeals(cloudData.scheduledMeals);
-            if (cloudData.scheduledActivities !== undefined) setScheduledActivities(cloudData.scheduledActivities);
-            if (cloudData.scheduledMeds !== undefined) setScheduledMeds(cloudData.scheduledMeds);
-            if (cloudData.reminders !== undefined) setReminders(cloudData.reminders);
-            if (cloudData.vaccineSchedule !== undefined) setVaccineSchedule(cloudData.vaccineSchedule);
-            if (cloudData.userRole !== undefined) setUserRole(cloudData.userRole);
-            if (cloudData.memories !== undefined) setMemories(cloudData.memories);
-            
-            localStorage.setItem('lastLocalUpdate', cloudTime.toString());
-            
-            setTimeout(() => setIsSyncing(false), 500);
-            return cloudTime;
-          }
-          return currentLocalTime;
-        });
+    const unsubscribe = onSnapshot(
+      userDocRef, 
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const rawCloudData = docSnap.data();
+          const cloudData = processCloudData(rawCloudData);
+          const cloudTime = cloudData.updatedAt ? new Date(cloudData.updatedAt).getTime() : 0;
+          
+          setLastLocalUpdate(currentLocalTime => {
+            if (cloudTime > currentLocalTime) {
+              setIsSyncing(true);
+              if (cloudData.babyName !== undefined) setBabyName(cloudData.babyName);
+              if (cloudData.parentName !== undefined) setParentName(cloudData.parentName);
+              if (cloudData.parentDob !== undefined) setParentDob(cloudData.parentDob);
+              if (cloudData.allergenMatrix !== undefined) setAllergenMatrix(cloudData.allergenMatrix);
+              if (cloudData.weeklyPlan !== undefined) setWeeklyPlan(cloudData.weeklyPlan);
+              if (cloudData.groceryChecked !== undefined) setGroceryChecked(cloudData.groceryChecked);
+              if (cloudData.diaperLogs !== undefined) setDiaperLogs(cloudData.diaperLogs);
+              if (cloudData.notifications !== undefined) setNotifications(cloudData.notifications);
+              if (cloudData.growthLogs !== undefined) setGrowthLogs(cloudData.growthLogs);
+              if (cloudData.allTimePoints !== undefined) setAllTimePoints(cloudData.allTimePoints);
+              if (cloudData.dailyStreak !== undefined) setDailyStreak(cloudData.dailyStreak);
+              if (cloudData.lastQuestDate !== undefined) setLastQuestDate(cloudData.lastQuestDate);
+              if (cloudData.lastStreakDate !== undefined) setLastStreakDate(cloudData.lastStreakDate);
+              if (cloudData.activities !== undefined) setActivities(cloudData.activities);
+              if (cloudData.fluidMl !== undefined) setFluidMl(cloudData.fluidMl);
+              if (cloudData.fluidTarget !== undefined) setFluidTarget(cloudData.fluidTarget);
+              if (cloudData.loggedMeals !== undefined) setLoggedMeals(cloudData.loggedMeals);
+              if (cloudData.observationLogs !== undefined) setObservationLogs(cloudData.observationLogs);
+              if (cloudData.loggedMoods !== undefined) setLoggedMoods(cloudData.loggedMoods);
+              if (cloudData.personalRecipes !== undefined) setPersonalRecipes(cloudData.personalRecipes);
+              if (cloudData.scheduledMeals !== undefined) setScheduledMeals(cloudData.scheduledMeals);
+              if (cloudData.scheduledActivities !== undefined) setScheduledActivities(cloudData.scheduledActivities);
+              if (cloudData.scheduledMeds !== undefined) setScheduledMeds(cloudData.scheduledMeds);
+              if (cloudData.reminders !== undefined) setReminders(cloudData.reminders);
+              if (cloudData.vaccineSchedule !== undefined) setVaccineSchedule(sanitizeVaccineSchedule(cloudData.vaccineSchedule));
+              if (cloudData.userRole !== undefined) setUserRole(cloudData.userRole);
+              if (cloudData.memories !== undefined) setMemories(cloudData.memories);
+              
+              localStorage.setItem('lastLocalUpdate', cloudTime.toString());
+              
+              setTimeout(() => setIsSyncing(false), 500);
+              return cloudTime;
+            }
+            return currentLocalTime;
+          });
+        }
+      },
+      (error) => {
+        // Graceful offline fallback logging
+        console.warn("Firestore listener operates in offline/local cache mode:", error?.message || error);
       }
-    });
+    );
 
     return () => unsubscribe();
   }, [currentUser, isInitialLoadComplete, isOnline]);
@@ -1154,7 +1269,7 @@ export default function App() {
             if (cloudData.scheduledActivities !== undefined) setScheduledActivities(cloudData.scheduledActivities);
             if (cloudData.scheduledMeds !== undefined) setScheduledMeds(cloudData.scheduledMeds);
             if (cloudData.reminders !== undefined) setReminders(cloudData.reminders);
-            if (cloudData.vaccineSchedule !== undefined) setVaccineSchedule(cloudData.vaccineSchedule);
+            if (cloudData.vaccineSchedule !== undefined) setVaccineSchedule(sanitizeVaccineSchedule(cloudData.vaccineSchedule));
             if (cloudData.userRole !== undefined) setUserRole(cloudData.userRole);
             if (cloudData.memories !== undefined) setMemories(cloudData.memories);
 
@@ -1531,6 +1646,8 @@ export default function App() {
               dailyStreak={dailyStreak}
               vaccineSchedule={vaccineSchedule}
               setVaccineSchedule={setVaccineSchedule}
+              reminders={reminders}
+              setReminders={setReminders}
               userRole={userRole}
               setUserRole={setUserRole}
             />
@@ -1751,23 +1868,20 @@ export default function App() {
                 
     </div>
 
-              <div className="w-24 h-24 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center text-5xl mx-auto shadow-inner animate-pulse">
+              <div className="w-24 h-24 bg-primary/10 text-primary rounded-full flex items-center justify-center text-5xl mx-auto shadow-inner animate-pulse">
                 🔥
-                
-    </div>
+              </div>
 
               <div className="space-y-2">
                 <h3 className="text-2xl font-serif font-black text-gray-800">Streak Advanced!</h3>
                 <p className="text-xs text-muted font-medium">
                   You have completed all 3 Growth Quests today! Baby is thriving!
                 </p>
-                
-    </div>
+              </div>
 
-              <div className="bg-amber-500 text-white py-3 px-6 rounded-3xl font-black text-xs uppercase tracking-widest">
+              <div className="bg-primary text-white py-3 px-6 rounded-3xl font-black text-xs uppercase tracking-widest shadow-md shadow-primary/20">
                 🔥 {dailyStreak} Day Streak
-                
-    </div>
+              </div>
 
               <button 
                 onClick={() => setShowStreakPopup(false)}
@@ -1882,15 +1996,14 @@ export default function App() {
             className="w-full max-w-sm bg-white rounded-[48px] border border-solid border-gray-100 shadow-2xl p-8 space-y-6 text-center relative overflow-hidden"
           >
             {/* Top decorative subtle abstract pattern bubble */}
-            <div className="absolute -top-12 -right-12 w-28 h-28 bg-rose-100/40 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-sky-100/40 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -top-12 -right-12 w-28 h-28 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
 
             {/* Playful/Elegant Header */}
             <div className="space-y-3 relative z-10">
-              <div className="w-16 h-16 bg-gradient-to-tr from-rose-100 to-amber-50 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-inner shadow-rose-200/50">
+              <div className="w-16 h-16 bg-primary/10 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-inner border border-primary/20">
                 👶✨
-                
-    </div>
+              </div>
               <div>
                 <h2 className="text-2xl font-serif font-black text-gray-800 leading-tight">Welcome to Ama</h2>
                 <p className="text-[11px] text-gray-400 mt-1 font-medium leading-relaxed">Let's set up your baby's weaning, care, and milestoning journey</p>
@@ -1969,12 +2082,12 @@ export default function App() {
                   className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
                 />
                 {onboardingBabyAge && (
-                  <p className="text-[11px] text-emerald-600 font-bold pl-1 mt-1">
+                  <p className="text-[11px] text-primary font-bold pl-1 mt-1">
                     Calculated Age: {onboardingBabyAge}
                   </p>
                 )}
                 
-    </div>
+              </div>
 
               {/* 1-Step Microphone Access Verification */}
               <div className="space-y-2 pt-2 border-t border-gray-100">
@@ -1988,8 +2101,7 @@ export default function App() {
                       <span className="text-xs font-bold text-gray-800">
                         {onboardingMicStatus === 'granted' ? 'Mic Access Granted' : onboardingMicStatus === 'denied' ? 'Mic Permission Blocked' : 'Check Mic Hardware'}
                       </span>
-                      
-    </div>
+                    </div>
                     <button
                       type="button"
                       onClick={handleTestOnboardingMic}
@@ -1998,35 +2110,28 @@ export default function App() {
                     >
                       {isOnboardingMicTesting ? 'Testing...' : onboardingMicStatus === 'granted' ? 'Re-test' : 'Test Mic'}
                     </button>
-                    
-    </div>
+                  </div>
 
                   {onboardingMicStatus === 'granted' && (
-                    <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 text-[10px] text-emerald-800 font-bold flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <div className="p-2 bg-primary/10 rounded-xl border border-primary/20 text-[10px] text-gray-800 font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
                       <span>Web audio permission verified! Ready for noise-filtered cry analysis.</span>
-                      
-    </div>
+                    </div>
                   )}
 
                   {onboardingMicStatus === 'denied' && (
-                    <div className="p-2 bg-amber-50 rounded-xl border border-amber-100 text-[10px] text-amber-800 font-medium leading-relaxed">
+                    <div className="p-2 bg-primary/5 rounded-xl border border-primary/20 text-[10px] text-gray-800 font-medium leading-relaxed">
                       ⚠️ Permission blocked. You can still use manual care logging and enable microphone permissions anytime in your browser.
-                      
-    </div>
+                    </div>
                   )}
-                  
-    </div>
-                
-    </div>
-              
-    </div>
+                </div>
+              </div>
+            </div>
 
             {ageGateError && (
-              <div className="p-4 bg-red-50 rounded-2xl border border-solid border-red-100 text-left text-red-600 text-[10px] font-bold leading-relaxed relative z-10">
+              <div className="p-4 bg-primary/10 rounded-2xl border border-solid border-primary/20 text-left text-gray-800 text-[10px] font-bold leading-relaxed relative z-10">
                 ⚠️ {ageGateError}
-                
-    </div>
+              </div>
             )}
 
             {/* Start Button */}
@@ -2074,6 +2179,14 @@ export default function App() {
             const newMood = { id: `d-${Date.now()}`, date: new Date().toISOString(), mood: 'Neutral', notes: note };
             setLoggedMoods(prev => [...prev, newMood]);
           }}
+          onLogSleep={(durationMinutes) => {
+            const newMood = { id: `s-${Date.now()}`, date: new Date().toISOString(), mood: 'Sleep', notes: `Logged ${durationMinutes}m nap with Ogoo` };
+            setLoggedMoods(prev => [...prev, newMood]);
+          }}
+          onLogDiaper={(type) => {
+            const newDiaper = { id: `dp-${Date.now()}`, date: new Date().toISOString(), type: type || 'wet', notes: 'Logged via Ogoo' };
+            setDiaperLogs(prev => [...prev, newDiaper]);
+          }}
           loggedMeals={loggedMeals}
           observationLogs={observationLogs}
           loggedMoods={loggedMoods}
@@ -2082,6 +2195,14 @@ export default function App() {
           memories={memories}
         />
       )}
+
+      {/* Active Scheduled Alarm Modal */}
+      <ActiveAlarmModal
+        alarm={activeAlarm}
+        onTake={handleTakeActiveAlarm}
+        onSnooze={handleSnoozeActiveAlarm}
+        onDismiss={handleDismissActiveAlarm}
+      />
 
       {/* Paystack Premium Upgrade Modal */}
       <SubscriptionModal

@@ -51,7 +51,7 @@ export const MemorySlideshow = ({ memories, babyName, onAddMemory }: { memories:
         {memories.length > 0 && (
           <button 
             onClick={() => { setIsOpen(true); setIsPlaying(true); }}
-            className="flex-1 bg-gradient-to-br from-pink-400 to-rose-400 text-white p-4 rounded-3xl font-black shadow-lg shadow-pink-400/30 flex items-center justify-between group active:scale-95 transition-all"
+            className="flex-1 bg-gradient-to-br from-pink-400 to-pink-500 text-white p-4 rounded-3xl font-black shadow-lg shadow-pink-400/20 flex items-center justify-between group active:scale-95 transition-all"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center">

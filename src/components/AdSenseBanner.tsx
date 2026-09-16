@@ -54,7 +54,7 @@ export const AdSenseBanner: React.FC<AdSenseBannerProps> = ({
           <button
             type="button"
             onClick={onOpenSubscriptionModal}
-            className="flex items-center gap-1 text-[10px] font-black uppercase text-amber-700 hover:text-amber-800 transition-colors bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-full cursor-pointer border-none"
+            className="flex items-center gap-1 text-[10px] font-black uppercase text-primary hover:text-primary/80 transition-colors bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-full cursor-pointer border-none"
           >
             <Crown className="w-2.5 h-2.5" />
             <span>Remove Ads with Pro</span>
@@ -93,7 +93,7 @@ export const AdSenseBanner: React.FC<AdSenseBannerProps> = ({
             <button
               type="button"
               onClick={onOpenSubscriptionModal}
-              className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-xs cursor-pointer border-none shrink-0"
+              className="w-full sm:w-auto px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-xs cursor-pointer border-none shrink-0"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Go Ad-Free</span>

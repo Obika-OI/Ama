@@ -13,6 +13,9 @@ import {
 } from 'firebase/auth';
 import { 
   getFirestore, 
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc, 
   getDoc, 
   setDoc, 
@@ -39,7 +42,21 @@ isSupported().then(supported => {
     analytics = getAnalytics(app);
   }
 });
-export const db = getFirestore(app);
+
+let dbInstance: ReturnType<typeof getFirestore>;
+try {
+  dbInstance = initializeFirestore(app, {
+    experimentalAutoDetectLongPolling: true,
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
+} catch (err) {
+  console.warn("Firestore already initialized or custom settings unsupported, using standard instance:", err);
+  dbInstance = getFirestore(app);
+}
+
+export const db = dbInstance;
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 

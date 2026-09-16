@@ -525,17 +525,77 @@ export const DEFAULT_ACTIVITIES = QUEST_POOL.slice(0, 3);
 export const DEFAULT_REMINDERS = [
   {
     id: 'r1',
-    title: 'Vitamin D Drops',
-    time: '09:00',
+    title: 'Vitamin D & Daily Drops',
+    type: 'Medication',
+    category: 'medication' as const,
+    scheduleType: 'specific_times' as const,
+    dosage: '1 dropper (400 IU)',
+    time: '08:00 AM',
+    active: true,
     isActive: true,
-    type: 'medication'
+    specificTimesConfig: {
+      times: ['08:00 AM', '02:00 PM', '08:00 PM']
+    },
+    instructions: 'Administer with feeding session for optimal absorption'
   },
   {
     id: 'r2',
-    title: 'Hydration Check',
-    interval: 2,
+    title: 'Hydration & Water Check',
+    type: 'Fluid Intake',
+    category: 'hydration' as const,
+    scheduleType: 'interval' as const,
+    dosage: '60-90 ml',
+    time: '07:00 AM',
+    active: true,
     isActive: true,
-    type: 'hydration'
+    intervalConfig: {
+      intervalHours: 3,
+      anchorTime: '07:00 AM',
+      mode: 'waking_hours' as const,
+      wakingStart: '07:00 AM',
+      wakingEnd: '09:00 PM'
+    },
+    instructions: 'Encourage sips between active play and naps'
+  },
+  {
+    id: 'r3',
+    title: 'Infant Teething & Fever Relief',
+    type: 'Medication',
+    category: 'medication' as const,
+    scheduleType: 'prn' as const,
+    dosage: '2.5 ml (120mg/5ml)',
+    active: true,
+    isActive: true,
+    prnConfig: {
+      minIntervalHours: 4,
+      maxDosesPer24h: 4,
+      dosage: '2.5 ml',
+      instructions: 'For high temperature >38.5°C or teething discomfort. Never exceed 4 doses in 24 hours.',
+      doseLogs: [
+        {
+          id: 'log-seed-1',
+          timestamp: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+          dosage: '2.5 ml',
+          notes: 'Fever post-teething nap'
+        }
+      ]
+    }
+  },
+  {
+    id: 'r4',
+    title: 'Probiotic & Iron Wellness',
+    type: 'Medication',
+    category: 'medication' as const,
+    scheduleType: 'weekly' as const,
+    dosage: '5 drops',
+    time: '09:00 AM',
+    active: true,
+    isActive: true,
+    weeklyConfig: {
+      days: [1, 3, 5], // Mon, Wed, Fri
+      times: ['09:00 AM', '06:00 PM']
+    },
+    instructions: 'Recurring Mon, Wed, Fri gut wellness booster'
   }
 ];
 

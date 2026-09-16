@@ -70,7 +70,7 @@ export const StorybookGenerator = ({ diaryEntries, babyName }: { diaryEntries: a
     <>
       <button 
         onClick={generateStory}
-        className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white p-4 rounded-3xl font-black shadow-lg shadow-purple-500/30 flex items-center justify-between group active:scale-95 transition-all"
+        className="w-full bg-primary hover:bg-primary/90 text-white p-4 rounded-3xl font-black shadow-lg shadow-primary/20 flex items-center justify-between group active:scale-95 transition-all cursor-pointer border-none"
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -81,7 +81,7 @@ export const StorybookGenerator = ({ diaryEntries, babyName }: { diaryEntries: a
             <span className="block text-[10px] font-bold text-white/80 uppercase tracking-widest">Generate Monthly Storybook</span>
           </div>
         </div>
-        <BookOpen className="w-5 h-5 text-white/50 group-hover:text-white transition-colors" />
+        <BookOpen className="w-5 h-5 text-white/70 group-hover:text-white transition-colors" />
       </button>
 
       <AnimatePresence>
@@ -91,40 +91,45 @@ export const StorybookGenerator = ({ diaryEntries, babyName }: { diaryEntries: a
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[32px] overflow-hidden flex flex-col shadow-2xl"
+              className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[32px] overflow-hidden flex flex-col shadow-2xl border border-gray-100"
             >
-              <div className="p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-between shrink-0">
+              <div className="p-4 sm:p-6 bg-[#D2E9F9]/40 border-b border-primary/10 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                    <BookOpen className="w-5 h-5 text-indigo-500" />
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-xs text-primary">
+                    <BookOpen className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <h2 className="text-lg font-black text-gray-800">{babyName}'s Monthly Story</h2>
-                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">AI Generated Keepsake</p>
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest">AI Generated Keepsake</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {!isGenerating && story && (
-                    <button onClick={handlePrint} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-600 hover:text-indigo-500 transition-colors">
+                    <button onClick={handlePrint} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-xs text-gray-600 hover:text-primary transition-colors cursor-pointer border-none">
                       <Printer className="w-5 h-5" />
                     </button>
                   )}
-                  <button onClick={() => setIsOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-400 hover:text-red-500 transition-colors">
+                  <button onClick={() => setIsOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-xs text-gray-400 hover:text-gray-600 transition-colors cursor-pointer border-none">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
               
-              <div className="p-6 sm:p-8 overflow-y-auto flex-1">
+              <div className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-4">
                 {isGenerating ? (
                   <div className="h-64 flex flex-col items-center justify-center gap-4">
-                    <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
                     <p className="text-sm font-bold text-gray-500">Weaving memories into magic...</p>
                   </div>
                 ) : (
-                  <div id="storybook-content" className="prose prose-indigo max-w-none text-gray-700 bg-white p-4 rounded-xl">
-                     <ReactMarkdown>{story}</ReactMarkdown>
-                  </div>
+                  <>
+                    <div id="storybook-content" className="prose max-w-none text-gray-700 bg-white p-4 rounded-xl">
+                       <ReactMarkdown>{story}</ReactMarkdown>
+                    </div>
+                    <div className="p-3 bg-primary/5 rounded-2xl border border-primary/10 text-[10px] text-gray-600">
+                      ℹ️ <strong>AI Accuracy Disclaimer:</strong> Generated stories and summaries are created by artificial intelligence for creative and keepsake purposes only.
+                    </div>
+                  </>
                 )}
               </div>
             </motion.div>

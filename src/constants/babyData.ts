@@ -96,29 +96,105 @@ export const COMMON_INGREDIENTS = [
 ];
 
 export const DEFAULT_VACCINE_SCHEDULE = [
-  { id: 'v1', name: 'BCG (Tuberculosis)', disease: 'Protects against severe Tuberculosis', icon: '🛡️', age: 'Birth', status: 'Completed', date: '2026-01-15', sideEffects: 'Slight redness at site', category: 'Essential Childhood' },
-  { id: 'v2', name: 'Hepatitis B (HepB 0)', disease: 'Protects against Hepatitis B liver infection', icon: '💉', age: 'Birth', status: 'Completed', date: '2026-01-15', sideEffects: 'None', category: 'Essential Childhood' },
-  { id: 'v3', name: 'Oral Polio Vaccine (OPV 0)', disease: 'Protects against Poliovirus paralysis', icon: '💊', age: 'Birth', status: 'Completed', date: '2026-01-15', sideEffects: 'None', category: 'Essential Childhood' },
-  { id: 'v4', name: 'Pentavalent 1 (DTaP + HepB + Hib)', disease: '5-in-1 vaccine against Diphtheria, Tetanus, Pertussis, Hep B, Hib', icon: '🛡️', age: '6 Weeks', status: 'Completed', date: '2026-02-28', sideEffects: 'Mild fever', category: 'Primary Series' },
-  { id: 'v5', name: 'Pneumococcal Conjugate (PCV13) - Dose 1', disease: 'Protects against Pneumonia and Meningitis', icon: '🫁', age: '6 Weeks', status: 'Completed', date: '2026-02-28', sideEffects: 'Fussiness', category: 'Primary Series' },
-  { id: 'v6', name: 'Rotavirus Vaccine (RV) - Dose 1', disease: 'Protects against severe diarrhea and dehydration', icon: '💧', age: '6 Weeks', status: 'Completed', date: '2026-02-28', sideEffects: 'Mild loose stool', category: 'Primary Series' },
-  { id: 'v7', name: 'Inactivated Polio Vaccine (IPV 1)', disease: 'Injectable Polio protection', icon: '💉', age: '6 Weeks', status: 'Completed', date: '2026-02-28', sideEffects: 'Soreness at thigh', category: 'Primary Series' },
-  { id: 'v8', name: 'Pentavalent 2 (DTaP + HepB + Hib)', disease: 'Second dose for Diphtheria, Tetanus, Pertussis, Hep B, Hib', icon: '🛡️', age: '10 Weeks', status: 'Completed', date: '2026-03-28', sideEffects: 'Slight fever', category: 'Primary Series' },
-  { id: 'v9', name: 'Pneumococcal Conjugate (PCV13) - Dose 2', disease: 'Second dose against pneumococcal infections', icon: '🫁', age: '10 Weeks', status: 'Completed', date: '2026-03-28', sideEffects: 'None', category: 'Primary Series' },
-  { id: 'v10', name: 'Rotavirus Vaccine (RV) - Dose 2', disease: 'Second dose for Rotavirus gastroenteritis', icon: '💧', age: '10 Weeks', status: 'Completed', date: '2026-03-28', sideEffects: 'None', category: 'Primary Series' },
-  { id: 'v11', name: 'Oral Polio Vaccine (OPV 2)', disease: 'Second oral Polio drop', icon: '💊', age: '10 Weeks', status: 'Completed', date: '2026-03-28', sideEffects: 'None', category: 'Primary Series' },
-  { id: 'v12', name: 'Pentavalent 3 (DTaP + HepB + Hib)', disease: 'Third primary dose', icon: '🛡️', age: '6 Months', status: 'Scheduled', date: '2026-07-20', sideEffects: 'None', category: 'Primary Series' },
-  { id: 'v13', name: 'Pneumococcal Conjugate (PCV13) - Dose 3', disease: 'Third dose against pneumococcal infections', icon: '🫁', age: '6 Months', status: 'Scheduled', date: '2026-07-20', sideEffects: 'None', category: 'Primary Series' },
-  { id: 'v14', name: 'Influenza (Annual Flu Shot)', disease: 'Annual seasonal flu protection for infants 6m+', icon: '🩺', age: '6 Months', status: 'Scheduled', date: '2026-07-20', sideEffects: 'None', category: 'Seasonal Protection' },
-  { id: 'v15', name: 'Measles & Rubella (MR) - Dose 1', disease: 'Protects against Measles rash & Rubella infection', icon: '🦠', age: '9 Months', status: 'Scheduled', date: '2026-10-12', sideEffects: 'None', category: 'Essential Childhood' },
-  { id: 'v16', name: 'Yellow Fever Vaccine', disease: 'Single dose protection against Yellow Fever virus', icon: '🦟', age: '9 Months', status: 'Scheduled', date: '2026-10-12', sideEffects: 'None', category: 'Travel & Endemic' },
-  { id: 'v17', name: 'MMR (Measles, Mumps, Rubella) - Dose 1', disease: 'Protects against Measles, Mumps, & Rubella', icon: '🦠', age: '12 Months', status: 'Scheduled', date: '2027-01-12', sideEffects: 'None', category: 'Routine Recommended' },
-  { id: 'v18', name: 'Varicella (Chickenpox) - Dose 1', disease: 'Protects against Chickenpox virus', icon: '🌸', age: '12 Months', status: 'Scheduled', date: '2027-01-12', sideEffects: 'None', category: 'Routine Recommended' },
-  { id: 'v19', name: 'Hepatitis A (HepA) - Dose 1', disease: 'Protects against Hepatitis A liver virus', icon: '💉', age: '12 Months', status: 'Scheduled', date: '2027-01-12', sideEffects: 'None', category: 'Routine Recommended' },
-  { id: 'v20', name: 'Meningococcal ACWY', disease: 'Protects against severe meningococcal bacterial meningitis', icon: '🛡️', age: '12 Months', status: 'Scheduled', date: '2027-01-12', sideEffects: 'None', category: 'Routine Recommended' },
-  { id: 'v21', name: 'DTaP Booster (Dose 4)', disease: 'Fourth booster dose for Diphtheria, Tetanus, & Pertussis', icon: '🛡️', age: '15 Months', status: 'Scheduled', date: '2027-04-12', sideEffects: 'None', category: 'Booster Shot' },
-  { id: 'v22', name: 'Measles & Rubella (MR) Booster', disease: 'Booster dose for long-term Measles & Rubella immunity', icon: '🦠', age: '18 Months', status: 'Scheduled', date: '2027-07-12', sideEffects: 'None', category: 'Booster Shot' },
-  { id: 'v23', name: 'Typhoid Conjugate Vaccine (TCV)', disease: 'Single dose protection against Typhoid fever', icon: '💊', age: '24 Months', status: 'Scheduled', date: '2028-01-12', sideEffects: 'None', category: 'Essential Childhood' }
+  { id: 'v1', name: 'BCG (Tuberculosis)', disease: 'Protects against severe Tuberculosis', icon: '🛡️', age: 'Birth', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Essential Childhood' },
+  { id: 'v2', name: 'Hepatitis B (HepB 0)', disease: 'Protects against Hepatitis B liver infection', icon: '💉', age: 'Birth', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Essential Childhood' },
+  { id: 'v3', name: 'Oral Polio Vaccine (OPV 0)', disease: 'Protects against Poliovirus paralysis', icon: '💊', age: 'Birth', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Essential Childhood' },
+  { id: 'v4', name: 'Pentavalent 1 (DTaP + HepB + Hib)', disease: '5-in-1 vaccine against Diphtheria, Tetanus, Pertussis, Hep B, Hib', icon: '🛡️', age: '6 Weeks', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v5', name: 'Pneumococcal Conjugate (PCV13) - Dose 1', disease: 'Protects against Pneumonia and Meningitis', icon: '🫁', age: '6 Weeks', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v6', name: 'Rotavirus Vaccine (RV) - Dose 1', disease: 'Protects against severe diarrhea and dehydration', icon: '💧', age: '6 Weeks', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v7', name: 'Inactivated Polio Vaccine (IPV 1)', disease: 'Injectable Polio protection', icon: '💉', age: '6 Weeks', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v8', name: 'Pentavalent 2 (DTaP + HepB + Hib)', disease: 'Second dose for Diphtheria, Tetanus, Pertussis, Hep B, Hib', icon: '🛡️', age: '10 Weeks', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v9', name: 'Pneumococcal Conjugate (PCV13) - Dose 2', disease: 'Second dose against pneumococcal infections', icon: '🫁', age: '10 Weeks', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v10', name: 'Rotavirus Vaccine (RV) - Dose 2', disease: 'Second dose for Rotavirus gastroenteritis', icon: '💧', age: '10 Weeks', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v11', name: 'Oral Polio Vaccine (OPV 2)', disease: 'Second oral Polio drop', icon: '💊', age: '10 Weeks', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v12', name: 'Pentavalent 3 (DTaP + HepB + Hib)', disease: 'Third primary dose', icon: '🛡️', age: '6 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v13', name: 'Pneumococcal Conjugate (PCV13) - Dose 3', disease: 'Third dose against pneumococcal infections', icon: '🫁', age: '6 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Primary Series' },
+  { id: 'v14', name: 'Influenza (Annual Flu Shot)', disease: 'Annual seasonal flu protection for infants 6m+', icon: '🩺', age: '6 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Seasonal Protection' },
+  { id: 'v15', name: 'Measles & Rubella (MR) - Dose 1', disease: 'Protects against Measles rash & Rubella infection', icon: '🦠', age: '9 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Essential Childhood' },
+  { id: 'v16', name: 'Yellow Fever Vaccine', disease: 'Single dose protection against Yellow Fever virus', icon: '🦟', age: '9 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Travel & Endemic' },
+  { id: 'v17', name: 'MMR (Measles, Mumps, Rubella) - Dose 1', disease: 'Protects against Measles, Mumps, & Rubella', icon: '🦠', age: '12 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Routine Recommended' },
+  { id: 'v18', name: 'Varicella (Chickenpox) - Dose 1', disease: 'Protects against Chickenpox virus', icon: '🌸', age: '12 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Routine Recommended' },
+  { id: 'v19', name: 'Hepatitis A (HepA) - Dose 1', disease: 'Protects against Hepatitis A liver virus', icon: '💉', age: '12 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Routine Recommended' },
+  { id: 'v20', name: 'Meningococcal ACWY', disease: 'Protects against severe meningococcal bacterial meningitis', icon: '🛡️', age: '12 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Routine Recommended' },
+  { id: 'v21', name: 'DTaP Booster (Dose 4)', disease: 'Fourth booster dose for Diphtheria, Tetanus, & Pertussis', icon: '🛡️', age: '15 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Booster Shot' },
+  { id: 'v22', name: 'Measles & Rubella (MR) Booster', disease: 'Booster dose for long-term Measles & Rubella immunity', icon: '🦠', age: '18 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Booster Shot' },
+  { id: 'v23', name: 'Typhoid Conjugate Vaccine (TCV)', disease: 'Single dose protection against Typhoid fever', icon: '💊', age: '24 Months', status: 'Unscheduled', date: '', sideEffects: 'None', category: 'Essential Childhood' }
 ];
 
 export const DEFAULT_WHO_CDC_VACCINE_SCHEDULE = DEFAULT_VACCINE_SCHEDULE;
+
+export const calculateVaccineScheduleFromDOB = (dobStr: string, currentSchedule: any[]) => {
+  const birthDate = new Date(dobStr);
+  if (isNaN(birthDate.getTime())) return currentSchedule;
+
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+
+  const addDays = (days: number) => {
+    const d = new Date(birthDate);
+    d.setDate(d.getDate() + days);
+    return formatDate(d);
+  };
+
+  const addMonths = (months: number) => {
+    const d = new Date(birthDate);
+    d.setMonth(d.getMonth() + months);
+    return formatDate(d);
+  };
+
+  const ageToDateMap: Record<string, string> = {
+    'Birth': addDays(0),
+    '6 Weeks': addDays(42),
+    '10 Weeks': addDays(70),
+    '14 Weeks': addDays(98),
+    '6 Months': addMonths(6),
+    '9 Months': addMonths(9),
+    '12 Months': addMonths(12),
+    '15 Months': addMonths(15),
+    '18 Months': addMonths(18),
+    '24 Months': addMonths(24),
+  };
+
+  const base = Array.isArray(currentSchedule) && currentSchedule.length > 0 ? currentSchedule : DEFAULT_VACCINE_SCHEDULE;
+
+  return base.map((item: any) => {
+    if (item.status === 'Completed') return item;
+    const targetDate = ageToDateMap[item.age] || addDays(0);
+    return {
+      ...item,
+      status: 'Scheduled',
+      date: targetDate,
+    };
+  });
+};
+
+export const sanitizeVaccineSchedule = (schedule: any[]) => {
+  if (!Array.isArray(schedule) || schedule.length === 0) {
+    return DEFAULT_VACCINE_SCHEDULE;
+  }
+  
+  const fakeDates = [
+    '2026-01-15', '2026-02-28', '2026-03-28', '2026-07-20', '2026-10-12', 
+    '2027-01-12', '2027-04-12', '2027-07-12', '2028-01-12'
+  ];
+  const fakeEffects = [
+    'Slight redness at site', 'Mild fever', 'Fussiness', 'Mild loose stool', 'Soreness at thigh', 'Slight fever'
+  ];
+
+  return schedule.map((v: any) => {
+    let updated = { ...v };
+    if (fakeDates.includes(updated.date)) {
+      updated.date = '';
+    }
+    if (fakeEffects.includes(updated.sideEffects)) {
+      updated.sideEffects = 'None';
+    }
+
+    if (updated.status === 'Scheduled' && !updated.date) {
+      updated.status = 'Unscheduled';
+    }
+    if (!updated.status) {
+      updated.status = updated.date ? 'Scheduled' : 'Unscheduled';
+    }
+    return updated;
+  });
+};

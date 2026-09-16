@@ -28,7 +28,7 @@ export const NotificationsScreen = ({
         </button>
         <h1 className="text-2xl font-serif font-black text-gray-800">Notifications</h1>
         {notifications.length > 0 ? (
-          <button onClick={clearAll} className="text-[10px] font-black text-red-500 uppercase tracking-widest bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-full transition-colors cursor-pointer border-none">
+          <button onClick={clearAll} className="text-[10px] font-black text-gray-500 uppercase tracking-widest bg-white/80 hover:bg-white px-3 py-1.5 rounded-full transition-colors cursor-pointer border border-gray-200">
             Clear
           </button>
         ) : (
@@ -43,29 +43,22 @@ export const NotificationsScreen = ({
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-2xl shadow-sm">
                   🔔
-                  
-    </div>
+                </div>
                 <div>
                   <p className="text-sm font-bold text-gray-800">{notif.title}</p>
                   <div className="flex items-center gap-2 text-muted mt-1">
                     <Clock className="w-3 h-3" />
                     <span className="text-[10px] font-black uppercase tracking-widest">{notif.time}</span>
-                    
-    </div>
-                  
-    </div>
-                
-    </div>
+                  </div>
+                </div>
+              </div>
               {!notif.read && <div className="w-3 h-3 bg-primary rounded-full" />}
-              
-    </div>
+            </div>
           ))
         ) : (
           <p className="text-center text-gray-400 text-sm italic mt-10">No notifications.</p>
         )}
-        
-    </div>
-      
+      </div>
     </div>
   );
 };

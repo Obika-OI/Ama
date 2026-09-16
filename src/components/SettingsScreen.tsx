@@ -270,37 +270,35 @@ export const SettingsScreen = ({
       </header>
 
       {successMsg && (
-        <div className="p-4 bg-green-50 rounded-2xl border border-solid border-green-200 text-green-700 text-[10px] font-bold flex items-center gap-2 animate-bounce">
-          <ShieldCheck className="w-4 h-4 text-green-600 flex-shrink-0" />
+        <div className="p-4 bg-primary/10 rounded-2xl border border-solid border-primary/20 text-primary text-[10px] font-bold flex items-center gap-2 animate-bounce">
+          <ShieldCheck className="w-4 h-4 text-primary flex-shrink-0" />
           <span>{successMsg}</span>
-          
-    </div>
+        </div>
       )}
 
       {/* Non-Admin Notice Banner */}
       {userRole !== 'admin' && (
-        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2.5 text-left">
-          <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+        <div className="p-4 bg-primary/5 rounded-2xl border border-primary/20 text-gray-800 text-xs font-bold flex items-center gap-2.5 text-left">
+          <Lock className="w-4 h-4 text-primary shrink-0" />
           <span>🔒 Caregiver View (Read-Only): Signed in as {userRole === 'family' ? 'Family Circle Member' : 'Caregiver / Nanny'}. Only Primary Parent (Admin) can switch village roles or modify compliance settings.</span>
-          
-    </div>
+        </div>
       )}
 
       {/* Paystack Subscription & Plan Management */}
       <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-5 text-left">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl shadow-xs">
               👑
             </div>
             <div>
               <h2 className="text-sm font-bold text-gray-800">Ama Premium & Billing</h2>
-              <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">Secured via Paystack</p>
+              <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Secured via Paystack</p>
             </div>
           </div>
           <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
             isPremium 
-              ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
+              ? 'bg-primary/10 text-primary border border-primary/20' 
               : 'bg-gray-100 text-gray-600 border border-gray-200'
           }`}>
             {isPremium ? 'Active Pro Member' : 'Free Tier'}
@@ -318,7 +316,7 @@ export const SettingsScreen = ({
           </div>
           <button
             onClick={() => setIsSubscriptionModalOpen(true)}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border-none shadow-xs shrink-0"
+            className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border-none shadow-xs shrink-0"
           >
             {isPremium ? 'Change / Renew Plan' : 'Upgrade with Paystack'}
           </button>
@@ -328,21 +326,18 @@ export const SettingsScreen = ({
       {/* Baby & Parent Profile Customization Panel */}
       <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-6 text-left">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shadow-xs">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl shadow-xs">
             👶
-            
-    </div>
+          </div>
           <div>
             <h2 className="text-sm font-bold text-gray-800">Unique Child & Parent Profile</h2>
-            <p className="text-[9px] text-rose-600 font-bold uppercase tracking-wider">Configure Name & Age</p>
-            
-    </div>
-          
-    </div>
+            <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Configure Name & Age</p>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest block pl-1">
+            <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
               Baby's Unique Name
             </label>
             <input
@@ -355,13 +350,12 @@ export const SettingsScreen = ({
               }}
               disabled={userRole !== 'admin'}
               placeholder="e.g. Leo"
-              className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-rose-500 transition-all disabled:opacity-50"
+              className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all disabled:opacity-50"
             />
-            
-    </div>
+          </div>
 
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest block pl-1">
+            <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
               Baby's Date of Birth
             </label>
             <input
@@ -376,18 +370,17 @@ export const SettingsScreen = ({
                 localStorage.setItem('babyAge', calculatedAge);
               }}
               disabled={userRole !== 'admin'}
-              className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-rose-500 transition-all disabled:opacity-50"
+              className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all disabled:opacity-50"
             />
             {babyAge && (
-              <p className="text-[10px] text-rose-500 font-bold pl-1 mt-1">
+              <p className="text-[10px] text-primary font-bold pl-1 mt-1">
                 Calculated Age: {babyAge}
               </p>
             )}
-            
-    </div>
+          </div>
 
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest block pl-1">
+            <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
               Parent Name
             </label>
             <input
@@ -400,12 +393,10 @@ export const SettingsScreen = ({
               }}
               disabled={userRole !== 'admin'}
               placeholder="e.g. Mom"
-              className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-rose-500 transition-all disabled:opacity-50"
+              className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all disabled:opacity-50"
             />
-            
-    </div>
-          
-    </div>
+          </div>
+        </div>
         
         {userRole === 'admin' && (
           <p className="text-[10px] text-gray-400 pl-1">
@@ -420,26 +411,21 @@ export const SettingsScreen = ({
       <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center text-xl shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl shadow-xs">
               🏘️
-              
-    </div>
+            </div>
             <div>
               <h2 className="text-sm font-bold text-gray-800">The Village: Care Circle & Roles</h2>
-              <p className="text-[9px] text-amber-700 font-bold uppercase tracking-wider">Multi-User Access Control</p>
-              
-    </div>
-            
-    </div>
-          <div className="flex items-center gap-1.5 self-start sm:self-auto bg-amber-50/80 px-3 py-1.5 rounded-full border border-amber-200/60">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-amber-800">
+              <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Multi-User Access Control</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 self-start sm:self-auto bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-primary">
               Active: {userRole === 'admin' ? 'Parent (Admin)' : userRole === 'family' ? 'Family Circle' : 'Caregiver / Nanny'}
             </span>
-            
-    </div>
-          
-    </div>
+          </div>
+        </div>
 
         <p className="text-xs text-gray-500 leading-relaxed">
           "It takes a village to raise a child." Assign distinct security roles to grandparents, babysitters, and au pairs to keep private diaries and administrative security strictly shielded while enabling rapid care tracking.
@@ -462,36 +448,31 @@ export const SettingsScreen = ({
             }}
             className={`p-4 rounded-3xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-left space-y-3 ${
               userRole === 'admin'
-                ? 'bg-amber-50/60 border-amber-400 shadow-md ring-2 ring-amber-400/20'
+                ? 'bg-primary/5 border-primary shadow-md ring-2 ring-primary/20'
                 : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50/50'
             }`}
           >
             <div className="flex items-start justify-between">
-              <div className="w-9 h-9 rounded-2xl bg-amber-100/70 text-amber-800 flex items-center justify-center text-lg">
+              <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-lg">
                 👑
-                
-    </div>
+              </div>
               <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                userRole === 'admin' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600'
+                userRole === 'admin' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
               }`}>
                 {userRole === 'admin' ? 'Selected' : 'Full Access'}
               </span>
-              
-    </div>
+            </div>
             <div>
               <h3 className="text-xs font-black text-gray-800">Parent (Admin)</h3>
               <p className="text-[11px] text-gray-500 leading-normal mt-1">
                 Full authority. Private diary, AI storybook, encryption sandbox, zero-tracking, and account purge.
               </p>
-              
-    </div>
-            <div className="text-[9px] font-bold text-amber-800 flex items-center gap-1 pt-1 border-t border-amber-200/50">
-              <CheckCircle2 className="w-3 h-3 text-amber-600" />
+            </div>
+            <div className="text-[9px] font-bold text-primary flex items-center gap-1 pt-1 border-t border-primary/10">
+              <CheckCircle2 className="w-3 h-3 text-primary" />
               <span>Unrestricted Permissions</span>
-              
-    </div>
-            
-    </div>
+            </div>
+          </div>
 
           {/* Family Circle Role */}
           <div
@@ -514,36 +495,31 @@ export const SettingsScreen = ({
             }}
             className={`p-4 rounded-3xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-left space-y-3 ${
               userRole === 'family'
-                ? 'bg-indigo-50/60 border-indigo-400 shadow-md ring-2 ring-indigo-400/20'
+                ? 'bg-primary/5 border-primary shadow-md ring-2 ring-primary/20'
                 : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50/50'
             }`}
           >
             <div className="flex items-start justify-between">
-              <div className="w-9 h-9 rounded-2xl bg-indigo-100/70 text-indigo-800 flex items-center justify-center text-lg">
+              <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-lg">
                 🏡
-                
-    </div>
+              </div>
               <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                userRole === 'family' ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-600'
+                userRole === 'family' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
               }`}>
                 {userRole === 'family' ? 'Selected' : 'Family View'}
               </span>
-              
-    </div>
+            </div>
             <div>
               <h3 className="text-xs font-black text-gray-800">Family Member</h3>
               <p className="text-[11px] text-gray-500 leading-normal mt-1">
                 For grandparents and partners. View milestones, photos, stories, and feed logs with read-only admin security.
               </p>
-              
-    </div>
-            <div className="text-[9px] font-bold text-indigo-800 flex items-center gap-1 pt-1 border-t border-indigo-200/50">
-              <CheckCircle2 className="w-3 h-3 text-indigo-600" />
+            </div>
+            <div className="text-[9px] font-bold text-primary flex items-center gap-1 pt-1 border-t border-primary/10">
+              <CheckCircle2 className="w-3 h-3 text-primary" />
               <span>Memories & Timeline</span>
-              
-    </div>
-            
-    </div>
+            </div>
+          </div>
 
           {/* Nanny / Caregiver Role */}
           <div
@@ -566,38 +542,32 @@ export const SettingsScreen = ({
             }}
             className={`p-4 rounded-3xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-left space-y-3 ${
               userRole === 'nanny'
-                ? 'bg-teal-50/60 border-teal-400 shadow-md ring-2 ring-teal-400/20'
+                ? 'bg-primary/5 border-primary shadow-md ring-2 ring-primary/20'
                 : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50/50'
             }`}
           >
             <div className="flex items-start justify-between">
-              <div className="w-9 h-9 rounded-2xl bg-teal-100/70 text-teal-800 flex items-center justify-center text-lg">
+              <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-lg">
                 🧸
-                
-    </div>
+              </div>
               <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                userRole === 'nanny' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'
+                userRole === 'nanny' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
               }`}>
                 {userRole === 'nanny' ? 'Selected' : 'Caregiver Mode'}
               </span>
-              
-    </div>
+            </div>
             <div>
               <h3 className="text-xs font-black text-gray-800">Caregiver / Nanny</h3>
               <p className="text-[11px] text-gray-500 leading-normal mt-1">
                 Fast daily logging (bottles, solid foods, diapers, meds, naps). Personal family diary and admin keys locked.
               </p>
-              
-    </div>
-            <div className="text-[9px] font-bold text-teal-800 flex items-center gap-1 pt-1 border-t border-teal-200/50">
-              <Lock className="w-3 h-3 text-teal-600" />
+            </div>
+            <div className="text-[9px] font-bold text-primary flex items-center gap-1 pt-1 border-t border-primary/10">
+              <Lock className="w-3 h-3 text-primary" />
               <span>Privacy Shield Active</span>
-              
-    </div>
-            
-    </div>
-          
-    </div>
+            </div>
+          </div>
+        </div>
 
         {/* Integrated Multi-Device Sync & Village Caregiver Invite Engine */}
         <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200/80 space-y-4 text-left">
@@ -609,13 +579,11 @@ export const SettingsScreen = ({
               <h3 className="text-sm font-bold text-gray-800 mt-0.5">
                 Caregiver Invite Link, QR Code & Cross-Device Sync Engine
               </h3>
-              
-    </div>
+            </div>
             <span className="text-[9px] font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-full font-bold">
               NODE BACKEND V1
             </span>
-            
-    </div>
+          </div>
 
           <p className="text-xs text-gray-500 leading-relaxed">
             Generate an instant Multi-Device Sync Snapshot key, share the Village Caregiver Invite Link, or scan the QR Code with your partner, nanny, or daycare provider for instant care synchronization.
@@ -627,8 +595,7 @@ export const SettingsScreen = ({
               <div>
                 <p className="text-xs font-bold text-gray-800">1. Generate Caregiver Invite Link</p>
                 <p className="text-[10px] text-gray-400 mt-0.5">Creates encrypted cloud sync snapshot & copies nanny invitation link.</p>
-                
-    </div>
+              </div>
               <button
                 onClick={handleCreateCloudBackupAndInvite}
                 disabled={isCreatingSync}
@@ -637,16 +604,14 @@ export const SettingsScreen = ({
                 <Copy className="w-3.5 h-3.5" />
                 <span>{isCreatingSync ? 'Generating...' : 'Copy Village Caregiver Invite Link'}</span>
               </button>
-              
-    </div>
+            </div>
 
             {/* Sync Snapshot Code display & Restore */}
             <div className="bg-white p-4 rounded-2xl border border-gray-200 space-y-3 flex flex-col justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-800">2. Restore / Join Village Sync</p>
                 <p className="text-[10px] text-gray-400 mt-0.5">Input sync snapshot key received from Primary Parent.</p>
-                
-    </div>
+              </div>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -658,16 +623,13 @@ export const SettingsScreen = ({
                 <button
                   onClick={handleRestoreFromSyncKey}
                   disabled={isRestoringSync || !syncKeyInput.trim()}
-                  className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer border-none disabled:opacity-40 shrink-0"
+                  className="px-3 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl transition-all cursor-pointer border-none disabled:opacity-40 shrink-0"
                 >
                   {isRestoringSync ? 'Syncing...' : 'Sync Data'}
                 </button>
-                
-    </div>
-              
-    </div>
-            
-    </div>
+              </div>
+            </div>
+          </div>
 
           {/* QR Code Syncing Section Merged Here */}
           <div className="bg-white p-4 rounded-2xl border border-gray-200 space-y-3">
@@ -678,17 +640,15 @@ export const SettingsScreen = ({
                   <span>Partner QR Code & Link Syncing</span>
                 </p>
                 <p className="text-[10px] text-gray-400 mt-0.5">Scan or copy direct sync link to mirror baby logs with your partner.</p>
-                
-    </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsQrModalOpen(!isQrModalOpen)}
-                className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-xl hover:bg-primary/20 transition-all border-none cursor-pointer font-bold"
+                className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-xl hover:bg-primary/20 transition-all border-none cursor-pointer"
               >
                 {isQrModalOpen ? 'Hide QR Code' : 'Show QR Code'}
               </button>
-              
-    </div>
+            </div>
 
             {isQrModalOpen && (
               <div className="pt-2 flex flex-col items-center justify-center space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
@@ -698,8 +658,7 @@ export const SettingsScreen = ({
                     alt="Sync QR Code"
                     className="w-44 h-44"
                   />
-                  
-    </div>
+                </div>
                 <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider text-center">
                   Scan with partner's camera to import live tracking state
                 </p>
@@ -714,19 +673,15 @@ export const SettingsScreen = ({
                   <Link className="w-3.5 h-3.5" />
                   <span>Copy Partner Sync Link</span>
                 </button>
-                
-    </div>
+              </div>
             )}
-            
-    </div>
+          </div>
 
           <div className="flex items-center gap-2 bg-white px-3.5 py-2.5 rounded-xl border border-gray-200 font-mono text-[11px] text-gray-600">
             <span className="text-gray-400 select-none">Active Token:</span>
             <span className="font-bold text-primary truncate">{activeSyncToken}</span>
-            
-    </div>
-          
-    </div>
+          </div>
+        </div>
 
         {/* Role Permissions Matrix */}
         <div className="space-y-2.5 text-left pt-1">
@@ -736,8 +691,7 @@ export const SettingsScreen = ({
               <span>Village Role Permissions Matrix</span>
             </h4>
             <span className="text-[9px] font-mono text-gray-400 uppercase">RBAC v2.4</span>
-            
-    </div>
+          </div>
           
           <div className="overflow-x-auto rounded-2xl border border-gray-100">
             <table className="w-full text-left text-xs">
@@ -752,46 +706,44 @@ export const SettingsScreen = ({
               <tbody className="divide-y divide-gray-50 text-[11px] text-gray-700 bg-white">
                 <tr>
                   <td className="py-2 px-3 font-medium">🍼 Care Log (Feeds, Diapers, Hydration)</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-3 font-medium">⏰ Medication, Naps & Alarm Schedules</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-3 font-medium">📈 Growth Charts & Milestone Quests</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
-                  <td className="py-2 px-3 text-center text-amber-600 font-medium">👁️ View</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-gray-500 font-medium">👁️ View</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-3 font-medium">✍️ Family Diary & AI Storybook</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
-                  <td className="py-2 px-3 text-center text-red-500 font-bold">🔒 Shielded</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-gray-500 font-bold">🔒 Shielded</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-3 font-medium">🛡️ Privacy Zero-Tracking & Crypto Sandbox</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
                   <td className="py-2 px-3 text-center text-gray-400 font-medium">🔒 Read-Only</td>
                   <td className="py-2 px-3 text-center text-gray-400 font-medium">🔒 Read-Only</td>
                 </tr>
                 <tr>
                   <td className="py-2 px-3 font-medium">🗑️ Account Purge & Cloud Backup Deletion</td>
-                  <td className="py-2 px-3 text-center text-green-600 font-bold">✅ Full</td>
-                  <td className="py-2 px-3 text-center text-red-500 font-bold">🚫 Locked</td>
-                  <td className="py-2 px-3 text-center text-red-500 font-bold">🚫 Locked</td>
+                  <td className="py-2 px-3 text-center text-primary font-bold">✅ Full</td>
+                  <td className="py-2 px-3 text-center text-gray-400 font-bold">🚫 Locked</td>
+                  <td className="py-2 px-3 text-center text-gray-400 font-bold">🚫 Locked</td>
                 </tr>
               </tbody>
             </table>
-            
-    </div>
-          
-    </div>
+          </div>
+        </div>
       </section>
 
       {/* Trust & Regulations Section */}
@@ -799,39 +751,34 @@ export const SettingsScreen = ({
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-xl">
             🛡️
-            
-    </div>
+          </div>
           <div>
             <h2 className="text-sm font-bold text-gray-800">Privacy & Security Settings</h2>
-            <p className="text-[9px] text-muted font-bold uppercase tracking-wider">Zero Tracker Framework</p>
-            
-    </div>
-          
-    </div>
+            <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Zero Tracker Framework</p>
+          </div>
+        </div>
 
         {/* Zero Tracking Toggle */}
         <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 flex justify-between items-center">
           <div className="space-y-1 max-w-[70%] text-left">
             <div className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${zeroThirdPartyTracking ? 'bg-green-500' : 'bg-gray-400'}`} />
+              <span className={`w-2 h-2 rounded-full ${zeroThirdPartyTracking ? 'bg-primary' : 'bg-gray-400'}`} />
               <p className="text-xs font-bold text-gray-800">Zero Third-Party Tracking</p>
-              
-    </div>
+            </div>
             <p className="text-[10px] text-gray-400 leading-normal">
               Completely disables third-party cookies, trackers, and external analytics scripts. Data remains fully sandboxed.
             </p>
             {userRole !== 'admin' && (
-              <p className="text-[9px] font-bold text-amber-700 pt-0.5 flex items-center gap-1">
+              <p className="text-[9px] font-bold text-primary pt-0.5 flex items-center gap-1">
                 <Lock className="w-2.5 h-2.5" />
                 <span>Managed by Primary Parent (Admin)</span>
               </p>
             )}
-            
-    </div>
+          </div>
           {userRole === 'admin' ? (
             <button 
               onClick={() => handleToggleTracking(!zeroThirdPartyTracking)}
-              className={`w-12 h-6 rounded-full relative transition-colors cursor-pointer border-none outline-none ${zeroThirdPartyTracking ? 'bg-green-500' : 'bg-gray-200'}`}
+              className={`w-12 h-6 rounded-full relative transition-colors cursor-pointer border-none outline-none ${zeroThirdPartyTracking ? 'bg-primary' : 'bg-gray-200'}`}
             >
               <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all ${zeroThirdPartyTracking ? 'right-0.5' : 'left-0.5'}`} />
             </button>
@@ -839,11 +786,9 @@ export const SettingsScreen = ({
             <div className="flex items-center gap-1 text-[9px] font-bold text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
               <Lock className="w-3 h-3 text-gray-400" />
               <span>Admin Only</span>
-              
-    </div>
+            </div>
           )}
-          
-    </div>
+        </div>
 
         {/* Age Gate DOB verification */}
         <div className="space-y-3 pt-2">
@@ -855,35 +800,29 @@ export const SettingsScreen = ({
               <p className="text-xs font-bold text-gray-800 pl-1">
                 {parentDob ? new Date(parentDob).toLocaleDateString() : 'Not Set'}
               </p>
-              
-    </div>
-            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase bg-green-100 text-green-700">
+            </div>
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase bg-primary/10 text-primary">
               <UserCheck className="w-3 h-3" />
               <span>Verified Adult</span>
             </span>
-            
-    </div>
+          </div>
           <p className="text-[9px] text-gray-400 pl-1 leading-normal mt-2">
             Verified parent or guardian status ensures authorized access to child profile features.
           </p>
-          
-    </div>
+        </div>
       </section>
 
       {/* Encryption & Cryptographic Decrypter */}
       <section className="bg-card p-6 rounded-[36px] shadow-sm border border-white space-y-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-xl">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl">
             🔑
-            
-    </div>
+          </div>
           <div>
             <h2 className="text-sm font-bold text-gray-800">Symmetric Cryptography Sandbox</h2>
-            <p className="text-[9px] text-green-600 font-bold uppercase tracking-wider">At-Rest Obfuscated DB</p>
-            
-    </div>
-          
-    </div>
+            <p className="text-[9px] text-primary font-bold uppercase tracking-wider">At-Rest Obfuscated DB</p>
+          </div>
+        </div>
 
         <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 space-y-3">
           <div className="flex items-center justify-between">
@@ -891,13 +830,11 @@ export const SettingsScreen = ({
               Cryptographic Cipher Engine:
             </p>
             <span className="text-[9px] font-mono text-gray-400">XOR-BASE64</span>
-            
-    </div>
+          </div>
           <p className="text-[10px] text-gray-400 leading-normal">
             Your telemetry and log payloads are securely obfuscated using key <code className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-600">AmaBabyCareSecureKey_v1</code> at-rest prior to cloud storage, enforcing that firestore rules only expose raw keys with encrypted data.
           </p>
-          
-    </div>
+        </div>
 
         {/* Interactive Decrypter tool */}
         {userRole === 'admin' ? (
@@ -912,8 +849,7 @@ export const SettingsScreen = ({
               >
                 Load Encrypted Session Telemetry
               </button>
-              
-    </div>
+            </div>
 
             <textarea
               value={decrypterInput}
@@ -927,30 +863,25 @@ export const SettingsScreen = ({
 
             {decrypterOutput && (
               <div className="space-y-1">
-                <span className="text-[9px] font-black text-green-600 uppercase tracking-widest pl-1 block">
+                <span className="text-[9px] font-black text-primary uppercase tracking-widest pl-1 block">
                   Decrypted Output Plaintext:
                 </span>
-                <pre className="w-full bg-gray-900 border border-solid border-gray-900 rounded-2xl p-3 text-[10px] font-mono text-green-400 overflow-x-auto h-28 leading-normal">
+                <pre className="w-full bg-gray-900 border border-solid border-gray-900 rounded-2xl p-3 text-[10px] font-mono text-sky-300 overflow-x-auto h-28 leading-normal">
                   {decrypterOutput}
                 </pre>
-                
-    </div>
+              </div>
             )}
-            
-    </div>
+          </div>
         ) : (
           <div className="p-4 bg-gray-50/70 rounded-2xl border border-gray-100 flex items-center gap-3 text-left">
             <div className="w-8 h-8 rounded-xl bg-gray-200 text-gray-500 flex items-center justify-center shrink-0">
               <Lock className="w-4 h-4" />
-              
-    </div>
+            </div>
             <div>
               <p className="text-xs font-bold text-gray-700">Live Cryptography Decoder Restricted</p>
               <p className="text-[10px] text-gray-400">Raw cryptographic decryption and session inspection is restricted to the Primary Parent (Admin).</p>
-              
-    </div>
-            
-    </div>
+            </div>
+          </div>
         )}
       </section>
 
@@ -958,17 +889,14 @@ export const SettingsScreen = ({
       <section className="bg-card p-6 rounded-[36px] shadow-sm border border-white space-y-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl">
               📋
-              
-    </div>
+            </div>
             <div>
               <h2 className="text-sm font-bold text-gray-800">Immutable Audit Ledger</h2>
-              <p className="text-[9px] text-blue-600 font-bold uppercase tracking-wider">Telemetry Logs</p>
-              
-    </div>
-            
-    </div>
+              <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Telemetry Logs</p>
+            </div>
+          </div>
           <button 
             onClick={handleCopyLogs}
             className="p-2 bg-gray-50 border border-solid border-gray-100 rounded-full hover:bg-gray-100 transition-colors cursor-pointer text-gray-500 border-none"
@@ -1013,46 +941,35 @@ export const SettingsScreen = ({
             filteredLogs.map(log => (
               <div key={log.id} className="bg-gray-50/50 p-3 rounded-xl border border-solid border-gray-100 text-[10px] space-y-1">
                 <div className="flex justify-between items-center">
-                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-black ${
-                    log.category === 'SECURITY' ? 'bg-red-50 text-red-600 border border-red-100' :
-                    log.category === 'DATA_ACCESS' ? 'bg-green-50 text-green-600 border border-green-100' :
-                    log.category === 'ACCOUNT' ? 'bg-purple-50 text-purple-600 border border-purple-100' :
-                    'bg-blue-50 text-blue-600 border border-blue-100'
-                  }`}>
+                  <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-primary/10 text-primary border border-primary/20">
                     {log.category}
                   </span>
                   <span className="text-[8px] text-gray-400">
                     {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
-                  
-    </div>
+                </div>
                 <p className="font-bold text-gray-800">{log.action}</p>
                 <p className="text-gray-500 leading-normal text-[9px]">{log.details}</p>
                 <p className="text-[8px] font-mono text-gray-400">Actor: {log.userEmail}</p>
-                
-    </div>
+              </div>
             ))
           ) : (
             <p className="text-center text-gray-400 text-[10px] italic py-4">No matching audit logs found.</p>
           )}
-          
-    </div>
+        </div>
       </section>
 
       {/* Help Center & Comprehensive App User Guide */}
       <section className="bg-card p-6 rounded-[36px] shadow-sm border border-white space-y-5 text-left">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl">
             📖
-            
-    </div>
+          </div>
           <div>
             <h2 className="text-sm font-bold text-gray-800">Help Center & User Guide</h2>
-            <p className="text-[9px] text-sky-600 font-bold uppercase tracking-wider">In-App Feature Documentation</p>
-            
-    </div>
-          
-    </div>
+            <p className="text-[9px] text-primary font-bold uppercase tracking-wider">In-App Feature Documentation</p>
+          </div>
+        </div>
 
         <p className="text-xs text-gray-500 font-medium leading-relaxed">
           Explore complete tutorials on feeding tracking, the AI cry acoustic analyzer, weekly meal plans & grocery generation, the Village caregiver ecosystem, vaccination schedules, and security protocols.
@@ -1061,7 +978,7 @@ export const SettingsScreen = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             onClick={() => setShowGuideModal(true)}
-            className="w-full py-3.5 px-4 bg-sky-500 hover:bg-sky-600 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer border-none"
+            className="w-full py-3.5 px-4 bg-primary hover:bg-primary/90 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer border-none"
           >
             <BookOpen className="w-4 h-4" />
             <span>Open User Guide</span>
@@ -1071,87 +988,70 @@ export const SettingsScreen = ({
             onClick={() => setShowLegalViewerModal(true)}
             className="w-full py-3.5 px-4 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <ShieldCheck className="w-4 h-4 text-primary" />
             <span>Privacy Policy & Terms</span>
           </button>
-          
-    </div>
+        </div>
       </section>
 
       {/* Project Contributors Section */}
       <section className="bg-card p-6 rounded-[36px] shadow-sm border border-white space-y-5 text-left">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl">
             <Users className="w-5 h-5" />
-            
-    </div>
+          </div>
           <div>
             <h2 className="text-sm font-bold text-gray-800">Project Contributors</h2>
-            
-    </div>
-          
-    </div>
+          </div>
+        </div>
 
         <div className="space-y-3">
           <div className="bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100 flex items-start gap-3">
-            <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-indigo-600 shrink-0">
+            <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-primary shrink-0">
               EO
-              
-    </div>
+            </div>
             <div>
               <p className="text-xs font-bold text-gray-800">Ekenedilichukwu Okoli</p>
               <p className="text-[10px] text-gray-500 font-medium">Software Developer and engineer</p>
-              
-    </div>
-            
-    </div>
+            </div>
+          </div>
 
           <div className="bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100 flex items-start gap-3">
-            <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-indigo-600 shrink-0">
+            <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-primary shrink-0">
               OO
-              
-    </div>
+            </div>
             <div>
               <p className="text-xs font-bold text-gray-800">Ogochukwu Okoli</p>
               <p className="text-[10px] text-gray-500 font-medium">Nutraceuticals/functional foods scientist and Developer</p>
-              
-    </div>
-            
-    </div>
+            </div>
+          </div>
 
           <div className="bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100 flex items-start gap-3">
-            <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-indigo-600 shrink-0">
+            <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs shadow-xs font-black text-primary shrink-0">
               NN
-              
-    </div>
+            </div>
             <div>
               <p className="text-xs font-bold text-gray-800">Ngozi Obika-Ndiri</p>
               <p className="text-[10px] text-gray-500 font-medium">Maternal and child health Nurse</p>
-              
-    </div>
-            
-    </div>
-          
-    </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Purge / Account Deletion Section */}
-      <section className="bg-red-50/50 p-6 rounded-[36px] border border-red-100 space-y-6">
+      <section className="bg-pink-50/60 p-6 rounded-[36px] border border-pink-200 space-y-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-xl">
+          <div className="w-10 h-10 rounded-xl bg-pink-100 text-gray-700 flex items-center justify-center text-xl">
             ⚠️
-            
-    </div>
+          </div>
           <div>
-            <h2 className="text-sm font-bold text-red-800">Irreversible Account Purge</h2>
-            <p className="text-[9px] text-red-600 font-bold uppercase tracking-wider">Guideline 5.1.1 compliant</p>
-            
-    </div>
-          
-    </div>
+            <h2 className="text-sm font-bold text-gray-800">Irreversible Account Purge</h2>
+            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Guideline 5.1.1 compliant</p>
+          </div>
+        </div>
 
-        <p className="text-[10px] text-red-700/80 leading-normal">
-          In strict compliance with Apple's developer guidelines for user-created accounts and privacy standards, you have the right to request <strong>complete, permanent erasure of your account and all telemetry data logs</strong>. This action purges all local storage and destroys cloud backups with zero data residue.
+        <p className="text-[10px] text-gray-600 leading-normal">
+          In strict compliance with privacy standards and account ownership, you have the right to request <strong>complete, permanent erasure of your account and all telemetry data logs</strong>. This action purges all local storage and destroys cloud backups with zero data residue.
         </p>
 
         {userRole === 'admin' ? (
@@ -1161,20 +1061,18 @@ export const SettingsScreen = ({
               setDeleteConfirmationText('');
               setShowDeleteModal(true);
             }}
-            className="w-full py-3 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-colors cursor-pointer border-none shadow-sm"
+            className="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer border-none shadow-sm"
           >
             Delete Account & Purge Backups
           </button>
         ) : (
-          <div className="p-3.5 bg-white/80 rounded-2xl border border-red-200 flex items-center justify-between text-left">
-            <div className="flex items-center gap-2 text-xs font-bold text-red-800">
-              <Lock className="w-4 h-4 text-red-500" />
+          <div className="p-3.5 bg-white/80 rounded-2xl border border-pink-200 flex items-center justify-between text-left">
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-800">
+              <Lock className="w-4 h-4 text-primary" />
               <span>Admin Action Only</span>
-              
-    </div>
+            </div>
             <span className="text-[10px] text-gray-500">Account deletion is restricted to the Primary Parent.</span>
-            
-    </div>
+          </div>
         )}
       </section>
 
@@ -1191,9 +1089,8 @@ export const SettingsScreen = ({
 
             <div className="space-y-2">
               <h3 className="text-base font-serif font-black text-gray-800">Permanent Purge Request</h3>
-              <p className="text-[10px] text-muted font-bold uppercase tracking-wider text-red-600">Verification Steps Required</p>
-              
-    </div>
+              <p className="text-[10px] text-primary font-bold uppercase tracking-wider">Verification Steps Required</p>
+            </div>
 
             {deleteStep === 1 && (
               <div className="space-y-4">
@@ -1202,40 +1099,36 @@ export const SettingsScreen = ({
                 </p>
                 <button
                   onClick={() => setDeleteStep(2)}
-                  className="w-full py-3 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-red-700 cursor-pointer border-none"
+                  className="w-full py-3 bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl cursor-pointer border-none"
                 >
                   Yes, I Understand. Continue.
                 </button>
-                
-    </div>
+              </div>
             )}
 
             {deleteStep === 2 && (
               <div className="space-y-4">
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  To prevent accidental loss of baby care logs, please type the word <strong className="text-red-600 font-bold uppercase font-mono bg-red-50 px-1 rounded">DELETE</strong> below to finalize account purge:
+                  To prevent accidental loss of baby care logs, please type the word <strong className="text-gray-800 font-bold uppercase font-mono bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded">DELETE</strong> below to finalize account purge:
                 </p>
                 <input 
                   type="text"
                   value={deleteConfirmationText}
                   onChange={(e) => setDeleteConfirmationText(e.target.value)}
                   placeholder="Type DELETE"
-                  className="w-full bg-gray-50 border border-solid border-red-100 rounded-xl px-4 py-3 text-sm font-bold text-gray-800 text-center uppercase tracking-widest focus:outline-none focus:border-red-500"
+                  className="w-full bg-gray-50 border border-solid border-pink-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-800 text-center uppercase tracking-widest focus:outline-none focus:border-primary"
                 />
                 <button
                   onClick={executePurge}
                   disabled={deleteConfirmationText.toUpperCase() !== 'DELETE' || isDeleting}
-                  className="w-full py-3 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-none"
+                  className="w-full py-3 bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-none shadow-md shadow-primary/20"
                 >
                   {isDeleting ? "Purging records..." : "Permanently Purge My Data"}
                 </button>
-                
-    </div>
+              </div>
             )}
-            
-    </div>
-          
-    </div>
+          </div>
+        </div>
       )}
 
       {/* In-App Interactive User Guide Modal */}
@@ -1243,10 +1136,8 @@ export const SettingsScreen = ({
         <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 z-50 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-2xl rounded-[40px] max-h-[90vh] overflow-y-auto shadow-2xl relative border border-gray-100 p-2 sm:p-4">
             <AppUserGuide onClose={() => setShowGuideModal(false)} />
-            
-    </div>
-          
-    </div>
+          </div>
+        </div>
       )}
 
       {/* Terms & Privacy Policy Viewer Modal */}
@@ -1254,7 +1145,6 @@ export const SettingsScreen = ({
         isOpen={showLegalViewerModal}
         onAccept={() => setShowLegalViewerModal(false)}
       />
-      
     </div>
   );
 };

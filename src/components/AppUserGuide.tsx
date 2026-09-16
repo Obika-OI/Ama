@@ -309,12 +309,12 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
 
                       {/* Pro Tips */}
                       {sec.tips.length > 0 && (
-                        <div className="bg-amber-50/60 p-3.5 rounded-2xl border border-amber-100/80 space-y-1.5">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-amber-800 flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                        <div className="bg-primary/5 p-3.5 rounded-2xl border border-primary/20 space-y-1.5">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-primary" />
                             <span>Pro Caregiver Tips</span>
                           </p>
-                          <ul className="space-y-1 list-disc pl-4 text-amber-900/90 text-xs">
+                          <ul className="space-y-1 list-disc pl-4 text-gray-700 text-xs">
                             {sec.tips.map((tip, idx) => (
                               <li key={idx}>{tip}</li>
                             ))}

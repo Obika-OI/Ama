@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, Loader2, Sparkles, Send, X, Baby, Utensils, Moon, CheckCircle2, Volume2, VolumeX, Crown, Lock } from 'lucide-react';
+import { 
+  Mic, MicOff, Loader2, Sparkles, Send, X, Utensils, Moon, 
+  CheckCircle2, Volume2, VolumeX, Crown, AlertCircle, Camera, 
+  Image as ImageIcon, Globe, ExternalLink, RefreshCw, Zap, 
+  ChevronRight, Compass, Heart
+} from 'lucide-react';
+import { OgooAvatar } from './OgooAvatar';
 
 interface VoiceAssistantProps {
   babyName?: string;
@@ -24,6 +30,12 @@ interface VoiceAssistantProps {
   memories?: any[];
 }
 
+interface ReferenceItem {
+  title: string;
+  uri: string;
+  domain: string;
+}
+
 interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant';
@@ -31,6 +43,21 @@ interface ChatMessage {
   actionTaken?: string;
   isPaywall?: boolean;
   timestamp: string;
+  imageUrl?: string;
+  researchedWithSearch?: boolean;
+  references?: ReferenceItem[];
+  searchQueries?: string[];
+  proactiveInsight?: string;
+}
+
+interface ProactiveCard {
+  id: string;
+  type: 'feeding' | 'sleep' | 'recipe' | 'diaper';
+  title: string;
+  description: string;
+  actionLabel: string;
+  actionPayload: any;
+  badge: string;
 }
 
 const FREE_AI_QUERY_LIMIT = 5;
@@ -64,8 +91,15 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   const [talkBackEnabled, setTalkBackEnabled] = useState(true);
   const [backgroundWakeEnabled, setBackgroundWakeEnabled] = useState(true);
   const [isWakeListening, setIsWakeListening] = useState(false);
+  const [researchMode, setResearchMode] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{ data: string; mimeType: string; preview: string } | null>(null);
+  const [showProactivePanel, setShowProactivePanel] = useState(true);
+  const [proactiveInsights, setProactiveInsights] = useState<ProactiveCard[]>([]);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+
   const wakeWordRecRef = useRef<any>(null);
   const isStoppingWakeRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Free trial AI queries state
   const [aiQueryCount, setAiQueryCount] = useState<number>(() => {
@@ -78,13 +112,51 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     {
       id: 'welcome',
       sender: 'assistant',
-      text: `Hi! I am Ogoo, your baby care assistant. I can listen in the background for "Hey Ogoo" to instantly help! How is sweet ${babyName} doing today? Ask me about simple recipes, sleep times, or just tell me to save a feeding, nap, or diaper change!`,
+      text: `Hi! I am Ogoo, your proactive pediatric AI care agent. I am grounded in verified research (AAP, WHO, CDC) and constantly learn from ${babyName}'s routine.\n\nYou can speak or type to me, attach photos (diaper stool, skin rash, puree texture, medicine), or ask for evidence-based parenting guidance!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
 
   const recognitionRef = useRef<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Load Proactive Insights on open
+  useEffect(() => {
+    if (isOpen) {
+      loadProactiveInsights();
+    }
+  }, [isOpen, babyName, babyAge, stage, lastFeedStr, lastSleepStr]);
+
+  const loadProactiveInsights = async () => {
+    setIsLoadingInsights(true);
+    try {
+      const res = await fetch('/api/ai/ogoo-proactive-insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          babyName,
+          babyAge,
+          stage,
+          lastFeedStr,
+          lastSleepStr,
+          lastDiaperStr,
+          loggedMeals,
+          diaperLogs,
+          vaccineSchedule
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.insights && Array.isArray(data.insights)) {
+          setProactiveInsights(data.insights);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load proactive insights:', e);
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  };
 
   // HTML5 Text to Speech helper (with phonetic pronunciation for Ogoo as "Augur")
   const speakText = (textToSpeak: string) => {
@@ -96,8 +168,9 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
           .replace(/\bOgoo\b/gi, 'Augur')
           .replace(/\bOgoo's\b/gi, "Augur's");
 
-        // Clean markdown, em-dashes, and emojis so they aren't spoken weirdly
+        // Clean markdown, urls, em-dashes, and emojis so speech synthesizer sounds natural
         const cleanText = phoneticText
+          .replace(/https?:\/\/\S+/gi, '')
           .replace(/\*\*?/g, '')
           .replace(/—|–/g, ' ')
           .replace(/[\#\-\*\_]/g, '')
@@ -108,7 +181,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
           const utterance = new SpeechSynthesisUtterance(cleanText);
           utterance.lang = 'en-US';
           utterance.rate = 1.0;
-          utterance.pitch = 1.1; // Warm and friendly tone
+          utterance.pitch = 1.08; // Warm, gentle, friendly tone
           window.speechSynthesis.speak(utterance);
         }
       } catch (err) {
@@ -122,7 +195,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     if (isOpen) {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, isOpen]);
+  }, [messages, isOpen, isProcessing]);
 
   // Initial Speech Recognition setup for Assistant Dialog
   useEffect(() => {
@@ -160,7 +233,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
       recognitionRef.current = recognition;
     }
-  }, [babyName, babyAge, stage, lastFeedStr, lastSleepStr, lastDiaperStr, aiQueryCount, isPremium]);
+  }, [babyName, babyAge, stage, lastFeedStr, lastSleepStr, lastDiaperStr, aiQueryCount, isPremium, selectedImage, researchMode]);
 
   // Wake-word recognition setup (Always-on 'Hey Ogoo' listener)
   useEffect(() => {
@@ -210,10 +283,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
               transcript.includes('hi ama') ||
               transcript.includes('ok ama')
             ) {
-              // Trigger wakeup!
               setIsOpen(true);
-              speakText(`I'm here! What can I do for ${babyName}?`);
-              // Extract whatever came after wake word
+              speakText(`I am right here! How can I help with ${babyName}?`);
               const match = transcript.match(/(?:hey|hi|ok)\s+(?:ogoo|augur|auger|ama|emma)\s*(.*)/i);
               if (match && match[1] && match[1].trim().length > 3) {
                 const command = match[1].trim();
@@ -227,7 +298,6 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         };
 
         wakeRec.onerror = (e: any) => {
-          // Ignore aborted/network errors for continuous wake word
           if (e.error === 'not-allowed') {
             setIsWakeListening(false);
             setBackgroundWakeEnabled(false);
@@ -286,6 +356,33 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     }
   };
 
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check size limit (max 8MB)
+    if (file.size > 8 * 1024 * 1024) {
+      setFeedback('Image is larger than 8MB. Please choose a smaller photo.');
+      setTimeout(() => setFeedback(''), 4000);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setSelectedImage({
+        data: result,
+        mimeType: file.type || 'image/jpeg',
+        preview: result
+      });
+      setFeedback('Photo attached! Ask Ogoo to analyze it.');
+      setTimeout(() => setFeedback(''), 3000);
+    };
+    reader.readAsDataURL(file);
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const executeTriggeredAction = (action: any): string => {
     if (!action || !action.type) return '';
 
@@ -294,7 +391,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         amount: action.amount || 4,
         unit: action.unit || 'oz',
         type: action.mealType || 'bottle',
-        notes: action.notes || 'Logged via Voice Assistant'
+        notes: action.notes || 'Logged via Ogoo AI'
       });
       return `Saved! Logged ${action.amount || 4} ${action.unit || 'oz'} ${action.mealType || 'feeding'}.`;
     }
@@ -316,28 +413,53 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
     if (action.type === 'add_note') {
       onAddNote(action.note || 'Note via Ogoo');
-      return `Saved your note to the journal.`;
+      return `Saved note to ${babyName}'s journal.`;
     }
 
     return '';
   };
 
+  const handleProactiveCardClick = (card: ProactiveCard) => {
+    if (card.actionPayload) {
+      if (card.actionPayload.query) {
+        handleSendUserMessage(card.actionPayload.query);
+      } else {
+        const actionResult = executeTriggeredAction(card.actionPayload);
+        const confirmationMsg: ChatMessage = {
+          id: `a-${Date.now()}`,
+          sender: 'assistant',
+          text: `I've proactively taken care of that for you: ${card.title}.\n${actionResult || 'Action completed successfully.'}`,
+          actionTaken: actionResult,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, confirmationMsg]);
+        if (talkBackEnabled) {
+          speakText(`I have logged that for ${babyName}.`);
+        }
+      }
+    }
+  };
+
   const handleSendUserMessage = async (textToSend?: string) => {
     const text = (textToSend || inputText).trim();
-    if (!text || isProcessing) return;
+    const imagePayload = selectedImage;
+
+    if ((!text && !imagePayload) || isProcessing) return;
 
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
       sender: 'user',
-      text,
+      text: text || (imagePayload ? 'Please analyze this photo for me.' : ''),
+      imageUrl: imagePayload?.preview,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
+    setSelectedImage(null);
 
-    // Check if this is a direct manual logging intent (Action commands are unlimited and always allowed)
-    const lower = text.toLowerCase();
+    // Check direct manual logging intent
+    const lower = (text || '').toLowerCase();
     const isDirectLoggingIntent =
       lower.includes("log ") ||
       lower.includes("save ") ||
@@ -349,12 +471,12 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       lower.includes("pee") ||
       lower.includes("nap");
 
-    // Check Free Trial Query Limit for general parenting queries / AI assistant questions
+    // Check Free Trial Query Limit
     if (!isPremium && !isDirectLoggingIntent && aiQueryCount >= FREE_AI_QUERY_LIMIT) {
       const paywallMsg: ChatMessage = {
         id: `a-${Date.now()}`,
         sender: 'assistant',
-        text: `🔒 Free Trial AI Limit Reached (${FREE_AI_QUERY_LIMIT}/${FREE_AI_QUERY_LIMIT} queries used).\n\nUpgrade to Ama Premium to unlock unlimited AI parenting questions, voice recognition, acoustic cry analysis, and pediatric PDF exports.`,
+        text: `🔒 Free Trial AI Limit Reached (${FREE_AI_QUERY_LIMIT}/${FREE_AI_QUERY_LIMIT} queries used).\n\nUpgrade to Ama Premium to unlock unlimited Ogoo AI multimodal image analysis, Google Search pediatric research grounding, and continuous voice recognition.`,
         isPaywall: true,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -373,6 +495,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
+          image: imagePayload ? { data: imagePayload.data, mimeType: imagePayload.mimeType } : null,
+          enableResearch: researchMode,
           babyName,
           babyAge,
           weaningStage: stage,
@@ -409,6 +533,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         sender: 'assistant',
         text: data.replyText || `Got it! I saved that for ${babyName}.`,
         actionTaken: actionNote,
+        researchedWithSearch: data.researchedWithSearch,
+        references: data.references || [],
+        searchQueries: data.searchQueries || [],
+        proactiveInsight: data.proactiveInsight,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
@@ -419,13 +547,12 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       }
     } catch (err) {
       console.error(err);
-      // Client-side fallback if server offline using extremely simple and warm language
-      let fallbackReply = `Hi! I'm here to help you. If you'd like to save a feed, nap, or diaper change, just tell me to "log a feed", "log a nap", or "save diaper change"!`;
+      let fallbackReply = `I'm here to support you with ${babyName}! You can ask me about meals, sleep routines, diaper changes, or tell me to log a feed!`;
       let actionNote: string | undefined = undefined;
 
       if (lower.includes('feed') || lower.includes('milk') || lower.includes('bottle')) {
         onLogMeal({ amount: 4, unit: 'oz', type: 'bottle' });
-        fallbackReply = `Sure, I've noted that down for ${babyName}!`;
+        fallbackReply = `Logged a 4 oz bottle feeding for ${babyName}.`;
         actionNote = `Saved! Logged a 4 oz bottle feed.`;
       } else if (lower.includes('sleep') || lower.includes('nap')) {
         if (onLogSleep) onLogSleep(60);
@@ -439,12 +566,6 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         onStartTimer(lower.includes('right') ? 'right' : 'left');
         fallbackReply = `Started nursing timer for ${babyName}.`;
         actionNote = `Timer started.`;
-      } else {
-        if (!isPremium) {
-          const newCount = aiQueryCount + 1;
-          setAiQueryCount(newCount);
-          localStorage.setItem('ama_ai_query_count', newCount.toString());
-        }
       }
 
       const assistantMsg: ChatMessage = {
@@ -473,26 +594,30 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         onClick={() => {
           setIsOpen(true);
           if (talkBackEnabled) {
-            speakText(`Hi! How can I help with ${babyName}?`);
+            speakText(`Hi! How can I help with ${babyName} today?`);
           }
         }}
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.92 }}
-        className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-40 bg-gradient-to-tr from-primary to-primary-light text-white p-3.5 sm:p-4 rounded-full shadow-2xl flex items-center gap-2 border-2 border-white/50 backdrop-blur-md cursor-pointer group"
-        title="Open Ogoo Assistant (Voice & Chat)"
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.94 }}
+        className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-40 bg-gradient-to-tr from-primary to-primary-light text-white p-2.5 sm:p-3 rounded-full shadow-2xl flex items-center gap-2.5 border-2 border-white/80 backdrop-blur-md cursor-pointer group hover:shadow-primary/30"
+        title="Open Ogoo AI Agent (Multimodal & Research)"
       >
-        <div className="relative">
-          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-          {isWakeListening && (
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border border-white rounded-full animate-ping" />
-          )}
+        <OgooAvatar 
+          size="sm" 
+          hasPulse={isWakeListening} 
+          showSparkleBadge={true} 
+          showOnlineDot={true}
+        />
+        <div className="text-left hidden sm:block pr-2">
+          <p className="text-[11px] font-black uppercase tracking-wider leading-none text-white flex items-center gap-1">
+            Ask Ogoo
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+          </p>
+          <p className="text-[9px] text-sky-100 font-medium leading-tight">Proactive AI Agent</p>
         </div>
-        <span className="text-xs font-black uppercase tracking-wider hidden sm:inline-block pr-1">
-          Ask Ogoo
-        </span>
       </motion.button>
 
-      {/* Main Voice & Chat Assistant Dialog */}
+      {/* Main Multimodal & Proactive Assistant Dialog */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -504,37 +629,62 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
           >
             <motion.div
               id="voice-assistant-card"
-              initial={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.92, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-[32px] sm:rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col h-[85vh] max-h-[640px] border border-primary/20"
+              exit={{ scale: 0.92, y: 20 }}
+              className="bg-white rounded-[32px] sm:rounded-[36px] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col h-[88vh] max-h-[680px] border border-primary/20"
             >
-              {/* Header */}
-              <div className="bg-primary text-white p-4 sm:p-5 flex items-center justify-between shadow-md relative">
+              {/* Header with Ogoo Custom Avatar & Status */}
+              <div className="bg-primary text-white p-3.5 sm:p-4 flex items-center justify-between shadow-md relative">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-xl shadow-inner backdrop-blur-xs">
-                    👶
-                  </div>
+                  <OgooAvatar 
+                    size="md" 
+                    isThinking={isProcessing} 
+                    showOnlineDot={true} 
+                  />
                   <div>
-                    <h3 className="font-serif font-black text-base sm:text-lg flex items-center gap-2">
-                      Ogoo Assistant
+                    <h3 className="font-serif font-black text-base sm:text-lg flex items-center gap-2 text-white">
+                      Ogoo AI Agent
                       {isPremium ? (
-                        <span className="bg-amber-400 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                          <Crown className="w-2.5 h-2.5" /> PRO
+                        <span className="bg-white/20 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                          <Crown className="w-2.5 h-2.5 text-white" /> PRO
                         </span>
                       ) : (
                         <span className="bg-white/20 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full">
-                          {remainingQueries > 0 ? `${remainingQueries} Trial Qs` : 'Trial Limit Reached'}
+                          {remainingQueries > 0 ? `${remainingQueries} Free Qs` : 'Limit Reached'}
                         </span>
                       )}
                     </h3>
-                    <p className="text-[11px] text-sky-100 font-medium">
-                      Caring for <strong>{babyName}</strong> ({babyAge})
+                    <p className="text-[11px] text-sky-100 font-medium flex items-center gap-1.5">
+                      <span>Caring for <strong>{babyName}</strong> ({babyAge})</span>
+                      <span className="w-1 h-1 rounded-full bg-sky-200" />
+                      <span className="text-[10px] text-sky-200">Multimodal • Web Grounded</span>
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5">
+                  {/* Google Search Research Grounding Toggle */}
+                  <button
+                    onClick={() => {
+                      const next = !researchMode;
+                      setResearchMode(next);
+                      if (next) {
+                        setFeedback('Research Mode active: Ogoo will query verified pediatric web sources.');
+                      } else {
+                        setFeedback('Standard quick response mode.');
+                      }
+                      setTimeout(() => setFeedback(''), 3000);
+                    }}
+                    className={`h-8 px-2.5 rounded-full flex items-center gap-1 text-[10px] font-bold transition-all cursor-pointer border-none ${
+                      researchMode ? 'bg-amber-300 text-amber-950 shadow-xs' : 'bg-white/20 hover:bg-white/30 text-white'
+                    }`}
+                    title="Toggle Google Search Research Grounding"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Research</span>
+                  </button>
+
                   {/* Talk-Back Voice Guidance Toggle */}
                   <button
                     onClick={() => {
@@ -554,13 +704,13 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                     {talkBackEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-white/60" />}
                   </button>
 
-                  {/* Wake Word Enable/Disable Toggle */}
+                  {/* Wake Word Toggle */}
                   <button
                     onClick={() => {
                       const nextState = !backgroundWakeEnabled;
                       setBackgroundWakeEnabled(nextState);
                       if (nextState) {
-                        speakText("Voice activation turned on! You can now say Hey Ogoo to wake me up.");
+                        speakText("Voice activation turned on! You can say Hey Ogoo anytime.");
                         setFeedback("Voice activation active! Say 'Hey Ogoo'.");
                         setTimeout(() => setFeedback(''), 4000);
                       } else {
@@ -568,13 +718,14 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                       }
                     }}
                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer border-none ${
-                      backgroundWakeEnabled ? 'bg-amber-100 text-amber-600 border border-amber-200' : 'bg-white/20 hover:bg-white/30 text-white'
+                      backgroundWakeEnabled ? 'bg-white text-primary' : 'bg-white/20 hover:bg-white/30 text-white'
                     }`}
                     title={backgroundWakeEnabled ? "Disable 'Hey Ogoo' Wake Word" : "Enable 'Hey Ogoo' Wake Word"}
                   >
                     <Mic className={`w-4 h-4 ${backgroundWakeEnabled ? 'animate-pulse' : ''}`} />
                   </button>
 
+                  {/* Close Dialog */}
                   <button
                     onClick={() => {
                       if ('speechSynthesis' in window) {
@@ -589,47 +740,153 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                 </div>
               </div>
 
-              {/* Clinical Non-Diagnosis Notice */}
-              <div className="bg-amber-50/90 border-b border-amber-200 px-4 py-1.5 flex items-center justify-between text-[10px] text-amber-900">
-                <span className="font-semibold">
-                  ⚠️ <strong>Notice:</strong> Ogoo AI does not diagnose any medical condition. For health concerns, consult a doctor.
-                </span>
+              {/* Context Summary & Proactive Insights Banner */}
+              <div className="bg-sky-50/70 border-b border-primary/10 px-3.5 py-2 flex items-center justify-between text-[11px] text-gray-700">
+                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
+                  <span className="shrink-0 flex items-center gap-1 font-medium">
+                    <Utensils className="w-3 h-3 text-primary" />
+                    Feed: <strong className="text-gray-900">{lastFeedStr}</strong>
+                  </span>
+                  <span className="shrink-0 flex items-center gap-1 font-medium">
+                    <Moon className="w-3 h-3 text-primary" />
+                    Sleep: <strong className="text-gray-900">{lastSleepStr}</strong>
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowProactivePanel(prev => !prev)}
+                  className="shrink-0 text-[10px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer border-none bg-transparent ml-2"
+                >
+                  <Zap className="w-3 h-3" />
+                  {showProactivePanel ? 'Hide Insights' : 'Show Insights'}
+                </button>
               </div>
 
-              {/* Status Bar */}
-              <div className="bg-white/70 backdrop-blur px-4 py-2 border-b border-primary/10 flex items-center justify-between text-[11px] text-gray-700 font-medium">
-                <span className="truncate flex items-center gap-1">
-                  <Utensils className="w-3.5 h-3.5 text-primary" />
-                  Last Feed: <strong className="text-gray-900">{lastFeedStr}</strong>
-                </span>
-                <span className="truncate flex items-center gap-1">
-                  <Moon className="w-3.5 h-3.5 text-indigo-500" />
-                  Nap: <strong className="text-gray-900">{lastSleepStr}</strong>
-                </span>
-              </div>
+              {/* Proactive Context-Aware Action Cards Carousel */}
+              <AnimatePresence>
+                {showProactivePanel && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="bg-gradient-to-r from-sky-50 to-blue-50/50 border-b border-primary/15 p-2.5 overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between mb-1.5 px-1">
+                      <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-primary" />
+                        Proactive Care Recommendations
+                      </span>
+                      <button
+                        onClick={loadProactiveInsights}
+                        disabled={isLoadingInsights}
+                        className="text-[10px] text-primary hover:text-primary-dark font-semibold flex items-center gap-0.5 cursor-pointer bg-transparent border-none"
+                      >
+                        <RefreshCw className={`w-2.5 h-2.5 ${isLoadingInsights ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                      {proactiveInsights.map((card) => (
+                        <div
+                          key={card.id}
+                          className="shrink-0 w-56 bg-white rounded-2xl p-2.5 border border-primary/20 shadow-xs flex flex-col justify-between"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 bg-primary/10 text-primary rounded-md uppercase">
+                                {card.badge}
+                              </span>
+                            </div>
+                            <p className="font-bold text-xs text-gray-900 leading-tight mb-1">{card.title}</p>
+                            <p className="text-[10px] text-gray-600 line-clamp-2 leading-relaxed">{card.description}</p>
+                          </div>
+                          <button
+                            onClick={() => handleProactiveCardClick(card)}
+                            className="mt-2 w-full py-1 px-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer border-none shadow-2xs"
+                          >
+                            <span>{card.actionLabel}</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#D2E9F9]/40">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#D2E9F9]/30">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
+                    {msg.sender === 'assistant' && (
+                      <OgooAvatar size="sm" className="mt-1" />
+                    )}
+
                     <div
-                      className={`max-w-[84%] rounded-2xl p-4 text-xs sm:text-sm leading-relaxed shadow-sm ${
+                      className={`max-w-[85%] rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-xs ${
                         msg.sender === 'user'
                           ? 'bg-primary text-white rounded-br-xs'
                           : msg.isPaywall
-                          ? 'bg-amber-50 text-amber-950 border border-amber-300 rounded-bl-xs'
+                          ? 'bg-primary/5 text-gray-800 border border-primary/20 rounded-bl-xs'
                           : 'bg-white text-gray-800 border border-primary/10 rounded-bl-xs'
                       }`}
                     >
-                      <p className="whitespace-pre-line">{msg.text}</p>
+                      {/* Attached Image Preview if User uploaded */}
+                      {msg.imageUrl && (
+                        <div className="mb-2.5 rounded-xl overflow-hidden border border-white/20 max-h-48 bg-black/5">
+                          <img
+                            src={msg.imageUrl}
+                            alt="Uploaded attachment"
+                            className="w-full h-auto object-cover max-h-48"
+                          />
+                        </div>
+                      )}
+
+                      {/* Message Text */}
+                      <p className="whitespace-pre-line leading-relaxed">{msg.text}</p>
                       
+                      {/* Action Taken Badge */}
                       {msg.actionTaken && (
-                        <div className="mt-2.5 pt-2 border-t border-emerald-100 text-emerald-800 font-semibold text-[11px] flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-xl">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <div className="mt-2.5 pt-2 border-t border-primary/20 text-primary font-semibold text-[11px] flex items-center gap-1.5 bg-primary/10 px-2.5 py-1.5 rounded-xl">
+                          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
                           <span>{msg.actionTaken}</span>
+                        </div>
+                      )}
+
+                      {/* Google Search Research Grounding Citations */}
+                      {msg.references && msg.references.length > 0 && (
+                        <div className="mt-3 pt-2.5 border-t border-gray-100 bg-sky-50/60 -mx-1 px-2.5 py-2 rounded-xl">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary mb-1.5">
+                            <Globe className="w-3 h-3 text-primary" />
+                            <span>Verified Pediatric References:</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {msg.references.map((ref, i) => (
+                              <a
+                                key={i}
+                                href={ref.uri}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-white hover:bg-sky-100/70 border border-primary/20 rounded-lg text-[10px] text-gray-700 font-medium transition-colors no-underline shadow-2xs group"
+                                title={ref.uri}
+                              >
+                                <span className="font-bold text-primary">{ref.domain}</span>
+                                <span className="text-gray-500 truncate max-w-[120px]">{ref.title}</span>
+                                <ExternalLink className="w-2.5 h-2.5 text-gray-400 group-hover:text-primary" />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Proactive follow-up badge */}
+                      {msg.proactiveInsight && (
+                        <div className="mt-2 text-[10px] text-gray-600 bg-amber-50 border border-amber-200/60 p-2 rounded-xl flex items-start gap-1.5">
+                          <Sparkles className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
+                          <span><strong>Ogoo Tip:</strong> {msg.proactiveInsight}</span>
                         </div>
                       )}
 
@@ -639,7 +896,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                             setIsOpen(false);
                             onOpenSubscriptionModal();
                           }}
-                          className="mt-3 w-full py-2 px-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer border-none shadow-xs"
+                          className="mt-3 w-full py-2 px-3 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer border-none shadow-xs"
                         >
                           <Crown className="w-3.5 h-3.5 text-white" />
                           <span>Upgrade to Ama Premium</span>
@@ -648,7 +905,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
                       <span
                         className={`text-[9px] mt-1.5 block text-right font-mono ${
-                          msg.sender === 'user' ? 'text-sky-100' : 'text-gray-400'
+                          msg.sender === 'user' ? 'text-white/80' : 'text-gray-400'
                         }`}
                       >
                         {msg.timestamp}
@@ -658,24 +915,25 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                 ))}
 
                 {isProcessing && (
-                  <div className="flex justify-start">
-                    <div className="bg-white border border-primary/20 rounded-2xl p-3.5 shadow-sm flex items-center gap-2.5 text-xs text-gray-600 font-medium">
+                  <div className="flex items-start gap-2.5 justify-start">
+                    <OgooAvatar size="sm" isThinking={true} />
+                    <div className="bg-white border border-primary/20 rounded-2xl p-3.5 shadow-xs flex items-center gap-2.5 text-xs text-gray-700 font-medium">
                       <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                      Ogoo is typing a helpful reply...
+                      {researchMode ? 'Ogoo is researching pediatric databases & guidelines...' : 'Ogoo is analyzing and formulating personalized care advice...'}
                     </div>
                   </div>
                 )}
                 <div ref={chatEndRef} />
               </div>
 
-              {/* Simple Quick Buttons */}
-              <div className="px-3 py-2.5 bg-white/80 border-t border-primary/10 flex items-center gap-2 overflow-x-auto no-scrollbar">
+              {/* Quick Prompt Chips */}
+              <div className="px-3 py-2 bg-white/90 border-t border-primary/10 flex items-center gap-2 overflow-x-auto no-scrollbar">
                 {[
-                  `🍲 Yummy recipe for ${babyName}?`,
-                  `⏰ How long should a ${babyAge} old baby sleep?`,
-                  `🍼 Log a 4 oz bottle feed`,
-                  `⏱️ Start left feeding timer`,
-                  `💩 Save poopy diaper change`
+                  `🔍 Research safe foods for ${babyAge}`,
+                  `🍼 Log a 4 oz feeding`,
+                  `💤 Start 60m nap timer`,
+                  `🌡️ Fever first aid guide`,
+                  `🥑 Stage recipe idea`
                 ].map((chip, idx) => (
                   <button
                     key={idx}
@@ -685,56 +943,79 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                       }
                       handleSendUserMessage(chip);
                     }}
-                    className="shrink-0 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-colors flex items-center gap-1 cursor-pointer"
+                    className="shrink-0 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     {chip}
                   </button>
                 ))}
               </div>
 
-              {/* Feedback toast banner */}
+              {/* Selected Image Attachment Preview */}
+              {selectedImage && (
+                <div className="px-4 py-2 bg-primary/5 border-t border-primary/15 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden border border-primary/30">
+                      <img src={selectedImage.preview} alt="Attachment" className="w-full h-full object-cover" />
+                    </div>
+                    <span className="text-xs text-gray-700 font-medium">Photo ready for multimodal review</span>
+                  </div>
+                  <button
+                    onClick={() => setSelectedImage(null)}
+                    className="p-1 rounded-full hover:bg-primary/20 text-gray-500 cursor-pointer border-none bg-transparent"
+                    title="Remove Photo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* Feedback Toast */}
               {feedback && (
                 <div className="bg-primary/10 border-t border-primary/20 px-4 py-1.5 text-xs text-primary font-bold text-center animate-pulse">
                   {feedback}
                 </div>
               )}
 
-              {/* Free Trial Banner if running low or out */}
-              {!isPremium && (
-                <div className="px-4 py-1.5 bg-emerald-50 border-t border-emerald-100 flex items-center justify-between text-[11px]">
-                  <span className="text-emerald-800 font-medium flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                    Free Trial: <strong>{remainingQueries} of {FREE_AI_QUERY_LIMIT}</strong> AI queries remaining
-                  </span>
-                  {onOpenSubscriptionModal && (
-                    <button
-                      onClick={() => {
-                        setIsOpen(false);
-                        onOpenSubscriptionModal();
-                      }}
-                      className="text-emerald-700 font-bold hover:underline cursor-pointer border-none bg-transparent"
-                    >
-                      Go Unlimited →
-                    </button>
-                  )}
-                </div>
-              )}
+              {/* Hidden File Input for Multimodal Image Upload */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageFileChange}
+                className="hidden"
+              />
 
-              {/* Input Area */}
+              {/* Disclaimer */}
+              <div className="px-4 py-1.5 bg-gray-50 border-t border-gray-100 text-[9px] text-gray-500 text-center leading-tight">
+                ⚠️ <strong>Disclaimer:</strong> Ogoo is an ai agent and provides AI-generated suggestions for informational purposes only. AI can make mistakes. Ogoo AI does not diagnose any medical condition. For health concerns and medical advice, always consult a certified medical practitioner doctor.
+              </div>
+
+              {/* Input Area with Multimodal Upload, Voice, & Send */}
               <div className="p-3 bg-white border-t border-primary/10 flex items-center gap-2">
+                {/* Image Upload Button */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-10 h-10 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center transition-all cursor-pointer border-none shrink-0"
+                  title="Attach Photo (Diaper stool, rash, food, thermometer)"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+
+                {/* Voice Mic Toggle */}
                 <button
                   id="voice-assistant-mic-toggle-btn"
                   onClick={toggleListening}
-                  className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer border-none shrink-0 ${
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer border-none shrink-0 ${
                     isListening
-                      ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-200'
+                      ? 'bg-primary text-white animate-pulse shadow-lg shadow-primary/20'
                       : 'bg-primary/10 text-primary hover:bg-primary/20'
                   }`}
                   title={isListening ? 'Stop Listening' : 'Speak to Ogoo'}
                 >
-                  {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                 </button>
 
+                {/* Text Input */}
                 <input
                   id="voice-assistant-text-input"
                   type="text"
@@ -743,15 +1024,16 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSendUserMessage();
                   }}
-                  placeholder={`Ask Ogoo anything about ${babyName}...`}
-                  className="flex-1 bg-gray-50 border border-primary/20 rounded-2xl px-4 py-3 text-xs sm:text-sm text-gray-800 focus:outline-none focus:border-primary font-medium"
+                  placeholder={selectedImage ? "Ask Ogoo about this photo..." : `Ask Ogoo anything about ${babyName}...`}
+                  className="flex-1 bg-gray-50 border border-primary/20 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-gray-800 focus:outline-none focus:border-primary font-medium"
                 />
 
+                {/* Send Button */}
                 <button
                   id="voice-assistant-send-btn"
                   onClick={() => handleSendUserMessage()}
-                  disabled={!inputText.trim() || isProcessing}
-                  className="w-11 h-11 rounded-2xl bg-primary text-white flex items-center justify-center hover:bg-primary-dark transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-none shrink-0 shadow-md shadow-primary/20"
+                  disabled={(!inputText.trim() && !selectedImage) || isProcessing}
+                  className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center hover:bg-primary-dark transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-none shrink-0 shadow-md shadow-primary/20"
                 >
                   <Send className="w-4 h-4" />
                 </button>

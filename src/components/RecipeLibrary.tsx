@@ -587,44 +587,38 @@ export const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = fa
                               />
                             </button>
                           ))}
-                          
-    </div>
-                        
-    </div>
+                        </div>
+                      </div>
                     ))}
-                    
-    </div>
-                  
-    </div>
+                  </div>
+                </div>
 
-                <div className="flex items-center justify-between bg-red-50 p-6 rounded-[32px] border border-red-100">
+                <div className="flex items-center justify-between bg-pink-50/80 p-5 rounded-[28px] border border-pink-200">
                   <div className="flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-400" />
-                    <span className="text-xs font-bold text-red-800">Allergy Reaction?</span>
-                    
-    </div>
+                    <AlertCircle className="w-5 h-5 text-pink-500" />
+                    <span className="text-xs font-bold text-gray-800">Allergy Reaction?</span>
+                  </div>
                   <button 
                     onClick={() => setAllergyReaction(!allergyReaction)}
-                    className={`w-12 h-6 rounded-full transition-all relative ${allergyReaction ? 'bg-red-500' : 'bg-gray-200'}`}
+                    className={`w-12 h-6 rounded-full transition-all relative ${allergyReaction ? 'bg-primary' : 'bg-gray-200'}`}
                   >
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${allergyReaction ? 'left-7' : 'left-1'}`} />
                   </button>
-                  
-    </div>
+                </div>
 
                 {allergyReaction && (
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-2 bg-red-50/50 p-4 rounded-[24px] border border-red-100/50"
+                    className="space-y-2 bg-pink-50/50 p-4 rounded-[24px] border border-pink-200"
                   >
-                    <label className="text-[10px] font-black text-red-500 uppercase tracking-widest block">Describe Reaction (Allergy Log)</label>
+                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block">Describe Reaction (Allergy Log)</label>
                     <input 
                       type="text"
                       value={allergyNotes}
                       onChange={(e) => setAllergyNotes(e.target.value)}
-                      placeholder="e.g. Red skin rash, mild hives, spit up..."
-                      className="w-full bg-white border border-red-200 rounded-xl p-3 text-xs font-bold text-red-900 focus:outline-none"
+                      placeholder="e.g. Skin rash, mild hives, spit up..."
+                      className="w-full bg-white border border-pink-200 rounded-xl p-3 text-xs font-bold text-gray-800 focus:outline-none"
                     />
                   </motion.div>
                 )}
@@ -637,10 +631,8 @@ export const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = fa
                     placeholder="Any reactions..."
                     className="w-full bg-gray-50 p-4 rounded-[24px] focus:outline-none text-sm font-medium min-h-[80px] resize-none"
                   />
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
 
               <button 
                 onClick={() => {

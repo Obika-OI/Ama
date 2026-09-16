@@ -55,13 +55,13 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
             {/* Reassuring Trust Highlights */}
             <div className="bg-slate-50 border border-slate-100 rounded-3xl p-4 space-y-3">
               <div className="flex items-start gap-3">
-                <Lock className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <Lock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <p className="text-xs text-gray-600 leading-relaxed">
                   <strong className="text-gray-800 font-bold">Freemium & Private:</strong> Core tracking is free (supported by standard Google AdSense). Your private health and infant care records are never sold.
                 </p>
               </div>
               <div className="flex items-start gap-3">
-                <ShieldCheck className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <p className="text-xs text-gray-600 leading-relaxed">
                   <strong className="text-gray-800 font-bold">Ogoo AI Companion:</strong> Built for soothing and daily guidance. Ogoo does not diagnose medical conditions.
                 </p>
@@ -264,7 +264,7 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                       <p>
                         Ama Baby Care, including the <strong>Ogoo AI Care Assistant</strong>, Baby Cry Acoustic Analyzer, and meal planning tools, is designed solely for educational, organizational, comforting, and routine care tracking purposes.
                       </p>
-                      <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-950 font-medium">
+                      <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 text-gray-800 font-medium">
                         <strong>Important:</strong> Ogoo AI and Ama tools are <strong>NOT medical devices and DO NOT diagnose any illness, medical condition, or clinical disorder. No baby is diagnosed by the AI.</strong> Never disregard professional pediatric medical advice or delay seeking care because of information provided by this application.
                       </div>
                     </section>

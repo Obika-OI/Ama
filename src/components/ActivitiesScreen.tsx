@@ -289,10 +289,9 @@ export const ActivitiesScreen = ({
             <p className="text-[10px] text-[#37b1f5] font-extrabold uppercase tracking-widest">Active & Mindful Play</p>
             
     </div>
-          <div className="w-11 h-11 rounded-full bg-[#FFD6E8] flex items-center justify-center text-pink-500 shadow-xs">
+          <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-xs">
             <Trophy className="w-6 h-6" />
-            
-    </div>
+          </div>
         </header>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
@@ -317,24 +316,20 @@ export const ActivitiesScreen = ({
               
     </div>
 
-            <div className="bg-[#FFD6E8] p-6 rounded-[36px] text-pink-900 space-y-4 border border-solid border-white/50 shadow-xl shadow-pink-200/20 relative overflow-hidden flex flex-col justify-between min-h-[150px] text-left">
+            <div className="bg-primary/10 p-6 rounded-[36px] text-gray-800 space-y-4 border border-solid border-primary/20 shadow-xl shadow-primary/10 relative overflow-hidden flex flex-col justify-between min-h-[150px] text-left">
               <div className="absolute top-0 right-0 w-24 h-24 bg-white/30 rounded-full -mr-10 -mt-10 blur-xl" />
               <div className="space-y-1 relative z-10">
-                <span className="text-[8px] font-black uppercase tracking-widest text-pink-700">Thriving Streak</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-primary">Thriving Streak</span>
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-2xl font-serif font-black">{dailyStreak} Days</h3>
-                  <Flame className="w-6 h-6 text-[#ffd700] animate-pulse fill-current drop-shadow-sm" />
-                  
-    </div>
-                <p className="text-[10px] font-bold text-pink-700/80">{dailyStreak > 0 ? "Doing spectacular!" : "Start today!"}</p>
-                
-    </div>
-              <div className="relative z-10 text-[8px] font-black uppercase tracking-wider bg-white/60 text-pink-700 py-1.5 px-3 rounded-xl text-center shadow-xs">
+                  <Flame className="w-6 h-6 text-primary animate-pulse fill-current drop-shadow-sm" />
+                </div>
+                <p className="text-[10px] font-bold text-gray-600">{dailyStreak > 0 ? "Doing spectacular!" : "Start today!"}</p>
+              </div>
+              <div className="relative z-10 text-[8px] font-black uppercase tracking-wider bg-white/80 text-primary py-1.5 px-3 rounded-xl text-center shadow-xs">
                 {activities.length > 0 && activities.every(a => a.isCompleted) ? "All Completed! 🎉" : "Goal: 3 Quests"}
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
             
     </div>
 
@@ -366,66 +361,55 @@ export const ActivitiesScreen = ({
                     onClick={() => handleActivityClick(activity)} 
                     className={`p-5 rounded-[32px] border border-solid transition-all flex flex-col gap-3 cursor-pointer text-left shadow-sm ${
                       activity.isCompleted 
-                        ? 'bg-emerald-50 border-emerald-100 opacity-85' 
+                        ? 'bg-primary/10 border-primary/20 opacity-85' 
                         : 'bg-white border-white hover:border-[#37b1f5]/30'
                     }`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-xs shrink-0 ${activity.isCompleted ? 'bg-emerald-100' : 'bg-[#D2E9F9]'}`}>
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-xs shrink-0 ${activity.isCompleted ? 'bg-primary/20 text-primary' : 'bg-[#D2E9F9]'}`}>
                         {activity.isCompleted ? '✓' : activity.icon}
-                        
-    </div>
+                      </div>
                       <div className="flex-1 space-y-1">
                         <div className="flex justify-between items-center">
                           <h3 className="font-bold text-gray-800 text-xs leading-tight">{activity.title}</h3>
-                          <span className={`text-[9px] font-black uppercase tracking-widest shrink-0 px-2 py-1 rounded-md ${activity.isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-[#ffd700]/20 text-yellow-700'}`}>
+                          <span className={`text-[9px] font-black uppercase tracking-widest shrink-0 px-2 py-1 rounded-md ${activity.isCompleted ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'}`}>
                             +{activity.points} pts
                           </span>
-                          
-    </div>
+                        </div>
                         <p className="text-[11px] text-gray-400 leading-relaxed font-medium line-clamp-1">{activity.description}</p>
-                        
-    </div>
-                      
-    </div>
+                      </div>
+                    </div>
                   </motion.div>
                 ))
               ) : (
                 <div className="bg-white/50 backdrop-blur border border-solid border-white p-8 rounded-[36px] text-center shadow-sm">
                   <p className="text-xs font-bold text-[#37b1f5] mb-3">No quests active today.</p>
                   <button onClick={handleReroll} className="px-5 py-3 bg-[#37b1f5] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border-none cursor-pointer shadow-md">Generate Quests</button>
-                  
-    </div>
+                </div>
               )}
-              
-    </div>
+            </div>
             
     </div>
 
           {/* Daily Quest Tracker */}
           <div className="bg-white rounded-[40px] border border-solid border-white p-6 space-y-6 shadow-sm text-left">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-[#FFD6E8] rounded-2xl flex items-center justify-center text-2xl shadow-inner">🧸</div>
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🧸</div>
               <div>
                 <h3 className="text-sm font-bold text-gray-800">Daily Quest Tracker</h3>
                 <p className="text-[10px] text-gray-400">Target: {questGoal} mins daily</p>
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
 
             <div className="flex items-center justify-between gap-4 bg-[#FDFBF7] p-4 rounded-3xl border border-solid border-gray-100">
               <div className="flex flex-col">
-                <span className="text-[10px] font-black text-pink-400 uppercase tracking-widest">Today's Progress</span>
+                <span className="text-[10px] font-black text-primary uppercase tracking-widest">Today's Progress</span>
                 <span className="text-xl font-serif font-black text-gray-800">{Math.round(questTimeToday)} min</span>
-                
-    </div>
-              <div className="font-mono text-sm bg-white border border-solid border-gray-100 shadow-xs text-pink-500 px-3 py-1.5 rounded-xl font-bold">
+              </div>
+              <div className="font-mono text-sm bg-white border border-solid border-gray-100 shadow-xs text-primary px-3 py-1.5 rounded-xl font-bold">
                 {Math.floor(qtSeconds / 60)}m {(qtSeconds % 60).toString().padStart(2, '0')}s
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
 
             <div className="space-y-3">
               <label className="text-[8px] font-black text-gray-400 block uppercase tracking-widest">Quest Name</label>
@@ -440,63 +424,53 @@ export const ActivitiesScreen = ({
                 <option>Motor Skills</option>
                 <option>Reading</option>
               </select>
-              
-    </div>
+            </div>
 
             <div className="flex gap-2">
               <button
                 onClick={() => setQtTimerActive(!qtTimerActive)}
-                className={`flex-1 py-3 rounded-2xl font-black text-[9px] uppercase tracking-widest cursor-pointer border-none transition-all ${
-                  qtTimerActive ? 'bg-[#ffd700] text-yellow-900 shadow-md' : 'bg-pink-400 text-white shadow-md'
-                }`}
+                className="flex-1 py-3 rounded-2xl font-black text-[9px] uppercase tracking-widest cursor-pointer border-none transition-all bg-primary hover:bg-primary/90 text-white shadow-md"
               >
                 {qtTimerActive ? 'Pause' : 'Start Stopwatch'}
               </button>
               {qtSeconds > 0 && (
                 <button
                   onClick={() => saveDailyQuest(qtSeconds / 60)}
-                  className="px-4 bg-emerald-400 hover:bg-emerald-500 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest cursor-pointer border-none transition-all shadow-md"
+                  className="px-4 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest cursor-pointer border-none transition-all shadow-md"
                 >
                   Save
                 </button>
               )}
-              
-    </div>
+            </div>
 
             {questLogs.length > 0 && (
               <div className="space-y-3 pt-2">
-                <p className="text-[9px] font-black text-pink-400 uppercase tracking-widest pl-2">Recent Quests</p>
+                <p className="text-[9px] font-black text-primary uppercase tracking-widest pl-2">Recent Quests</p>
                 <div className="space-y-2">
                   {questLogs.map((log, i) => (
-                    <div key={i} className="bg-white p-4 rounded-2xl border border-solid border-[#FFD6E8] shadow-xs flex justify-between items-center text-xs font-medium">
+                    <div key={i} className="bg-white p-4 rounded-2xl border border-solid border-primary/20 shadow-xs flex justify-between items-center text-xs font-medium">
                       <div>
                         <p className="font-bold text-gray-800">✅ {log.name}</p>
                         <p className="text-[9px] text-gray-400 mt-1">{log.time} • {log.date}</p>
-                        
-    </div>
-                      <span className="bg-[#FFD6E8] text-pink-600 px-3 py-1.5 rounded-xl text-[10px] font-black">{log.minutes}m</span>
-                      
-    </div>
+                      </div>
+                      <span className="bg-primary/10 text-primary px-3 py-1.5 rounded-xl text-[10px] font-black">{log.minutes}m</span>
+                    </div>
                   ))}
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
             )}
             
-    </div>
+          </div>
 
           {/* Developmental Milestones Checklist Card */}
           <div className="bg-white rounded-[40px] border border-solid border-white p-6 space-y-6 shadow-sm text-left">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🌱</div>
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🌱</div>
               <div>
                 <h3 className="text-sm font-bold text-gray-800">Developmental Milestones</h3>
                 <p className="text-[10px] text-gray-400">Pediatric-aligned age standards (gamified +15 XP)</p>
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
 
             {/* Age selectors */}
             <div className="flex gap-1 bg-gray-50 p-1 rounded-2xl overflow-x-auto">
@@ -504,13 +478,12 @@ export const ActivitiesScreen = ({
                 <button
                   key={age}
                   onClick={() => setMilestoneAge(age)}
-                  className={`px-3.5 py-2.5 rounded-xl text-[9px] whitespace-nowrap font-black uppercase tracking-wider border-none cursor-pointer transition-all ${milestoneAge === age ? 'bg-emerald-500 text-white' : 'bg-transparent text-gray-500 hover:text-gray-800'}`}
+                  className={`px-3.5 py-2.5 rounded-xl text-[9px] whitespace-nowrap font-black uppercase tracking-wider border-none cursor-pointer transition-all ${milestoneAge === age ? 'bg-primary text-white' : 'bg-transparent text-gray-500 hover:text-gray-800'}`}
                 >
                   {age}
                 </button>
               ))}
-              
-    </div>
+            </div>
 
             {/* Pediatric standard milestone items */}
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -520,25 +493,20 @@ export const ActivitiesScreen = ({
                   <div
                     key={m.id}
                     onClick={() => handleToggleMilestone(m.id, m.text)}
-                    className={`p-3 rounded-2xl border border-solid cursor-pointer transition-all flex items-start gap-3 ${isChecked ? 'bg-emerald-50/50 border-emerald-100' : 'bg-white border-gray-100 hover:bg-gray-50/50'}`}
+                    className={`p-3 rounded-2xl border border-solid cursor-pointer transition-all flex items-start gap-3 ${isChecked ? 'bg-primary/5 border-primary/20' : 'bg-white border-gray-100 hover:bg-gray-50/50'}`}
                   >
-                    <div className={`w-5 h-5 rounded-full border-2 border-solid flex items-center justify-center transition-colors shrink-0 ${isChecked ? 'bg-emerald-500 border-emerald-500 text-white text-[9px] font-black' : 'border-gray-200'}`}>
+                    <div className={`w-5 h-5 rounded-full border-2 border-solid flex items-center justify-center transition-colors shrink-0 ${isChecked ? 'bg-primary border-primary text-white text-[9px] font-black' : 'border-gray-200'}`}>
                       {isChecked && '✓'}
-                      
-    </div>
+                    </div>
                     <div className="space-y-1">
                       <p className="text-xs font-bold text-gray-800 leading-tight">{m.text}</p>
-                      <span className="text-[8px] font-black uppercase text-emerald-600 tracking-wider bg-emerald-100/40 px-1.5 py-0.5 rounded-md">{m.category}</span>
-                      
-    </div>
-                    
-    </div>
+                      <span className="text-[8px] font-black uppercase text-primary tracking-wider bg-primary/10 px-1.5 py-0.5 rounded-md">{m.category}</span>
+                    </div>
+                  </div>
                 );
               })}
-              
-    </div>
-            
-    </div>
+            </div>
+          </div>
 
           {/* Book Reading Logger Section */}
           <div className="bg-white rounded-[40px] border border-solid border-white p-6 space-y-6 shadow-sm text-left">
@@ -566,7 +534,7 @@ export const ActivitiesScreen = ({
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
                           <p className="text-xs font-black text-gray-800 leading-tight">{quest.name}</p>
-                          <span className="text-[8px] font-black uppercase text-yellow-700 bg-amber-100 px-1.5 py-0.5 rounded">+{quest.points} XP</span>
+                          <span className="text-[8px] font-black uppercase text-primary bg-primary/10 px-1.5 py-0.5 rounded">+{quest.points} XP</span>
                           
     </div>
                         <p className="text-[10px] text-gray-500 leading-relaxed font-medium">{quest.description}</p>
@@ -599,7 +567,7 @@ export const ActivitiesScreen = ({
                           setReadingLogs([log, ...readingLogs].slice(0, 5));
                           alert(`Quest Complete! "${quest.name}" logged. +${quest.points} XP awarded towards rewards and progression! 📚🏆✨`);
                         }}
-                        className="px-3 py-2 rounded-xl bg-[#37b1f5] hover:bg-blue-600 text-white border-none text-[8px] font-black uppercase tracking-widest cursor-pointer shadow-xs transition-all"
+                        className="px-3 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white border-none text-[8px] font-black uppercase tracking-widest cursor-pointer shadow-xs transition-all"
                       >
                         ⚡ Quick Log
                       </button>
@@ -651,7 +619,7 @@ export const ActivitiesScreen = ({
     </div>
                 <button
                   onClick={handleAddReadingLog}
-                  className="w-full bg-[#37b1f5] text-white py-3.5 rounded-2xl font-black text-[9px] uppercase tracking-widest cursor-pointer border-none hover:bg-blue-500 transition-all shadow-md mt-2"
+                  className="w-full bg-primary text-white py-3.5 rounded-2xl font-black text-[9px] uppercase tracking-widest cursor-pointer border-none hover:bg-primary-dark transition-all shadow-md mt-2"
                 >
                   Log Reading Session
                 </button>
@@ -689,17 +657,19 @@ export const ActivitiesScreen = ({
               <div>
                 <h2 className="text-sm font-bold text-gray-800">Baby Growth Curve</h2>
                 <p className="text-[10px] text-gray-400">Weight, Height & Head Circumference</p>
-                
-    </div>
+              </div>
               <button
                 onClick={predictGrowth}
                 disabled={isPredictingGrowth || growthLogs.length === 0}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-600 rounded-full text-[9px] font-black uppercase tracking-widest cursor-pointer hover:bg-purple-100 transition-colors disabled:opacity-50 border border-solid border-purple-100"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-[9px] font-black uppercase tracking-widest cursor-pointer hover:bg-primary/20 transition-colors disabled:opacity-50 border border-solid border-primary/20"
               >
                 <span>✨</span> {isPredictingGrowth ? 'Predicting...' : 'AI Forecast'}
               </button>
-              
-    </div>
+            </div>
+
+            <div className="p-3 bg-primary/5 rounded-2xl border border-primary/10 text-[9px] text-gray-500 font-medium">
+              ℹ️ <strong>AI Accuracy Disclaimer:</strong> Growth projections and development suggestions are AI-generated models based on reference percentiles. They are not medical assessments or clinical diagnoses. Always verify your baby's growth parameters directly with your pediatrician.
+            </div>
             
             <div className="h-52 w-full pr-4">
               <ResponsiveContainer width="100%" height="100%">
@@ -711,11 +681,10 @@ export const ActivitiesScreen = ({
                   <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }} />
                   <Line yAxisId="left" type="monotone" dataKey="weight" stroke="#FFD6E8" strokeWidth={4} dot={{ r: 5, fill: '#FFD6E8', strokeWidth: 2, stroke: '#fff' }} name="Weight (kg)" />
                   <Line yAxisId="right" type="monotone" dataKey="height" stroke="#37b1f5" strokeWidth={3} dot={{ r: 4, fill: '#37b1f5', strokeWidth: 2, stroke: '#fff' }} name="Height (cm)" />
-                  <Line yAxisId="right" type="monotone" dataKey="head" stroke="#ffd700" strokeWidth={2.5} strokeDasharray="4 4" dot={{ r: 3, fill: '#ffd700' }} name="Head (cm)" />
+                  <Line yAxisId="right" type="monotone" dataKey="head" stroke="#64748b" strokeWidth={2.5} strokeDasharray="4 4" dot={{ r: 3, fill: '#64748b' }} name="Head (cm)" />
                 </LineChart>
               </ResponsiveContainer>
-              
-    </div>
+            </div>
 
             {/* Growth Logger inputs */}
             <div className="bg-gray-50/50 p-4 rounded-3xl border border-solid border-gray-100 space-y-3">
@@ -724,40 +693,32 @@ export const ActivitiesScreen = ({
                 <div>
                   <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Age</label>
                   <input type="text" value={newMonth} onChange={e => setNewMonth(e.target.value)} placeholder="e.g. 7m" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
-                  
-    </div>
+                </div>
                 <div>
                   <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Wt (kg)</label>
                   <input type="number" step="0.1" value={newWeight} onChange={e => setNewWeight(e.target.value)} placeholder="e.g. 8.2" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
-                  
-    </div>
+                </div>
                 <div>
                   <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Ht (cm)</label>
                   <input type="number" step="0.5" value={newHeight} onChange={e => setNewHeight(e.target.value)} placeholder="e.g. 68" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
-                  
-    </div>
+                </div>
                 <div>
                   <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Head (cm)</label>
                   <input type="number" step="0.5" value={newHead} onChange={e => setNewHead(e.target.value)} placeholder="e.g. 43" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
-                  
-    </div>
-                
-    </div>
-              <button onClick={handleLogGrowth} className="w-full bg-[#37b1f5] text-white py-3 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-blue-500 shadow-sm transition-all flex items-center justify-center gap-1 border-none cursor-pointer">
+                </div>
+              </div>
+              <button onClick={handleLogGrowth} className="w-full bg-primary text-white py-3 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-primary-dark shadow-sm transition-all flex items-center justify-center gap-1 border-none cursor-pointer">
                 <PlusCircle className="w-4 h-4" /> Save Growth Entry (+30 pts)
               </button>
-              
-    </div>
-            
-    </div>
+            </div>
+          </div>
 
           {/* Rewards Drawer */}
           <div className="bg-white rounded-[40px] border border-solid border-white p-6 space-y-5 shadow-sm text-left">
             <div className="px-2">
               <h2 className="text-sm font-bold text-gray-800">Milestone Rewards</h2>
               <p className="text-[10px] text-[#37b1f5] font-bold">Keep achievements unlocked</p>
-              
-    </div>
+            </div>
             <div className="grid grid-cols-3 gap-4">
               {rewards.map(reward => (
                 <div 
@@ -775,13 +736,10 @@ export const ActivitiesScreen = ({
                   ) : (
                     <span className="text-[7px] text-gray-400 font-bold uppercase tracking-widest">Locked</span>
                   )}
-                  
-    </div>
+                </div>
               ))}
-              
-    </div>
-            
-    </div>
+            </div>
+          </div>
         </motion.div>
 
       {/* Quest Detail Modal */}
@@ -810,48 +768,42 @@ export const ActivitiesScreen = ({
               
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-sm mb-4 bg-[#D2E9F9]">
                 {selectedActivity.icon}
-                
-    </div>
+              </div>
               
               <div className="space-y-4">
                 <div>
                   <div className="flex gap-2 items-center mb-1">
-                    <span className="text-[8px] font-black uppercase tracking-widest px-2 py-1 bg-[#ffd700]/20 text-yellow-700 rounded-md">
+                    <span className="text-[8px] font-black uppercase tracking-widest px-2 py-1 bg-primary/10 text-primary rounded-md">
                       +{selectedActivity.points} PTS
                     </span>
                     <span className="text-[8px] font-black uppercase tracking-widest px-2 py-1 bg-[#37b1f5]/10 text-[#37b1f5] rounded-md">
                       {selectedActivity.category}
                     </span>
-                    
-    </div>
+                  </div>
                   <h2 className="text-xl font-serif font-black text-gray-800 leading-tight">{selectedActivity.title}</h2>
-                  
-    </div>
+                </div>
                 
                 <div className="bg-gray-50 p-4 rounded-3xl border border-solid border-gray-100 space-y-2">
                   <h3 className="text-xs font-bold text-gray-800">Why it's important</h3>
                   <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
                     {selectedActivity.description}
                   </p>
-                  
-    </div>
+                </div>
                 
                 <div className="bg-[#FFD6E8]/30 p-4 rounded-3xl border border-solid border-pink-100 space-y-2">
                   <h3 className="text-xs font-bold text-gray-800">How to perform</h3>
                   <p className="text-[11px] text-gray-600 leading-relaxed font-medium">
                     Ensure baby is fed and rested. Start in a quiet environment. Perform the activity for 5-10 minutes. If baby gets fuzzy, pause and try again later. Focus on eye contact and gentle communication throughout.
                   </p>
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
 
               <button
                 onClick={completeSelectedActivity}
                 disabled={selectedActivity.isCompleted}
                 className={`w-full mt-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-md transition-all border-none ${
                   selectedActivity.isCompleted
-                    ? 'bg-emerald-100 text-emerald-700'
+                    ? 'bg-primary/20 text-primary'
                     : 'bg-[#37b1f5] text-white hover:bg-blue-500 cursor-pointer'
                 }`}
               >

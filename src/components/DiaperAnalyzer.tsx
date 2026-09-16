@@ -55,8 +55,8 @@ export const DiaperAnalyzer: React.FC<DiaperAnalyzerProps> = ({ onAnalyze }) => 
   };
 
   return (
-    <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex flex-col items-center justify-center text-center gap-3">
-      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center relative overflow-hidden text-blue-500">
+    <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4 flex flex-col items-center justify-center text-center gap-3">
+      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center relative overflow-hidden text-primary">
         {isAnalyzing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />}
         <input 
           type="file" 
@@ -69,9 +69,12 @@ export const DiaperAnalyzer: React.FC<DiaperAnalyzerProps> = ({ onAnalyze }) => 
       </div>
       <div>
         <p className="text-sm font-bold text-gray-800">Smart Diaper Analyzer</p>
-        <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 mt-1">Snap a photo to auto-fill</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-primary mt-1">Snap a photo to auto-fill</p>
       </div>
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs text-gray-800 font-bold bg-primary/10 px-3 py-1 rounded-xl">{error}</p>}
+      <p className="text-[9px] text-gray-500 font-medium leading-tight max-w-xs">
+        ⚠️ AI Accuracy Disclaimer: Diaper analysis is powered by AI for convenience only and is not a medical diagnosis. Consult your pediatrician for any health concerns.
+      </p>
     </div>
   );
 };

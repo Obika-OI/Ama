@@ -21,14 +21,62 @@ export interface FeedingSession {
   amount?: string;
 }
 
+export type ScheduleType = 'interval' | 'specific_times' | 'weekly' | 'prn';
+
+export interface IntervalSchedule {
+  intervalHours: number; // e.g. 2, 4, 6, 8, 12
+  anchorTime: string; // e.g. "08:00 AM"
+  mode: 'continuous_24h' | 'waking_hours';
+  wakingStart?: string; // e.g. "07:00 AM"
+  wakingEnd?: string; // e.g. "09:00 PM"
+}
+
+export interface SpecificTimesSchedule {
+  times: string[]; // e.g. ["08:00 AM", "02:00 PM", "08:00 PM"]
+}
+
+export interface WeeklySchedule {
+  days: number[]; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  times: string[]; // e.g. ["09:00 AM", "06:00 PM"]
+}
+
+export interface PRNDoseLog {
+  id: string;
+  timestamp: string; // ISO string
+  dosage: string;
+  notes?: string;
+  loggedBy?: string;
+}
+
+export interface PRNSchedule {
+  minIntervalHours: number; // e.g. 4 or 6 hours minimum between doses
+  maxDosesPer24h: number; // e.g. 4 maximum doses in rolling 24-hour window
+  dosage: string; // e.g. "2.5 ml" or "2 drops"
+  instructions?: string; // e.g. "For fever > 38.5°C or teething pain"
+  doseLogs: PRNDoseLog[];
+}
+
 export interface Reminder {
   id: string;
   title: string;
-  time?: string; // Specific time like "08:30"
-  interval?: number; // Interval in hours like 2
+  type?: string; // 'Medication' | 'Fluid Intake' | 'Activity' | 'Other' or 'meal' | 'medication' | 'hydration'
+  category?: 'medication' | 'feeding' | 'hydration' | 'activity' | 'routine' | 'other';
+  time?: string; // Legacy or primary anchor time, e.g. "08:00 AM"
+  interval?: number; // Legacy interval in hours
   lastTriggered?: string; // ISO timestamp
-  isActive: boolean;
-  type: 'meal' | 'medication' | 'hydration';
+  active?: boolean;
+  isActive?: boolean;
+  scheduleType: ScheduleType;
+  intervalConfig?: IntervalSchedule;
+  specificTimesConfig?: SpecificTimesSchedule;
+  weeklyConfig?: WeeklySchedule;
+  prnConfig?: PRNSchedule;
+  dosage?: string;
+  unit?: string;
+  instructions?: string;
+  notes?: string;
+  color?: string;
+  createdAt?: string;
 }
 
 export interface Activity {

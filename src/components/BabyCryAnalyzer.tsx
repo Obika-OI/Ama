@@ -244,7 +244,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
       for (let i = 0; i < bufferLength; i++) {
         const barHeight = (dataArray[i] / 255) * canvas.height;
         const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-        gradient.addColorStop(0, '#f43f5e'); // Rose
+        gradient.addColorStop(0, '#37b1f5'); // Baby blue
         gradient.addColorStop(1, '#fda4af'); // Soft pink
 
         ctx.fillStyle = gradient;
@@ -421,20 +421,20 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2 border-b border-gray-100">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl shadow-2xs shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl shadow-2xs shrink-0">
             🎙️
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                 Audio Acoustic AI
               </span>
               {isPremium ? (
-                <span className="bg-amber-400 text-slate-950 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                <span className="bg-primary text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
                   <Crown className="w-2.5 h-2.5" /> PRO
                 </span>
               ) : (
-                <span className="bg-amber-100 text-amber-800 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                <span className="bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
                   <Lock className="w-2.5 h-2.5" /> Premium Only
                 </span>
               )}
@@ -460,17 +460,17 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
 
       {/* Premium Locking Banner if not subscribed */}
       {!isPremium && (
-        <div className="bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50 border-2 border-amber-300 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="bg-primary/5 border-2 border-primary/20 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-primary text-white flex items-center justify-center shadow-md shrink-0">
               <Lock className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h4 className="text-xs sm:text-sm font-bold text-amber-950">Acoustic Cry Analyzer is a Premium Feature</h4>
-                <span className="text-[9px] font-black uppercase bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">Locked</span>
+                <h4 className="text-xs sm:text-sm font-bold text-gray-800">Acoustic Cry Analyzer is a Premium Feature</h4>
+                <span className="text-[9px] font-black uppercase bg-primary/10 text-primary px-2 py-0.5 rounded-full">Locked</span>
               </div>
-              <p className="text-[11px] text-amber-800 font-medium mt-0.5">
+              <p className="text-[11px] text-gray-600 font-medium mt-0.5">
                 Analyzes acoustic frequencies and Dunstan sound reflexes (Hunger, Sleep Pressure, Colic, Pain, and Burping).
               </p>
             </div>
@@ -478,7 +478,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
           {onOpenSubscriptionModal && (
             <button
               onClick={onOpenSubscriptionModal}
-              className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-md shadow-amber-500/20 shrink-0"
+              className="w-full sm:w-auto px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-md shadow-primary/20 shrink-0"
             >
               <Crown className="w-4 h-4" />
               <span>Upgrade with Paystack</span>
@@ -545,7 +545,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
               <button
                 type="button"
                 onClick={() => handleStopAndAnalyze('live_mic')}
-                className="px-6 py-3.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-black uppercase text-xs tracking-widest flex items-center gap-2 shadow-lg shadow-rose-500/40 border-none cursor-pointer animate-pulse"
+                className="px-6 py-3.5 rounded-full bg-primary hover:bg-primary/90 text-white font-black uppercase text-xs tracking-widest flex items-center gap-2 shadow-lg shadow-primary/30 border-none cursor-pointer animate-pulse"
               >
                 <Square className="w-4 h-4 fill-white" />
                 <span>Stop & Analyze ({recordingSeconds}s)</span>
@@ -559,7 +559,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
               <button
                 type="button"
                 onClick={startListening}
-                className="px-8 py-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-black uppercase text-xs tracking-widest flex items-center gap-2.5 shadow-xl shadow-rose-500/30 border-none cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                className="px-8 py-4 rounded-full bg-primary hover:bg-primary/90 text-white font-black uppercase text-xs tracking-widest flex items-center gap-2.5 shadow-xl shadow-primary/30 border-none cursor-pointer hover:scale-105 active:scale-95 transition-all"
               >
                 <Mic className="w-5 h-5" />
                 <span>{isPremium ? 'Start Listening & Analyze Cry' : '🔒 Start Cry Analysis (Premium)'}</span>
@@ -570,8 +570,8 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
       </div>
 
       {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-700 text-xs font-bold">
-          <AlertCircle className="w-5 h-5 shrink-0" />
+        <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex items-center gap-3 text-gray-800 text-xs font-bold">
+          <AlertCircle className="w-5 h-5 shrink-0 text-primary" />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -596,13 +596,13 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
               key={demo.id}
               onClick={() => handleRunDemoCry(demo.id, demo.hint)}
               disabled={isAnalyzing}
-              className="p-3 bg-gray-50 hover:bg-rose-50 hover:border-rose-300 border border-gray-200 rounded-2xl text-left transition-all cursor-pointer flex flex-col justify-between"
+              className="p-3 bg-gray-50 hover:bg-primary/5 hover:border-primary/30 border border-gray-200 rounded-2xl text-left transition-all cursor-pointer flex flex-col justify-between"
             >
               <div>
                 <p className="text-xs font-black text-gray-800">{demo.label}</p>
                 <p className="text-[10px] text-gray-500 font-medium mt-0.5">{demo.reflex}</p>
               </div>
-              <span className="text-[9px] text-rose-600 font-bold mt-2 flex items-center gap-1">
+              <span className="text-[9px] text-primary font-bold mt-2 flex items-center gap-1">
                 Test Pattern →
               </span>
             </button>
@@ -615,12 +615,12 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-emerald-50/70 border-2 border-emerald-300 rounded-3xl p-5 sm:p-6 space-y-4"
+          className="bg-primary/5 border-2 border-primary/20 rounded-3xl p-5 sm:p-6 space-y-4"
         >
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-emerald-200 pb-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-primary/10 pb-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
                   Estimated Soothing Cue
                 </span>
                 <span className="text-[9px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-gray-200">
@@ -632,26 +632,26 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
               </h3>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-emerald-800 bg-white px-3 py-1.5 rounded-xl shadow-2xs border border-emerald-200">
+              <span className="text-xs font-bold text-gray-800 bg-white px-3 py-1.5 rounded-xl shadow-2xs border border-primary/20">
                 Confidence: <strong>{analysisResult.confidenceScore}%</strong>
               </span>
             </div>
           </div>
 
-          {/* AI Non-Diagnostic Medical Notice */}
-          <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2.5 text-left leading-relaxed">
-            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          {/* AI Non-Diagnostic Medical Notice & Accuracy Disclaimer */}
+          <div className="p-3 bg-primary/10 rounded-2xl border border-primary/20 text-[11px] text-gray-800 flex items-start gap-2.5 text-left leading-relaxed">
+            <ShieldAlert className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <p>
-              <strong>Important Medical Notice:</strong> Ogoo AI does not diagnose any medical condition or illness. This acoustic estimate is for soothing, comfort, and routine feeding/sleep reference only. If baby is ill, running a fever, in pain, or in distress, always consult your pediatrician.
+              <strong>AI Accuracy & Medical Disclaimer:</strong> Cry analysis is generated using artificial intelligence acoustic pattern matching and may be inaccurate due to ambient background noise or unique infant vocal variations. This tool does not provide medical advice or diagnosis. If baby is ill, has a fever, is in pain, or in distress, always consult your pediatrician immediately.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div className="bg-white p-3.5 rounded-2xl border border-emerald-100 space-y-1">
+            <div className="bg-white p-3.5 rounded-2xl border border-primary/10 space-y-1">
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Identified Sound Reflex</p>
               <p className="font-black text-gray-800">{analysisResult.soundReflexCode}</p>
             </div>
-            <div className="bg-white p-3.5 rounded-2xl border border-emerald-100 space-y-1">
+            <div className="bg-white p-3.5 rounded-2xl border border-primary/10 space-y-1">
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Contextual Cross-Reference</p>
               <p className="text-gray-700 font-medium">{analysisResult.logCrossReferenceSummary}</p>
             </div>
@@ -659,12 +659,12 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
 
           {/* Soothing Steps */}
           {analysisResult.immediateSoothingSteps && (
-            <div className="bg-white p-4 rounded-2xl border border-emerald-100 space-y-2">
-              <p className="text-[10px] text-emerald-800 font-black uppercase tracking-wider">Recommended Soothing Protocol</p>
+            <div className="bg-white p-4 rounded-2xl border border-primary/10 space-y-2">
+              <p className="text-[10px] text-primary font-black uppercase tracking-wider">Recommended Soothing Protocol</p>
               <ul className="space-y-1.5 text-xs text-gray-700 font-medium">
                 {analysisResult.immediateSoothingSteps.map((step: string, idx: number) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                     <span>{step}</span>
                   </li>
                 ))}
@@ -680,7 +680,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
                   onNavigate(analysisResult.recommendedAction.actionType === 'sleep' ? 'activity-tracker' : 'feeding-tracker');
                 }
               }}
-              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer border-none"
+              className="w-full py-3.5 bg-primary hover:bg-primary/90 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer border-none"
             >
               <span>{analysisResult.recommendedAction.buttonLabel || 'Apply Recommendation'}</span>
               <ArrowRight className="w-4 h-4" />

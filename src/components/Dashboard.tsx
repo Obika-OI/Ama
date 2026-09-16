@@ -14,13 +14,13 @@ import { TEETH_LIST, LOCAL_REGIONS_DATABASE } from '../constants/babyData';
 import { formatCost, calculateBabyAge, drawThreeRandomQuests } from '../utils/helpers';
 import { CircularProgress } from './CircularProgress';
 import { MoodTracker } from './MoodTracker';
-import { VoiceAssistant } from './VoiceAssistant';
 import { StorybookGenerator } from './StorybookGenerator';
 import { DiaperAnalyzer } from './DiaperAnalyzer';
 import { MemorySlideshow } from './MemorySlideshow';
 import { LegalConsentModal } from './LegalConsentModal';
 import { AppUserGuide } from './AppUserGuide';
 import { BabyCryAnalyzer } from './BabyCryAnalyzer';
+import { ImmunizationScheduler } from './ImmunizationScheduler';
 import { FirebaseUser, model } from '../firebase';
 
 export const Dashboard = ({ 
@@ -209,32 +209,28 @@ export const Dashboard = ({
         <div className="space-y-1.5 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-serif font-black text-gray-800 tracking-tight truncate">Hello, {parentName}!</h1>
           {/* User Role Badge (Unclickable & Below User Name) */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border select-none w-fit bg-amber-50 text-amber-800 border-amber-200/80">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border select-none w-fit bg-primary/10 text-primary border-primary/20">
             <span className="text-xs">{userRole === 'admin' ? '👑' : userRole === 'family' ? '🏡' : '🧸'}</span>
             <span className="font-bold">{userRole === 'admin' ? 'Parent (Admin)' : userRole === 'family' ? 'Family Circle' : 'Caregiver'}</span>
-            
-    </div>
+          </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-0.5">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">{currentDateStr}</p>
-              
-    </div>
+            </div>
             {isOnline ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-green-50 text-green-600 border border-green-200">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-primary/10 text-primary border border-primary/20">
                 <Wifi className="w-2.5 h-2.5" />
                 <span>Sync Active</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-200 animate-pulse">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 animate-pulse">
                 <WifiOff className="w-2.5 h-2.5" />
                 <span>Offline Queue</span>
               </span>
             )}
-            
-    </div>
-          
-    </div>
+          </div>
+        </div>
 
         <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap pt-1">
           {currentUser && !currentUser.isAnonymous ? (
@@ -256,15 +252,14 @@ export const Dashboard = ({
               ) : (
                 <button
                   onClick={onSignOut}
-                  className="px-3.5 py-2 bg-white border border-gray-200 hover:bg-gray-50 rounded-full text-xs font-bold text-red-500 transition-all cursor-pointer flex items-center gap-1 shrink-0 shadow-sm"
+                  className="px-3.5 py-2 bg-white border border-gray-200 hover:bg-gray-50 rounded-full text-xs font-bold text-gray-700 hover:text-primary transition-all cursor-pointer flex items-center gap-1 shrink-0 shadow-sm"
                   title="Click to Sign Out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Logout</span>
                 </button>
               )}
-              
-    </div>
+            </div>
           ) : (
             <div className="flex items-center gap-2">
               {currentUser?.isAnonymous && isSyncing && (
@@ -434,29 +429,25 @@ export const Dashboard = ({
             className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                 🎙️
-                
-    </div>
-              <span className="text-[8px] font-black text-amber-700 bg-amber-500/15 px-2.5 py-1 rounded-full uppercase tracking-wider border border-amber-500/20">
+              </div>
+              <span className="text-[8px] font-black text-primary bg-primary/15 px-2.5 py-1 rounded-full uppercase tracking-wider border border-primary/20">
                 Acoustic Analysis
               </span>
-              
-    </div>
+            </div>
             <div className="space-y-1">
               <h3 className="text-base font-serif font-black text-gray-800">Baby Cry Reason Analyzer</h3>
               <p className="text-xs text-gray-500 font-medium leading-relaxed">
                 Listens to your baby's cry and correlates audio with time since last feeding & nap to analyze comfort needs.
               </p>
-              
-    </div>
-            <div className="pt-1 flex items-center justify-between text-xs font-bold text-amber-600 group-hover:text-amber-700">
+            </div>
+            <div className="pt-1 flex items-center justify-between text-xs font-bold text-primary group-hover:text-primary/80">
               <span className="flex items-center gap-1.5">
                 <Mic className="w-3.5 h-3.5" /> Start Cry Analysis
               </span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              
-    </div>
+            </div>
           </motion.div>
 
           {/* AI Weekly Meal & Grocery Planner Card */}
@@ -466,29 +457,25 @@ export const Dashboard = ({
             className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                 🥗
-                
-    </div>
-              <span className="text-[8px] font-black text-emerald-700 bg-emerald-500/15 px-2.5 py-1 rounded-full uppercase tracking-wider border border-emerald-500/20">
+              </div>
+              <span className="text-[8px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider border border-primary/20">
                 Localized Groceries
               </span>
-              
-    </div>
+            </div>
             <div className="space-y-1">
               <h3 className="text-base font-serif font-black text-gray-800">AI Weekly Meal & Grocery Plan</h3>
               <p className="text-xs text-gray-500 font-medium leading-relaxed">
                 Generates a complete 7-day age-optimized solid food menu that targets nutritional gaps with an automated local grocery checklist.
               </p>
-              
-    </div>
-            <div className="pt-1 flex items-center justify-between text-xs font-bold text-emerald-600 group-hover:text-emerald-700">
+            </div>
+            <div className="pt-1 flex items-center justify-between text-xs font-bold text-primary group-hover:text-primary">
               <span className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" /> Build 7-Day Plan
               </span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              
-    </div>
+            </div>
           </motion.div>
           
     </div>
@@ -535,30 +522,26 @@ export const Dashboard = ({
               
     </div>
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-700 rounded-full border border-amber-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                 <p className="text-[9px] font-black uppercase tracking-widest">
                   Daily Intake • {todayMeals.length} Scheduled {todayMeals.length === 1 ? 'Meal' : 'Meals'}
                 </p>
-                
-    </div>
+              </div>
               <h3 className="text-xl font-serif font-black text-gray-800">Estimated Nutrition</h3>
               <p className="text-xs text-gray-500 font-medium">
                 {todayMeals.length > 0 ? 'Calculated from planned meals & feedings for today' : 'No meals scheduled yet today • Tap to open feeding tracker'}
               </p>
-              
-    </div>
-            
-    </div>
+            </div>
+          </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
             <div className="bg-white px-4 py-2.5 rounded-2xl border border-gray-100 shadow-xs text-center min-w-[85px]">
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Energy</p>
-              <p className="text-base font-black text-amber-600 leading-tight mt-0.5">
+              <p className="text-base font-black text-primary leading-tight mt-0.5">
                 {estimatedCalories} <span className="text-[10px] text-gray-400 font-bold uppercase">kcal</span>
               </p>
-              
-    </div>
+            </div>
             <div className="bg-white px-4 py-2.5 rounded-2xl border border-gray-100 shadow-xs text-center min-w-[85px]">
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Protein</p>
               <p className="text-base font-black text-primary leading-tight mt-0.5">
@@ -707,14 +690,12 @@ export const Dashboard = ({
             <div className="flex flex-col items-end gap-1 shrink-0">
               <span className="text-xl font-serif font-black text-primary">{Math.round(questProgress)}%</span>
               {dailyStreak > 0 && (
-                <div className="flex items-center gap-0.5 bg-amber-500/15 text-amber-600 px-2 py-0.5 rounded-full animate-pulse border border-amber-500/10">
-                  <Flame className="w-3 h-3 fill-amber-500 text-amber-500" />
+                <div className="flex items-center gap-0.5 bg-primary/10 text-primary px-2 py-0.5 rounded-full animate-pulse border border-primary/20">
+                  <Flame className="w-3 h-3 fill-primary text-primary" />
                   <span className="text-[8px] font-black uppercase tracking-wider">{dailyStreak}d Streak</span>
-                  
-    </div>
+                </div>
               )}
-              
-    </div>
+            </div>
             
     </div>
 
@@ -895,7 +876,7 @@ export const Dashboard = ({
                           >
                             <span>{i + 1}</span>
                             {hasScheduledItems && (
-                              <span className={`w-1.5 h-1.5 rounded-full absolute bottom-0.5 ${isSelected ? 'bg-amber-300' : 'bg-primary'}`} />
+                              <span className={`w-1.5 h-1.5 rounded-full absolute bottom-0.5 ${isSelected ? 'bg-white' : 'bg-primary'}`} />
                             )}
                           </button>
                         );
@@ -961,12 +942,11 @@ export const Dashboard = ({
                         <span>New Scheduled Item</span>
                       </p>
                       {scheduleSuccessMsg && (
-                        <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full animate-bounce">
+                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full animate-bounce">
                           ✓ {scheduleSuccessMsg}
                         </span>
                       )}
-                      
-    </div>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -1251,14 +1231,12 @@ export const Dashboard = ({
                               const updated = scheduledMeals.map(m => m.id === scheduled.id ? { ...m, completed: !m.completed } : m);
                               setScheduledMeals(updated);
                             }}
-                            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${scheduled.completed ? 'bg-green-500 text-white shadow-md shadow-green-100' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
+                            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${scheduled.completed ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
                           >
                             <CheckCircle2 className="w-5 h-5" />
                           </button>
-                          
-    </div>
-                        
-    </div>
+                        </div>
+                      </div>
                     ))
                   ) : (
                     <div 
@@ -1272,8 +1250,7 @@ export const Dashboard = ({
                       <p className="text-[10px] text-primary font-bold mt-1.5 flex items-center justify-center gap-1">
                         <Plus className="w-3.5 h-3.5" /> Tap to schedule a meal now
                       </p>
-                      
-    </div>
+                    </div>
                   )
                 )}
 
@@ -1289,21 +1266,18 @@ export const Dashboard = ({
                               <div>
                                 <p className="text-sm font-bold text-gray-800">{scheduled.title}</p>
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Duration: {scheduled.duration} • {scheduled.time}</p>
-                                
-    </div>
-                              
-    </div>
+                              </div>
+                            </div>
                             <button 
                               onClick={() => {
                                 const updated = scheduledActivities.map(a => a.id === scheduled.id ? { ...a, completed: !a.completed } : a);
                                 setScheduledActivities(updated);
                               }}
-                              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isCompleted ? 'bg-green-500 text-white shadow-md shadow-green-100' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
+                              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isCompleted ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
                             >
                               <CheckCircle2 className="w-5 h-5" />
                             </button>
-                            
-    </div>
+                          </div>
 
                           {/* Interactive tracking metrics */}
                           <div className="bg-white p-3 rounded-2xl space-y-2 border border-gray-100 shadow-inner">
@@ -1322,14 +1296,10 @@ export const Dashboard = ({
                                     {level}
                                   </button>
                                 ))}
-                                
-    </div>
-                              
-    </div>
-                            
-    </div>
-                          
-    </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       );
                     })
                   ) : (
@@ -1344,8 +1314,7 @@ export const Dashboard = ({
                       <p className="text-[10px] text-primary font-bold mt-1.5 flex items-center justify-center gap-1">
                         <Plus className="w-3.5 h-3.5" /> Tap to schedule an activity now
                       </p>
-                      
-    </div>
+                    </div>
                   )
                 )}
 
@@ -1358,21 +1327,18 @@ export const Dashboard = ({
                           <div>
                             <p className="text-sm font-bold text-gray-800">{scheduled.name || scheduled.title}</p>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{scheduled.dosage} • {scheduled.time}</p>
-                            
-    </div>
-                          
-    </div>
+                          </div>
+                        </div>
                         <button 
                           onClick={() => {
                             const updated = scheduledMeds.map(m => m.id === scheduled.id ? { ...m, completed: !m.completed } : m);
                             setScheduledMeds(updated);
                           }}
-                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${scheduled.completed ? 'bg-green-500 text-white shadow-md shadow-green-100' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${scheduled.completed ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
                         >
                           <CheckCircle2 className="w-5 h-5" />
                         </button>
-                        
-    </div>
+                      </div>
                     ))
                   ) : (
                     <div 
@@ -1386,63 +1352,18 @@ export const Dashboard = ({
                       <p className="text-[10px] text-primary font-bold mt-1.5 flex items-center justify-center gap-1">
                         <Plus className="w-3.5 h-3.5" /> Tap to schedule vitamin or medicine
                       </p>
-                      
-    </div>
+                    </div>
                   )
                 )}
 
                 {activeModalType === 'immunization' && (
-                  <div className="space-y-2.5">
-                    {((vaccineSchedule || []).length > 0) ? (
-                      (vaccineSchedule || []).map((vac) => (
-                        <div key={vac.id} className="bg-gray-50 p-4 rounded-2xl flex items-center justify-between border border-gray-100">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">💉</span>
-                            <div>
-                              <p className="text-sm font-bold text-gray-800">{vac.name}</p>
-                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                Milestone: {vac.age} {vac.date ? `• ${vac.date}` : ''}
-                              </p>
-                              
-    </div>
-                            
-    </div>
-                          <button 
-                            onClick={() => {
-                              if (setVaccineSchedule) {
-                                const newStatus = vac.status === 'Completed' ? 'Scheduled' : 'Completed';
-                                const updated = (vaccineSchedule || []).map(v => v.id === vac.id ? { ...v, status: newStatus } : v);
-                                setVaccineSchedule(updated);
-                              }
-                            }}
-                            className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${
-                              vac.status === 'Completed'
-                                ? 'bg-green-500 text-white'
-                                : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                            }`}
-                          >
-                            {vac.status === 'Completed' ? '✓ Completed' : 'Mark Done'}
-                          </button>
-                          
-    </div>
-                      ))
-                    ) : (
-                      <div 
-                        onClick={() => {
-                          setScheduleCategory('vaccine');
-                          setShowAddForm(true);
-                        }}
-                        className="text-center py-6 px-4 bg-gray-50/80 hover:bg-primary/5 rounded-2xl border border-dashed border-gray-200 hover:border-primary/40 transition-all cursor-pointer group"
-                      >
-                        <p className="text-sm text-gray-600 font-medium group-hover:text-primary transition-colors">No vaccines scheduled.</p>
-                        <p className="text-[10px] text-primary font-bold mt-1.5 flex items-center justify-center gap-1">
-                          <Plus className="w-3.5 h-3.5" /> Tap to schedule a vaccine milestone
-                        </p>
-                        
-    </div>
-                    )}
-                    
-    </div>
+                  <div className="-mx-4 sm:-mx-6 -mt-2">
+                    <ImmunizationScheduler 
+                      vaccineSchedule={vaccineSchedule || []} 
+                      setVaccineSchedule={setVaccineSchedule}
+                      onNavigate={onNavigate}
+                    />
+                  </div>
                 )}
 
                 {activeModalType === 'schedule' && (
@@ -1459,8 +1380,7 @@ export const Dashboard = ({
                           (vaccineSchedule || []).filter(v => v.date && isSameDay(new Date(v.date), new Date(scheduleDate + 'T12:00:00'))).length
                         } Items
                       </span>
-                      
-    </div>
+                    </div>
 
                     {/* Render scheduled meals for selected date */}
                     {scheduledMeals.filter(m => m.date && isSameDay(new Date(m.date), new Date(scheduleDate + 'T12:00:00'))).map((m) => (
@@ -1470,21 +1390,18 @@ export const Dashboard = ({
                           <div>
                             <p className="text-xs font-bold text-gray-800">{m.meal?.title || m.title}</p>
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{m.type || 'Meal'} • {m.time}</p>
-                            
-    </div>
-                          
-    </div>
+                          </div>
+                        </div>
                         <button 
                           onClick={() => {
                             const updated = scheduledMeals.map(item => item.id === m.id ? { ...item, completed: !item.completed } : item);
                             setScheduledMeals(updated);
                           }}
-                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${m.completed ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${m.completed ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
                         >
                           <CheckCircle2 className="w-4 h-4" />
                         </button>
-                        
-    </div>
+                      </div>
                     ))}
 
                     {/* Render scheduled activities for selected date */}
@@ -1495,21 +1412,18 @@ export const Dashboard = ({
                           <div>
                             <p className="text-xs font-bold text-gray-800">{a.title}</p>
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{a.time} • {a.duration}</p>
-                            
-    </div>
-                          
-    </div>
+                          </div>
+                        </div>
                         <button 
                           onClick={() => {
                             const updated = scheduledActivities.map(item => item.id === a.id ? { ...item, completed: !item.completed } : item);
                             setScheduledActivities(updated);
                           }}
-                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${a.completed ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${a.completed ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
                         >
                           <CheckCircle2 className="w-4 h-4" />
                         </button>
-                        
-    </div>
+                      </div>
                     ))}
 
                     {/* Render scheduled meds for selected date */}
@@ -1520,21 +1434,18 @@ export const Dashboard = ({
                           <div>
                             <p className="text-xs font-bold text-gray-800">{md.name || md.title}</p>
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{md.dosage} • {md.time}</p>
-                            
-    </div>
-                          
-    </div>
+                          </div>
+                        </div>
                         <button 
                           onClick={() => {
                             const updated = scheduledMeds.map(item => item.id === md.id ? { ...item, completed: !item.completed } : item);
                             setScheduledMeds(updated);
                           }}
-                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${md.completed ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${md.completed ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
                         >
                           <CheckCircle2 className="w-4 h-4" />
                         </button>
-                        
-    </div>
+                      </div>
                     ))}
 
                     {/* Render scheduled vaccines for selected date */}
@@ -1545,21 +1456,16 @@ export const Dashboard = ({
                           <div>
                             <p className="text-xs font-bold text-gray-800">{v.name}</p>
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Milestone: {v.age}</p>
-                            
-    </div>
-                          
-    </div>
-                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${v.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                          </div>
+                        </div>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${v.status === 'Completed' ? 'bg-primary/10 text-primary' : 'bg-primary/10 text-primary'}`}>
                           {v.status}
                         </span>
-                        
-    </div>
+                      </div>
                     ))}
-                    
-    </div>
+                  </div>
                 )}
-                
-    </div>
+              </div>
 
               {/* Navigation Action Buttons */}
               <div className="space-y-2.5 pt-2 border-t border-gray-100">
@@ -1625,16 +1531,12 @@ export const Dashboard = ({
                   >
                     Close
                   </button>
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
             </motion.div>
-            
-    </div>
+          </div>
         )}
       </AnimatePresence>
-      
     </div>
   );
 };

@@ -16,6 +16,30 @@ body {
   color: #37474F;
 }
 
+/* Custom time & date picker theme styling */
+input[type="time"],
+input[type="date"],
+input[type="datetime-local"] {
+  color-scheme: light;
+  accent-color: var(--color-primary);
+  border-color: #E2E8F0;
+  color: #1E293B;
+}
+
+input[type="time"]:focus,
+input[type="date"]:focus,
+input[type="datetime-local"]:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(55, 177, 245, 0.2);
+}
+
+/* Custom Webkit Clock / Calendar Picker Icon Color */
+::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(53%) sepia(82%) saturate(1637%) hue-rotate(178deg) brightness(99%) contrast(94%);
+}
+
 .journal-lines {
   background-image: linear-gradient(#90A4AE 1px, transparent 1px);
   background-size: 100% 2rem;

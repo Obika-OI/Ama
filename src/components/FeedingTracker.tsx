@@ -320,14 +320,12 @@ export const FeedingTracker = ({
               {/* Exclusive Nursing Timers Card */}
               <div className="bg-card p-6 rounded-[40px] shadow-sm border border-white space-y-6 text-left">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-2xl">🤱</div>
+                  <div className="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center text-2xl">🤱</div>
                   <div>
                     <h3 className="text-sm font-serif font-black text-gray-800">Breastfeeding Timers</h3>
                     <p className="text-[11px] text-gray-400 font-medium">Exclusive Left & Right session timers</p>
-                    
-    </div>
-                  
-    </div>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-3xl">
                   {/* Left Breast Timer */}
@@ -342,12 +340,12 @@ export const FeedingTracker = ({
                           handleStartLeft();
                         }
                       }}
-                      className={`w-full py-2 rounded-xl text-[9px] font-black uppercase border-none cursor-pointer tracking-wider text-center transition-all ${isLeftActive ? 'bg-red-100 text-red-600' : 'bg-rose-50 text-rose-600 hover:scale-[1.02]'}`}
+                      className={`w-full py-2 rounded-xl text-[9px] font-black uppercase border-none cursor-pointer tracking-wider text-center transition-all ${isLeftActive ? 'bg-primary text-white' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
                     >
                       {isLeftActive ? 'Pause' : 'Start'}
                     </button>
                     
-    </div>
+                  </div>
 
                   {/* Right Breast Timer */}
                   <div className="flex flex-col items-center p-3 bg-white rounded-2xl border border-solid border-gray-100/50 space-y-2">
@@ -361,14 +359,14 @@ export const FeedingTracker = ({
                           handleStartRight();
                         }
                       }}
-                      className={`w-full py-2 rounded-xl text-[9px] font-black uppercase border-none cursor-pointer tracking-wider text-center transition-all ${isRightActive ? 'bg-red-100 text-red-600' : 'bg-rose-50 text-rose-600 hover:scale-[1.02]'}`}
+                      className={`w-full py-2 rounded-xl text-[9px] font-black uppercase border-none cursor-pointer tracking-wider text-center transition-all ${isRightActive ? 'bg-primary text-white' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
                     >
                       {isRightActive ? 'Pause' : 'Start'}
                     </button>
                     
-    </div>
+                  </div>
                   
-    </div>
+                </div>
 
                 {(leftTimer > 0 || rightTimer > 0) && (
                   <div className="flex gap-2">
@@ -390,23 +388,21 @@ export const FeedingTracker = ({
                       Reset
                     </button>
                     
-    </div>
+                  </div>
                 )}
                 
-    </div>
+              </div>
 
               {/* Fast Bottle Logger Card */}
               <div className="bg-card p-6 rounded-[40px] shadow-sm border border-white space-y-5 text-left flex flex-col justify-between">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-sky-100 rounded-2xl flex items-center justify-center text-2xl">🍼</div>
+                    <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center text-2xl">🍼</div>
                     <div>
                       <h3 className="text-sm font-serif font-black text-gray-800">Bottle Logger</h3>
                       <p className="text-[11px] text-gray-400 font-medium">Log formula or pumped breastmilk</p>
-                      
-    </div>
-                    
-    </div>
+                    </div>
+                  </div>
 
                   <div className="space-y-3 bg-gray-50 p-4 rounded-3xl">
                     {/* Bottle Type Selector */}
@@ -420,8 +416,7 @@ export const FeedingTracker = ({
                           {type === 'Pumped' ? '🥛 Pumped' : '🧪 Formula'}
                         </button>
                       ))}
-                      
-    </div>
+                    </div>
 
                     {/* Bottle Amount Input */}
                     <div className="relative">
@@ -433,17 +428,14 @@ export const FeedingTracker = ({
                         className="w-full bg-white border border-solid border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary pr-12 text-left"
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400 uppercase">ml</span>
-                      
-    </div>
-                    
-    </div>
-                  
-    </div>
+                    </div>
+                  </div>
+                </div>
 
                 <button
                   onClick={handleSaveBottleLog}
                   disabled={!bottleInput || parseInt(bottleInput) <= 0}
-                  className="w-full bg-sky-500 hover:bg-sky-600 disabled:bg-gray-100 disabled:text-gray-400 text-white py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest cursor-pointer border-none shadow-md shadow-sky-500/10 transition-all"
+                  className="w-full bg-primary hover:bg-primary/90 disabled:bg-gray-100 disabled:text-gray-400 text-white py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest cursor-pointer border-none shadow-md shadow-primary/10 transition-all"
                 >
                   Log Feed (+ Fluid intake)
                 </button>
@@ -457,7 +449,7 @@ export const FeedingTracker = ({
               <div className="space-y-3 text-left">
                 <div className="flex items-center justify-between px-2">
                   <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Today's Active Feeds (Shift View)</h4>
-                  <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-200">
+                  <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex items-center gap-1 border border-primary/20">
                     <Lock className="w-2.5 h-2.5" /> Nanny Mode
                   </span>
                   
@@ -469,10 +461,9 @@ export const FeedingTracker = ({
                       .map(log => (
                         <div key={log.id} className="bg-card p-4 rounded-2xl border border-solid border-gray-100 shadow-xs flex justify-between items-center">
                           <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${log.type === 'Bottle Feed' ? 'bg-sky-50 text-sky-600' : 'bg-rose-50 text-rose-600'}`}>
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${log.type === 'Bottle Feed' ? 'bg-primary/10 text-primary' : 'bg-pink-50 text-gray-700'}`}>
                               {log.type === 'Bottle Feed' ? '🍼' : '🤱'}
-                              
-    </div>
+                            </div>
                             <div>
                               <p className="text-xs font-bold text-gray-800">
                                 {log.type === 'Bottle Feed' 
@@ -481,34 +472,27 @@ export const FeedingTracker = ({
                                 }
                               </p>
                               <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">{log.timestamp} • Today</p>
-                              
-    </div>
-                            
-    </div>
+                            </div>
+                          </div>
                           <button
                             onClick={() => handleDeleteFeedingLog(log.id)}
-                            className="w-7 h-7 rounded-full bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center border-none cursor-pointer transition-colors"
+                            className="w-7 h-7 rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-gray-700 flex items-center justify-center border-none cursor-pointer transition-colors"
                           >
                             ✕
                           </button>
-                          
-    </div>
+                        </div>
                       ))}
-                    
-    </div>
+                  </div>
                 ) : (
                   <div className="p-4 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200 text-center">
                     <p className="text-xs text-gray-500 font-medium">No feeding sessions logged for today's shift yet.</p>
-                    
-    </div>
+                  </div>
                 )}
-                <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-100 flex items-center gap-2 text-[10px] text-amber-800">
-                  <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex items-center gap-2 text-[10px] text-gray-800">
+                  <Lock className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span>Previous days' historical feeding archives are shielded in caregiver mode.</span>
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
             ) : feedingLogs.length > 0 && (
               <div className="space-y-3 text-left">
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Recent Feeding History</h4>
@@ -516,10 +500,9 @@ export const FeedingTracker = ({
                   {feedingLogs.map(log => (
                     <div key={log.id} className="bg-card p-4 rounded-2xl border border-solid border-gray-100 shadow-xs flex justify-between items-center">
                       <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${log.type === 'Bottle Feed' ? 'bg-sky-50 text-sky-600' : 'bg-rose-50 text-rose-600'}`}>
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${log.type === 'Bottle Feed' ? 'bg-primary/10 text-primary' : 'bg-pink-50 text-gray-700'}`}>
                           {log.type === 'Bottle Feed' ? '🍼' : '🤱'}
-                          
-    </div>
+                        </div>
                         <div>
                           <p className="text-xs font-bold text-gray-800">
                             {log.type === 'Bottle Feed' 
@@ -528,23 +511,18 @@ export const FeedingTracker = ({
                             }
                           </p>
                           <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">{log.timestamp} • {log.date}</p>
-                          
-    </div>
-                        
-    </div>
+                        </div>
+                      </div>
                       <button
                         onClick={() => handleDeleteFeedingLog(log.id)}
-                        className="w-7 h-7 rounded-full bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center border-none cursor-pointer transition-colors"
+                        className="w-7 h-7 rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-gray-700 flex items-center justify-center border-none cursor-pointer transition-colors"
                       >
                         ✕
                       </button>
-                      
-    </div>
+                    </div>
                   ))}
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
             )}
 
             <div className="space-y-6">
@@ -633,55 +611,46 @@ export const FeedingTracker = ({
     </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                <div className="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-100/60">
-                  <div className="flex items-center gap-1.5 text-amber-600 mb-1">
+                <div className="bg-primary/5 p-3.5 rounded-2xl border border-primary/10">
+                  <div className="flex items-center gap-1.5 text-primary mb-1">
                     <Flame className="w-3.5 h-3.5" />
                     <span className="text-[9px] font-black uppercase tracking-wider">Calories</span>
-                    
-    </div>
+                  </div>
                   <p className="text-lg font-serif font-black text-gray-800">{estimatedCalories} <span className="text-[10px] font-sans font-bold text-gray-400">kcal</span></p>
                   <p className="text-[9px] text-gray-400 mt-0.5">Est. Energy</p>
-                  
-    </div>
+                </div>
 
-                <div className="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-100/60">
-                  <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
+                <div className="bg-primary/5 p-3.5 rounded-2xl border border-primary/10">
+                  <div className="flex items-center gap-1.5 text-primary mb-1">
                     <Dna className="w-3.5 h-3.5" />
                     <span className="text-[9px] font-black uppercase tracking-wider">Protein</span>
-                    
-    </div>
+                  </div>
                   <p className="text-lg font-serif font-black text-gray-800">{estimatedProtein} <span className="text-[10px] font-sans font-bold text-gray-400">g</span></p>
                   <p className="text-[9px] text-gray-400 mt-0.5">Growth & muscle</p>
-                  
-    </div>
+                </div>
 
-                <div className="bg-sky-50/70 p-3.5 rounded-2xl border border-sky-100/60">
-                  <div className="flex items-center gap-1.5 text-sky-600 mb-1">
+                <div className="bg-primary/5 p-3.5 rounded-2xl border border-primary/10">
+                  <div className="flex items-center gap-1.5 text-primary mb-1">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span className="text-[9px] font-black uppercase tracking-wider">Vitamins</span>
-                    
-    </div>
+                  </div>
                   <p className="text-lg font-serif font-black text-gray-800">
                     {estimatedVitamins.length > 0 ? `${estimatedVitamins.length} types` : '0 types'}
                   </p>
                   <p className="text-[9px] text-gray-400 mt-0.5 truncate">
                     {estimatedVitamins.length > 0 ? estimatedVitamins.slice(0, 3).join(', ') : 'Vit A, C, D & Minerals'}
                   </p>
-                  
-    </div>
+                </div>
 
-                <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-100/60">
-                  <div className="flex items-center gap-1.5 text-purple-600 mb-1">
+                <div className="bg-primary/5 p-3.5 rounded-2xl border border-primary/10">
+                  <div className="flex items-center gap-1.5 text-primary mb-1">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span className="text-[9px] font-black uppercase tracking-wider">Variety</span>
-                    
-    </div>
+                  </div>
                   <p className="text-lg font-serif font-black text-gray-800">{new Set(todayScheduledMeals.map(m => m.meal?.title || m.title)).size} <span className="text-[10px] font-sans font-bold text-gray-400">foods</span></p>
                   <p className="text-[9px] text-gray-400 mt-0.5">Diverse palate</p>
-                  
-    </div>
-                
-    </div>
+                </div>
+              </div>
               
     </div>
 
@@ -720,7 +689,7 @@ export const FeedingTracker = ({
                           onNavigate('recipe-detail', scheduled.meal, true);
                         }
                       }}
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-gray-800 transition-all cursor-pointer ${scheduled.completed ? 'bg-green-500 shadow-md shadow-green-100' : 'bg-gray-200 hover:bg-gray-300'}`}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer border-none ${scheduled.completed ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
                     >
                       <CheckCircle2 className="w-5 h-5" />
                     </button>
@@ -763,9 +732,9 @@ export const FeedingTracker = ({
               {(allergenMatrix || []).map(allergen => {
                 const statusColors = {
                   'Not Introduced': 'bg-white text-gray-500 border-gray-100',
-                  'In Progress': 'bg-amber-50 text-amber-600 border-amber-200',
-                  'Cleared': 'bg-green-50 text-green-600 border-green-200',
-                  'Suspected Reaction': 'bg-red-50 text-red-600 border-red-200'
+                  'In Progress': 'bg-primary/5 text-primary border-primary/20',
+                  'Cleared': 'bg-primary/10 text-primary border-primary/30',
+                  'Suspected Reaction': 'bg-pink-50 text-gray-800 border-pink-200'
                 }[allergen.status as string] || 'bg-white';
 
                 return (
@@ -777,24 +746,21 @@ export const FeedingTracker = ({
                     <div className="flex justify-between items-start w-full">
                       <span className="text-3xl">{getAllergenEmoji(allergen.name)}</span>
                       <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full ${
-                        allergen.status === 'Cleared' ? 'bg-green-100 text-green-700' :
-                        allergen.status === 'In Progress' ? 'bg-amber-100 text-amber-700' :
-                        allergen.status === 'Suspected Reaction' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
+                        allergen.status === 'Cleared' ? 'bg-primary/10 text-primary' :
+                        allergen.status === 'In Progress' ? 'bg-primary/15 text-primary' :
+                        allergen.status === 'Suspected Reaction' ? 'bg-pink-100 text-gray-800' : 'bg-gray-100 text-gray-500'
                       }`}>
                         {allergen.status === 'In Progress' ? `Day ${allergen.day}/3` : allergen.status}
                       </span>
-                      
-    </div>
+                    </div>
                     <div className="space-y-1">
                       <h4 className="font-bold text-gray-800 text-sm leading-none">{allergen.name}</h4>
                       <p className="text-[9px] font-medium text-gray-400 line-clamp-1">{allergen.notes || 'No notes yet'}</p>
-                      
-    </div>
+                    </div>
                   </button>
                 );
               })}
-              
-    </div>
+            </div>
           </motion.div>
         )}
 
@@ -817,15 +783,14 @@ export const FeedingTracker = ({
                   onChange={e => setSearchQuery(e.target.value)}
                   className="w-full bg-transparent border-none p-2.5 text-sm font-medium outline-none text-gray-700"
                 />
-                
-    </div>
+              </div>
 
               {/* Segmented traffic-light filters */}
               <div className="flex gap-1.5 overflow-x-auto py-1">
                 <button 
                   onClick={() => setGuideFilter('all')}
                   className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
-                    guideFilter === 'all' ? 'bg-gray-800 text-gray-800' : 'bg-white text-gray-500 border border-gray-100'
+                    guideFilter === 'all' ? 'bg-primary text-white' : 'bg-white text-gray-500 border border-gray-100'
                   }`}
                 >
                   All
@@ -833,31 +798,29 @@ export const FeedingTracker = ({
                 <button 
                   onClick={() => setGuideFilter('green')}
                   className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
-                    guideFilter === 'green' ? 'bg-green-600 text-gray-800' : 'bg-green-50 text-green-700 border border-green-100'
+                    guideFilter === 'green' ? 'bg-primary text-white' : 'bg-primary/5 text-primary border border-primary/20'
                   }`}
                 >
-                  🟢 Safe
+                  Safe
                 </button>
                 <button 
                   onClick={() => setGuideFilter('amber')}
                   className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
-                    guideFilter === 'amber' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-700 border border-amber-100'
+                    guideFilter === 'amber' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 border border-gray-200'
                   }`}
                 >
-                  🟡 Caution
+                  Caution
                 </button>
                 <button 
                   onClick={() => setGuideFilter('red')}
                   className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
-                    guideFilter === 'red' ? 'bg-red-600 text-gray-800' : 'bg-red-50 text-red-700 border border-red-100'
+                    guideFilter === 'red' ? 'bg-pink-500 text-white' : 'bg-pink-50 text-gray-700 border border-pink-100'
                   }`}
                 >
-                  🔴 Avoid &lt; 12m
+                  Avoid &lt; 12m
                 </button>
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
 
             {/* Ingredients Index List */}
             <div className="space-y-3">
@@ -874,20 +837,17 @@ export const FeedingTracker = ({
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className={`w-2.5 h-2.5 rounded-full ${
-                        food.color === 'green' ? 'bg-green-500' :
-                        food.color === 'amber' ? 'bg-amber-500' : 'bg-red-500'
+                        food.color === 'green' ? 'bg-primary' :
+                        food.color === 'amber' ? 'bg-gray-400' : 'bg-pink-400'
                       }`} />
                       <h4 className="font-bold text-gray-800 text-sm">{food.name}</h4>
-                      
-    </div>
+                    </div>
                     <p className="text-[10px] text-gray-400 font-medium line-clamp-1 pr-6">{food.warning}</p>
-                    
-    </div>
+                  </div>
                   <ChevronRight className="w-5 h-5 text-gray-300 shrink-0" />
                 </button>
               ))}
-              
-    </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -925,10 +885,8 @@ export const FeedingTracker = ({
                         {status}
                       </button>
                     ))}
-                    
-    </div>
-                  
-    </div>
+                  </div>
+                </div>
 
                 {editStatus === 'In Progress' && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
@@ -939,14 +897,13 @@ export const FeedingTracker = ({
                           key={day}
                           onClick={() => setEditDay(day)}
                           className={`flex-1 py-3 rounded-2xl font-bold text-xs cursor-pointer transition-all ${
-                            editDay === day ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600'
+                            editDay === day ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
                           }`}
                         >
                           Day {day} / 3
                         </button>
                       ))}
-                      
-    </div>
+                    </div>
                   </motion.div>
                 )}
 
@@ -958,28 +915,23 @@ export const FeedingTracker = ({
                     placeholder="Log any small details, mild skin rashes, stool abnormalities or successful cleared days..."
                     className="w-full bg-gray-50 rounded-2xl p-3 text-xs font-medium border-none outline-none h-20 text-gray-700"
                   />
-                  
-    </div>
+                </div>
 
                 {/* Display linked allergic reaction meals */}
                 {loggedMeals.filter(m => m.allergyReaction).length > 0 && (
-                  <div className="bg-red-50 p-3 rounded-2xl border border-red-100 space-y-2">
-                    <p className="text-[9px] font-black text-red-800 uppercase tracking-widest">Suspected Reaction Log History</p>
+                  <div className="bg-pink-50 p-3 rounded-2xl border border-pink-100 space-y-2">
+                    <p className="text-[9px] font-black text-gray-800 uppercase tracking-widest">Suspected Reaction Log History</p>
                     <div className="space-y-1.5 max-h-20 overflow-y-auto">
                       {loggedMeals.filter(m => m.allergyReaction).map((m, idx) => (
-                        <div key={idx} className="text-[10px] font-bold text-red-700 bg-white/50 p-1.5 rounded border border-red-100 flex justify-between">
+                        <div key={idx} className="text-[10px] font-bold text-gray-700 bg-white/50 p-1.5 rounded border border-pink-100 flex justify-between">
                           <span>{m.title}</span>
                           <span>{m.logTime || m.time}</span>
-                          
-    </div>
+                        </div>
                       ))}
-                      
-    </div>
-                    
-    </div>
+                    </div>
+                  </div>
                 )}
-                
-    </div>
+              </div>
 
               <div className="flex gap-2 pt-2">
                 <button 
@@ -994,11 +946,9 @@ export const FeedingTracker = ({
                 >
                   Save Status
                 </button>
-                
-    </div>
+              </div>
             </motion.div>
-            
-    </div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -1015,15 +965,14 @@ export const FeedingTracker = ({
               <header className="flex justify-between items-start">
                 <div className="space-y-1">
                   <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                    selectedFood.color === 'green' ? 'bg-green-100 text-green-700' :
-                    selectedFood.color === 'amber' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                    selectedFood.color === 'green' ? 'bg-primary/10 text-primary' :
+                    selectedFood.color === 'amber' ? 'bg-gray-100 text-gray-700' : 'bg-pink-100 text-gray-800'
                   }`}>
                     {selectedFood.color === 'green' ? 'Safe to Serve' :
                      selectedFood.color === 'amber' ? 'Prepare with Caution' : 'Avoid Under 12m'}
                   </span>
                   <h3 className="text-2xl font-serif font-black text-gray-800">{selectedFood.name}</h3>
-                  
-    </div>
+                </div>
                 <button 
                   onClick={() => setSelectedFood(null)}
                   className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 font-black text-sm flex items-center justify-center cursor-pointer"
@@ -1034,12 +983,11 @@ export const FeedingTracker = ({
 
               {/* Warnings Callout block */}
               <div className={`p-4 rounded-3xl text-xs font-semibold leading-relaxed border ${
-                selectedFood.color === 'red' ? 'bg-red-50 text-red-700 border-red-100' :
-                selectedFood.color === 'amber' ? 'bg-amber-50 text-amber-800 border-amber-100' : 'bg-primary/5 text-primary border-primary/10'
+                selectedFood.color === 'red' ? 'bg-pink-50 text-gray-800 border-pink-100' :
+                selectedFood.color === 'amber' ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-primary/5 text-primary border-primary/10'
               }`}>
                 {selectedFood.warning}
-                
-    </div>
+              </div>
 
               {/* Age-by-Age Preparation Matrix */}
               <div className="space-y-4">
