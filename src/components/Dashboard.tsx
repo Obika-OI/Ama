@@ -21,6 +21,8 @@ import { LegalConsentModal } from './LegalConsentModal';
 import { AppUserGuide } from './AppUserGuide';
 import { BabyCryAnalyzer } from './BabyCryAnalyzer';
 import { ImmunizationScheduler } from './ImmunizationScheduler';
+import { BabyProfileManager } from './BabyProfileManager';
+import { BabyProfile } from '../types';
 import { FirebaseUser, model } from '../firebase';
 
 export const Dashboard = ({ 
@@ -53,7 +55,13 @@ export const Dashboard = ({
   setVaccineSchedule,
   allMeals = [],
   userRole = 'admin',
-  setUserRole
+  setUserRole,
+  babyProfiles = [],
+  activeBabyId = '',
+  onSelectBaby,
+  onAddBaby,
+  onUpdateBaby,
+  onDeleteBaby
 }: { 
   onNavigate: (screen: string, data?: any, autoOpenLog?: boolean) => void; 
   isPremium: boolean;
@@ -85,6 +93,12 @@ export const Dashboard = ({
   allMeals?: any[];
   userRole?: 'admin' | 'family' | 'nanny';
   setUserRole?: React.Dispatch<React.SetStateAction<'admin' | 'family' | 'nanny'>>;
+  babyProfiles?: BabyProfile[];
+  activeBabyId?: string;
+  onSelectBaby?: (babyId: string) => void;
+  onAddBaby?: (baby: BabyProfile) => void;
+  onUpdateBaby?: (baby: BabyProfile) => void;
+  onDeleteBaby?: (babyId: string) => void;
 }) => {
   const fluidProgress = Math.min(100, (fluidMl / fluidTarget) * 100);
   
@@ -233,6 +247,18 @@ export const Dashboard = ({
         </div>
 
         <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap pt-1">
+          {babyProfiles && babyProfiles.length > 0 && onSelectBaby && onAddBaby && onUpdateBaby && (
+            <BabyProfileManager
+              babyProfiles={babyProfiles}
+              activeBabyId={activeBabyId}
+              onSelectBaby={onSelectBaby}
+              onAddBaby={onAddBaby}
+              onUpdateBaby={onUpdateBaby}
+              onDeleteBaby={onDeleteBaby}
+              userRole={userRole}
+            />
+          )}
+
           {currentUser && !currentUser.isAnonymous ? (
             <div className="flex items-center gap-2">
               {isSyncing && (

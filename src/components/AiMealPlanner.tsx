@@ -656,7 +656,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
 
           {/* AI Accuracy Disclaimer */}
           <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/15 text-[10px] text-gray-600 leading-relaxed">
-            ℹ️ <strong>AI Accuracy Disclaimer:</strong> Nutritional suggestions, menus, and shopping estimates are generated using AI for educational and planning support. Always introduce new foods one at a time, check textures for choking safety, and consult your pediatrician or pediatric dietitian regarding specific dietary needs and allergies.
+            ℹ️ <strong>AI Accuracy Disclaimer:</strong> Nutritional suggestions, menus, and shopping estimates are generated using AI for educational and planning support. Always introduce new foods one at a time, check textures for choking safety, and consult a qualified healthcare provider or dietitian regarding specific dietary needs and allergies.
           </div>
         </div>
       )}

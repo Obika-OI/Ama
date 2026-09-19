@@ -64,7 +64,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 Upgrade to Ama Premium
               </h2>
               <p className="text-gray-600 text-xs sm:text-sm font-medium leading-relaxed">
-                Unlock acoustic cry analysis, AI-optimized infant nutrition plans, and pediatrician-ready PDF reports with fast, secure checkout via Paystack.
+                Unlock acoustic cry analysis, AI-optimized infant nutrition plans, and comprehensive health summary PDF reports with fast, secure checkout via Paystack.
               </p>
 
               {/* Multi-Currency Switcher & Paystack Badge */}
@@ -195,7 +195,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                     </li>
                     <li className="flex items-start text-xs font-medium text-gray-700">
                       <Check className="w-4 h-4 text-primary shrink-0 mr-2 mt-0.5" />
-                      <span>Pediatric PDF Export with Graphs</span>
+                      <span>Health Summary PDF Export with Graphs</span>
                     </li>
                     <li className="flex items-start text-xs font-medium text-gray-700">
                       <Check className="w-4 h-4 text-primary shrink-0 mr-2 mt-0.5" />
@@ -337,7 +337,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                       </li>
                       <li className="flex items-center gap-1.5">
                         <Crown className="w-3.5 h-3.5 text-primary shrink-0" />
-                        <span><strong>Pediatrician Care PDF Export:</strong> Full clinical graphs & summary downloads.</span>
+                        <span><strong>Health Record PDF Export:</strong> Complete summary graphs & log downloads.</span>
                       </li>
                       <li className="flex items-center gap-1.5">
                         <Crown className="w-3.5 h-3.5 text-primary shrink-0" />

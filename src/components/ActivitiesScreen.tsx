@@ -56,8 +56,8 @@ export const ActivitiesScreen = ({
     }
   };
 
-  // Clinical Pediatric Milestone Standard Database
-  const PEDIATRIC_MILESTONES = {
+  // Child Milestone Standard Database
+  const CHILD_MILESTONES = {
     '2 Months': [
       { id: 'm2_1', text: 'Calms down when spoken to or picked up', category: 'Social/Emotional' },
       { id: 'm2_2', text: 'Looks at your face', category: 'Social/Emotional' },
@@ -102,12 +102,12 @@ export const ActivitiesScreen = ({
   // Developmental Milestones State
   const [milestoneAge, setMilestoneAge] = useState<'2 Months' | '4 Months' | '6 Months' | '9 Months' | '12 Months'>('2 Months');
   const [checkedMilestones, setCheckedMilestones] = useState<string[]>(() => {
-    const saved = localStorage.getItem('pediatric_milestones') || localStorage.getItem('cdc_milestones');
+    const saved = localStorage.getItem('child_milestones') || localStorage.getItem('cdc_milestones');
     return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem('pediatric_milestones', JSON.stringify(checkedMilestones));
+    localStorage.setItem('child_milestones', JSON.stringify(checkedMilestones));
   }, [checkedMilestones]);
 
   const handleToggleMilestone = (id: string, name: string) => {
@@ -468,7 +468,7 @@ export const ActivitiesScreen = ({
               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🌱</div>
               <div>
                 <h3 className="text-sm font-bold text-gray-800">Developmental Milestones</h3>
-                <p className="text-[10px] text-gray-400">Pediatric-aligned age standards (gamified +15 XP)</p>
+                <p className="text-[10px] text-gray-400">Child development age standards (gamified +15 XP)</p>
               </div>
             </div>
 
@@ -485,9 +485,9 @@ export const ActivitiesScreen = ({
               ))}
             </div>
 
-            {/* Pediatric standard milestone items */}
+            {/* Child milestone items */}
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {(PEDIATRIC_MILESTONES[milestoneAge] || []).map(m => {
+              {(CHILD_MILESTONES[milestoneAge] || []).map(m => {
                 const isChecked = checkedMilestones.includes(m.id);
                 return (
                   <div
@@ -668,7 +668,7 @@ export const ActivitiesScreen = ({
             </div>
 
             <div className="p-3 bg-primary/5 rounded-2xl border border-primary/10 text-[9px] text-gray-500 font-medium">
-              ℹ️ <strong>AI Accuracy Disclaimer:</strong> Growth projections and development suggestions are AI-generated models based on reference percentiles. They are not medical assessments or clinical diagnoses. Always verify your baby's growth parameters directly with your pediatrician.
+              ℹ️ <strong>AI Accuracy Disclaimer:</strong> Growth projections and development suggestions are AI-generated models based on reference percentiles. They are not medical assessments or clinical diagnoses. Always verify your baby's growth parameters directly with a qualified healthcare provider.
             </div>
             
             <div className="h-52 w-full pr-4">

@@ -576,11 +576,11 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
         </div>
       )}
 
-      {/* Demo Cry Simulations */}
+      {/* Reference Acoustic Pattern Samples */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-black uppercase tracking-wider text-gray-500">
-            Quick Acoustic Simulations
+            Acoustic Pattern Reference Samples
           </p>
           <span className="text-[10px] text-gray-400 font-mono">Dunstan Reflex Model</span>
         </div>
@@ -642,7 +642,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
           <div className="p-3 bg-primary/10 rounded-2xl border border-primary/20 text-[11px] text-gray-800 flex items-start gap-2.5 text-left leading-relaxed">
             <ShieldAlert className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <p>
-              <strong>AI Accuracy & Medical Disclaimer:</strong> Cry analysis is generated using artificial intelligence acoustic pattern matching and may be inaccurate due to ambient background noise or unique infant vocal variations. This tool does not provide medical advice or diagnosis. If baby is ill, has a fever, is in pain, or in distress, always consult your pediatrician immediately.
+              <strong>AI Accuracy & Medical Disclaimer:</strong> Cry analysis is generated using artificial intelligence acoustic pattern matching and may be inaccurate due to ambient background noise or unique infant vocal variations. This tool does not provide medical advice or diagnosis. If baby is ill, has a fever, is in pain, or in distress, always consult a qualified healthcare provider immediately.
             </p>
           </div>
 

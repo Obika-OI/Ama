@@ -4,7 +4,7 @@ import {
   Mic, MicOff, Loader2, Sparkles, Send, X, Utensils, Moon, 
   CheckCircle2, Volume2, VolumeX, Crown, AlertCircle, Camera, 
   Image as ImageIcon, Globe, ExternalLink, RefreshCw, Zap, 
-  ChevronRight, Compass, Heart
+  ChevronRight, Compass, Heart, Paperclip, FileText, Video
 } from 'lucide-react';
 import { OgooAvatar } from './OgooAvatar';
 
@@ -36,6 +36,15 @@ interface ReferenceItem {
   domain: string;
 }
 
+export interface AttachedMedia {
+  data: string; // base64
+  mimeType: string;
+  name: string;
+  type: 'image' | 'video' | 'audio' | 'document' | 'other';
+  previewUrl?: string;
+  sizeStr?: string;
+}
+
 interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant';
@@ -44,6 +53,7 @@ interface ChatMessage {
   isPaywall?: boolean;
   timestamp: string;
   imageUrl?: string;
+  attachment?: AttachedMedia;
   researchedWithSearch?: boolean;
   references?: ReferenceItem[];
   searchQueries?: string[];
@@ -92,7 +102,11 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   const [backgroundWakeEnabled, setBackgroundWakeEnabled] = useState(true);
   const [isWakeListening, setIsWakeListening] = useState(false);
   const [researchMode, setResearchMode] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{ data: string; mimeType: string; preview: string } | null>(null);
+  const [selectedAttachment, setSelectedAttachment] = useState<AttachedMedia | null>(null);
+  // Legacy alias for compatibility
+  const selectedImage = selectedAttachment ? { data: selectedAttachment.data, mimeType: selectedAttachment.mimeType, preview: selectedAttachment.previewUrl || '' } : null;
+  const setSelectedImage = (val: any) => setSelectedAttachment(val ? { data: val.data, mimeType: val.mimeType, name: 'photo.jpg', type: 'image', previewUrl: val.preview || val.data } : null);
+
   const [showProactivePanel, setShowProactivePanel] = useState(true);
   const [proactiveInsights, setProactiveInsights] = useState<ProactiveCard[]>([]);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
@@ -112,7 +126,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     {
       id: 'welcome',
       sender: 'assistant',
-      text: `Hi! I am Ogoo, your proactive pediatric AI care agent. I am grounded in verified research (AAP, WHO, CDC) and constantly learn from ${babyName}'s routine.\n\nYou can speak or type to me, attach photos (diaper stool, skin rash, puree texture, medicine), or ask for evidence-based parenting guidance!`,
+      text: `Hi! I am Ogoo, your proactive infant care assistant. I constantly learn from ${babyName}'s routine.\n\nYou can speak or type to me, attach files, videos, or photos (diaper stool, skin rash, puree texture, medicine), or ask for evidence-based parenting guidance!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -158,7 +172,62 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     }
   };
 
-  // HTML5 Text to Speech helper (with phonetic pronunciation for Ogoo as "Augur")
+  // Helper to retrieve Nigerian female voice profile (en-NG)
+  const getNigerianFemaleVoice = (): SpeechSynthesisVoice | null => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    // 1. Check for Nigerian English voices (en-NG, en_NG, pcm-NG)
+    const ngVoices = voices.filter(v => {
+      const lang = (v.lang || '').toLowerCase().replace(/_/g, '-');
+      return lang === 'en-ng' || lang.startsWith('en-ng') || lang.startsWith('pcm');
+    });
+
+    // Match Nigerian female voices by name/gender tags
+    const ngFemale = ngVoices.find(v => {
+      const name = v.name.toLowerCase();
+      return (
+        name.includes('female') ||
+        name.includes('woman') ||
+        name.includes('girl') ||
+        name.includes('ebere') ||
+        name.includes('ngozi') ||
+        name.includes('chioma') ||
+        name.includes('amina') ||
+        name.includes('zainab') ||
+        name.includes('blessing') ||
+        name.includes('folashade') ||
+        name.includes('ada') ||
+        name.includes('natural') ||
+        name.includes('online')
+      );
+    });
+
+    if (ngFemale) return ngFemale;
+    if (ngVoices.length > 0) return ngVoices[0];
+
+    // 2. Check for African regional English female voices (en-GH, en-ZA, en-KE)
+    const africanFemale = voices.find(v => {
+      const lang = (v.lang || '').toLowerCase().replace(/_/g, '-');
+      const name = v.name.toLowerCase();
+      const isAfrican = lang.includes('en-gh') || lang.includes('en-za') || lang.includes('en-ke') || lang.includes('en-ng');
+      const isFemale = name.includes('female') || name.includes('woman') || name.includes('ayanda') || name.includes('leah');
+      return isAfrican && isFemale;
+    });
+    if (africanFemale) return africanFemale;
+
+    // 3. Fallback to gentle, warm female voice
+    const femaleEn = voices.find(v => {
+      const lang = (v.lang || '').toLowerCase();
+      const name = v.name.toLowerCase();
+      return lang.startsWith('en') && (name.includes('female') || name.includes('samantha') || name.includes('victoria') || name.includes('karen') || name.includes('moira') || name.includes('google') || name.includes('natural'));
+    });
+
+    return femaleEn || null;
+  };
+
+  // HTML5 Text to Speech helper (Configured with Nigerian female voice profile en-NG)
   const speakText = (textToSpeak: string) => {
     if ('speechSynthesis' in window) {
       try {
@@ -179,9 +248,19 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
         if (cleanText) {
           const utterance = new SpeechSynthesisUtterance(cleanText);
-          utterance.lang = 'en-US';
-          utterance.rate = 1.0;
-          utterance.pitch = 1.08; // Warm, gentle, friendly tone
+          // Set Nigerian English locale
+          utterance.lang = 'en-NG';
+          
+          const nigerianVoice = getNigerianFemaleVoice();
+          if (nigerianVoice) {
+            utterance.voice = nigerianVoice;
+          }
+
+          // Warm, steady, rhythmic Nigerian female care cadence
+          utterance.rate = 0.98;
+          utterance.pitch = 1.08; // Friendly, warm, melodious female tone
+          utterance.volume = 1.0;
+
           window.speechSynthesis.speak(utterance);
         }
       } catch (err) {
@@ -206,11 +285,11 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = 'en-US';
+      recognition.lang = 'en-NG';
 
       recognition.onstart = () => {
         setIsListening(true);
-        setFeedback('Listening closely... say your question or command.');
+        setFeedback('Listening closely (en-NG)... say your question or command.');
       };
 
       recognition.onresult = (event: any) => {
@@ -261,7 +340,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         const wakeRec = new SpeechRecognition();
         wakeRec.continuous = true;
         wakeRec.interimResults = true;
-        wakeRec.lang = 'en-US';
+        wakeRec.lang = 'en-NG';
 
         wakeRec.onstart = () => {
           if (!isUnmounted) setIsWakeListening(true);
@@ -356,27 +435,36 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     }
   };
 
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check size limit (max 8MB)
-    if (file.size > 8 * 1024 * 1024) {
-      setFeedback('Image is larger than 8MB. Please choose a smaller photo.');
+    // Check size limit (max 25MB for videos and documents)
+    if (file.size > 25 * 1024 * 1024) {
+      setFeedback('File is larger than 25MB. Please select a smaller file or video.');
       setTimeout(() => setFeedback(''), 4000);
       return;
     }
 
+    const mime = file.type || 'application/octet-stream';
+    let fileCategory: 'image' | 'video' | 'audio' | 'document' | 'other' = 'document';
+    if (mime.startsWith('image/')) fileCategory = 'image';
+    else if (mime.startsWith('video/')) fileCategory = 'video';
+    else if (mime.startsWith('audio/')) fileCategory = 'audio';
+
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      setSelectedImage({
+      setSelectedAttachment({
         data: result,
-        mimeType: file.type || 'image/jpeg',
-        preview: result
+        mimeType: mime,
+        name: file.name,
+        type: fileCategory,
+        previewUrl: fileCategory === 'image' || fileCategory === 'video' ? result : undefined,
+        sizeStr: (file.size / (1024 * 1024)).toFixed(1) + 'MB'
       });
-      setFeedback('Photo attached! Ask Ogoo to analyze it.');
-      setTimeout(() => setFeedback(''), 3000);
+      setFeedback(`Attached ${fileCategory.toUpperCase()}: "${file.name}". Ask Ogoo to analyze it!`);
+      setTimeout(() => setFeedback(''), 4000);
     };
     reader.readAsDataURL(file);
     // Reset file input
@@ -442,21 +530,22 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
   const handleSendUserMessage = async (textToSend?: string) => {
     const text = (textToSend || inputText).trim();
-    const imagePayload = selectedImage;
+    const attachmentPayload = selectedAttachment;
 
-    if ((!text && !imagePayload) || isProcessing) return;
+    if ((!text && !attachmentPayload) || isProcessing) return;
 
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
       sender: 'user',
-      text: text || (imagePayload ? 'Please analyze this photo for me.' : ''),
-      imageUrl: imagePayload?.preview,
+      text: text || (attachmentPayload ? `Please analyze this attached ${attachmentPayload.type} (${attachmentPayload.name}) for me.` : ''),
+      imageUrl: attachmentPayload?.previewUrl,
+      attachment: attachmentPayload || undefined,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
-    setSelectedImage(null);
+    setSelectedAttachment(null);
 
     // Check direct manual logging intent
     const lower = (text || '').toLowerCase();
@@ -476,7 +565,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       const paywallMsg: ChatMessage = {
         id: `a-${Date.now()}`,
         sender: 'assistant',
-        text: `🔒 Free Trial AI Limit Reached (${FREE_AI_QUERY_LIMIT}/${FREE_AI_QUERY_LIMIT} queries used).\n\nUpgrade to Ama Premium to unlock unlimited Ogoo AI multimodal image analysis, Google Search pediatric research grounding, and continuous voice recognition.`,
+        text: `🔒 Free Trial AI Limit Reached (${FREE_AI_QUERY_LIMIT}/${FREE_AI_QUERY_LIMIT} queries used).\n\nUpgrade to Ama Premium to unlock unlimited Ogoo AI multimodal image analysis, Google Search child health research grounding, and continuous voice recognition.`,
         isPaywall: true,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -495,7 +584,12 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          image: imagePayload ? { data: imagePayload.data, mimeType: imagePayload.mimeType } : null,
+          image: attachmentPayload ? { 
+            data: attachmentPayload.data, 
+            mimeType: attachmentPayload.mimeType, 
+            name: attachmentPayload.name,
+            type: attachmentPayload.type 
+          } : null,
           enableResearch: researchMode,
           babyName,
           babyAge,
@@ -641,10 +735,16 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                     size="md" 
                     isThinking={isProcessing} 
                     showOnlineDot={true} 
+                    onClick={() => {
+                      const lastAssistantMsg = [...messages].reverse().find(m => m.sender === 'assistant');
+                      if (lastAssistantMsg) {
+                        speakText(lastAssistantMsg.text);
+                      }
+                    }}
                   />
                   <div>
                     <h3 className="font-serif font-black text-base sm:text-lg flex items-center gap-2 text-white">
-                      Ogoo AI Agent
+                      Ogoo
                       {isPremium ? (
                         <span className="bg-white/20 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
                           <Crown className="w-2.5 h-2.5 text-white" /> PRO
@@ -657,34 +757,11 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                     </h3>
                     <p className="text-[11px] text-sky-100 font-medium flex items-center gap-1.5">
                       <span>Caring for <strong>{babyName}</strong> ({babyAge})</span>
-                      <span className="w-1 h-1 rounded-full bg-sky-200" />
-                      <span className="text-[10px] text-sky-200">Multimodal • Web Grounded</span>
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  {/* Google Search Research Grounding Toggle */}
-                  <button
-                    onClick={() => {
-                      const next = !researchMode;
-                      setResearchMode(next);
-                      if (next) {
-                        setFeedback('Research Mode active: Ogoo will query verified pediatric web sources.');
-                      } else {
-                        setFeedback('Standard quick response mode.');
-                      }
-                      setTimeout(() => setFeedback(''), 3000);
-                    }}
-                    className={`h-8 px-2.5 rounded-full flex items-center gap-1 text-[10px] font-bold transition-all cursor-pointer border-none ${
-                      researchMode ? 'bg-amber-300 text-amber-950 shadow-xs' : 'bg-white/20 hover:bg-white/30 text-white'
-                    }`}
-                    title="Toggle Google Search Research Grounding"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Research</span>
-                  </button>
-
                   {/* Talk-Back Voice Guidance Toggle */}
                   <button
                     onClick={() => {
@@ -822,7 +899,12 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                     className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {msg.sender === 'assistant' && (
-                      <OgooAvatar size="sm" className="mt-1" />
+                      <OgooAvatar 
+                        size="sm" 
+                        className="mt-1 shrink-0" 
+                        onClick={() => speakText(msg.text)}
+                        alt="Tap Ogoo to speak this message"
+                      />
                     )}
 
                     <div
@@ -834,8 +916,32 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                           : 'bg-white text-gray-800 border border-primary/10 rounded-bl-xs'
                       }`}
                     >
-                      {/* Attached Image Preview if User uploaded */}
-                      {msg.imageUrl && (
+                      {/* Attached Media/File/Video Preview if User uploaded */}
+                      {msg.attachment ? (
+                        <div className="mb-2.5 rounded-xl overflow-hidden border border-white/20 bg-black/10">
+                          {msg.attachment.type === 'image' && (
+                            <img
+                              src={msg.attachment.previewUrl || msg.imageUrl}
+                              alt="Uploaded photo"
+                              className="w-full h-auto object-cover max-h-48"
+                            />
+                          )}
+                          {msg.attachment.type === 'video' && (
+                            <video
+                              src={msg.attachment.previewUrl}
+                              controls
+                              className="w-full h-auto max-h-48 rounded-xl bg-black"
+                            />
+                          )}
+                          {(msg.attachment.type === 'document' || msg.attachment.type === 'audio' || msg.attachment.type === 'other') && (
+                            <div className="p-3 bg-white/20 backdrop-blur-xs flex items-center gap-2 text-xs font-bold text-gray-800">
+                              {msg.attachment.type === 'audio' ? <Volume2 className="w-4 h-4 shrink-0" /> : <FileText className="w-4 h-4 shrink-0 text-primary" />}
+                              <span className="truncate flex-1">{msg.attachment.name}</span>
+                              <span className="text-[10px] opacity-80">{msg.attachment.sizeStr}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : msg.imageUrl ? (
                         <div className="mb-2.5 rounded-xl overflow-hidden border border-white/20 max-h-48 bg-black/5">
                           <img
                             src={msg.imageUrl}
@@ -843,10 +949,23 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                             className="w-full h-auto object-cover max-h-48"
                           />
                         </div>
-                      )}
+                      ) : null}
 
                       {/* Message Text */}
                       <p className="whitespace-pre-line leading-relaxed">{msg.text}</p>
+
+                      {/* Speak Message Button for Assistant Messages */}
+                      {msg.sender === 'assistant' && (
+                        <button
+                          type="button"
+                          onClick={() => speakText(msg.text)}
+                          className="mt-2 text-[10px] font-bold text-primary hover:text-primary-dark flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded-full transition-colors cursor-pointer border-none w-fit"
+                          title="Tap Ogoo to speak this message aloud"
+                        >
+                          <Volume2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span>Tap Ogoo to speak</span>
+                        </button>
+                      )}
                       
                       {/* Action Taken Badge */}
                       {msg.actionTaken && (
@@ -861,7 +980,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                         <div className="mt-3 pt-2.5 border-t border-gray-100 bg-sky-50/60 -mx-1 px-2.5 py-2 rounded-xl">
                           <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary mb-1.5">
                             <Globe className="w-3 h-3 text-primary" />
-                            <span>Verified Pediatric References:</span>
+                            <span>Verified References:</span>
                           </div>
                           <div className="flex flex-wrap gap-1.5">
                             {msg.references.map((ref, i) => (
@@ -919,7 +1038,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                     <OgooAvatar size="sm" isThinking={true} />
                     <div className="bg-white border border-primary/20 rounded-2xl p-3.5 shadow-xs flex items-center gap-2.5 text-xs text-gray-700 font-medium">
                       <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                      {researchMode ? 'Ogoo is researching pediatric databases & guidelines...' : 'Ogoo is analyzing and formulating personalized care advice...'}
+                      Ogoo is analyzing and formulating personalized care advice...
                     </div>
                   </div>
                 )}
@@ -929,7 +1048,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
               {/* Quick Prompt Chips */}
               <div className="px-3 py-2 bg-white/90 border-t border-primary/10 flex items-center gap-2 overflow-x-auto no-scrollbar">
                 {[
-                  `🔍 Research safe foods for ${babyAge}`,
+                  `🥣 Safe foods for ${babyAge}`,
                   `🍼 Log a 4 oz feeding`,
                   `💤 Start 60m nap timer`,
                   `🌡️ Fever first aid guide`,
@@ -950,19 +1069,34 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                 ))}
               </div>
 
-              {/* Selected Image Attachment Preview */}
-              {selectedImage && (
+              {/* Selected File / Video / Photo Attachment Preview */}
+              {selectedAttachment && (
                 <div className="px-4 py-2 bg-primary/5 border-t border-primary/15 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-lg overflow-hidden border border-primary/30">
-                      <img src={selectedImage.preview} alt="Attachment" className="w-full h-full object-cover" />
+                  <div className="flex items-center gap-2.5 overflow-hidden">
+                    {selectedAttachment.type === 'image' && selectedAttachment.previewUrl && (
+                      <div className="w-10 h-10 rounded-lg overflow-hidden border border-primary/30 shrink-0">
+                        <img src={selectedAttachment.previewUrl} alt="Attachment" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    {selectedAttachment.type === 'video' && (
+                      <div className="w-10 h-10 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0 font-bold">
+                        <Video className="w-5 h-5" />
+                      </div>
+                    )}
+                    {(selectedAttachment.type === 'document' || selectedAttachment.type === 'audio' || selectedAttachment.type === 'other') && (
+                      <div className="w-10 h-10 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0 font-bold">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div className="truncate">
+                      <p className="text-xs text-gray-800 font-bold truncate">{selectedAttachment.name}</p>
+                      <p className="text-[10px] text-gray-500 font-medium">{selectedAttachment.sizeStr || 'Attachment'} • Ready for Ogoo analysis</p>
                     </div>
-                    <span className="text-xs text-gray-700 font-medium">Photo ready for multimodal review</span>
                   </div>
                   <button
-                    onClick={() => setSelectedImage(null)}
-                    className="p-1 rounded-full hover:bg-primary/20 text-gray-500 cursor-pointer border-none bg-transparent"
-                    title="Remove Photo"
+                    onClick={() => setSelectedAttachment(null)}
+                    className="p-1 rounded-full hover:bg-primary/20 text-gray-500 cursor-pointer border-none bg-transparent shrink-0"
+                    title="Remove Attachment"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -976,29 +1110,29 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                 </div>
               )}
 
-              {/* Hidden File Input for Multimodal Image Upload */}
+              {/* Hidden File Input for Multimodal File, Video, & Photo Upload */}
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
-                onChange={handleImageFileChange}
+                accept="image/*,video/*,audio/*,application/pdf,text/*,.doc,.docx,.csv,.json"
+                onChange={handleFileChange}
                 className="hidden"
               />
 
               {/* Disclaimer */}
               <div className="px-4 py-1.5 bg-gray-50 border-t border-gray-100 text-[9px] text-gray-500 text-center leading-tight">
-                ⚠️ <strong>Disclaimer:</strong> Ogoo is an ai agent and provides AI-generated suggestions for informational purposes only. AI can make mistakes. Ogoo AI does not diagnose any medical condition. For health concerns and medical advice, always consult a certified medical practitioner doctor.
+                ⚠️ <strong>Disclaimer:</strong> Ogoo is an AI assistant and provides suggestions for informational purposes only. AI can make mistakes and does not diagnose any medical condition. For health concerns, always consult a certified medical doctor.
               </div>
 
               {/* Input Area with Multimodal Upload, Voice, & Send */}
               <div className="p-3 bg-white border-t border-primary/10 flex items-center gap-2">
-                {/* Image Upload Button */}
+                {/* File / Media Upload Button */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="w-10 h-10 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center transition-all cursor-pointer border-none shrink-0"
-                  title="Attach Photo (Diaper stool, rash, food, thermometer)"
+                  title="Attach Photo, Video, or Document (Stool photo, skin rash, video of cry/cough, growth chart)"
                 >
-                  <Camera className="w-4 h-4" />
+                  <Paperclip className="w-4 h-4" />
                 </button>
 
                 {/* Voice Mic Toggle */}

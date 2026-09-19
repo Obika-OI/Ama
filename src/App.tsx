@@ -20,6 +20,9 @@ import { DiaperAnalyzer } from './components/DiaperAnalyzer';
 import { MemorySlideshow } from './components/MemorySlideshow';
 import { LegalConsentModal } from './components/LegalConsentModal';
 import { AppUserGuide } from './components/AppUserGuide';
+import { SafetyGuideScreen } from './components/SafetyGuideScreen';
+import { LegalTermsScreen } from './components/LegalTermsScreen';
+import { LandingPage } from './components/LandingPage';
 import { AiMealPlanner } from './components/AiMealPlanner';
 import { BabyCryAnalyzer } from './components/BabyCryAnalyzer';
 import { SubscriptionModal } from './components/SubscriptionModal';
@@ -32,6 +35,7 @@ import { ActivitiesScreen } from './components/ActivitiesScreen';
 import { RemindersScreen } from './components/RemindersScreen';
 import { NotificationsScreen } from './components/NotificationsScreen';
 import { SettingsScreen } from './components/SettingsScreen';
+import { BabyProfile } from './types';
 import confetti from 'canvas-confetti';
 import { deleteUser } from 'firebase/auth';
 import { deleteDoc } from 'firebase/firestore';
@@ -96,7 +100,10 @@ export default function App() {
     }
   }, []);
 
-  const [activeScreen, setActiveScreen] = useState('home');
+  const [activeScreen, setActiveScreen] = useState(() => {
+    const onboarded = localStorage.getItem('ama_onboarded');
+    return onboarded ? 'home' : 'landing';
+  });
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [autoOpenLogModal, setAutoOpenLogModal] = useState(false);
   const [navData, setNavData] = useState<any>(null);
@@ -134,6 +141,69 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('babyName', babyName);
   }, [babyName]);
+
+  const [babyProfiles, setBabyProfiles] = useState<BabyProfile[]>(() => {
+    try {
+      const saved = localStorage.getItem('ama_baby_profiles');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    const initialDob = localStorage.getItem('babyDob') || '';
+    const initialName = localStorage.getItem('babyName') || 'Baby';
+    const initialAge = localStorage.getItem('babyAge') || '6 Months Old';
+    return [
+      {
+        id: 'baby-primary',
+        name: initialName,
+        dob: initialDob,
+        age: initialAge,
+        gender: 'unspecified',
+        avatarEmoji: '👶'
+      }
+    ];
+  });
+
+  const [activeBabyId, setActiveBabyId] = useState<string>(() => {
+    return localStorage.getItem('ama_active_baby_id') || 'baby-primary';
+  });
+
+  const handleSelectBaby = (babyId: string) => {
+    const found = babyProfiles.find(b => b.id === babyId);
+    if (found) {
+      setActiveBabyId(babyId);
+      localStorage.setItem('ama_active_baby_id', babyId);
+      setBabyName(found.name);
+      setBabyAge(found.age);
+      if (found.dob) setBabyDob(found.dob);
+    }
+  };
+
+  const handleAddBaby = (newBaby: BabyProfile) => {
+    const updated = [...babyProfiles, newBaby];
+    setBabyProfiles(updated);
+    localStorage.setItem('ama_baby_profiles', JSON.stringify(updated));
+    handleSelectBaby(newBaby.id);
+  };
+
+  const handleUpdateBaby = (updatedBaby: BabyProfile) => {
+    const updated = babyProfiles.map(b => b.id === updatedBaby.id ? updatedBaby : b);
+    setBabyProfiles(updated);
+    localStorage.setItem('ama_baby_profiles', JSON.stringify(updated));
+    if (updatedBaby.id === activeBabyId) {
+      setBabyName(updatedBaby.name);
+      setBabyAge(updatedBaby.age);
+      if (updatedBaby.dob) setBabyDob(updatedBaby.dob);
+    }
+  };
+
+  const handleDeleteBaby = (babyId: string) => {
+    if (babyProfiles.length <= 1) return;
+    const filtered = babyProfiles.filter(b => b.id !== babyId);
+    setBabyProfiles(filtered);
+    localStorage.setItem('ama_baby_profiles', JSON.stringify(filtered));
+    if (activeBabyId === babyId) {
+      handleSelectBaby(filtered[0].id);
+    }
+  };
 
   const [parentDob, setParentDob] = useState<string>(() => {
     return localStorage.getItem('parentDob') || '';
@@ -1574,6 +1644,12 @@ export default function App() {
               allMeals={[...MOCK_MEALS, ...personalRecipes]}
               userRole={userRole}
               setUserRole={setUserRole}
+              babyProfiles={babyProfiles}
+              activeBabyId={activeBabyId}
+              onSelectBaby={handleSelectBaby}
+              onAddBaby={handleAddBaby}
+              onUpdateBaby={handleUpdateBaby}
+              onDeleteBaby={handleDeleteBaby}
             />
           </motion.div>
         )}
@@ -1789,6 +1865,7 @@ export default function App() {
               addAuditLog={addAuditLog}
               userRole={userRole}
               setUserRole={setUserRole}
+              onNavigate={(screen) => setActiveScreen(screen)}
             />
           </motion.div>
         )}
@@ -1836,6 +1913,34 @@ export default function App() {
         {activeScreen === 'user-guide' && (
           <motion.div key="user-guide" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="p-4 sm:p-6 pb-28 max-w-4xl mx-auto">
             <AppUserGuide onClose={() => setActiveScreen('home')} />
+          </motion.div>
+        )}
+
+        {/* Full Page Safety Guide Screen */}
+        {activeScreen === 'safety-guide' && (
+          <motion.div key="safety-guide" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="p-4 sm:p-6 pb-28 max-w-5xl mx-auto">
+            <SafetyGuideScreen 
+              onBack={() => setActiveScreen('settings')} 
+              isPremium={isPremium}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+            />
+          </motion.div>
+        )}
+
+        {/* Full Page Legal Terms & Privacy Screen */}
+        {activeScreen === 'legal-terms' && (
+          <motion.div key="legal-terms" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="p-4 sm:p-6 pb-28 max-w-5xl mx-auto">
+            <LegalTermsScreen onBack={() => setActiveScreen('settings')} />
+          </motion.div>
+        )}
+
+        {/* AdSense Compliant Landing Page */}
+        {activeScreen === 'landing' && (
+          <motion.div key="landing" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="pb-28">
+            <LandingPage 
+              onGetStarted={() => setActiveScreen('home')} 
+              onNavigate={(screen) => setActiveScreen(screen)} 
+            />
           </motion.div>
         )}
         

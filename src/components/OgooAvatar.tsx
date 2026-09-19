@@ -10,6 +10,7 @@ export interface OgooAvatarProps {
   showOnlineDot?: boolean;
   showSparkleBadge?: boolean;
   alt?: string;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 const SIZE_MAP = {
@@ -27,7 +28,8 @@ export const OgooAvatar: React.FC<OgooAvatarProps> = ({
   isThinking = false,
   showOnlineDot = false,
   showSparkleBadge = false,
-  alt = 'Ogoo AI Agent'
+  alt = 'Ogoo AI Agent',
+  onClick
 }) => {
   const [imgSrc, setImgSrc] = useState<string>(OGOO_AVATAR_PRIMARY);
   const [hasError, setHasError] = useState(false);
@@ -43,7 +45,12 @@ export const OgooAvatar: React.FC<OgooAvatarProps> = ({
   const dimensionClass = SIZE_MAP[size] || SIZE_MAP.md;
 
   return (
-    <div className={`relative inline-flex items-center justify-center shrink-0 ${dimensionClass} ${className}`}>
+    <div 
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      className={`relative inline-flex items-center justify-center shrink-0 ${dimensionClass} ${onClick ? 'cursor-pointer hover:scale-105 active:scale-95 transition-transform' : ''} ${className}`}
+    >
       {/* Active Pulse Ring */}
       {hasPulse && (
         <span className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />

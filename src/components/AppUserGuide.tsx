@@ -18,13 +18,16 @@ import {
   Activity, 
   Lock, 
   AlertCircle,
-  FileText
+  FileText,
+  ArrowLeft
 } from 'lucide-react';
 
 interface AppUserGuideProps {
   onClose?: () => void;
   onNavigateToScreen?: (screen: string) => void;
+  isPremium?: boolean;
 }
+
 
 interface GuideSection {
   id: string;
@@ -37,7 +40,7 @@ interface GuideSection {
   faqs?: { question: string; answer: string }[];
 }
 
-export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateToScreen }) => {
+export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateToScreen, isPremium = false }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [expandedSectionId, setExpandedSectionId] = useState<string | null>('getting-started');
@@ -203,9 +206,34 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
   });
 
   return (
-    <div className="space-y-6 text-left">
+    <div className="space-y-6 text-left p-2 sm:p-4">
+      {/* Top Header if back navigation is available */}
+      {onClose && (
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="p-2.5 rounded-2xl bg-white border border-gray-100 hover:bg-gray-50 shadow-xs cursor-pointer text-gray-600 transition-colors"
+              title="Go Back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-black uppercase tracking-wider mb-0.5">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Knowledge Base & Documentation</span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-serif font-black text-gray-800">
+                Ama Care User Guide & Manual
+              </h1>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search and Category Bar */}
       <div className="space-y-3">
+
         <div className="relative">
           <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input

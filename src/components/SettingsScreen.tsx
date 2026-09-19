@@ -12,6 +12,7 @@ import { DEFAULT_VACCINE_SCHEDULE } from '../constants/babyData';
 
 export const SettingsScreen = ({
   onBack,
+  onNavigate,
   currentUser,
   onGoogleSignIn,
   onSignOut,
@@ -37,6 +38,7 @@ export const SettingsScreen = ({
   setUserRole
 }: {
   onBack: () => void;
+  onNavigate?: (screen: string) => void;
   currentUser: any;
   onGoogleSignIn: () => void;
   onSignOut: () => void;
@@ -48,6 +50,7 @@ export const SettingsScreen = ({
   setBabyAge: (age: string) => void;
   babyDob: string;
   setBabyDob: (dob: string) => void;
+
   parentName: string;
   setParentName: (name: string) => void;
   parentDob: string;
@@ -308,7 +311,7 @@ export const SettingsScreen = ({
         <div className="p-4 rounded-2xl bg-white/80 border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="space-y-1">
             <p className="text-xs font-bold text-gray-800">
-              {isPremium ? 'All AI features and pediatric exports are fully unlocked.' : 'Upgrade to unlock Acoustic Cry Analysis, AI Meal Plans & PDF exports.'}
+              {isPremium ? 'All AI features and health summary exports are fully unlocked.' : 'Upgrade to unlock Acoustic Cry Analysis, AI Meal Plans & PDF exports.'}
             </p>
             <p className="text-[10px] text-gray-500 font-medium">
               Accepts Verve, Visa, Mastercard, Bank Transfer, USSD & Apple Pay via Paystack.
@@ -975,21 +978,29 @@ export const SettingsScreen = ({
           Explore complete tutorials on feeding tracking, the AI cry acoustic analyzer, weekly meal plans & grocery generation, the Village caregiver ecosystem, vaccination schedules, and security protocols.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
-            onClick={() => setShowGuideModal(true)}
-            className="w-full py-3.5 px-4 bg-primary hover:bg-primary/90 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer border-none"
+            onClick={() => onNavigate ? onNavigate('landing') : null}
+            className="w-full py-3.5 px-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border-none"
           >
-            <BookOpen className="w-4 h-4" />
-            <span>Open User Guide</span>
+            <span className="text-sm">🍼</span>
+            <span>About App</span>
           </button>
-          
+
           <button
-            onClick={() => setShowLegalViewerModal(true)}
-            className="w-full py-3.5 px-4 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+            onClick={() => onNavigate ? onNavigate('user-guide') : null}
+            className="w-full py-3.5 px-3 bg-primary hover:bg-primary/90 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border-none"
           >
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            <span>Privacy Policy & Terms</span>
+            <BookOpen className="w-4 h-4 shrink-0" />
+            <span>User Manual</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate ? onNavigate('legal-terms') : null}
+            className="w-full py-3.5 px-3 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+          >
+            <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+            <span>Privacy & Terms</span>
           </button>
         </div>
       </section>
@@ -1130,21 +1141,6 @@ export const SettingsScreen = ({
           </div>
         </div>
       )}
-
-      {/* In-App Interactive User Guide Modal */}
-      {showGuideModal && (
-        <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 z-50 animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-2xl rounded-[40px] max-h-[90vh] overflow-y-auto shadow-2xl relative border border-gray-100 p-2 sm:p-4">
-            <AppUserGuide onClose={() => setShowGuideModal(false)} />
-          </div>
-        </div>
-      )}
-
-      {/* Terms & Privacy Policy Viewer Modal */}
-      <LegalConsentModal 
-        isOpen={showLegalViewerModal}
-        onAccept={() => setShowLegalViewerModal(false)}
-      />
     </div>
   );
 };

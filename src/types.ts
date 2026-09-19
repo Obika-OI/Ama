@@ -104,3 +104,16 @@ export interface JournalEntry {
   reaction?: string;
   hasAllergy: boolean;
 }
+
+export interface BabyProfile {
+  id: string;
+  name: string;
+  dob: string;
+  age: string;
+  gender?: 'boy' | 'girl' | 'unspecified';
+  avatarEmoji?: string;
+  themeColor?: string;
+  allergens?: any[];
+  notes?: string;
+}
+

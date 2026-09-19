@@ -73,7 +73,7 @@ export const DiaperAnalyzer: React.FC<DiaperAnalyzerProps> = ({ onAnalyze }) => 
       </div>
       {error && <p className="text-xs text-gray-800 font-bold bg-primary/10 px-3 py-1 rounded-xl">{error}</p>}
       <p className="text-[9px] text-gray-500 font-medium leading-tight max-w-xs">
-        ⚠️ AI Accuracy Disclaimer: Diaper analysis is powered by AI for convenience only and is not a medical diagnosis. Consult your pediatrician for any health concerns.
+        ⚠️ AI Accuracy Disclaimer: Diaper analysis is powered by AI for convenience only and is not a medical diagnosis. Consult a qualified healthcare provider for any health concerns.
       </p>
     </div>
   );

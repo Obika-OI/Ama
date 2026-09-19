@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { DiaperAnalyzer } from './DiaperAnalyzer';
 import { StorybookGenerator } from './StorybookGenerator';
 import { MemorySlideshow } from './MemorySlideshow';
@@ -529,13 +529,78 @@ export const Journal = ({  isPremium,
     setObsNotes('');
   };
 
-  const deleteLoggedMeal = (timestamp: string) => {
-    setLoggedMeals(loggedMeals.filter(m => m.timestamp !== timestamp));
+  const [localFeedingLogs, setLocalFeedingLogs] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('local_feeding_logs') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      const logs = JSON.parse(localStorage.getItem('local_feeding_logs') || '[]');
+      setLocalFeedingLogs(logs);
+    } catch {}
+  }, [selectedDate, activeTab]);
+
+  const deleteLoggedMeal = (timestampOrId: string) => {
+    setLoggedMeals(loggedMeals.filter(m => m.timestamp !== timestampOrId && m.id !== timestampOrId));
+    // Also remove from local_feeding_logs if present
+    try {
+      const existing = JSON.parse(localStorage.getItem('local_feeding_logs') || '[]');
+      const filtered = existing.filter((f: any) => f.id !== timestampOrId && (f.date + (f.timestamp ? ` ${f.timestamp}` : '')) !== timestampOrId);
+      localStorage.setItem('local_feeding_logs', JSON.stringify(filtered));
+      setLocalFeedingLogs(filtered);
+    } catch {}
     setExpandedLogIndex(null);
   };
   
   const currentObs = observationLogs.find(o => isSameDay(new Date(o.date), selectedDate));
-  const todayMeals = loggedMeals.filter(m => m.timestamp && isSameDay(new Date(m.timestamp), selectedDate));
+  
+  const todayMeals = useMemo(() => {
+    const meals = (loggedMeals || [])
+      .filter(m => m && m.timestamp && isSameDay(new Date(m.timestamp), selectedDate))
+      .map(m => ({ ...m, isMilkFeed: false }));
+
+    const milkFeeds = (localFeedingLogs || [])
+      .filter(f => {
+        if (!f || !f.date) return false;
+        return isSameDay(new Date(f.date), selectedDate);
+      })
+      .map(f => {
+        const isBottle = f.type === 'Bottle Feed';
+        const leftM = Math.round((f.leftDuration || 0) / 60);
+        const rightM = Math.round((f.rightDuration || 0) / 60);
+        const totalM = leftM + rightM;
+        return {
+          id: f.id || `milk-${f.date}-${f.timestamp || ''}`,
+          title: isBottle
+            ? `${f.bottleType || 'Bottle'} Feed (${f.amount || 0} ml)`
+            : `Breastfeeding Session (${totalM > 0 ? `${totalM} mins` : 'Nursing'})`,
+          logType: f.type,
+          logTime: f.timestamp || 'Recorded',
+          newFood: isBottle ? '🍼' : '🤱',
+          isMilkFeed: true,
+          amount: f.amount,
+          bottleType: f.bottleType,
+          leftDuration: f.leftDuration,
+          rightDuration: f.rightDuration,
+          notes: f.notes || (isBottle ? `${f.amount || 0} ml ${f.bottleType || 'Milk'}` : `L: ${leftM}m | R: ${rightM}m`),
+          timestamp: f.date + (f.timestamp ? ` ${f.timestamp}` : ''),
+          reaction: f.reaction || 'Good',
+          appetising: 5,
+          acceptance: 5,
+          satisfaction: 5
+        };
+      });
+
+    return [...meals, ...milkFeeds].sort((a, b) => {
+      const timeA = new Date(a.timestamp || 0).getTime();
+      const timeB = new Date(b.timestamp || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [loggedMeals, localFeedingLogs, selectedDate]);
 
   // --- Bristol Stool Scale Descriptions ---
   const BRISTOL_SCALE = [
@@ -1810,48 +1875,7 @@ export const Journal = ({  isPremium,
         )}
 
         {/* --- PERSONAL DIARY & THOUGHTS TAB --- */}
-        {activeTab === 'diary' && !isPremium ? (
-          <motion.div
-            key="diary-premium-restricted"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-card p-8 sm:p-10 rounded-[40px] border border-white shadow-xl shadow-card/20 text-center max-w-xl mx-auto space-y-6"
-          >
-            <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary flex items-center justify-center text-3xl mx-auto shadow-inner">
-              🔒
-            </div>
-            <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-                Ama Premium Feature
-              </span>
-              <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-800">
-                Daily Diary & AI Storybook
-              </h2>
-              <p className="text-xs text-gray-500 leading-relaxed max-w-md mx-auto">
-                Record your daily parenting reflections, emotional memories, milestones, and generate AI-illustrated keepsake storybooks with Ama Premium.
-              </p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-2xl border border-gray-100 text-left space-y-2.5 text-xs text-gray-600">
-              <p className="font-bold text-gray-800 flex items-center gap-1.5">
-                <span>✨</span> <span>What you unlock with Premium:</span>
-              </p>
-              <ul className="space-y-1.5 pl-5 list-disc text-[11px] text-gray-600">
-                <li>Unlimited daily parent journaling, emotional mood tracking & guided prompts</li>
-                <li>AI Keepsake Illustrated Storybook generator based on recorded memories</li>
-                <li>Searchable history timeline & multimedia photo reflections</li>
-              </ul>
-            </div>
-
-            <button
-              onClick={() => setIsSubscriptionModalOpen(true)}
-              className="w-full py-3.5 px-6 bg-primary hover:bg-primary/90 text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-lg shadow-primary/25 transition-all cursor-pointer border-none flex items-center justify-center gap-2"
-            >
-              <span>👑 Upgrade with Paystack</span>
-            </button>
-          </motion.div>
-        ) : activeTab === 'diary' && userRole === 'nanny' ? (
+        {activeTab === 'diary' && userRole === 'nanny' ? (
           <motion.div
             key="diary-nanny-restricted"
             initial={{ opacity: 0, y: 10 }}
@@ -1872,8 +1896,7 @@ export const Journal = ({  isPremium,
               <p className="text-xs text-gray-500 leading-relaxed">
                 Personal family reflections, emotional notes, and AI Keepsake Storybooks are protected and reserved for the primary family circle.
               </p>
-              
-    </div>
+            </div>
 
             <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100 text-left space-y-2.5 text-xs text-gray-600">
               <p className="font-bold text-gray-800 flex items-center gap-1.5">
@@ -1886,8 +1909,7 @@ export const Journal = ({  isPremium,
                 <li>Track daily fluid & hydration milestones in real time</li>
                 <li>Set alarms and track scheduled medications and nap timers</li>
               </ul>
-              
-    </div>
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <button
@@ -1904,8 +1926,7 @@ export const Journal = ({  isPremium,
                   Switch to Admin (Parent) 👑
                 </button>
               )}
-              
-    </div>
+            </div>
           </motion.div>
         ) : activeTab === 'diary' && (
           <motion.div
@@ -1916,10 +1937,34 @@ export const Journal = ({  isPremium,
             className="flex flex-col gap-6"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <StorybookGenerator diaryEntries={loggedMoods && loggedMoods.length > 0 ? loggedMoods : observationLogs.filter(o => o.type === 'diary' || o.mood || o.notes)} babyName={babyName} />
+              {isPremium ? (
+                <StorybookGenerator diaryEntries={loggedMoods && loggedMoods.length > 0 ? loggedMoods : observationLogs.filter(o => o.type === 'diary' || o.mood || o.notes)} babyName={babyName} />
+              ) : (
+                <div className="bg-card p-6 sm:p-7 rounded-[36px] border border-white shadow-xl shadow-card/15 space-y-4 text-left flex flex-col justify-between">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-3xl">✨</span>
+                      <div>
+                        <h3 className="font-serif font-black text-gray-800 text-base">AI Milestone Biographer</h3>
+                        <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                          👑 Premium Feature
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Transform recorded parenting notes, first tastes, laughs, and emotional memory fragments into illustrated AI keepsake storybooks with Ama Premium.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsSubscriptionModalOpen(true)}
+                    className="w-full py-3 px-4 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-md shadow-primary/20 hover:bg-primary/90 transition-all cursor-pointer border-none flex items-center justify-center gap-2"
+                  >
+                    <span>👑 Unlock AI Milestone Biographer</span>
+                  </button>
+                </div>
+              )}
               <MemorySlideshow memories={memories} babyName={babyName} onAddMemory={setMemories ? (m) => setMemories([...memories, m]) : undefined} />
-              
-    </div>
+            </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-left">
             {/* Selected Date Header Banner */}
@@ -2276,48 +2321,7 @@ export const Journal = ({  isPremium,
         )}
 
         {/* --- WEEKLY PLANNER TAB --- */}
-        {activeTab === 'weekly' && !isPremium ? (
-          <motion.div
-            key="weekly-premium-restricted"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-card p-8 sm:p-10 rounded-[40px] border border-white shadow-xl shadow-card/20 text-center max-w-xl mx-auto space-y-6"
-          >
-            <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary flex items-center justify-center text-3xl mx-auto shadow-inner">
-              🔒
-            </div>
-            <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-                Ama Premium Feature
-              </span>
-              <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-800">
-                7-Day Weekly Solid Menu & Grocery Checklist
-              </h2>
-              <p className="text-xs text-gray-500 leading-relaxed max-w-md mx-auto">
-                Organize full 7-day solid food weaning schedules, balance nutrient variety, and auto-compile organized grocery shopping lists with Ama Premium.
-              </p>
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-2xl border border-gray-100 text-left space-y-2.5 text-xs text-gray-600">
-              <p className="font-bold text-gray-800 flex items-center gap-1.5">
-                <span>🛒</span> <span>What you unlock with Premium:</span>
-              </p>
-              <ul className="space-y-1.5 pl-5 list-disc text-[11px] text-gray-600">
-                <li>Whole-week 7-day solid meal assignment & age-appropriate portion balancing</li>
-                <li>Automated localized grocery shopping list with estimated market pricing</li>
-                <li>AI 7-Day Solid Meal Planner integration with allergen filters</li>
-              </ul>
-            </div>
-
-            <button
-              onClick={() => setIsSubscriptionModalOpen(true)}
-              className="w-full py-3.5 px-6 bg-primary hover:bg-primary/90 text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-lg shadow-primary/25 transition-all cursor-pointer border-none flex items-center justify-center gap-2"
-            >
-              <span>👑 Upgrade with Paystack</span>
-            </button>
-          </motion.div>
-        ) : activeTab === 'weekly' && (
+        {activeTab === 'weekly' && (
           <motion.div 
             key="weekly-view"
             initial={{ opacity: 0, y: 10 }}
@@ -2338,7 +2342,7 @@ export const Journal = ({  isPremium,
                     className="px-3.5 py-1.5 rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border-none font-bold flex items-center gap-1 shadow-sm"
                   >
                     <Sparkles className="w-3 h-3" />
-                    <span>AI Generate Plan</span>
+                    <span>{isPremium ? 'AI Generate Plan' : '👑 AI Generate Plan'}</span>
                   </button>
                   <button 
                     onClick={handleResetWeeklyPlanner}
@@ -2356,15 +2360,22 @@ export const Journal = ({  isPremium,
                     🥗
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-800">Need an Age-Optimized Solid Food Plan?</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-gray-800">Need an Age-Optimized Solid Food Plan?</p>
+                      {!isPremium && (
+                        <span className="text-[8px] font-black uppercase tracking-wider text-primary bg-primary/15 px-1.5 py-0.5 rounded-full">
+                          👑 AI
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[10px] text-gray-500 font-medium">Auto-generate 7 days of nutrient-targeted meals + localized grocery list</p>
                   </div>
                 </div>
                 <button
                   onClick={() => isPremium ? onNavigate('ai-meal-planner') : setIsSubscriptionModalOpen(true)}
-                  className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-2xl cursor-pointer border-none transition-transform active:scale-95 whitespace-nowrap self-stretch sm:self-auto"
+                  className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-2xl cursor-pointer border-none transition-transform active:scale-95 whitespace-nowrap self-stretch sm:self-auto flex items-center justify-center gap-1"
                 >
-                  Generate 7-Day Plan →
+                  <span>{isPremium ? 'Generate 7-Day Plan →' : '👑 Unlock AI Planner'}</span>
                 </button>
               </div>
 

@@ -224,15 +224,52 @@ export const FeedingTracker = ({
   const isSameDay = (d1: Date, d2: Date) => {
     return d1.getDate() === d2.getDate() && d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear();
   };
-  const todayScheduledMeals = scheduledMeals.filter(m => !m.date || isSameDay(new Date(m.date), new Date()));
-  const estimatedCalories = todayScheduledMeals.reduce((acc, m) => {
+
+  const todayDateObj = new Date();
+  const todayScheduledMeals = scheduledMeals.filter(m => !m.date || isSameDay(new Date(m.date), todayDateObj));
+  
+  const todayLoggedMeals = (loggedMeals || []).filter(m => {
+    if (!m.date) return false;
+    const d = new Date(m.date);
+    return isNaN(d.getTime()) ? m.date === new Date().toLocaleDateString() : isSameDay(d, todayDateObj);
+  });
+
+  const todayFeedingLogs = (feedingLogs || []).filter(f => {
+    if (!f.date) return false;
+    const d = new Date(f.date);
+    return isNaN(d.getTime()) ? f.date === new Date().toLocaleDateString() : isSameDay(d, todayDateObj);
+  });
+
+  // Calculate calories from planned meals, logged solid meals, and bottle/nursing feeds
+  const scheduledCalories = todayScheduledMeals.reduce((acc, m) => {
     const hasEnergy = m.nutrients?.find((n: any) => n.label === 'Energy' || n.label === 'Calories');
     if (hasEnergy?.value === 'High') return acc + 250;
     if (hasEnergy?.value === 'Good') return acc + 150;
     return acc + 100;
   }, 0);
 
-  const estimatedProtein = todayScheduledMeals.reduce((acc, m) => {
+  const loggedMealCalories = todayLoggedMeals.reduce((acc, m) => {
+    const hasEnergy = m.nutrients?.find((n: any) => n.label === 'Energy' || n.label === 'Calories');
+    if (hasEnergy?.value === 'High') return acc + 250;
+    if (hasEnergy?.value === 'Good') return acc + 150;
+    return acc + 130;
+  }, 0);
+
+  const milkCalories = todayFeedingLogs.reduce((acc, f) => {
+    if (f.type === 'Bottle Feed') {
+      const ml = parseFloat(f.amount) || 120;
+      return acc + Math.round(ml * 0.68); // ~68 kcal per 100ml
+    } else {
+      const totalSec = (f.leftDuration || 0) + (f.rightDuration || 0);
+      const mins = totalSec / 60;
+      return acc + Math.round(mins * 7); // ~105 kcal for 15m nursing
+    }
+  }, 0);
+
+  const estimatedCalories = Math.max(scheduledCalories, loggedMealCalories) + (loggedMealCalories > 0 && scheduledCalories > loggedMealCalories ? Math.round((scheduledCalories - loggedMealCalories) * 0.5) : 0) + milkCalories;
+
+  // Protein calculation
+  const scheduledProtein = todayScheduledMeals.reduce((acc, m) => {
     const hasProtein = m.nutrients?.find((n: any) => n.label === 'Protein');
     if (hasProtein?.value === 'High') return acc + 15;
     if (hasProtein?.value === 'Good') return acc + 8;
@@ -240,9 +277,30 @@ export const FeedingTracker = ({
     return acc + 2;
   }, 0);
 
+  const loggedProtein = todayLoggedMeals.reduce((acc, m) => {
+    const hasProtein = m.nutrients?.find((n: any) => n.label === 'Protein');
+    if (hasProtein?.value === 'High') return acc + 15;
+    if (hasProtein?.value === 'Good') return acc + 8;
+    if (hasProtein?.value === 'Source') return acc + 4;
+    return acc + 3.5;
+  }, 0);
+
+  const milkProtein = todayFeedingLogs.reduce((acc, f) => {
+    if (f.type === 'Bottle Feed') {
+      const ml = parseFloat(f.amount) || 120;
+      return acc + Math.round((ml * 0.014) * 10) / 10;
+    } else {
+      const totalSec = (f.leftDuration || 0) + (f.rightDuration || 0);
+      const mins = totalSec / 60;
+      return acc + Math.round((mins * 0.15) * 10) / 10;
+    }
+  }, 0);
+
+  const estimatedProtein = Math.round((Math.max(scheduledProtein, loggedProtein) + milkProtein) * 10) / 10;
+
   const estimatedVitamins = (() => {
     const vits = new Set<string>();
-    todayScheduledMeals.forEach(m => {
+    [...todayScheduledMeals, ...todayLoggedMeals].forEach(m => {
       (m.nutrients || []).forEach((n: any) => {
         if (n.label && (n.label.toLowerCase().includes('vit') || n.label.toLowerCase().includes('iron') || n.label.toLowerCase().includes('calc') || n.label.toLowerCase().includes('zinc') || n.label.toLowerCase().includes('folate') || n.label.toLowerCase().includes('fiber'))) {
           vits.add(n.label);
@@ -256,15 +314,22 @@ export const FeedingTracker = ({
         });
       }
     });
-    if (todayScheduledMeals.length > 0 && vits.size === 0) {
+
+    if (todayFeedingLogs.length > 0) {
+      vits.add('Vit D');
+      vits.add('Calcium');
+    }
+
+    if ((todayScheduledMeals.length > 0 || todayLoggedMeals.length > 0) && vits.size === 0) {
       vits.add('Vit A');
       vits.add('Vit C');
       vits.add('Iron');
-      if (todayScheduledMeals.length > 1) vits.add('Vit D');
-      if (todayScheduledMeals.length > 2) vits.add('Calcium');
+      if (todayScheduledMeals.length > 1 || todayLoggedMeals.length > 1) vits.add('Vit D');
+      if (todayScheduledMeals.length > 2 || todayLoggedMeals.length > 2) vits.add('Calcium');
     }
     return Array.from(vits);
   })();
+
 
   return (
     <div className="p-4 sm:p-6 md:p-8 lg:p-10 pb-32 space-y-8 bg-background min-h-screen">
@@ -439,93 +504,11 @@ export const FeedingTracker = ({
                 >
                   Log Feed (+ Fluid intake)
                 </button>
-                
-    </div>
-              
-    </div>
-
-            {/* Recent Local Feeds history list */}
-            {userRole === 'nanny' ? (
-              <div className="space-y-3 text-left">
-                <div className="flex items-center justify-between px-2">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Today's Active Feeds (Shift View)</h4>
-                  <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex items-center gap-1 border border-primary/20">
-                    <Lock className="w-2.5 h-2.5" /> Nanny Mode
-                  </span>
-                  
-    </div>
-                {feedingLogs.filter(log => log.date === new Date().toLocaleDateString() || log.date === new Date().toISOString().split('T')[0]).length > 0 ? (
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {feedingLogs
-                      .filter(log => log.date === new Date().toLocaleDateString() || log.date === new Date().toISOString().split('T')[0])
-                      .map(log => (
-                        <div key={log.id} className="bg-card p-4 rounded-2xl border border-solid border-gray-100 shadow-xs flex justify-between items-center">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${log.type === 'Bottle Feed' ? 'bg-primary/10 text-primary' : 'bg-pink-50 text-gray-700'}`}>
-                              {log.type === 'Bottle Feed' ? '🍼' : '🤱'}
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold text-gray-800">
-                                {log.type === 'Bottle Feed' 
-                                  ? `${log.bottleType} Feed • ${log.amount} ml` 
-                                  : `Breastfeed • L: ${Math.round(log.leftDuration / 60)}m, R: ${Math.round(log.rightDuration / 60)}m`
-                                }
-                              </p>
-                              <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">{log.timestamp} • Today</p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteFeedingLog(log.id)}
-                            className="w-7 h-7 rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-gray-700 flex items-center justify-center border-none cursor-pointer transition-colors"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="p-4 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200 text-center">
-                    <p className="text-xs text-gray-500 font-medium">No feeding sessions logged for today's shift yet.</p>
-                  </div>
-                )}
-                <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex items-center gap-2 text-[10px] text-gray-800">
-                  <Lock className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <span>Previous days' historical feeding archives are shielded in caregiver mode.</span>
-                </div>
               </div>
-            ) : feedingLogs.length > 0 && (
-              <div className="space-y-3 text-left">
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Recent Feeding History</h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {feedingLogs.map(log => (
-                    <div key={log.id} className="bg-card p-4 rounded-2xl border border-solid border-gray-100 shadow-xs flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${log.type === 'Bottle Feed' ? 'bg-primary/10 text-primary' : 'bg-pink-50 text-gray-700'}`}>
-                          {log.type === 'Bottle Feed' ? '🍼' : '🤱'}
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-gray-800">
-                            {log.type === 'Bottle Feed' 
-                              ? `${log.bottleType} Feed • ${log.amount} ml` 
-                              : `Breastfeed • L: ${Math.round(log.leftDuration / 60)}m, R: ${Math.round(log.rightDuration / 60)}m`
-                            }
-                          </p>
-                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider">{log.timestamp} • {log.date}</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteFeedingLog(log.id)}
-                        className="w-7 h-7 rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-gray-700 flex items-center justify-center border-none cursor-pointer transition-colors"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            </div>
 
             <div className="space-y-6">
+
               <div className="flex justify-between items-center px-2">
                 <h2 className="text-xl font-serif font-black text-gray-800">Fluid Intake</h2>
                 {!isEditingTarget ? (
@@ -699,11 +682,129 @@ export const FeedingTracker = ({
                   <p className="text-xs text-gray-500 italic px-2">No meals scheduled for today.</p>
                 )}
                 
-    </div>
-              
-    </div>
+              </div>
+            </div>
+
+            {/* Combined Recent Feeding & Meal History Section (Below Daily Menu) */}
+            <div className="space-y-4 text-left">
+              <div className="flex items-center justify-between px-2">
+                <div>
+                  <h3 className="text-lg font-serif font-black text-gray-800">Recent Feeding History</h3>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Milk sessions, bottle feeds & logged solid meals</p>
+                </div>
+                {userRole === 'nanny' && (
+                  <span className="text-[9px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full flex items-center gap-1 border border-primary/20">
+                    <Lock className="w-2.5 h-2.5" /> Nanny Mode
+                  </span>
+                )}
+              </div>
+
+              {/* Combined feeds list */}
+              {(() => {
+                const combinedItems: any[] = [];
+
+                // Add feeding logs (breastfeeding / bottle)
+                feedingLogs.forEach(f => {
+                  if (userRole === 'nanny') {
+                    const isToday = f.date === new Date().toLocaleDateString() || f.date === new Date().toISOString().split('T')[0];
+                    if (!isToday) return;
+                  }
+                  combinedItems.push({
+                    id: f.id,
+                    kind: 'milk',
+                    type: f.type,
+                    title: f.type === 'Bottle Feed' 
+                      ? `${f.bottleType || 'Bottle'} Feed • ${f.amount} ml` 
+                      : `Breastfeed • L: ${Math.round((f.leftDuration || 0) / 60)}m, R: ${Math.round((f.rightDuration || 0) / 60)}m`,
+                    subtext: f.type === 'Bottle Feed' ? `${f.amount} ml intake` : `Total ${(Math.round(((f.leftDuration || 0) + (f.rightDuration || 0)) / 60))} mins`,
+                    timestamp: f.timestamp || 'Recorded',
+                    date: f.date || 'Today',
+                    icon: f.type === 'Bottle Feed' ? '🍼' : '🤱',
+                    iconBg: f.type === 'Bottle Feed' ? 'bg-primary/10 text-primary' : 'bg-pink-50 text-gray-700',
+                    isDeletable: true
+                  });
+                });
+
+                // Add logged solid meals
+                (loggedMeals || []).forEach(m => {
+                  if (userRole === 'nanny') {
+                    const isToday = m.date === new Date().toLocaleDateString() || m.date === new Date().toISOString().split('T')[0];
+                    if (!isToday) return;
+                  }
+                  combinedItems.push({
+                    id: m.id || Math.random().toString(),
+                    kind: 'solid',
+                    type: 'Solid Meal',
+                    title: m.mealName || m.title || 'Logged Meal',
+                    subtext: `${m.reaction || 'Good appetite'} • ${m.mealType || 'Solid food'}`,
+                    timestamp: m.time || m.timestamp || 'Recorded',
+                    date: m.date || 'Today',
+                    icon: '🥣',
+                    iconBg: 'bg-amber-50 text-amber-700',
+                    mealData: m,
+                    isDeletable: false
+                  });
+                });
+
+                // Sort newest first
+                combinedItems.sort((a, b) => {
+                  return (b.date + b.timestamp).localeCompare(a.date + a.timestamp);
+                });
+
+                if (combinedItems.length === 0) {
+                  return (
+                    <div className="p-6 bg-card rounded-3xl border border-dashed border-gray-200 text-center">
+                      <p className="text-xs text-gray-400 font-medium">No feeding sessions or meals logged yet today.</p>
+                      <p className="text-[10px] text-gray-400 mt-1">Log breastmilk, bottles, or schedule meals above.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                    {combinedItems.map(item => (
+                      <div key={item.id} className="bg-card p-4 rounded-2xl border border-solid border-gray-100 shadow-xs flex justify-between items-center hover:border-gray-200 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 ${item.iconBg}`}>
+                            {item.icon}
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-800">{item.title}</p>
+                            <p className="text-[10px] font-medium text-gray-500">{item.subtext}</p>
+                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider mt-0.5">{item.timestamp} • {item.date}</p>
+                          </div>
+                        </div>
+
+                        {item.isDeletable && (
+                          <button
+                            onClick={() => handleDeleteFeedingLog(item.id)}
+                            className="w-7 h-7 rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-gray-700 flex items-center justify-center border-none cursor-pointer transition-colors"
+                            title="Delete log"
+                          >
+                            ✕
+                          </button>
+                        )}
+                        {item.kind === 'solid' && (
+                          <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                            Solid
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {userRole === 'nanny' && (
+                <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex items-center gap-2 text-[10px] text-gray-800">
+                  <Lock className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span>Previous days' historical feeding archives are shielded in caregiver mode.</span>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
+
 
         {activeTab === 'allergen' && (
           <motion.div 
@@ -772,82 +873,165 @@ export const FeedingTracker = ({
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            {/* Search and Filters */}
-            <div className="space-y-3">
-              <div className="relative bg-white rounded-2xl border border-gray-100 shadow-inner p-1 flex items-center">
-                <Search className="w-5 h-5 text-gray-400 ml-3" />
-                <input 
-                  type="text" 
-                  placeholder="Search single ingredients..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-none p-2.5 text-sm font-medium outline-none text-gray-700"
-                />
-              </div>
+            {selectedFood ? (
+              /* Inline Full-Page Detailed Food Guideline View */
+              <div className="bg-card p-6 rounded-[36px] border border-white shadow-sm space-y-6 text-left">
+                <button
+                  onClick={() => setSelectedFood(null)}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer border-none transition-all"
+                >
+                  <span>←</span>
+                  <span>Back to Ingredient Index</span>
+                </button>
 
-              {/* Segmented traffic-light filters */}
-              <div className="flex gap-1.5 overflow-x-auto py-1">
-                <button 
-                  onClick={() => setGuideFilter('all')}
-                  className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
-                    guideFilter === 'all' ? 'bg-primary text-white' : 'bg-white text-gray-500 border border-gray-100'
-                  }`}
-                >
-                  All
-                </button>
-                <button 
-                  onClick={() => setGuideFilter('green')}
-                  className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
-                    guideFilter === 'green' ? 'bg-primary text-white' : 'bg-primary/5 text-primary border border-primary/20'
-                  }`}
-                >
-                  Safe
-                </button>
-                <button 
-                  onClick={() => setGuideFilter('amber')}
-                  className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
-                    guideFilter === 'amber' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 border border-gray-200'
-                  }`}
-                >
-                  Caution
-                </button>
-                <button 
-                  onClick={() => setGuideFilter('red')}
-                  className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
-                    guideFilter === 'red' ? 'bg-pink-500 text-white' : 'bg-pink-50 text-gray-700 border border-pink-100'
-                  }`}
-                >
-                  Avoid &lt; 12m
-                </button>
-              </div>
-            </div>
-
-            {/* Ingredients Index List */}
-            <div className="space-y-3">
-              {COMMON_INGREDIENTS.filter(food => {
-                const matchesSearch = food.name.toLowerCase().includes(searchQuery.toLowerCase());
-                const matchesFilter = guideFilter === 'all' || food.color === guideFilter;
-                return matchesSearch && matchesFilter;
-              }).map(food => (
-                <button 
-                  key={food.id}
-                  onClick={() => setSelectedFood(food)}
-                  className="w-full bg-card p-5 rounded-[28px] border border-white hover:border-primary/20 shadow-sm hover:scale-[1.01] transition-transform text-left flex justify-between items-center cursor-pointer"
-                >
+                <header className="flex justify-between items-start pt-2">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${
-                        food.color === 'green' ? 'bg-primary' :
-                        food.color === 'amber' ? 'bg-gray-400' : 'bg-pink-400'
-                      }`} />
-                      <h4 className="font-bold text-gray-800 text-sm">{food.name}</h4>
-                    </div>
-                    <p className="text-[10px] text-gray-400 font-medium line-clamp-1 pr-6">{food.warning}</p>
+                    <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                      selectedFood.color === 'green' ? 'bg-primary/10 text-primary border border-primary/20' :
+                      selectedFood.color === 'amber' ? 'bg-gray-100 text-gray-700 border border-gray-200' : 'bg-pink-100 text-gray-800 border border-pink-200'
+                    }`}>
+                      {selectedFood.color === 'green' ? 'Safe to Serve' :
+                       selectedFood.color === 'amber' ? 'Prepare with Caution' : 'Avoid Under 12m'}
+                    </span>
+                    <h3 className="text-3xl font-serif font-black text-gray-800">{selectedFood.name}</h3>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-300 shrink-0" />
+                </header>
+
+                {/* Warnings Callout block */}
+                <div className={`p-4 rounded-2xl text-xs font-semibold leading-relaxed border ${
+                  selectedFood.color === 'red' ? 'bg-pink-50 text-gray-800 border-pink-100' :
+                  selectedFood.color === 'amber' ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-primary/5 text-primary border-primary/10'
+                }`}>
+                  {selectedFood.warning}
+                </div>
+
+                {/* Age-by-Age Preparation Matrix */}
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Age-by-Age Safety Guidelines</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="bg-gray-50 p-4 rounded-2xl space-y-1 border border-gray-100">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">👶 6 Months Old (Purees & Soft BLW)</p>
+                      <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep6m}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-2xl space-y-1 border border-gray-100">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">🧎 10 Months Old (Finger Food Bites)</p>
+                      <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep10m}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-2xl space-y-1 border border-gray-100">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">🚶 12+ Months Old (Normal Serving)</p>
+                      <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep12m}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setSelectedFood(null)}
+                  className="w-full py-3.5 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer text-center border-none shadow-sm"
+                >
+                  Close Detailed View
                 </button>
-              ))}
-            </div>
+              </div>
+            ) : (
+              /* Ingredient Index List & Filter View */
+              <>
+                {/* Dedicated full page banner */}
+                <div className="bg-card p-5 rounded-[32px] border border-white shadow-sm flex items-center justify-between gap-4 text-left">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl shrink-0">
+                      🛡️
+                    </div>
+                    <div>
+                      <h4 className="font-serif font-black text-gray-800 text-sm">Infant Food & Safety Preparation Guide</h4>
+                      <p className="text-[10px] text-gray-400 font-medium">Stage-by-stage (6m, 10m, 12m+) preparation guides, gagging vs choking protocols & allergy safety.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onNavigate('safety-guide')}
+                    className="px-4 py-2.5 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-wider shrink-0 hover:bg-primary/90 transition-all cursor-pointer shadow-sm shadow-primary/20"
+                  >
+                    Open Guide Page
+                  </button>
+                </div>
+
+                {/* Search and Filters */}
+                <div className="space-y-3">
+                  <div className="relative bg-white rounded-2xl border border-gray-100 shadow-inner p-1 flex items-center">
+                    <Search className="w-5 h-5 text-gray-400 ml-3" />
+                    <input 
+                      type="text" 
+                      placeholder="Search single ingredients..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="w-full bg-transparent border-none p-2.5 text-sm font-medium outline-none text-gray-700"
+                    />
+                  </div>
+
+                  {/* Segmented traffic-light filters */}
+                  <div className="flex gap-1.5 overflow-x-auto py-1">
+                    <button 
+                      onClick={() => setGuideFilter('all')}
+                      className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
+                        guideFilter === 'all' ? 'bg-primary text-white' : 'bg-white text-gray-500 border border-gray-100'
+                      }`}
+                    >
+                      All
+                    </button>
+                    <button 
+                      onClick={() => setGuideFilter('green')}
+                      className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
+                        guideFilter === 'green' ? 'bg-primary text-white' : 'bg-primary/5 text-primary border border-primary/20'
+                      }`}
+                    >
+                      Safe
+                    </button>
+                    <button 
+                      onClick={() => setGuideFilter('amber')}
+                      className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
+                        guideFilter === 'amber' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 border border-gray-200'
+                      }`}
+                    >
+                      Caution
+                    </button>
+                    <button 
+                      onClick={() => setGuideFilter('red')}
+                      className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
+                        guideFilter === 'red' ? 'bg-pink-500 text-white' : 'bg-pink-50 text-gray-700 border border-pink-100'
+                      }`}
+                    >
+                      Avoid &lt; 12m
+                    </button>
+                  </div>
+                </div>
+
+                {/* Ingredients Index List */}
+                <div className="space-y-3">
+                  {COMMON_INGREDIENTS.filter(food => {
+                    const matchesSearch = food.name.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesFilter = guideFilter === 'all' || food.color === guideFilter;
+                    return matchesSearch && matchesFilter;
+                  }).map(food => (
+                    <button 
+                      key={food.id}
+                      onClick={() => setSelectedFood(food)}
+                      className="w-full bg-card p-5 rounded-[28px] border border-white hover:border-primary/20 shadow-sm hover:scale-[1.01] transition-transform text-left flex justify-between items-center cursor-pointer"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full ${
+                            food.color === 'green' ? 'bg-primary' :
+                            food.color === 'amber' ? 'bg-gray-400' : 'bg-pink-400'
+                          }`} />
+                          <h4 className="font-bold text-gray-800 text-sm">{food.name}</h4>
+                        </div>
+                        <p className="text-[10px] text-gray-400 font-medium line-clamp-1 pr-6">{food.warning}</p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-300 shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -952,80 +1136,6 @@ export const FeedingTracker = ({
         )}
       </AnimatePresence>
 
-      {/* Food detailed guideline Modal */}
-      <AnimatePresence>
-        {selectedFood && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-[40px] p-6 max-w-sm w-full border border-gray-100 shadow-2xl space-y-6 relative max-h-[85vh] overflow-y-auto"
-            >
-              <header className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                    selectedFood.color === 'green' ? 'bg-primary/10 text-primary' :
-                    selectedFood.color === 'amber' ? 'bg-gray-100 text-gray-700' : 'bg-pink-100 text-gray-800'
-                  }`}>
-                    {selectedFood.color === 'green' ? 'Safe to Serve' :
-                     selectedFood.color === 'amber' ? 'Prepare with Caution' : 'Avoid Under 12m'}
-                  </span>
-                  <h3 className="text-2xl font-serif font-black text-gray-800">{selectedFood.name}</h3>
-                </div>
-                <button 
-                  onClick={() => setSelectedFood(null)}
-                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 font-black text-sm flex items-center justify-center cursor-pointer"
-                >
-                  ✕
-                </button>
-              </header>
-
-              {/* Warnings Callout block */}
-              <div className={`p-4 rounded-3xl text-xs font-semibold leading-relaxed border ${
-                selectedFood.color === 'red' ? 'bg-pink-50 text-gray-800 border-pink-100' :
-                selectedFood.color === 'amber' ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-primary/5 text-primary border-primary/10'
-              }`}>
-                {selectedFood.warning}
-              </div>
-
-              {/* Age-by-Age Preparation Matrix */}
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Age-by-Age Safety Guidelines</h4>
-                
-                <div className="space-y-3">
-                  <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">👶 6 Months Old (Purees & Soft BLW)</p>
-                    <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep6m}</p>
-                    
-    </div>
-                  <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">🧎 10 Months Old (Finger Food Bites)</p>
-                    <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep10m}</p>
-                    
-    </div>
-                  <div className="bg-gray-50 p-4 rounded-2xl space-y-1">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">🚶 12+ Months Old (Normal Serving)</p>
-                    <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep12m}</p>
-                    
-    </div>
-                  
-    </div>
-                
-    </div>
-
-              <button 
-                onClick={() => setSelectedFood(null)}
-                className="w-full py-4 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer text-center"
-              >
-                Got It, Thanks!
-              </button>
-            </motion.div>
-            
-    </div>
-        )}
-      </AnimatePresence>
-      
     </div>
   );
 };

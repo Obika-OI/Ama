@@ -265,14 +265,14 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                         Ama Baby Care, including the <strong>Ogoo AI Care Assistant</strong>, Baby Cry Acoustic Analyzer, and meal planning tools, is designed solely for educational, organizational, comforting, and routine care tracking purposes.
                       </p>
                       <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 text-gray-800 font-medium">
-                        <strong>Important:</strong> Ogoo AI and Ama tools are <strong>NOT medical devices and DO NOT diagnose any illness, medical condition, or clinical disorder. No baby is diagnosed by the AI.</strong> Never disregard professional pediatric medical advice or delay seeking care because of information provided by this application.
+                        <strong>Important:</strong> Ogoo AI and Ama tools are <strong>NOT medical devices and DO NOT diagnose any illness, medical condition, or clinical disorder. No baby is diagnosed by the AI.</strong> Never disregard professional medical advice or delay seeking care because of information provided by this application.
                       </div>
                     </section>
 
                     <section className="space-y-2">
                       <h4 className="font-bold text-gray-900 text-sm">4. Freemium Plan & Premium Subscriptions</h4>
                       <p>
-                        Ama offers a <strong>Freemium Plan</strong> providing free access to core feeding, diaper, sleep, and immunization tracking (ad-supported). The <strong>Ama Premium / Pro Subscription</strong> removes all advertising and unlocks unlimited Ogoo AI queries, acoustic cry analysis, and advanced pediatric PDF exports. Subscriptions can be managed or cancelled at any time via Paystack checkout.
+                        Ama offers a <strong>Freemium Plan</strong> providing free access to core feeding, diaper, sleep, and immunization tracking (ad-supported). The <strong>Ama Premium / Pro Subscription</strong> removes all advertising and unlocks unlimited Ogoo AI queries, acoustic cry analysis, and advanced health summary PDF exports. Subscriptions can be managed or cancelled at any time via Paystack checkout.
                       </p>
                     </section>
 

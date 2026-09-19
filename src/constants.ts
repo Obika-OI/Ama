@@ -571,31 +571,8 @@ export const DEFAULT_REMINDERS = [
       maxDosesPer24h: 4,
       dosage: '2.5 ml',
       instructions: 'For high temperature >38.5°C or teething discomfort. Never exceed 4 doses in 24 hours.',
-      doseLogs: [
-        {
-          id: 'log-seed-1',
-          timestamp: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
-          dosage: '2.5 ml',
-          notes: 'Fever post-teething nap'
-        }
-      ]
+      doseLogs: []
     }
-  },
-  {
-    id: 'r4',
-    title: 'Probiotic & Iron Wellness',
-    type: 'Medication',
-    category: 'medication' as const,
-    scheduleType: 'weekly' as const,
-    dosage: '5 drops',
-    time: '09:00 AM',
-    active: true,
-    isActive: true,
-    weeklyConfig: {
-      days: [1, 3, 5], // Mon, Wed, Fri
-      times: ['09:00 AM', '06:00 PM']
-    },
-    instructions: 'Recurring Mon, Wed, Fri gut wellness booster'
   }
 ];
 

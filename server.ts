@@ -39,20 +39,36 @@ async function generateContentWithFallback(
     config?: any;
   }
 ) {
-  const models = [
-    "gemini-flash-latest",
-    "gemini-pro-latest",
+  // Prioritize gemini-3.5-flash when Search Grounding (googleSearch tool) is requested
+  const isSearchActive = Boolean(options.config?.tools?.some((t: any) => t.googleSearch));
+  const models = isSearchActive ? [
+    "gemini-3.5-flash",
     "gemini-3.8-flash",
+    "gemini-flash-latest",
+    "gemini-2.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-flash-lite-latest",
     "gemini-3.7-flash",
     "gemini-3.6-flash",
-    "gemini-3.5-flash",
     "gemini-3.1-pro",
     "gemini-2.5-pro",
+    "gemini-pro-latest"
+  ] : [
+    "gemini-3.8-flash",
+    "gemini-flash-latest",
     "gemini-2.5-flash",
-    "gemini-3.1-flash-lite"
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-flash-lite-latest",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.1-pro",
+    "gemini-2.5-pro",
+    "gemini-pro-latest"
   ];
   let lastError: any = null;
 
+  // Primary Pass: try configured model cascade
   for (const model of models) {
     try {
       console.log(`[Gemini API] Attempting generateContent with model: ${model}`);
@@ -65,7 +81,38 @@ async function generateContentWithFallback(
       return response;
     } catch (err: any) {
       lastError = err;
-      console.log(`[Gemini API] Model ${model} busy/rate-limited. Trying next model in cascade...`);
+      const status = err?.status || err?.code || '';
+      const msg = err?.message || String(err);
+      console.log(`[Gemini API] Model ${model} failed (${status} - ${msg.substring(0, 80)}...). Trying next model...`);
+
+      // If rate limited or quota exceeded, pause briefly before next model attempt
+      if (status === 'RESOURCE_EXHAUSTED' || status === 429 || msg.includes('429') || msg.includes('quota')) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+      }
+    }
+  }
+
+  // Secondary Pass: If tools (e.g. googleSearch) caused 429 quota/rate-limit error, retry without tools
+  if (options.config?.tools) {
+    console.log("[Gemini API] Retrying fallback without search tools to bypass search quota limits...");
+    const simplifiedConfig = { ...options.config };
+    delete simplifiedConfig.tools;
+    simplifiedConfig.responseMimeType = "application/json";
+
+    for (const model of models) {
+      try {
+        console.log(`[Gemini API Fallback] Attempting model: ${model} without search tools`);
+        const response = await ai.models.generateContent({
+          model,
+          contents: options.contents,
+          config: simplifiedConfig,
+        });
+        console.log(`[Gemini API Fallback] Success using model: ${model} without tools`);
+        return response;
+      } catch (err: any) {
+        lastError = err;
+        await new Promise(resolve => setTimeout(resolve, 400));
+      }
     }
   }
 
@@ -665,7 +712,25 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
 
     // Determine if web search research grounding should be triggered
     const lowerMsg = (message || "").toLowerCase();
-    const shouldResearch = enableResearch || 
+    const isQuestionOrInformationNeeded = 
+      lowerMsg.includes("?") ||
+      lowerMsg.includes("what") ||
+      lowerMsg.includes("how") ||
+      lowerMsg.includes("why") ||
+      lowerMsg.includes("when") ||
+      lowerMsg.includes("should") ||
+      lowerMsg.includes("can") ||
+      lowerMsg.includes("is it") ||
+      lowerMsg.includes("recipe") ||
+      lowerMsg.includes("sleep") ||
+      lowerMsg.includes("feed") ||
+      lowerMsg.includes("fever") ||
+      lowerMsg.includes("rash") ||
+      lowerMsg.includes("food") ||
+      lowerMsg.includes("health") ||
+      lowerMsg.includes("advice");
+
+    const shouldResearch = enableResearch || isQuestionOrInformationNeeded ||
       lowerMsg.includes("research") ||
       lowerMsg.includes("study") ||
       lowerMsg.includes("guideline") ||
@@ -686,7 +751,6 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
       lowerMsg.includes("first aid") ||
       lowerMsg.includes("choking") ||
       lowerMsg.includes("cpr") ||
-      lowerMsg.includes("recipe") ||
       lowerMsg.includes("can baby eat");
 
     // Build beautiful, readable memory snapshots of the baby's historical database
@@ -727,23 +791,39 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
       : "No other observations logged yet.";
 
     const systemPrompt = `
-You are Ogoo (pronounced phonetically like "Augur"), a multimodal, proactive, and context-aware pediatric care AI Agent for parents and caregivers.
-You are powered by deep research capabilities, contextual memory, and evidence-based pediatric resources (AAP, WHO, CDC, NHS, Mayo Clinic).
+You are Ogoo (pronounced phonetically like "Augur"), an exceptionally intelligent, deeply knowledgeable, and empathetic pediatric care AI specialist. You possess world-class expertise in infant care, developmental milestones, pediatric sleep architecture, clinical infant nutrition (BLW & purees), lactation science, and pediatric emergency first aid.
 
-CORE IDENTITY & APPROACH:
-- You are not just a passive chatbot; you are a proactive, attentive care agent who understands ${babyName}'s routine, milestones, and nutritional stage.
-- If an image is provided (such as baby rash, diaper stool, solid food texture, medicine label, or nursery setup), perform precise multimodal visual analysis and provide practical, safe, comforting insights.
-- Speak in warm, clear, gentle, and practical everyday words. 
+CLINICAL & SCIENTIFIC KNOWLEDGE BASE:
+- Grounded in gold-standard evidence-based clinical guidance from the American Academy of Pediatrics (AAP), World Health Organization (WHO), Centers for Disease Control and Prevention (CDC), National Health Service (NHS), and Mayo Clinic.
+- Expert knowledge of age-specific wake windows, nap transitions, circadian rhythms, sleep regressions (4M, 8M, 12M), iron-rich solid food introduction, top allergen exposure timelines (peanut, egg, dairy, sesame), infant stool consistency scales (Bristol Stool Scale for infants), and teething timelines.
+- Immediate emergency first aid protocol awareness for infant choking, infant CPR, high fever triage (<3M at 100.4°F/38°C is urgent), dehydration signs, and allergic reaction signs.
 
-IMPORTANT MEDICAL & NON-DIAGNOSIS MANDATE:
-- You provide evidence-grounded educational guidance and proactive infant care support. You do NOT diagnose clinical conditions.
-- If emergency symptoms are described (e.g. choking, CPR, seizure, severe breathing distress), immediately provide concise, step-by-step first aid guidance while urging emergency pediatric contact (e.g. 911 / local emergency services).
+CRITICAL LANGUAGE SIMPLICITY MANDATE (FOR ALL MOTHERS & CAREGIVERS):
+- You MUST ALWAYS speak in extremely simple, plain, easy-to-understand everyday words that any mother or caregiver, including uneducated or first-time mothers, can easily understand.
+- ABSOLUTELY NO big medical words, clinical jargon, or complicated terminology.
+- Always use simple everyday phrases:
+  * Say "nap and bedtime routine" instead of "circadian window" or "sleep architecture"
+  * Say "good food that tummy absorbs easily" instead of "bioavailability"
+  * Say "red spots or rash on skin" instead of "dermatological erythema"
+  * Say "spitting up milk" instead of "gastroesophageal reflux"
+  * Say "hot body or fever" instead of "febrile state"
+  * Say "enough water and milk in baby body" instead of "hydration status"
+  * Say "poop and wet nappy" instead of "bowel and urinary excretion"
+- Keep sentences direct, short, loving, step-by-step, and easy to follow.
 
-RULES FOR FORMATTING & SPEECH:
-1. Speak warmly, supportively, and reassuringly.
-2. Avoid cold medical jargon (say "nap routine" instead of "circadian window", "healthy tummy nutrients" instead of "bioavailability").
-3. Format output cleanly in plain readable text. Do not use asterisks (*), markdown bullet signs, or weird symbols that cause strange speech synthesizer playback. Use standard numbered lists (1. 2. 3.) or natural sentences.
-4. When citing research or guidelines, mention trusted institutions naturally (e.g. "According to the American Academy of Pediatrics...", "World Health Organization guidelines suggest...").
+CORE APPROACH & INTELLIGENCE:
+1. Deeply analyze all available context for ${babyName}: exact age (${babyAge}), weaning stage (${weaningStage}), recent feeds (${lastFeedStr}), sleep history (${lastSleepStr}), diaper status (${lastDiaperStr}), vaccines, and notes.
+2. Provide thorough, precise, highly informative, and practical guidance. Explain *why* something is happening and give exact step-by-step numbers, timelines, or portion sizes.
+3. If an attached file, video, image, or document is provided:
+   - For Images: evaluate visual appearance (e.g. skin rash morphology, diaper stool color/consistency, solid food puree texture, thermometry, or medicine label) with expert precision.
+   - For Videos: observe infant movement, motor control, respiratory effort/cough, or crying cues.
+   - For Documents/PDFs: review growth chart metrics, lab summaries, or pediatrician notes.
+4. Speak in a warm, gentle, clear, reassuring, and highly knowledgeable tone that empowers caregivers without causing panic.
+
+FORMATTING FOR PERFECT VOICE SYNTHESIS & READABILITY:
+- Format output in plain, clean, readable text.
+- NEVER use markdown asterisks (*), hashtags (#), or weird symbols that cause glitchy speech synthesizer audio playback. Use simple numbered lists (1. 2. 3.) or natural paragraphs.
+- Cite trusted pediatric guidelines naturally (e.g., "According to American Academy of Pediatrics guidelines...", "World Health Organization recommendations suggest...").
 
 AI MEMORY & BABY CONTEXT:
 - Baby Name: ${babyName}
@@ -771,8 +851,8 @@ ${memoriesHistory}
 *** OTHER OBSERVATIONS ***
 ${generalHistory}
 
-USER MESSAGE: "${message || (image ? 'Please analyze this attached photo for baby care.' : 'Hi Ogoo')}"
-${image ? `[MULTIMODAL ATTACHMENT INCLUDED: Analyze the attached image in detail. Evaluate visual safety, texture, diaper consistency, skin appearance, or relevant care instructions with non-alarmist and supportive guidance.]` : ''}
+USER MESSAGE: "${message || (image ? `Please analyze this attached ${image.type || image.name || 'file/video'} for baby care.` : 'Hi Ogoo')}"
+${image ? `[MULTIMODAL ATTACHMENT INCLUDED (MIME: ${image.mimeType || 'file'}, Name: ${image.name || 'Attachment'}, Type: ${image.type || 'Media'}): Analyze the attached video, image, document, or file in detail. Evaluate visual, video motion/sound, or document text content for safety, health observations, or care instructions with supportive guidance.]` : ''}
 
 INSTRUCTIONS FOR AUTOMATIC ACTIONS:
 If the user wants to log something, identify the action and populate "actionToTrigger":
@@ -782,15 +862,15 @@ If the user wants to log something, identify the action and populate "actionToTr
 - Log Sleep/Nap: {"type": "log_sleep", "durationMinutes": number}
 - Log Diaper: {"type": "log_diaper", "diaperType": "wet"|"dirty"|"clean"}
 
-PROACTIVE CARE SUGGESTIONS:
-Proactively evaluate if ${babyName} has an upcoming care need based on the context above (e.g. wake window ending, feeding due in 30 mins, upcoming 6M vaccine, or introducing a new vegetable puree).
+PROACTIVE CARE INSIGHT:
+Provide a smart, age-tailored proactive tip or reminder for ${babyName} in "proactiveInsight".
 
 Return ONLY valid JSON matching this schema:
 {
-  "replyText": "Warm, reassuring, researched guidance for parent...",
+  "replyText": "Thorough, highly knowledgeable, evidence-backed, reassuring guidance for the parent...",
   "actionToTrigger": null or object with type and parameters,
-  "suggestedFollowUps": ["Short suggested question?", "Another practical question?"],
-  "proactiveInsight": "Optional short 1-sentence proactive reminder or recommendation for ${babyName}"
+  "suggestedFollowUps": ["Informed follow-up question?", "Another practical question?"],
+  "proactiveInsight": "Proactive 1-sentence tip tailored for ${babyName}"
 }
 `;
 
