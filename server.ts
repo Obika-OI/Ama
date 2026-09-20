@@ -123,6 +123,12 @@ async function generateContentWithFallback(
 // API ROUTES
 // ============================================================================
 
+// Explicit ads.txt serving for guaranteed Google AdSense crawl discovery
+app.get("/ads.txt", (req: Request, res: Response) => {
+  res.setHeader("Content-Type", "text/plain");
+  res.send("google.com, pub-5528750606185925, DIRECT, f08c47fec0942fa0");
+});
+
 
 import crypto from 'crypto';
 

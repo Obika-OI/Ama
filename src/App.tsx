@@ -20,7 +20,6 @@ import { DiaperAnalyzer } from './components/DiaperAnalyzer';
 import { MemorySlideshow } from './components/MemorySlideshow';
 import { LegalConsentModal } from './components/LegalConsentModal';
 import { AppUserGuide } from './components/AppUserGuide';
-import { SafetyGuideScreen } from './components/SafetyGuideScreen';
 import { LegalTermsScreen } from './components/LegalTermsScreen';
 import { LandingPage } from './components/LandingPage';
 import { AiMealPlanner } from './components/AiMealPlanner';
@@ -104,6 +103,7 @@ export default function App() {
     const onboarded = localStorage.getItem('ama_onboarded');
     return onboarded ? 'home' : 'landing';
   });
+  const [feedingTrackerTab, setFeedingTrackerTab] = useState<'today' | 'allergen' | 'guide'>('today');
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [autoOpenLogModal, setAutoOpenLogModal] = useState(false);
   const [navData, setNavData] = useState<any>(null);
@@ -1069,6 +1069,13 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
+        
+        const isOnboarded = localStorage.getItem('ama_onboarded') === 'true';
+        if (!isOnboarded) {
+          setIsInitialLoadComplete(true);
+          return;
+        }
+
         setIsInitialLoadComplete(false);
         try {
           const userDocRef = doc(db, 'users', user.uid);
@@ -1231,7 +1238,8 @@ export default function App() {
 
   // Real-time Cloud Sync Listener
   useEffect(() => {
-    if (!currentUser || !isInitialLoadComplete || !isOnline) return;
+    const isOnboarded = localStorage.getItem('ama_onboarded') === 'true';
+    if (!currentUser || !isInitialLoadComplete || !isOnline || !isOnboarded || showOnboarding) return;
 
     const userDocRef = doc(db, 'users', currentUser.uid);
     const unsubscribe = onSnapshot(
@@ -1289,13 +1297,14 @@ export default function App() {
     );
 
     return () => unsubscribe();
-  }, [currentUser, isInitialLoadComplete, isOnline]);
+  }, [currentUser, isInitialLoadComplete, isOnline, showOnboarding]);
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto Cloud Sync Effect with network state check and conflict resolution
   useEffect(() => {
-    if (!currentUser || !isInitialLoadComplete || !isOnline) return;
+    const isOnboarded = localStorage.getItem('ama_onboarded') === 'true';
+    if (!currentUser || !isInitialLoadComplete || !isOnline || !isOnboarded || showOnboarding) return;
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
@@ -1430,7 +1439,8 @@ export default function App() {
     scheduledActivities,
     scheduledMeds,
     reminders,
-    vaccineSchedule
+    vaccineSchedule,
+    showOnboarding
   ]);
 
   const applySyncData = (data: any) => {
@@ -1570,11 +1580,18 @@ export default function App() {
   }, [lastLocalUpdate]);
 
   const handleNavigate = (screen: string, data?: any, autoOpenLog?: boolean) => {
+    if (screen === 'safety-guide') {
+      setFeedingTrackerTab('guide');
+      setActiveScreen('feeding');
+      return;
+    }
     if (screen === 'recipe-detail') {
       setSelectedMeal(data || MOCK_MEALS[0]);
       setAutoOpenLogModal(!!autoOpenLog);
     } else if (screen === 'journal') {
       setNavData(data);
+    } else if (screen === 'feeding') {
+      setFeedingTrackerTab('today');
     }
     setActiveScreen(screen);
   };
@@ -1667,6 +1684,7 @@ export default function App() {
               setAllergenMatrix={setAllergenMatrix}
               loggedMeals={loggedMeals}
               userRole={userRole}
+              initialTab={feedingTrackerTab}
             />
           </motion.div>
         )}
@@ -1916,17 +1934,6 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* Full Page Safety Guide Screen */}
-        {activeScreen === 'safety-guide' && (
-          <motion.div key="safety-guide" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="p-4 sm:p-6 pb-28 max-w-5xl mx-auto">
-            <SafetyGuideScreen 
-              onBack={() => setActiveScreen('settings')} 
-              isPremium={isPremium}
-              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-            />
-          </motion.div>
-        )}
-
         {/* Full Page Legal Terms & Privacy Screen */}
         {activeScreen === 'legal-terms' && (
           <motion.div key="legal-terms" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="p-4 sm:p-6 pb-28 max-w-5xl mx-auto">
@@ -2093,7 +2100,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Interactive First-Launch Onboarding Overlay */}
-      {showOnboarding && (
+      {showOnboarding && activeScreen !== 'landing' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md overflow-y-auto">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 30 }}
@@ -2319,7 +2326,7 @@ export default function App() {
 
       {/* Mandatory Terms of Use & Privacy Policy Gate for Every New Device */}
       <LegalConsentModal 
-        isOpen={showLegalConsent}
+        isOpen={showLegalConsent && activeScreen !== 'landing' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide')}
         onAccept={() => setShowLegalConsent(false)}
       />
       

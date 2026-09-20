@@ -3,6 +3,7 @@ import { Droplet, Timer, Play, Pause, RotateCcw, Plus, Calendar, Clock, ChevronL
 import { CircularProgress } from './CircularProgress';
 import { motion, AnimatePresence } from 'motion/react';
 import { COMMON_INGREDIENTS } from '../constants/babyData';
+import { RICH_FOOD_ARTICLES } from '../constants/richFoodArticles';
 import { MOCK_MEALS, THEME } from '../constants';
 import { Meal } from '../types';
 
@@ -17,7 +18,8 @@ export const FeedingTracker = ({
   allergenMatrix,
   setAllergenMatrix,
   loggedMeals,
-  userRole = 'admin'
+  userRole = 'admin',
+  initialTab
 }: { 
   fluidMl: number; 
   fluidTarget: number; 
@@ -30,8 +32,16 @@ export const FeedingTracker = ({
   setAllergenMatrix: (matrix: any[]) => void;
   loggedMeals: any[];
   userRole?: string;
+  initialTab?: 'today' | 'allergen' | 'guide';
 }) => {
-  const [activeTab, setActiveTab] = useState<'today' | 'allergen' | 'guide'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'allergen' | 'guide'>(initialTab || 'today');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   const [timer, setTimer] = useState(0);
   const [isEditingTarget, setIsEditingTarget] = useState(false);
   const [editTargetValue, setEditTargetValue] = useState(fluidTarget.toString());
@@ -873,87 +883,178 @@ export const FeedingTracker = ({
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            {selectedFood ? (
-              /* Inline Full-Page Detailed Food Guideline View */
-              <div className="bg-card p-6 rounded-[36px] border border-white shadow-sm space-y-6 text-left">
-                <button
-                  onClick={() => setSelectedFood(null)}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer border-none transition-all"
-                >
-                  <span>←</span>
-                  <span>Back to Ingredient Index</span>
-                </button>
+            {selectedFood ? (() => {
+              const article = RICH_FOOD_ARTICLES[selectedFood.id] || {
+                intro: `Learn how to prepare and feed ${selectedFood.name} safely to your baby.`,
+                benefitsOrRisks: `Understanding how ${selectedFood.name} affects your baby's health is important for safe weaning.`,
+                howToChooseAndWash: `Always wash fresh foods in clean water before giving them to your baby.`,
+                safetyChecklist: [
+                  "Always watch your baby while they are eating.",
+                  "Make sure your baby is sitting upright in a safe seat."
+                ],
+                faqs: [
+                  {
+                    q: `Is ${selectedFood.name} safe for everyday feeding?`,
+                    a: "Yes, when prepared correctly and cut to the right size for your baby's age."
+                  }
+                ]
+              };
 
-                <header className="flex justify-between items-start pt-2">
-                  <div className="space-y-1">
-                    <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                      selectedFood.color === 'green' ? 'bg-primary/10 text-primary border border-primary/20' :
-                      selectedFood.color === 'amber' ? 'bg-gray-100 text-gray-700 border border-gray-200' : 'bg-pink-100 text-gray-800 border border-pink-200'
-                    }`}>
-                      {selectedFood.color === 'green' ? 'Safe to Serve' :
-                       selectedFood.color === 'amber' ? 'Prepare with Caution' : 'Avoid Under 12m'}
+              return (
+                <div className="bg-card p-6 sm:p-8 rounded-[36px] border border-white shadow-sm space-y-8 text-left max-w-4xl mx-auto">
+                  {/* Back Navigation Header */}
+                  <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                    <button
+                      onClick={() => setSelectedFood(null)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer border-none transition-all"
+                    >
+                      <span>←</span>
+                      <span>Back to Ingredient Index</span>
+                    </button>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Safety Guide Category: {selectedFood.category}
                     </span>
-                    <h3 className="text-3xl font-serif font-black text-gray-800">{selectedFood.name}</h3>
                   </div>
-                </header>
 
-                {/* Warnings Callout block */}
-                <div className={`p-4 rounded-2xl text-xs font-semibold leading-relaxed border ${
-                  selectedFood.color === 'red' ? 'bg-pink-50 text-gray-800 border-pink-100' :
-                  selectedFood.color === 'amber' ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-primary/5 text-primary border-primary/10'
-                }`}>
-                  {selectedFood.warning}
-                </div>
+                  {/* Food Article Title Section */}
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                        selectedFood.color === 'green' ? 'bg-primary/10 text-primary border-primary/20' :
+                        selectedFood.color === 'amber' ? 'bg-gray-100 text-gray-700 border-gray-200' : 'bg-pink-100 text-gray-800 border-pink-200'
+                      }`}>
+                        {selectedFood.color === 'green' ? 'Safe to Serve' :
+                         selectedFood.color === 'amber' ? 'Prepare with Caution' : 'Avoid Under 12m'}
+                      </span>
+                      <span className="text-2xl">{selectedFood.icon}</span>
+                    </div>
+                    <h1 className="text-3xl sm:text-4xl font-serif font-black text-gray-900 tracking-tight leading-tight">
+                      Is {selectedFood.name} Safe for Babies? Full Feeding Guide
+                    </h1>
+                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
+                      Written by Infant Weaning Safety Experts
+                    </p>
+                  </div>
 
-                {/* Age-by-Age Preparation Matrix */}
-                <div className="space-y-4">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Age-by-Age Safety Guidelines</h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="bg-gray-50 p-4 rounded-2xl space-y-1 border border-gray-100">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">👶 6 Months Old (Purees & Soft BLW)</p>
-                      <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep6m}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-2xl space-y-1 border border-gray-100">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">🧎 10 Months Old (Finger Food Bites)</p>
-                      <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep10m}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-2xl space-y-1 border border-gray-100">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">🚶 12+ Months Old (Normal Serving)</p>
-                      <p className="text-xs font-medium text-gray-700 leading-relaxed">{selectedFood.prep12m}</p>
+                  {/* Warning Callout block */}
+                  <div className={`p-5 rounded-2xl text-xs font-semibold leading-relaxed border ${
+                    selectedFood.color === 'red' ? 'bg-pink-50 text-gray-800 border-pink-100' :
+                    selectedFood.color === 'amber' ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-primary/5 text-primary border-primary/10'
+                  }`}>
+                    {selectedFood.warning}
+                  </div>
+
+                  {/* About and Why It Matters section */}
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-serif font-black text-gray-900 border-l-4 border-primary pl-3">
+                      About {selectedFood.name} for Infants
+                    </h2>
+                    <p className="text-sm text-gray-600 leading-relaxed font-normal">
+                      {article.intro}
+                    </p>
+                    <p className="text-sm text-gray-600 leading-relaxed font-normal">
+                      {article.benefitsOrRisks}
+                    </p>
+                  </div>
+
+                  {/* Age-by-Age Preparation Matrix */}
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-serif font-black text-gray-900 border-l-4 border-primary pl-3">
+                      Age-by-Age Safe Preparation Steps
+                    </h2>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 space-y-2">
+                        <span className="text-xl">👶</span>
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">6 Months Old</h4>
+                        <p className="text-xs font-bold text-gray-500 uppercase">Purees and Soft Foods</p>
+                        <p className="text-xs text-gray-600 leading-relaxed font-medium">{selectedFood.prep6m}</p>
+                      </div>
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 space-y-2">
+                        <span className="text-xl">🧎</span>
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">10 Months Old</h4>
+                        <p className="text-xs font-bold text-gray-500 uppercase">Bite-Sized Finger Foods</p>
+                        <p className="text-xs text-gray-600 leading-relaxed font-medium">{selectedFood.prep10m}</p>
+                      </div>
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 space-y-2">
+                        <span className="text-xl">🚶</span>
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">12+ Months Old</h4>
+                        <p className="text-xs font-bold text-gray-500 uppercase">Normal Table Servings</p>
+                        <p className="text-xs text-gray-600 leading-relaxed font-medium">{selectedFood.prep12m}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <button 
-                  onClick={() => setSelectedFood(null)}
-                  className="w-full py-3.5 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer text-center border-none shadow-sm"
-                >
-                  Close Detailed View
-                </button>
-              </div>
-            ) : (
-              /* Ingredient Index List & Filter View */
-              <>
-                {/* Dedicated full page banner */}
-                <div className="bg-card p-5 rounded-[32px] border border-white shadow-sm flex items-center justify-between gap-4 text-left">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl shrink-0">
-                      🛡️
-                    </div>
-                    <div>
-                      <h4 className="font-serif font-black text-gray-800 text-sm">Infant Food & Safety Preparation Guide</h4>
-                      <p className="text-[10px] text-gray-400 font-medium">Stage-by-stage (6m, 10m, 12m+) preparation guides, gagging vs choking protocols & allergy safety.</p>
+                  {/* How to Choose and Wash section */}
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-serif font-black text-gray-900 border-l-4 border-primary pl-3">
+                      How to Choose and Wash Safely
+                    </h2>
+                    <p className="text-sm text-gray-600 leading-relaxed font-normal">
+                      {article.howToChooseAndWash}
+                    </p>
+                  </div>
+
+                  {/* Safety Checklist section */}
+                  <div className="bg-white p-6 rounded-3xl border border-gray-100 space-y-4">
+                    <h3 className="text-md font-serif font-black text-gray-900 flex items-center gap-2">
+                      <Heart className="w-5 h-5 text-pink-500 fill-pink-500" />
+                      <span>Important Loving Safety Checklist for Mothers</span>
+                    </h3>
+                    <ul className="space-y-2.5 text-xs text-gray-600 leading-relaxed">
+                      {article.safetyChecklist.map((item, index) => (
+                        <li key={index} className="flex items-start gap-2 text-left">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Common Questions Mothers Ask (FAQ) section */}
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-serif font-black text-gray-900 border-l-4 border-primary pl-3">
+                      Common Questions Mothers Ask
+                    </h2>
+                    <div className="space-y-4">
+                      {article.faqs.map((faq, index) => (
+                        <div key={index} className="bg-white p-5 rounded-2xl border border-gray-100 space-y-1.5">
+                          <h4 className="font-bold text-gray-800 text-sm flex items-start gap-1.5">
+                            <span className="text-primary text-xs shrink-0 mt-0.5">Q.</span>
+                            <span>{faq.q}</span>
+                          </h4>
+                          <p className="text-xs text-gray-500 leading-relaxed pl-4 font-medium">
+                            {faq.a}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <button
-                    onClick={() => onNavigate('safety-guide')}
-                    className="px-4 py-2.5 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-wider shrink-0 hover:bg-primary/90 transition-all cursor-pointer shadow-sm shadow-primary/20"
+
+                  {/* Medical Disclaimer */}
+                  <div className="bg-gray-50 p-5 rounded-2xl text-[11px] text-gray-400 leading-relaxed space-y-1">
+                    <p className="font-bold uppercase tracking-wider">Medical Notice for Parents</p>
+                    <p>
+                      This information is built solely for educational purposes. It does not replace professional health guidance. If you think your child is having an allergic reaction or medical issue, call your local doctor or medical emergency line right away.
+                    </p>
+                  </div>
+
+                  {/* Bottom Back Button */}
+                  <button 
+                    onClick={() => {
+                      setSelectedFood(null);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-full py-4 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer text-center border-none shadow-sm"
                   >
-                    Open Guide Page
+                    Close Article and Go Back
                   </button>
                 </div>
-
+              );
+            })()
+            : (
+              /* Ingredient Index List & Filter View */
+              <>
                 {/* Search and Filters */}
                 <div className="space-y-3">
                   <div className="relative bg-white rounded-2xl border border-gray-100 shadow-inner p-1 flex items-center">

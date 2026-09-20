@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, ArrowLeft, Lock, FileText, CheckCircle2, ShieldCheck, Scale, Globe } from 'lucide-react';
+import { useSEO } from '../utils/seo';
 
 export const LegalTermsScreen = ({
   onBack,
@@ -13,6 +14,18 @@ export const LegalTermsScreen = ({
   onOpenSubscriptionModal?: () => void;
 }) => {
   const [activeTab, setActiveTab] = useState<'terms' | 'privacy' | 'disclaimer' | 'compliance'>('privacy');
+
+  // Dynamic SEO article metadata mapping for Google AdSense compliance
+  useSEO({
+    title: 'Privacy Policy & Terms of Service – Ama Baby Care',
+    description: 'Read the privacy policy, user agreements, and legal compliance standards of Ama Baby Care app. We prioritize family safety and child data privacy.',
+    robots: 'index, follow',
+    ogType: 'article',
+    ogTitle: 'Privacy Policy & Terms of Service – Ama Baby Care Companion',
+    ogDescription: 'COPPA-compliant, GDPR-friendly privacy policies and safety disclaimers for Ama Baby Care App. Built to protect baby tracking logs.',
+    publishedTime: '2026-09-19T12:00:00Z',
+    author: 'Ama Legal Department'
+  });
 
   const handleBack = () => {
     if (onBack) {
@@ -77,6 +90,16 @@ export const LegalTermsScreen = ({
 
       {/* Content Sections */}
       <div className="bg-card p-6 sm:p-10 rounded-[36px] border border-white shadow-sm space-y-8 max-w-4xl text-gray-700 leading-relaxed text-sm">
+        {/* Simple Mother-Friendly Promise Alert Box */}
+        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 space-y-2">
+          <h4 className="font-serif font-black text-gray-900 text-sm flex items-center gap-2">
+            <span>🌟</span> Ama's Safe Promise to All Mothers
+          </h4>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            We promise with all our heart to keep your baby's notes safe and completely secret. No one else can see your baby's name, sleep times, milk feeds, or nappy logs. This screen lists our formal rules, but our main goal is to support you, keep your family's details private, and keep your mind at peace.
+          </p>
+        </div>
+
         {activeTab === 'privacy' && (
           <div className="space-y-6">
             <div>

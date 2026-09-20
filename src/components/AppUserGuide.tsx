@@ -21,6 +21,7 @@ import {
   FileText,
   ArrowLeft
 } from 'lucide-react';
+import { useSEO } from '../utils/seo';
 
 interface AppUserGuideProps {
   onClose?: () => void;
@@ -44,6 +45,18 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [expandedSectionId, setExpandedSectionId] = useState<string | null>('getting-started');
+
+  // SEO mapping to dynamic article page for Google AdSense compliance
+  useSEO({
+    title: 'Ama App User Manual & Parenting Guide – Ama Care',
+    description: 'A step-by-step simple user guide for mothers to track milk feeds, sleep wake-windows, diaper color health, immunization dates, and growth quests easily.',
+    robots: 'index, follow',
+    ogType: 'article',
+    ogTitle: 'Ama App User Manual – Simple Tracking Instructions for Moms',
+    ogDescription: 'Step-by-step friendly tutorials on logging bottle feedings, starting nursing timers, using voice helpers, and tracking vaccine schedules easily.',
+    publishedTime: '2026-09-19T12:00:00Z',
+    author: 'Ama Care Education Panel'
+  });
 
   const guideSections: GuideSection[] = [
     {
@@ -230,6 +243,16 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
           </div>
         </div>
       )}
+
+      {/* Friendly Maternal Greeting & Intro */}
+      <div className="bg-primary/5 border border-primary/25 rounded-3xl p-5 space-y-2">
+        <h3 className="font-serif font-black text-gray-900 text-sm flex items-center gap-2">
+          <span>📖</span> How to Use the Ama App (Made Simple for You)
+        </h3>
+        <p className="text-xs text-gray-600 leading-relaxed">
+          Welcome to your friendly book of help! If you are ever confused about how to tap a button, start a feeding timer, or use our smart baby tools, this guide will show you how in very simple steps. Read through the topics below to feel completely confident and relaxed as you take care of your baby.
+        </p>
+      </div>
 
       {/* Search and Category Bar */}
       <div className="space-y-3">
