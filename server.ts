@@ -1,10 +1,59 @@
 import express, { Request, Response } from "express";
 import path from "path";
+import cors from "cors";
 import { GoogleGenAI } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+// CORS Configuration
+const ALLOWED_ORIGINS = [
+  "https://dome-2030.web.app",
+  "https://dome-2030.firebaseapp.com",
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:5173",
+];
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server or non-browser requests with no origin header
+    if (!origin) {
+      return callback(null, true);
+    }
+    // Explicitly allow dome-2030.web.app, related Firebase domains, and preview environments
+    if (
+      ALLOWED_ORIGINS.includes(origin) ||
+      origin === "https://dome-2030.web.app" ||
+      origin.endsWith(".web.app") ||
+      origin.endsWith(".firebaseapp.com") ||
+      origin.endsWith(".run.app") ||
+      origin.includes("localhost") ||
+      origin.includes("127.0.0.1")
+    ) {
+      return callback(null, true);
+    }
+    // Reflect origin to permit cross-origin access across authorized endpoints
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+  allowedHeaders: [
+    "Origin",
+    "X-Requested-With",
+    "Content-Type",
+    "Accept",
+    "Authorization",
+    "x-paystack-signature",
+    "x-api-key",
+  ],
+  exposedHeaders: ["Content-Length", "X-Request-Id"],
+  maxAge: 86400,
+};
+
+app.use(cors(corsOptions));
 
 // Body parsing middlewares
 app.use(express.json({ limit: "25mb" }));
