@@ -721,6 +721,129 @@ function getHeuristicResponse(
 }
 
 // ----------------------------------------------------------------------------
+// 2a. Dynamic Raw Gemini Proxy Endpoint (Cross-Origin & Multi-App Persona Support)
+// Accepts prompt, systemInstruction, and history dynamically without assuming persona
+// ----------------------------------------------------------------------------
+app.post(
+  ["/api/raw-gemini-proxy", "/api/gemini/raw-proxy", "/api/gemini-proxy", "/api/gemini/generate"],
+  async (req: Request, res: Response) => {
+    try {
+      const {
+        prompt,
+        message,
+        systemInstruction,
+        systemPrompt,
+        history,
+        conversationHistory,
+        contents,
+        temperature,
+        topP,
+        topK,
+        responseMimeType,
+        tools,
+        image
+      } = req.body;
+
+      const actualPrompt = prompt || message || "";
+      const actualSystemInstruction = systemInstruction || systemPrompt || "You are a helpful, intelligent agent.";
+
+      const ai = getGenAI();
+      if (!ai) {
+        return res.status(503).json({
+          success: false,
+          error: "GEMINI_API_KEY is not configured on the server."
+        });
+      }
+
+      // Build contents payload: support history, multi-turn chat, multimodal images, or single prompt
+      let contentsPayload: any;
+      const historyList = history || conversationHistory;
+
+      if (Array.isArray(contents) && contents.length > 0) {
+        contentsPayload = contents;
+      } else if (Array.isArray(historyList) && historyList.length > 0) {
+        const formattedHistory = historyList.map((item: any) => {
+          if (item.parts) return item;
+          const role = item.role === "assistant" || item.role === "bot" ? "model" : (item.role || "user");
+          const textContent = item.text || item.content || item.message || "";
+          return {
+            role,
+            parts: [{ text: String(textContent) }]
+          };
+        });
+
+        if (actualPrompt || (image && image.data)) {
+          const parts: any[] = [];
+          if (image && image.data) {
+            const mimeType = image.mimeType || "image/jpeg";
+            const cleanBase64 = image.data.includes("base64,") ? image.data.split("base64,")[1] : image.data;
+            parts.push({ inlineData: { mimeType, data: cleanBase64 } });
+          }
+          if (actualPrompt) {
+            parts.push({ text: actualPrompt });
+          }
+          formattedHistory.push({ role: "user", parts });
+        }
+        contentsPayload = formattedHistory;
+      } else if (image && image.data) {
+        const mimeType = image.mimeType || "image/jpeg";
+        const cleanBase64 = image.data.includes("base64,") ? image.data.split("base64,")[1] : image.data;
+        contentsPayload = {
+          parts: [
+            { inlineData: { mimeType, data: cleanBase64 } },
+            { text: actualPrompt }
+          ]
+        };
+      } else {
+        contentsPayload = actualPrompt;
+      }
+
+      const config: any = {
+        systemInstruction: actualSystemInstruction,
+      };
+
+      if (typeof temperature === "number") {
+        config.temperature = temperature;
+      }
+      if (typeof topP === "number") {
+        config.topP = topP;
+      }
+      if (typeof topK === "number") {
+        config.topK = topK;
+      }
+      if (responseMimeType) {
+        config.responseMimeType = responseMimeType;
+      }
+      if (tools) {
+        config.tools = tools;
+      }
+
+      const response = await generateContentWithFallback(ai, {
+        contents: contentsPayload,
+        config,
+      });
+
+      const responseText = response.text || "";
+
+      res.json({
+        success: true,
+        text: responseText,
+        candidates: response.candidates,
+        response: {
+          text: responseText
+        }
+      });
+    } catch (error: any) {
+      console.error("[raw-gemini-proxy] Error:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to process request with Gemini proxy."
+      });
+    }
+  }
+);
+
+// ----------------------------------------------------------------------------
 // 2b. Intelligent Context-Aware Ogoo Multimodal & Proactive Research AI Agent
 // ----------------------------------------------------------------------------
 app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
@@ -729,6 +852,8 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
       message = "",
       image = null, // { data: base64, mimeType: string }
       enableResearch = false,
+      systemInstruction,
+      systemPrompt: customSystemPrompt,
       babyName = "Baby",
       babyAge = "6 months",
       weaningStage = "Purees",
@@ -836,7 +961,9 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
         ).join("\n")
       : "No other observations logged yet.";
 
-    const systemPrompt = `
+    // Dynamic persona resolution: if caller provided custom systemInstruction or systemPrompt, respect it directly
+    const effectiveCustomPrompt = systemInstruction || customSystemPrompt;
+    const defaultOgooPrompt = `
 You are Ogoo (pronounced phonetically like "Augur"), an exceptionally intelligent, deeply knowledgeable, and empathetic pediatric care AI specialist. You possess world-class expertise in infant care, developmental milestones, pediatric sleep architecture, clinical infant nutrition (BLW & purees), lactation science, and pediatric emergency first aid.
 
 CLINICAL & SCIENTIFIC KNOWLEDGE BASE:
@@ -919,6 +1046,12 @@ Return ONLY valid JSON matching this schema:
   "proactiveInsight": "Proactive 1-sentence tip tailored for ${babyName}"
 }
 `;
+
+    const systemPrompt = effectiveCustomPrompt ? `
+${effectiveCustomPrompt}
+
+USER MESSAGE: "${message || 'Hello'}"
+` : defaultOgooPrompt;
 
     // Multimodal payload assembly
     let contentsPayload: any;
