@@ -34,6 +34,9 @@ import { ActivitiesScreen } from './components/ActivitiesScreen';
 import { RemindersScreen } from './components/RemindersScreen';
 import { NotificationsScreen } from './components/NotificationsScreen';
 import { SettingsScreen } from './components/SettingsScreen';
+import { BlogScreen } from './components/BlogScreen';
+import { BlogArticleDetail } from './components/BlogArticleDetail';
+import { BLOG_ARTICLES, BlogArticle } from './constants/blogArticles';
 import { BabyProfile } from './types';
 import confetti from 'canvas-confetti';
 import { deleteUser } from 'firebase/auth';
@@ -99,10 +102,62 @@ export default function App() {
     }
   }, []);
 
+  const [selectedBlogArticle, setSelectedBlogArticle] = useState<BlogArticle | null>(() => {
+    const hash = window.location.hash;
+    const searchParams = new URLSearchParams(window.location.search);
+    const articleSlug = searchParams.get('article') || (hash.startsWith('#article=') ? hash.replace('#article=', '') : null);
+    if (articleSlug) {
+      const found = BLOG_ARTICLES.find(a => a.slug === articleSlug || a.id === articleSlug);
+      if (found) return found;
+    }
+    return BLOG_ARTICLES[0];
+  });
+
   const [activeScreen, setActiveScreen] = useState(() => {
+    const hash = window.location.hash;
+    const searchParams = new URLSearchParams(window.location.search);
+    const screenParam = searchParams.get('screen') || searchParams.get('tab');
+    const articleSlug = searchParams.get('article') || (hash.startsWith('#article=') ? hash.replace('#article=', '') : null);
+
+    if (articleSlug) {
+      return 'blog-article';
+    }
+    if (hash === '#blog' || screenParam === 'blog') {
+      return 'blog';
+    }
     const onboarded = localStorage.getItem('ama_onboarded');
     return onboarded ? 'home' : 'landing';
   });
+
+  // Listen for hash and popstate changes for back/forward navigation in blog
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      const searchParams = new URLSearchParams(window.location.search);
+      const articleSlug = searchParams.get('article') || (hash.startsWith('#article=') ? hash.replace('#article=', '') : null);
+
+      if (articleSlug) {
+        const found = BLOG_ARTICLES.find(a => a.slug === articleSlug || a.id === articleSlug);
+        if (found) {
+          setSelectedBlogArticle(found);
+          setActiveScreen('blog-article');
+          return;
+        }
+      }
+
+      if (hash === '#blog' || searchParams.get('screen') === 'blog') {
+        setActiveScreen('blog');
+        return;
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handleHashChange);
+    };
+  }, []);
   const [feedingTrackerTab, setFeedingTrackerTab] = useState<'today' | 'allergen' | 'guide'>('today');
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [autoOpenLogModal, setAutoOpenLogModal] = useState(false);
@@ -1941,6 +1996,48 @@ export default function App() {
           </motion.div>
         )}
 
+        {/* Evidence-Based Pediatric Blog Hub (Publicly Accessible, SEO & AdSense Ready) */}
+        {activeScreen === 'blog' && (
+          <motion.div key="blog" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="min-h-screen">
+            <BlogScreen 
+              isPremium={isPremium}
+              onSelectArticle={(art) => {
+                setSelectedBlogArticle(art);
+                window.location.hash = `article=${art.slug}`;
+                setActiveScreen('blog-article');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onBack={() => {
+                if (localStorage.getItem('ama_onboarded')) {
+                  setActiveScreen('home');
+                } else {
+                  setActiveScreen('landing');
+                }
+              }}
+              onNavigateApp={(screen) => setActiveScreen(screen)}
+            />
+          </motion.div>
+        )}
+
+        {/* Individual Blog Article View */}
+        {activeScreen === 'blog-article' && selectedBlogArticle && (
+          <motion.div key="blog-article" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="min-h-screen">
+            <BlogArticleDetail 
+              article={selectedBlogArticle}
+              isPremium={isPremium}
+              onBack={() => {
+                window.location.hash = 'blog';
+                setActiveScreen('blog');
+              }}
+              onSelectArticle={(art) => {
+                setSelectedBlogArticle(art);
+                window.location.hash = `article=${art.slug}`;
+              }}
+              onNavigateApp={(screen) => setActiveScreen(screen)}
+            />
+          </motion.div>
+        )}
+
         {/* AdSense Compliant Landing Page */}
         {activeScreen === 'landing' && (
           <motion.div key="landing" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="pb-28">
@@ -1953,14 +2050,16 @@ export default function App() {
         
       </AnimatePresence>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 sm:bottom-4 left-0 right-0 w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto bg-white/95 backdrop-blur-xl border border-gray-200/80 rounded-t-3xl sm:rounded-full px-2 sm:px-4 md:px-6 py-2 sm:py-2.5 flex justify-between sm:justify-around items-center z-40 shadow-xl shadow-gray-900/10 transition-all">
-        <NavButton active={activeScreen === 'home'} icon={<Home />} label="Dashboard" onClick={() => setActiveScreen('home')} />
-        <NavButton active={activeScreen === 'feeding'} icon={<Utensils />} label="Meal Log" onClick={() => setActiveScreen('feeding')} />
-        <NavButton active={activeScreen === 'sleep' || activeScreen === 'activity'} icon={<ActivityIcon />} label="Activity" onClick={() => setActiveScreen('sleep')} />
-        <NavButton active={activeScreen === 'recipes'} icon={<BookOpen />} label="Recipes" onClick={() => setActiveScreen('recipes')} />
-        <NavButton active={activeScreen === 'journal'} icon={<Calendar />} label="Journal" onClick={() => setActiveScreen('journal')} />
-      </nav>
+      {/* Bottom Navigation (Hidden on Landing and Blog for clean reading immersion) */}
+      {activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && (
+        <nav className="fixed bottom-0 sm:bottom-4 left-0 right-0 w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto bg-white/95 backdrop-blur-xl border border-gray-200/80 rounded-t-3xl sm:rounded-full px-2 sm:px-4 md:px-6 py-2 sm:py-2.5 flex justify-between sm:justify-around items-center z-40 shadow-xl shadow-gray-900/10 transition-all">
+          <NavButton active={activeScreen === 'home'} icon={<Home />} label="Dashboard" onClick={() => setActiveScreen('home')} />
+          <NavButton active={activeScreen === 'feeding'} icon={<Utensils />} label="Meal Log" onClick={() => setActiveScreen('feeding')} />
+          <NavButton active={activeScreen === 'sleep' || activeScreen === 'activity'} icon={<ActivityIcon />} label="Activity" onClick={() => setActiveScreen('sleep')} />
+          <NavButton active={activeScreen === 'recipes'} icon={<BookOpen />} label="Recipes" onClick={() => setActiveScreen('recipes')} />
+          <NavButton active={activeScreen === 'journal'} icon={<Calendar />} label="Journal" onClick={() => setActiveScreen('journal')} />
+        </nav>
+      )}
 
       {/* Celebration Streak Level-Up Modal Overlay */}
       <AnimatePresence>
@@ -2326,7 +2425,7 @@ export default function App() {
 
       {/* Mandatory Terms of Use & Privacy Policy Gate for Every New Device */}
       <LegalConsentModal 
-        isOpen={showLegalConsent && activeScreen !== 'landing' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide')}
+        isOpen={showLegalConsent && activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide')}
         onAccept={() => setShowLegalConsent(false)}
       />
       

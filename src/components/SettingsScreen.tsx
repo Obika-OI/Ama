@@ -978,7 +978,15 @@ export const SettingsScreen = ({
           Explore complete tutorials on feeding tracking, the AI cry acoustic analyzer, weekly meal plans & grocery generation, the Village caregiver ecosystem, vaccination schedules, and security protocols.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <button
+            onClick={() => onNavigate ? onNavigate('blog') : null}
+            className="w-full py-3.5 px-3 bg-primary text-white hover:bg-primary-dark rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border-none"
+          >
+            <span className="text-sm">📚</span>
+            <span>Care Guides & Blog</span>
+          </button>
+
           <button
             onClick={() => onNavigate ? onNavigate('landing') : null}
             className="w-full py-3.5 px-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border-none"
@@ -989,9 +997,9 @@ export const SettingsScreen = ({
 
           <button
             onClick={() => onNavigate ? onNavigate('user-guide') : null}
-            className="w-full py-3.5 px-3 bg-primary hover:bg-primary/90 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border-none"
+            className="w-full py-3.5 px-3 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
           >
-            <BookOpen className="w-4 h-4 shrink-0" />
+            <BookOpen className="w-4 h-4 text-primary shrink-0" />
             <span>User Manual</span>
           </button>
 

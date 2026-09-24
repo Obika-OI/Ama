@@ -49,6 +49,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <a href="#about" className="hover:text-primary transition-colors">About App</a>
             <a href="#features" className="hover:text-primary transition-colors">What It Does</a>
             <button 
+              onClick={() => onNavigate('blog')} 
+              className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-bold text-xs flex items-center gap-1 text-primary"
+            >
+              <span>Care Guides & Blog</span>
+            </button>
+            <button 
               onClick={() => onNavigate('user-guide')} 
               className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-bold text-xs"
             >
@@ -600,6 +606,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <li>
                 <button onClick={onGetStarted} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-left p-0 text-slate-400">
                   Open App
+                </button>
+              </li>
+              <li>
+                <button onClick={() => onNavigate('blog')} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-left p-0 text-slate-400 font-bold text-primary">
+                  Care Guides & Blog
                 </button>
               </li>
               <li>
