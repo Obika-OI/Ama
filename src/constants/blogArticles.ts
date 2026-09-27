@@ -24,9 +24,9 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   {
     id: 'art-1',
     slug: 'understanding-infant-wake-windows-by-age',
-    title: 'The Evidence-Based Guide to Baby Wake Windows: 0 to 12 Months',
+    title: 'The Complete Guide to Baby Wake Windows: 0 to 12 Months',
     seoTitle: 'Baby Wake Windows by Age (0-12 Months): Pediatric Sleep Guide',
-    metaDescription: 'Master your baby’s wake windows from newborn to 12 months. Evidence-based chart, subtle sleepy cues, and tips to prevent overtired sleep meltdowns.',
+    metaDescription: 'Master your baby’s wake windows from newborn to 12 months. Comprehensive chart, subtle sleepy cues, and tips to prevent overtired sleep meltdowns.',
     category: 'Sleep',
     readTime: '7 min read',
     publishedDate: 'September 20, 2026',
@@ -50,9 +50,9 @@ According to the *American Academy of Pediatrics (AAP)* and pediatric sleep phys
 
 ---
 
-## Evidence-Based Infant Wake Window Chart (0 to 12 Months)
+## Infant Wake Window Chart (0 to 12 Months)
 
-The following table summarizes evidence-based awake limits based on developmental age:
+The following table summarizes recommended awake limits based on developmental age:
 
 | Age Range | Average Wake Window | Typical Naps / Day | Total Daily Sleep Target |
 | :--- | :--- | :--- | :--- |
@@ -194,7 +194,7 @@ Under-tired babies fight bedtime with intense vigor, while overtired babies wake
       'Pacifier use at nap and bedtime has a strong protective association against sleep-related infant distress.'
     ],
     content: `
-## The ABCs of Evidence-Based Infant Safe Sleep
+## The ABCs of Infant Safe Sleep
 
 Sudden Infant Death Syndrome (SIDS) and sleep-related suffocation risks are dramatically mitigated by following the clinical safe sleep recommendations updated by the *American Academy of Pediatrics (AAP)*.
 
@@ -346,7 +346,7 @@ Regardless of the method chosen, wait until all 4 developmental readiness signs 
     slug: 'top-9-infant-allergens-introduction-guide',
     title: 'The Top 9 Infant Allergens: How to Safely Introduce Peanut, Egg & Dairy',
     seoTitle: 'How to Introduce Top 9 Allergens to Babies: Pediatric Guide',
-    metaDescription: 'Step-by-step clinical protocol for early allergen introduction (peanut, egg, milk, fish, sesame). Prevent food allergies with evidence-based timing.',
+    metaDescription: 'Step-by-step practical protocol for early allergen introduction (peanut, egg, milk, fish, sesame). Prevent food allergies with recommended timing.',
     category: 'Nutrition',
     readTime: '7 min read',
     publishedDate: 'September 15, 2026',
@@ -627,7 +627,7 @@ Physical therapy studies demonstrate that babies who engage in regular tummy tim
     slug: 'infant-speech-and-language-development-0-12m',
     title: 'Baby Talk: How to Encourage First Words, Babbling & Joint Attention',
     seoTitle: 'Infant Speech Milestones (0-12 Months): How to Help Baby Talk',
-    metaDescription: 'Discover the progression of baby speech: cooing, canonical babbling, receptive language, and first words. Evidence-based conversational turn-taking techniques.',
+    metaDescription: 'Discover the progression of baby speech: cooing, canonical babbling, receptive language, and first words. Effective conversational turn-taking techniques.',
     category: 'Development',
     readTime: '6 min read',
     publishedDate: 'September 10, 2026',
@@ -680,7 +680,7 @@ Long before a child utters "mama" or "ball", millions of neural connections are 
     readTime: '6 min read',
     publishedDate: 'September 09, 2026',
     updatedDate: 'September 15, 2026',
-    excerpt: 'Teething causes drool, chewing, and low-grade fussiness—but not high fevers or diarrhea. Learn the tooth eruption order and safe, evidence-based soothing methods.',
+    excerpt: 'Teething causes drool, chewing, and low-grade fussiness—but not high fevers or diarrhea. Learn the tooth eruption order and safe, practical soothing methods.',
     tags: ['Baby Teething', 'Tooth Eruption Chart', 'Teething Remedies', 'Teething Fever Myth', 'Oral Health'],
     keyTakeaways: [
       'The first teeth (lower central incisors) typically emerge between 4 and 7 months, though variation between 3 and 12 months is completely normal.',
@@ -1044,7 +1044,7 @@ Newborns do not choose their sounds intentionally. Rather, instinctive bodily re
     slug: 'postpartum-recovery-and-maternal-mental-health',
     title: 'Postpartum Mental Health: Baby Blues vs. PPD & Building Your Village',
     seoTitle: 'Postpartum Depression vs Baby Blues: Symptoms & Recovery Guide',
-    metaDescription: 'Differentiate normal Baby Blues from Postpartum Depression (PPD) and Anxiety (PPA). Evidence-based recovery strategies, partner support, and building a village.',
+    metaDescription: 'Differentiate normal Baby Blues from Postpartum Depression (PPD) and Anxiety (PPA). Proven recovery strategies, partner support, and building a village.',
     category: 'Parenting',
     readTime: '7 min read',
     publishedDate: 'September 02, 2026',

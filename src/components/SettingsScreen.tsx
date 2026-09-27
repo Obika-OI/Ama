@@ -984,7 +984,7 @@ export const SettingsScreen = ({
             className="w-full py-3.5 px-3 bg-primary text-white hover:bg-primary-dark rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border-none"
           >
             <span className="text-sm">📚</span>
-            <span>Care Guides & Blog</span>
+            <span>Blog</span>
           </button>
 
           <button

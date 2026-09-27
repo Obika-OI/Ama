@@ -6,41 +6,40 @@ import { createServer as createViteServer } from "vite";
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-// CORS Configuration - Native zero-dependency implementation for maximum deployment reliability
-const ALLOWED_ORIGINS = [
-  "https://dome-2030.web.app",
-  "https://dome-2030.firebaseapp.com",
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:5173",
-];
-
+// Security Middleware & App Data Lockdown (Zero Permissive CORS / Strict Same-Origin Isolation)
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
+  // Enforce enterprise-grade HTTP security headers
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-DNS-Prefetch-Control", "off");
+  res.setHeader("X-Download-Options", "noopen");
 
-  if (origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-  }
+  // Prevent cross-origin browser requests from third-party websites trying to access private baby data & internal APIs
+  if (req.path.startsWith("/api/")) {
+    // Block third-party browser preflight requests
+    if (req.method === "OPTIONS") {
+      res.status(204).end();
+      return;
+    }
 
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-paystack-signature, x-api-key"
-  );
-  res.setHeader("Access-Control-Expose-Headers", "Content-Length, X-Request-Id");
-  res.setHeader("Access-Control-Max-Age", "86400");
+    const isWebhook = req.path === "/api/paystack/webhook";
+    const secFetchSite = req.headers["sec-fetch-site"];
+    const origin = req.headers["origin"] as string | undefined;
+    const host = req.headers["host"];
 
-  // Handle preflight OPTIONS requests immediately
-  if (req.method === "OPTIONS") {
-    res.sendStatus(204);
-    return;
+    if (!isWebhook && secFetchSite === "cross-site" && origin) {
+      try {
+        const originUrl = new URL(origin);
+        if (host && originUrl.host !== host) {
+          return res.status(403).json({
+            error: "Forbidden: Cross-origin access disabled. Application data is strictly protected.",
+          });
+        }
+      } catch {
+        return res.status(403).json({ error: "Invalid request origin." });
+      }
+    }
   }
 
   next();
@@ -167,6 +166,18 @@ async function generateContentWithFallback(
 app.get("/ads.txt", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "text/plain");
   res.send("google.com, pub-5528750606185925, DIRECT, f08c47fec0942fa0");
+});
+
+// Explicit robots.txt serving allowing AdSense & Search Bots on landing, legal, blog, safety guides, and user manual
+app.get("/robots.txt", (req: Request, res: Response) => {
+  res.setHeader("Content-Type", "text/plain");
+  res.sendFile(path.join(process.cwd(), "public", "robots.txt"));
+});
+
+// Explicit sitemap.xml serving
+app.get("/sitemap.xml", (req: Request, res: Response) => {
+  res.setHeader("Content-Type", "application/xml");
+  res.sendFile(path.join(process.cwd(), "public", "sitemap.xml"));
 });
 
 

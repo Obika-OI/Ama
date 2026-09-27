@@ -27,12 +27,12 @@ export const BlogScreen: React.FC<BlogScreenProps> = ({
 
   // SEO Optimization for the Blog Hub
   useSEO({
-    title: 'Evidence-Based Baby Care Guides & Library | Ama Care',
-    description: 'Explore comprehensive pediatric care guides on infant sleep, baby-led weaning, allergen introduction, milestones, and baby health.',
+    title: 'Blog | Ama Care',
+    description: 'Explore comprehensive blog articles on infant sleep, baby-led weaning, allergen introduction, milestones, and baby health.',
     robots: 'index, follow',
     ogType: 'website',
-    ogTitle: 'Evidence-Based Baby Care Guides & Articles | Ama Baby Care',
-    ogDescription: 'Authoritative, research-grounded guidance for modern parents. Wake windows, starting solids, fever triage, and sensory milestones.',
+    ogTitle: 'Blog | Ama Care',
+    ogDescription: 'Helpful, research-grounded guidance for modern parents. Wake windows, starting solids, fever triage, and sensory milestones.',
     canonicalUrl: `${window.location.origin}${window.location.pathname}#blog`
   });
 
@@ -75,10 +75,10 @@ export const BlogScreen: React.FC<BlogScreenProps> = ({
               </div>
               <div>
                 <h1 className="font-serif font-black text-lg text-gray-900 leading-tight">
-                  Ama Care Library
+                  Blog
                 </h1>
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">
-                  Pediatric & Parenting Guides
+                  Baby Care & Parenting Guides
                 </span>
               </div>
             </div>
@@ -101,16 +101,16 @@ export const BlogScreen: React.FC<BlogScreenProps> = ({
         {/* Hero Banner Section */}
         <section className="text-center sm:text-left space-y-4 max-w-3xl">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            <span>Evidence-Based Pediatric & Parenting Guides</span>
+            <BookOpen className="w-4 h-4 text-primary" />
+            <span>Blog</span>
           </div>
 
           <h2 className="text-3xl sm:text-5xl font-serif font-black text-gray-900 leading-tight tracking-tight">
-            Evidence-Based Baby Care & Development Library
+            Blog
           </h2>
 
           <p className="text-sm sm:text-base text-gray-600 leading-relaxed font-normal">
-            Clear, actionable, and evidence-informed guidance on newborn sleep, infant nutrition, early allergen introduction, fever triage, and developmental milestones.
+            Clear, actionable guidance on newborn sleep, infant nutrition, early allergen introduction, fever triage, and developmental milestones.
           </p>
         </section>
 
@@ -196,9 +196,9 @@ export const BlogScreen: React.FC<BlogScreenProps> = ({
                   Published {featuredArticle.publishedDate}
                 </span>
                 <span>•</span>
-                <span className="text-emerald-700 font-bold flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  Evidence-Based Reference
+                <span className="text-primary font-bold flex items-center gap-1">
+                  <BookOpen className="w-3.5 h-3.5 text-primary" />
+                  Blog Article
                 </span>
               </div>
             </div>

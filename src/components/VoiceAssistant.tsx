@@ -126,7 +126,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     {
       id: 'welcome',
       sender: 'assistant',
-      text: `Hi! I am Ogoo, your proactive infant care assistant. I constantly learn from ${babyName}'s routine.\n\nYou can speak or type to me, attach files, videos, or photos (diaper stool, skin rash, puree texture, medicine), or ask for evidence-based parenting guidance!`,
+      text: `Hi! I am Ogoo, your proactive infant care assistant. I constantly learn from ${babyName}'s routine.\n\nYou can speak or type to me, attach files, videos, or photos (diaper stool, skin rash, puree texture, medicine), or ask for practical parenting guidance!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);

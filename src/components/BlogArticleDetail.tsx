@@ -107,7 +107,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
             {
               '@type': 'ListItem',
               'position': 2,
-              'name': 'Care Guides & Blog',
+              'name': 'Blog',
               'item': `${window.location.origin}#blog`
             },
             {
@@ -302,7 +302,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold transition-colors cursor-pointer border-none"
           >
             <ArrowLeft className="w-4 h-4 text-gray-600" />
-            <span>Back to Care Guides</span>
+            <span>Back to Blog</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -332,7 +332,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-[11px] font-bold text-gray-500 overflow-x-auto whitespace-nowrap pb-1">
           <button onClick={() => onNavigateApp('landing')} className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent p-0">Home</button>
           <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-          <button onClick={onBack} className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent p-0">Care Guides</button>
+          <button onClick={onBack} className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent p-0">Blog</button>
           <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
           <span className="text-primary truncate max-w-[200px] sm:max-w-xs">{article.category}</span>
         </nav>
@@ -347,9 +347,9 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
               <Clock className="w-3 h-3 text-gray-500" />
               {article.readTime}
             </span>
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[10px] font-bold">
-              <ShieldCheck className="w-3 h-3 text-emerald-600" />
-              Evidence-Based Pediatric Guide
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold">
+              <BookOpen className="w-3 h-3 text-primary" />
+              Blog Article
             </span>
           </div>
 
@@ -361,7 +361,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
             {article.excerpt}
           </p>
 
-          {/* Article Publication & Evidence-Based Notice */}
+          {/* Article Publication Notice */}
           <div className="p-4 sm:p-5 rounded-3xl bg-white border border-gray-200/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl shrink-0">
@@ -372,7 +372,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
                   <span className="text-sm font-bold text-gray-900">Ama Baby Care Reference</span>
                   <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                 </div>
-                <p className="text-xs text-gray-500 font-medium">Evidence-Based Clinical Guidelines & Pediatric Research</p>
+                <p className="text-xs text-gray-500 font-medium">Pediatric Care Guidelines & Parent Guidance</p>
                 <div className="flex items-center gap-3 text-[10px] text-gray-400 mt-1 font-medium">
                   <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Published: {article.publishedDate}</span>
                   <span>•</span>
@@ -504,7 +504,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
         {relatedArticles.length > 0 && (
           <section className="space-y-4 pt-8 border-t border-gray-200">
             <h3 className="font-serif font-black text-xl text-gray-900">
-              Related Evidence-Based Care Guides
+              Related Blog Articles
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {relatedArticles.map((rel) => (

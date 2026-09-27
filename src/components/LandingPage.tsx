@@ -52,7 +52,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               onClick={() => onNavigate('blog')} 
               className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-bold text-xs flex items-center gap-1 text-primary"
             >
-              <span>Care Guides & Blog</span>
+              <span>Blog</span>
             </button>
             <button 
               onClick={() => onNavigate('user-guide')} 
@@ -610,7 +610,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </li>
               <li>
                 <button onClick={() => onNavigate('blog')} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-left p-0 text-slate-400 font-bold text-primary">
-                  Care Guides & Blog
+                  Blog
                 </button>
               </li>
               <li>

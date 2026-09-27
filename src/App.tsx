@@ -105,7 +105,11 @@ export default function App() {
   const [selectedBlogArticle, setSelectedBlogArticle] = useState<BlogArticle | null>(() => {
     const hash = window.location.hash;
     const searchParams = new URLSearchParams(window.location.search);
-    const articleSlug = searchParams.get('article') || (hash.startsWith('#article=') ? hash.replace('#article=', '') : null);
+    const pathname = window.location.pathname;
+    let articleSlug = searchParams.get('article') || (hash.startsWith('#article=') ? hash.replace('#article=', '') : null);
+    if (!articleSlug && (pathname.startsWith('/blog/') || pathname.startsWith('/articles/'))) {
+      articleSlug = pathname.split('/')[2] || null;
+    }
     if (articleSlug) {
       const found = BLOG_ARTICLES.find(a => a.slug === articleSlug || a.id === articleSlug);
       if (found) return found;
@@ -114,27 +118,72 @@ export default function App() {
   });
 
   const [activeScreen, setActiveScreen] = useState(() => {
-    const hash = window.location.hash;
+    const hash = window.location.hash.toLowerCase();
+    const pathname = window.location.pathname.toLowerCase();
     const searchParams = new URLSearchParams(window.location.search);
-    const screenParam = searchParams.get('screen') || searchParams.get('tab');
+    const screenParam = (searchParams.get('screen') || searchParams.get('tab') || '').toLowerCase();
     const articleSlug = searchParams.get('article') || (hash.startsWith('#article=') ? hash.replace('#article=', '') : null);
 
-    if (articleSlug) {
+    if (articleSlug || pathname.startsWith('/blog/') || pathname.startsWith('/articles/')) {
       return 'blog-article';
     }
-    if (hash === '#blog' || screenParam === 'blog') {
+    if (hash === '#blog' || screenParam === 'blog' || pathname === '/blog' || pathname === '/articles') {
       return 'blog';
+    }
+    if (
+      hash === '#legal' || hash === '#privacy' || hash === '#terms' || 
+      screenParam === 'legal' || screenParam === 'privacy' || screenParam === 'terms' || 
+      pathname === '/privacy' || pathname === '/terms' || pathname === '/legal'
+    ) {
+      return 'legal-terms';
+    }
+    if (
+      hash === '#user-guide' || hash === '#guide' || hash === '#manual' || hash === '#user-manual' ||
+      screenParam === 'user-guide' || screenParam === 'guide' || screenParam === 'manual' || screenParam === 'user-manual' ||
+      pathname === '/guide' || pathname === '/manual' || pathname === '/user-manual'
+    ) {
+      return 'user-guide';
+    }
+    if (
+      hash === '#safety' || hash === '#safety-guides' ||
+      screenParam === 'safety' || screenParam === 'safety-guides' ||
+      pathname === '/safety' || pathname === '/safety-guides'
+    ) {
+      return 'feeding';
+    }
+    if (hash === '#landing' || screenParam === 'landing' || pathname === '/landing') {
+      return 'landing';
     }
     const onboarded = localStorage.getItem('ama_onboarded');
     return onboarded ? 'home' : 'landing';
   });
 
-  // Listen for hash and popstate changes for back/forward navigation in blog
+  const [feedingTrackerTab, setFeedingTrackerTab] = useState<'today' | 'allergen' | 'guide'>(() => {
+    const hash = window.location.hash.toLowerCase();
+    const pathname = window.location.pathname.toLowerCase();
+    const searchParams = new URLSearchParams(window.location.search);
+    const screenParam = (searchParams.get('screen') || searchParams.get('tab') || '').toLowerCase();
+    if (
+      hash === '#safety' || hash === '#safety-guides' || 
+      screenParam === 'safety' || screenParam === 'safety-guides' || 
+      pathname === '/safety' || pathname === '/safety-guides' || 
+      screenParam === 'guide'
+    ) {
+      return 'guide';
+    }
+    return 'today';
+  });
+
+  // Listen for hash and popstate changes for seamless crawler & user navigation
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash;
+      const hash = window.location.hash.toLowerCase();
+      const pathname = window.location.pathname.toLowerCase();
       const searchParams = new URLSearchParams(window.location.search);
-      const articleSlug = searchParams.get('article') || (hash.startsWith('#article=') ? hash.replace('#article=', '') : null);
+      let articleSlug = searchParams.get('article') || (hash.startsWith('#article=') ? hash.replace('#article=', '') : null);
+      if (!articleSlug && (pathname.startsWith('/blog/') || pathname.startsWith('/articles/'))) {
+        articleSlug = pathname.split('/')[2] || null;
+      }
 
       if (articleSlug) {
         const found = BLOG_ARTICLES.find(a => a.slug === articleSlug || a.id === articleSlug);
@@ -145,8 +194,37 @@ export default function App() {
         }
       }
 
-      if (hash === '#blog' || searchParams.get('screen') === 'blog') {
+      if (hash === '#blog' || searchParams.get('screen') === 'blog' || pathname === '/blog' || pathname === '/articles') {
         setActiveScreen('blog');
+        return;
+      }
+      if (
+        hash === '#legal' || hash === '#privacy' || hash === '#terms' || 
+        searchParams.get('screen') === 'legal' || searchParams.get('screen') === 'privacy' || searchParams.get('screen') === 'terms' || 
+        pathname === '/privacy' || pathname === '/terms' || pathname === '/legal'
+      ) {
+        setActiveScreen('legal-terms');
+        return;
+      }
+      if (
+        hash === '#user-guide' || hash === '#guide' || hash === '#manual' || hash === '#user-manual' ||
+        searchParams.get('screen') === 'user-guide' || searchParams.get('screen') === 'guide' || searchParams.get('screen') === 'manual' || searchParams.get('screen') === 'user-manual' ||
+        pathname === '/guide' || pathname === '/manual' || pathname === '/user-manual'
+      ) {
+        setActiveScreen('user-guide');
+        return;
+      }
+      if (
+        hash === '#safety' || hash === '#safety-guides' ||
+        searchParams.get('screen') === 'safety' || searchParams.get('tab') === 'safety' ||
+        pathname === '/safety' || pathname === '/safety-guides'
+      ) {
+        setFeedingTrackerTab('guide');
+        setActiveScreen('feeding');
+        return;
+      }
+      if (hash === '#landing' || searchParams.get('screen') === 'landing' || pathname === '/landing') {
+        setActiveScreen('landing');
         return;
       }
     };
@@ -158,7 +236,6 @@ export default function App() {
       window.removeEventListener('popstate', handleHashChange);
     };
   }, []);
-  const [feedingTrackerTab, setFeedingTrackerTab] = useState<'today' | 'allergen' | 'guide'>('today');
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [autoOpenLogModal, setAutoOpenLogModal] = useState(false);
   const [navData, setNavData] = useState<any>(null);
@@ -1996,7 +2073,7 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* Evidence-Based Pediatric Blog Hub (Publicly Accessible, SEO & AdSense Ready) */}
+        {/* Blog Hub (Publicly Accessible, SEO & AdSense Ready) */}
         {activeScreen === 'blog' && (
           <motion.div key="blog" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="min-h-screen">
             <BlogScreen 
