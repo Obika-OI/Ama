@@ -36,6 +36,8 @@ import { NotificationsScreen } from './components/NotificationsScreen';
 import { SettingsScreen } from './components/SettingsScreen';
 import { BlogScreen } from './components/BlogScreen';
 import { BlogArticleDetail } from './components/BlogArticleDetail';
+import { AboutScreen } from './components/AboutScreen';
+import { ContactScreen } from './components/ContactScreen';
 import { BLOG_ARTICLES, BlogArticle } from './constants/blogArticles';
 import { BabyProfile } from './types';
 import confetti from 'canvas-confetti';
@@ -50,6 +52,56 @@ export default function App() {
   const [isPremium, setIsPremium] = useState<boolean>(() => localStorage.getItem("ama_premium") === "true");
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const handleSubscribe = async (priceId: string, currency: 'NGN' | 'USD' | 'GBP' = 'NGN') => {
+    const livePublicKey = "pk_live_d2b967eddda456841f504b85549767fc33cc9fd4";
+    const userEmail = currentUser?.email || 'parent@ama-care.app';
+
+    // Amount calculation for Paystack Inline JS (in smallest currency unit: kobo/cents/pence)
+    let amountKobo = 450000; // Default Monthly Pro in NGN (₦4,500)
+    if (priceId === 'price_annual') {
+      amountKobo = currency === 'USD' ? 3500 : currency === 'GBP' ? 2800 : 2950000;
+    } else if (priceId === 'price_prepaid') {
+      amountKobo = currency === 'USD' ? 1200 : currency === 'GBP' ? 1000 : 950000;
+    } else {
+      amountKobo = currency === 'USD' ? 500 : currency === 'GBP' ? 400 : 450000;
+    }
+
+    // Try official Paystack Inline Pop Modal first if available
+    if (typeof window !== 'undefined' && (window as any).PaystackPop) {
+      try {
+        const handler = (window as any).PaystackPop.setup({
+          key: livePublicKey,
+          email: userEmail,
+          amount: amountKobo,
+          currency: currency,
+          ref: `pstk_${priceId}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          onClose: () => {
+            console.log("Paystack checkout modal closed by user.");
+          },
+          callback: (response: any) => {
+            const ref = response.reference || response.trxref;
+            fetch(`/api/paystack/verify/${encodeURIComponent(ref)}`)
+              .then(res => res.json())
+              .then(() => {
+                setIsPremium(true);
+                localStorage.setItem("ama_premium", "true");
+                setIsSubscriptionModalOpen(false);
+                alert("🎉 Payment Successful via Paystack! Welcome to Ama Premium. All AI features are now unlocked.");
+              })
+              .catch(() => {
+                setIsPremium(true);
+                localStorage.setItem("ama_premium", "true");
+                setIsSubscriptionModalOpen(false);
+              });
+          }
+        });
+        handler.openIframe();
+        return;
+      } catch (err) {
+        console.warn("Paystack Inline Popup fallback to server endpoint:", err);
+      }
+    }
+
+    // Fallback to Server API checkout initialization
     try {
       const response = await fetch("/api/paystack/initialize", {
         method: "POST",
@@ -57,7 +109,7 @@ export default function App() {
         body: JSON.stringify({ 
           priceId, 
           currency,
-          email: currentUser?.email || 'parent@ama-care.app'
+          email: userEmail
         })
       });
       const data = await response.json();
@@ -150,6 +202,12 @@ export default function App() {
       pathname === '/safety' || pathname === '/safety-guides'
     ) {
       return 'feeding';
+    }
+    if (hash === '#about' || screenParam === 'about' || pathname === '/about') {
+      return 'about';
+    }
+    if (hash === '#contact' || screenParam === 'contact' || pathname === '/contact') {
+      return 'contact';
     }
     if (hash === '#landing' || screenParam === 'landing' || pathname === '/landing') {
       return 'landing';
@@ -1757,8 +1815,40 @@ export default function App() {
     return `${window.location.origin}${window.location.pathname}#sync=${b64}`;
   };
 
+  const [hasQuotaExceeded, setHasQuotaExceeded] = useState(false);
+
+  useEffect(() => {
+    const handleQuotaExceeded = () => {
+      setHasQuotaExceeded(true);
+    };
+    window.addEventListener('gmp-quota-exceeded', handleQuotaExceeded);
+    return () => window.removeEventListener('gmp-quota-exceeded', handleQuotaExceeded);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background font-sans text-gray-900 w-full max-w-7xl mx-auto relative overflow-x-clip transition-all duration-300 pb-28 md:pb-32">
+      {hasQuotaExceeded && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-[200] shadow-sm flex items-center justify-center gap-2">
+          <span>
+            Google Maps Platform quota reached. If you are the app owner, visit{' '}
+            <a
+              href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-semibold text-amber-950 hover:text-amber-800"
+            >
+              maps developer site
+            </a>{' '}
+            for instructions to update your account.
+          </span>
+          <button 
+            onClick={() => setHasQuotaExceeded(false)}
+            className="text-amber-800 hover:text-amber-950 text-xs font-bold border-none bg-transparent cursor-pointer ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <AnimatePresence mode="wait">
         {activeScreen === 'home' && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -2124,11 +2214,43 @@ export default function App() {
             />
           </motion.div>
         )}
+
+        {/* About Us Screen */}
+        {activeScreen === 'about' && (
+          <motion.div key="about" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="min-h-screen">
+            <AboutScreen 
+              onBack={() => {
+                if (localStorage.getItem('ama_onboarded')) {
+                  setActiveScreen('home');
+                } else {
+                  setActiveScreen('landing');
+                }
+              }}
+              onNavigateApp={(screen) => setActiveScreen(screen)}
+            />
+          </motion.div>
+        )}
+
+        {/* Contact Us Screen */}
+        {activeScreen === 'contact' && (
+          <motion.div key="contact" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="min-h-screen">
+            <ContactScreen 
+              onBack={() => {
+                if (localStorage.getItem('ama_onboarded')) {
+                  setActiveScreen('home');
+                } else {
+                  setActiveScreen('landing');
+                }
+              }}
+              onNavigateApp={(screen) => setActiveScreen(screen)}
+            />
+          </motion.div>
+        )}
         
       </AnimatePresence>
 
       {/* Bottom Navigation (Hidden on Landing and Blog for clean reading immersion) */}
-      {activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && (
+      {activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && activeScreen !== 'about' && activeScreen !== 'contact' && (
         <nav className="fixed bottom-0 sm:bottom-4 left-0 right-0 w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto bg-white/95 backdrop-blur-xl border border-gray-200/80 rounded-t-3xl sm:rounded-full px-2 sm:px-4 md:px-6 py-2 sm:py-2.5 flex justify-between sm:justify-around items-center z-40 shadow-xl shadow-gray-900/10 transition-all">
           <NavButton active={activeScreen === 'home'} icon={<Home />} label="Dashboard" onClick={() => setActiveScreen('home')} />
           <NavButton active={activeScreen === 'feeding'} icon={<Utensils />} label="Meal Log" onClick={() => setActiveScreen('feeding')} />
@@ -2276,7 +2398,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Interactive First-Launch Onboarding Overlay */}
-      {showOnboarding && activeScreen !== 'landing' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide') && (
+      {showOnboarding && activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'about' && activeScreen !== 'contact' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md overflow-y-auto">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 30 }}
@@ -2502,7 +2624,7 @@ export default function App() {
 
       {/* Mandatory Terms of Use & Privacy Policy Gate for Every New Device */}
       <LegalConsentModal 
-        isOpen={showLegalConsent && activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide')}
+        isOpen={showLegalConsent && activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'about' && activeScreen !== 'contact' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide')}
         onAccept={() => setShowLegalConsent(false)}
       />
       

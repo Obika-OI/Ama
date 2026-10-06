@@ -154,6 +154,7 @@ export const Journal = ({  isPremium,
   // Personal Diary State
   const [diaryTitle, setDiaryTitle] = useState('');
   const [diaryNotes, setDiaryNotes] = useState('');
+  const [diaryReflection, setDiaryReflection] = useState('');
   const [diaryMood, setDiaryMood] = useState('✨ Grateful');
   const [diaryCategory, setDiaryCategory] = useState('Parenting Thought');
   const [diarySearchQuery, setDiarySearchQuery] = useState('');
@@ -180,14 +181,15 @@ export const Journal = ({  isPremium,
   ];
 
   const handleSaveDiaryEntry = () => {
-    if (!diaryNotes.trim()) return;
+    if (!diaryNotes.trim() && !diaryReflection.trim()) return;
 
     if (editingDiaryId) {
       setObservationLogs(observationLogs.map(o => o.id === editingDiaryId ? {
         ...o,
-        title: diaryTitle.trim() || 'Daily Reflection',
+        title: diaryTitle.trim() || 'Daily Journal',
         mood: diaryMood,
         notes: diaryNotes.trim(),
+        reflection: diaryReflection.trim(),
         category: diaryCategory,
         type: 'diary'
       } : o));
@@ -197,19 +199,21 @@ export const Journal = ({  isPremium,
       const newEntry = {
         id: Date.now().toString(),
         date: selectedDate.toISOString(),
-        title: diaryTitle.trim() || 'Daily Reflection',
+        title: diaryTitle.trim() || 'Daily Journal',
         mood: diaryMood,
         notes: diaryNotes.trim(),
+        reflection: diaryReflection.trim(),
         category: diaryCategory,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         type: 'diary'
       };
       setObservationLogs([newEntry, ...observationLogs]);
-      setToastMsg('Diary entry saved! 📖');
+      setToastMsg('Journal entry saved! 📖');
     }
 
     setDiaryTitle('');
     setDiaryNotes('');
+    setDiaryReflection('');
     setDiaryMood('✨ Grateful');
     setTimeout(() => setToastMsg(''), 3000);
   };
@@ -220,6 +224,7 @@ export const Journal = ({  isPremium,
       setEditingDiaryId(null);
       setDiaryTitle('');
       setDiaryNotes('');
+      setDiaryReflection('');
     }
     setToastMsg('Entry removed');
     setTimeout(() => setToastMsg(''), 2500);
@@ -229,6 +234,7 @@ export const Journal = ({  isPremium,
     setEditingDiaryId(entry.id);
     setDiaryTitle(entry.title || '');
     setDiaryNotes(entry.notes || '');
+    setDiaryReflection(entry.reflection || '');
     setDiaryMood(entry.mood || '✨ Grateful');
     setDiaryCategory(entry.category || 'Parenting Thought');
     if (entry.date) {
@@ -549,7 +555,11 @@ export const Journal = ({  isPremium,
     // Also remove from local_feeding_logs if present
     try {
       const existing = JSON.parse(localStorage.getItem('local_feeding_logs') || '[]');
-      const filtered = existing.filter((f: any) => f.id !== timestampOrId && (f.date + (f.timestamp ? ` ${f.timestamp}` : '')) !== timestampOrId);
+      const filtered = existing.filter((f: any) => 
+        f.id !== timestampOrId && 
+        f.exactTime !== timestampOrId && 
+        (f.date + (f.timestamp ? ` ${f.timestamp}` : '')) !== timestampOrId
+      );
       localStorage.setItem('local_feeding_logs', JSON.stringify(filtered));
       setLocalFeedingLogs(filtered);
     } catch {}
@@ -565,14 +575,78 @@ export const Journal = ({  isPremium,
 
     const milkFeeds = (localFeedingLogs || [])
       .filter(f => {
-        if (!f || !f.date) return false;
-        return isSameDay(new Date(f.date), selectedDate);
+        if (!f) return false;
+
+        // 1. Try f.exactTime first (standardized ISO 8601, e.g. "2026-10-06T08:50:00.000Z")
+        if (f.exactTime) {
+          try {
+            const d = new Date(f.exactTime);
+            if (!isNaN(d.getTime())) {
+              return isSameDay(d, selectedDate);
+            }
+          } catch (e) {}
+        }
+
+        // 2. Fallback: Check if f.date parses safely
+        if (f.date) {
+          try {
+            const d = new Date(f.date);
+            if (!isNaN(d.getTime())) {
+              return isSameDay(d, selectedDate);
+            }
+          } catch (e) {}
+
+          // 3. Robust Locale String Match fallback (handles locale-dependent string comparison)
+          try {
+            const currentSelectedLocalStr = selectedDate.toLocaleDateString();
+            if (f.date === currentSelectedLocalStr) {
+              return true;
+            }
+          } catch (e) {}
+        }
+
+        return false;
       })
       .map(f => {
         const isBottle = f.type === 'Bottle Feed';
         const leftM = Math.round((f.leftDuration || 0) / 60);
         const rightM = Math.round((f.rightDuration || 0) / 60);
         const totalM = leftM + rightM;
+
+        // Ensure we always have a standardized ISO 8601 timestamp string for accurate aggregation and sorting
+        let isoTimestamp = f.exactTime;
+        if (!isoTimestamp && f.date) {
+          try {
+            const dateObj = new Date(f.date);
+            if (f.timestamp && !isNaN(dateObj.getTime())) {
+              const timeParts = f.timestamp.split(':');
+              let hour = 12;
+              let minute = 0;
+              let second = 0;
+              if (timeParts.length >= 2) {
+                hour = parseInt(timeParts[0]);
+                minute = parseInt(timeParts[1]);
+                if (timeParts.length >= 3) {
+                  second = parseInt(timeParts[2]);
+                }
+                const tStr = f.timestamp.toLowerCase();
+                if (tStr.includes('pm') && hour < 12) hour += 12;
+                if (tStr.includes('am') && hour === 12) hour = 0;
+              }
+              dateObj.setHours(hour, minute, second);
+            }
+            if (!isNaN(dateObj.getTime())) {
+              isoTimestamp = dateObj.toISOString();
+            }
+          } catch (e) {
+            console.warn("Error parsing feeding log fallback timestamp:", e);
+          }
+        }
+
+        if (!isoTimestamp) {
+          isoTimestamp = new Date(selectedDate).toISOString();
+        }
+
         return {
           id: f.id || `milk-${f.date}-${f.timestamp || ''}`,
           title: isBottle
@@ -587,7 +661,7 @@ export const Journal = ({  isPremium,
           leftDuration: f.leftDuration,
           rightDuration: f.rightDuration,
           notes: f.notes || (isBottle ? `${f.amount || 0} ml ${f.bottleType || 'Milk'}` : `L: ${leftM}m | R: ${rightM}m`),
-          timestamp: f.date + (f.timestamp ? ` ${f.timestamp}` : ''),
+          timestamp: isoTimestamp,
           reaction: f.reaction || 'Good',
           appetising: 5,
           acceptance: 5,
@@ -1144,107 +1218,101 @@ export const Journal = ({  isPremium,
       {/* List of logged meals for selected day */}
       <div className="space-y-6">
         <h2 className="text-xl font-serif font-black text-gray-800 px-2 text-left">Logged Meals Overview</h2>
-        <div className="space-y-4">
-          {todayMeals.length > 0 ? (
-            todayMeals.map((meal, i) => {
-              const isExpanded = expandedLogIndex === i;
-              return (
-                <div key={i} className="bg-card rounded-[48px] border border-white p-6 sm:p-8 shadow-xl shadow-card/20 space-y-4 text-left">
-                  <div 
-                    className="bg-white p-4 rounded-3xl border border-gray-100 flex items-center justify-between cursor-pointer shadow-xs hover:border-primary/30 transition-colors"
-                    onClick={() => setExpandedLogIndex(isExpanded ? null : i)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl">
-                        {meal.newFood || '🥣'}
-                        
-    </div>
-                      <div>
-                        <p className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">{meal.logTime} • {meal.logType}</p>
-                        <p className="text-sm font-black text-gray-800 mt-1 leading-tight">{meal.title}</p>
-                        
-    </div>
-                      
-    </div>
-                    <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                    
-    </div>
-
-                  {isExpanded && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-4 border-t border-gray-100">
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-xs">
-                          <p className="text-[8px] font-black text-primary uppercase tracking-widest">Appetising</p>
-                          <div className="flex gap-0.5 mt-1 justify-center">
-                            {[1, 2, 3, 4, 5].map(star => (
-                              <Star key={star} className={`w-3 h-3 ${meal.appetising >= star ? 'text-primary fill-primary' : 'text-gray-200'}`} />
-                            ))}
-                          </div>
-                        </div>
-                        <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-xs">
-                          <p className="text-[8px] font-black text-primary uppercase tracking-widest">Acceptance</p>
-                          <div className="flex gap-0.5 mt-1 justify-center">
-                            {[1, 2, 3, 4, 5].map(star => (
-                              <Star key={star} className={`w-3 h-3 ${meal.acceptance >= star ? 'text-primary fill-primary' : 'text-gray-200'}`} />
-                            ))}
-                          </div>
-                        </div>
-                        <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-xs">
-                          <p className="text-[8px] font-black text-primary uppercase tracking-widest">Satisfaction</p>
-                          <div className="flex gap-0.5 mt-1 justify-center">
-                            {[1, 2, 3, 4, 5].map(star => (
-                              <Star key={star} className={`w-3 h-3 ${meal.satisfaction >= star ? 'text-primary fill-primary' : 'text-gray-200'}`} />
-                            ))}
-                          </div>
-                        </div>
-                        
-    </div>
-
-                      {meal.allergyReaction && (
-                        <div className="bg-primary/5 p-3 rounded-xl text-gray-800 font-bold text-[10px] space-y-1.5 border border-primary/20 flex flex-col items-start w-full shadow-xs">
-                          <div className="flex items-center gap-1.5">
-                            <AlertCircle className="w-4 h-4 text-primary shrink-0" />
-                            <span className="font-black text-[9px] uppercase tracking-wider text-primary">⚠️ ALLERGIC REACTION SUSPECTED</span>
-                          </div>
-                          {meal.allergyNotes && (
-                            <p className="text-[10px] text-gray-700 bg-white p-2.5 rounded-xl w-full leading-relaxed border border-primary/10 border-solid">
-                              {meal.allergyNotes}
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {meal.notes && (
-                        <div className="bg-white p-3.5 rounded-2xl border border-gray-100 shadow-xs">
-                          <p className="text-[8px] font-black text-primary uppercase tracking-widest mb-1 leading-none">Feedback / Notes</p>
-                          <p className="text-gray-800 font-bold text-[11px] leading-relaxed">"{meal.notes}"</p>
-                        </div>
-                      )}
-
-                      <div className="flex justify-end pt-2">
-                        <button 
-                          onClick={() => deleteLoggedMeal(meal.timestamp)}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-gray-500 hover:text-primary hover:bg-primary/5 border border-gray-200 transition-colors cursor-pointer text-[10px] font-black uppercase tracking-widest shadow-xs"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete Log
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                  
-    </div>
-              );
-            })
-          ) : (
-            <div className="bg-card p-6 rounded-[36px] border border-white text-center py-6 shadow-xl shadow-card/20">
-              <p className="text-xs text-gray-600 font-bold italic">No meals logged for this date.</p>
-              
-    </div>
-          )}
-          
-    </div>
         
-    </div>
+        <div className="bg-card rounded-[48px] border border-white p-6 sm:p-8 shadow-xl shadow-card/20 space-y-4 text-left">
+          {todayMeals.length > 0 ? (
+            <div className="space-y-5">
+              {todayMeals.map((meal, i) => {
+                const isExpanded = expandedLogIndex === i;
+                return (
+                  <div key={i} className={`space-y-4 text-left ${i > 0 ? 'border-t border-gray-100/80 pt-5' : ''}`}>
+                    <div 
+                      className="bg-white p-4 rounded-3xl border border-gray-100 flex items-center justify-between cursor-pointer shadow-xs hover:border-primary/30 transition-colors"
+                      onClick={() => setExpandedLogIndex(isExpanded ? null : i)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl">
+                          {meal.newFood || '🥣'}
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">{meal.logTime} • {meal.logType}</p>
+                          <p className="text-sm font-black text-gray-800 mt-1 leading-tight">{meal.title}</p>
+                        </div>
+                      </div>
+                      <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    </div>
+
+                    {isExpanded && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-4">
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-xs">
+                            <p className="text-[8px] font-black text-primary uppercase tracking-widest">Appetising</p>
+                            <div className="flex gap-0.5 mt-1 justify-center">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <Star key={star} className={`w-3 h-3 ${meal.appetising >= star ? 'text-primary fill-primary' : 'text-gray-200'}`} />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-xs">
+                            <p className="text-[8px] font-black text-primary uppercase tracking-widest">Acceptance</p>
+                            <div className="flex gap-0.5 mt-1 justify-center">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <Star key={star} className={`w-3 h-3 ${meal.acceptance >= star ? 'text-primary fill-primary' : 'text-gray-200'}`} />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-xs">
+                            <p className="text-[8px] font-black text-primary uppercase tracking-widest">Satisfaction</p>
+                            <div className="flex gap-0.5 mt-1 justify-center">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <Star key={star} className={`w-3 h-3 ${meal.satisfaction >= star ? 'text-primary fill-primary' : 'text-gray-200'}`} />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {meal.allergyReaction && (
+                          <div className="bg-primary/5 p-3 rounded-xl text-gray-800 font-bold text-[10px] space-y-1.5 border border-primary/20 flex flex-col items-start w-full shadow-xs">
+                            <div className="flex items-center gap-1.5">
+                              <AlertCircle className="w-4 h-4 text-primary shrink-0" />
+                              <span className="font-black text-[9px] uppercase tracking-wider text-primary">⚠️ ALLERGIC REACTION SUSPECTED</span>
+                            </div>
+                            {meal.allergyNotes && (
+                              <p className="text-[10px] text-gray-700 bg-white p-2.5 rounded-xl w-full leading-relaxed border border-primary/10 border-solid">
+                                {meal.allergyNotes}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {meal.notes && (
+                          <div className="bg-white p-3.5 rounded-2xl border border-gray-100 shadow-xs">
+                            <p className="text-[8px] font-black text-primary uppercase tracking-widest mb-1 leading-none">Feedback / Notes</p>
+                            <p className="text-gray-800 font-bold text-[11px] leading-relaxed">"{meal.notes}"</p>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end pt-2">
+                          <button 
+                            onClick={() => deleteLoggedMeal(meal.id || meal.timestamp)}
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-gray-500 hover:text-primary hover:bg-primary/5 border border-gray-200 transition-colors cursor-pointer text-[10px] font-black uppercase tracking-widest shadow-xs"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete Log
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-xs text-gray-600 font-bold italic">No meals logged for this date.</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Observation Logs / Digestive & Diaper Tracker */}
       <div className="space-y-6">
@@ -1938,7 +2006,14 @@ export const Journal = ({  isPremium,
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {isPremium ? (
-                <StorybookGenerator diaryEntries={loggedMoods && loggedMoods.length > 0 ? loggedMoods : observationLogs.filter(o => o.type === 'diary' || o.mood || o.notes)} babyName={babyName} />
+                <StorybookGenerator 
+                  diaryEntries={observationLogs.filter(o => o.type === 'diary' || o.mood || o.notes || o.reflection)} 
+                  babyName={babyName}
+                  loggedMeals={loggedMeals}
+                  diaperLogs={diaperLogs}
+                  growthLogs={growthLogs}
+                  vaccineSchedule={vaccineSchedule}
+                />
               ) : (
                 <div className="bg-card p-6 sm:p-7 rounded-[36px] border border-white shadow-xl shadow-card/15 space-y-4 text-left flex flex-col justify-between">
                   <div className="space-y-2.5">
@@ -2126,36 +2201,59 @@ export const Journal = ({  isPremium,
                 
     </div>
 
-              {/* Story / Thoughts Textarea */}
+              {/* 1. Notes & Observations Textarea (Facts & Care Details) */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">
-                  Your Story or Personal Thoughts
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">
+                    📝 Notes & Care Observations (Factual)
+                  </label>
+                  <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                    Facts, Feeds, Sleep & Diaper Notes
+                  </span>
+                </div>
                 <textarea
-                  rows={4}
-                  placeholder={`Write down your thoughts, memories, highlights, parenting feelings, or story of ${isToday ? 'today' : selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}...`}
+                  rows={2}
+                  placeholder="e.g. Slept 2 hours after lunch, ate 3 spoonfuls of mashed papaya, slight redness on left cheek..."
                   value={diaryNotes}
                   onChange={e => setDiaryNotes(e.target.value)}
-                  className="w-full bg-white border border-gray-100 rounded-2xl p-4 text-sm font-medium outline-none text-gray-800 focus:border-primary transition-all resize-y leading-relaxed shadow-xs"
+                  className="w-full bg-white border border-gray-100 rounded-2xl p-3.5 text-xs font-medium outline-none text-gray-800 focus:border-primary transition-all resize-y leading-relaxed shadow-xs"
+                />
+              </div>
+
+              {/* 2. Diary Reflection Textarea (Emotional & Parent Thoughts) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-rose-500 uppercase tracking-widest block">
+                    💖 Diary Reflection & Parent Thoughts (Emotional)
+                  </label>
+                  <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full">
+                    Parent Feelings & Bonding Memories
+                  </span>
+                </div>
+                <textarea
+                  rows={3}
+                  placeholder={`Write your emotional reflection, gratitude, or parenting feelings about ${isToday ? 'today' : selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}...`}
+                  value={diaryReflection}
+                  onChange={e => setDiaryReflection(e.target.value)}
+                  className="w-full bg-rose-50/30 border border-rose-100 rounded-2xl p-3.5 text-xs font-serif italic text-gray-800 focus:border-rose-300 outline-none transition-all resize-y leading-relaxed shadow-xs"
                 />
                 <p className="text-[10px] text-gray-400 italic">
-                  💡 Prompt: {isToday ? "What brought you warmth or peace today? What did you discover about your baby or yourself?" : `What memories or feelings stood out on ${selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}?`}
+                  💡 Reflection Prompt: {isToday ? "What brought you emotional warmth or peace today? What did you discover about your baby or yourself?" : `What feelings or bonding moments stood out on ${selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}?`}
                 </p>
-                
-    </div>
+              </div>
 
               {/* Save Button */}
               <button
                 onClick={handleSaveDiaryEntry}
-                disabled={!diaryNotes.trim()}
+                disabled={!diaryNotes.trim() && !diaryReflection.trim()}
                 className={`w-full py-4 rounded-full text-white font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer border-none ${
-                  diaryNotes.trim()
+                  (diaryNotes.trim() || diaryReflection.trim())
                     ? 'bg-primary hover:bg-primary/90 shadow-primary/25 active:scale-98'
                     : 'bg-gray-300 cursor-not-allowed shadow-none'
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
-                <span>{editingDiaryId ? 'Update Diary Entry' : `Save Entry for ${selectedDateLabel}`}</span>
+                <span>{editingDiaryId ? 'Update Journal Entry' : `Save Entry for ${selectedDateLabel}`}</span>
               </button>
               
     </div>
@@ -2259,12 +2357,30 @@ export const Journal = ({  isPremium,
                         
     </div>
 
-                      <div className="bg-white p-4 rounded-2xl border border-gray-100">
-                        <p className="text-sm font-sans text-gray-800 leading-relaxed whitespace-pre-wrap">
-                          {entry.notes}
-                        </p>
-                        
-    </div>
+                      {/* Separate Notes & Care Observations vs Diary Reflection */}
+                      <div className="space-y-3">
+                        {entry.notes && (
+                          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 block mb-1">
+                              📝 Notes & Care Observations
+                            </span>
+                            <p className="text-xs font-sans text-slate-800 leading-relaxed whitespace-pre-wrap">
+                              {entry.notes}
+                            </p>
+                          </div>
+                        )}
+
+                        {entry.reflection && (
+                          <div className="bg-rose-50/70 p-4 rounded-2xl border border-rose-100/80">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-rose-600 block mb-1">
+                              💖 Parent Diary Reflection
+                            </span>
+                            <p className="text-xs font-serif italic text-gray-800 leading-relaxed whitespace-pre-wrap">
+                              "{entry.reflection}"
+                            </p>
+                          </div>
+                        )}
+                      </div>
 
                       <div className="flex justify-between items-center pt-1 border-t border-gray-100">
                         <button

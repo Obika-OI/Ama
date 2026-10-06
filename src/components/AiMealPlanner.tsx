@@ -20,9 +20,12 @@ import {
   Layers,
   Heart,
   Crown,
-  Lock
+  Lock,
+  MapPin
 } from 'lucide-react';
-import { model } from '../firebase';
+import { LocalMarketMap } from './LocalMarketMap';
+
+import { GlobalLocation, GlobalLocationPickerModal, POPULAR_GLOBAL_LOCATIONS } from './GlobalLocationPickerModal';
 
 interface AiMealPlannerProps {
   babyAge: string;
@@ -35,19 +38,6 @@ interface AiMealPlannerProps {
   onClose?: () => void;
 }
 
-export const REGIONS_LIST = [
-  { id: 'ng-ph', name: 'Port Harcourt, Nigeria', country: 'Nigeria', currency: '₦', rateName: 'NGN' },
-  { id: 'ng-lagos', name: 'Lagos, Nigeria', country: 'Nigeria', currency: '₦', rateName: 'NGN' },
-  { id: 'us-ny', name: 'New York, USA', country: 'United States', currency: '$', rateName: 'USD' },
-  { id: 'uk-lon', name: 'London, United Kingdom', country: 'United Kingdom', currency: '£', rateName: 'GBP' },
-  { id: 'eu-fr', name: 'Paris, France', country: 'France', currency: '€', rateName: 'EUR' },
-  { id: 'eu-de', name: 'Berlin, Germany', country: 'Germany', currency: '€', rateName: 'EUR' },
-  { id: 'ca-to', name: 'Toronto, Canada', country: 'Canada', currency: '$', rateName: 'CAD' },
-  { id: 'au-syd', name: 'Sydney, Australia', country: 'Australia', currency: '$', rateName: 'AUD' },
-  { id: 'in-mum', name: 'Mumbai, India', country: 'India', currency: '₹', rateName: 'INR' },
-  { id: 'jp-tyo', name: 'Tokyo, Japan', country: 'Japan', currency: '¥', rateName: 'JPY' }
-];
-
 export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
   babyAge,
   babyName,
@@ -58,7 +48,11 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
   onSyncGroceries,
   onClose
 }) => {
-  const [selectedRegion, setSelectedRegion] = useState(REGIONS_LIST[0]);
+  const [selectedRegion, setSelectedRegion] = useState<GlobalLocation>(() => {
+    const saved = localStorage.getItem('ama_global_location');
+    return saved ? JSON.parse(saved) : POPULAR_GLOBAL_LOCATIONS[0];
+  });
+  const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   const [targetAge, setTargetAge] = useState(babyAge || '6 Months');
   const [dietaryPreference, setDietaryPreference] = useState<'all' | 'vegetarian' | 'dairy_free' | 'egg_free'>('all');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -67,7 +61,7 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
     return saved ? JSON.parse(saved) : null;
   });
   const [activeDayIndex, setActiveDayIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState<'meals' | 'groceries' | 'nutrition'>('meals');
+  const [activeTab, setActiveTab] = useState<'meals' | 'groceries' | 'markets' | 'nutrition'>('meals');
   const [checkedGroceries, setCheckedGroceries] = useState<string[]>([]);
   const [copySuccess, setCopySuccess] = useState(false);
   const [applySuccess, setApplySuccess] = useState(false);
@@ -86,109 +80,71 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
     setIsGenerating(true);
     setErrorMsg('');
     try {
-      if (!model) throw new Error("Gemini AI model is not configured.");
+      const response = await fetch("/api/ai/meal-planner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          babyName: babyName || 'Baby',
+          babyAge: targetAge,
+          region: selectedRegion.name,
+          currency: `${selectedRegion.currency} (${selectedRegion.currencyCode || 'Local Currency'})`,
+          dietType: dietaryPreference,
+          targetNutrients: ['Iron', 'DHA', 'Zinc', 'Vitamin C'],
+          allergenExclusions: suspectedAllergens
+        })
+      });
 
-      const prompt = `
-You are an expert baby nutritionist and feeding specialist.
-Create a comprehensive 7-Day Weekly Meal Plan and a Localized Grocery Shopping List tailored for a baby with these specific characteristics:
-
-- Baby Name: ${babyName || 'Baby'}
-- Developmental Age: ${targetAge}
-- Location / Market Region: ${selectedRegion.name} (${selectedRegion.country})
-- Local Currency Symbol: "${selectedRegion.currency}" (${selectedRegion.rateName})
-- Dietary Preference: ${dietaryPreference}
-- Cleared/Safe Allergens: ${clearedAllergens.length > 0 ? clearedAllergens.join(', ') : 'Standard weaning guidelines'}
-- Avoid/Suspected Allergic Foods: ${suspectedAllergens.length > 0 ? suspectedAllergens.join(', ') : 'None flagged yet'}
-
-CRITICAL REQUIREMENTS:
-1. OPTIMIZE FOR EXACT AGE & TEXTURE:
-   - 6-7 months: Smooth single or two-ingredient purees, soft mashes.
-   - 8-9 months: Thicker chunky purees, soft finger foods, soft steamed batons.
-   - 10-12+ months: Bite-sized table solids, soft chopped foods, varied family-style textures.
-2. NUTRITIONAL GAPS TO TARGET:
-   - Emphasize high-iron pairings (lentils, fortified oats, spinach, egg yolks, beans, steamed fish, sweet potato with Vitamin C fruits).
-   - Healthy fats & brain-building Omega-3 (avocado, olive oil, ground seeds, fish, nut butters if cleared).
-   - Calcium & Vitamin D for dental/bone growth.
-3. LOCALIZED GROCERY INGREDIENTS:
-   - Use locally authentic, readily available produce in ${selectedRegion.name} (e.g. for Nigeria: sweet potatoes, plantain, crayfish, ugu/fluted pumpkin leaves, tom brown, beans; for Western regions: squash, avocado, oats, pears; for Asia: rice okayu, kabocha, tai fish).
-   - Estimate realistic localized prices for pack sizes in "${selectedRegion.currency}".
-
-Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matching this exact JSON schema:
-{
-  "summary": "Short 2-sentence summary of the age-based nutritional strategy and localized ingredient focus.",
-  "nutritionalGapsFilled": [
-    "High Iron: Paired iron-rich legumes with sweet vitamin-C fruits for optimal absorption.",
-    "Healthy Brain Fats: Included localized avocado and healthy oils for neural development.",
-    "Gentle Gut Fiber: Soluble fibers to support smooth digestion."
-  ],
-  "days": [
-    {
-      "dayName": "Monday",
-      "breakfast": {
-        "title": "Recipe Title",
-        "description": "Short texture & prep note",
-        "keyNutrient": "Iron & Vitamin C",
-        "texture": "Smooth Puree"
-      },
-      "lunch": {
-        "title": "Recipe Title",
-        "description": "Short texture & prep note",
-        "keyNutrient": "Protein & Zinc",
-        "texture": "Soft Mash"
-      },
-      "dinner": {
-        "title": "Recipe Title",
-        "description": "Short texture & prep note",
-        "keyNutrient": "Calcium & Healthy Fats",
-        "texture": "Smooth Puree"
-      },
-      "snack": {
-        "title": "Recipe Title",
-        "description": "Finger food or fruit snack",
-        "keyNutrient": "Vitamin A",
-        "texture": "Soft Baton"
+      if (!response.ok) {
+        throw new Error(`Server status ${response.status}`);
       }
-    }
-    // Repeat for Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday (all 7 days)
-  ],
-  "groceryAisles": [
-    {
-      "category": "Fresh Produce",
-      "items": [
-        { "name": "Organic Sweet Potatoes", "quantity": "3 medium", "estCost": 1500, "currency": "${selectedRegion.currency}" }
-      ]
-    },
-    {
-      "category": "Proteins & Legumes",
-      "items": [
-        { "name": "Soft Brown Beans / Lentils", "quantity": "500g pack", "estCost": 1200, "currency": "${selectedRegion.currency}" }
-      ]
-    },
-    {
-      "category": "Grains & Cereals",
-      "items": [
-        { "name": "Rolled Baby Oats", "quantity": "1 box", "estCost": 2000, "currency": "${selectedRegion.currency}" }
-      ]
-    },
-    {
-      "category": "Healthy Fats & Dairy",
-      "items": [
-        { "name": "Ripe Avocados", "quantity": "2 pieces", "estCost": 800, "currency": "${selectedRegion.currency}" }
-      ]
-    }
-  ],
-  "totalEstBudget": 5500,
-  "currencySymbol": "${selectedRegion.currency}"
-}
-`;
 
-      const result = await model.generateContent(prompt);
-      const rawText = result.response.text() || '';
-      const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsed = JSON.parse(cleanJson);
+      const rawData = await response.json();
 
-      setPlanData(parsed);
-      localStorage.setItem('ama_ai_weekly_meal_plan', JSON.stringify(parsed));
+      // Normalize server response to match UI component structure
+      const normalizedDays = (rawData.days || []).map((d: any) => {
+        if (d.breakfast || d.lunch || d.dinner) {
+          return d;
+        }
+        // Map meals array format if present
+        const mealsArr = d.meals || [];
+        const b = mealsArr.find((m: any) => m.mealType === 'Breakfast' || m.type === 'Breakfast') || mealsArr[0];
+        const l = mealsArr.find((m: any) => m.mealType === 'Lunch' || m.type === 'Lunch') || mealsArr[1];
+        const dn = mealsArr.find((m: any) => m.mealType === 'Dinner' || m.type === 'Dinner') || mealsArr[2];
+        const sn = mealsArr.find((m: any) => m.mealType === 'Snack' || m.type === 'Snack');
+
+        return {
+          dayName: d.dayName || 'Day',
+          breakfast: b ? { title: b.name || b.title, description: b.notes || b.description || 'Nutrient rich breakfast', keyNutrient: b.ironRich ? 'Iron & Energy' : 'Essential Vitamins', texture: b.texture || 'Smooth Puree' } : null,
+          lunch: l ? { title: l.name || l.title, description: l.notes || l.description || 'Balanced lunch', keyNutrient: 'Protein & Zinc', texture: l.texture || 'Soft Mash' } : null,
+          dinner: dn ? { title: dn.name || dn.title, description: dn.notes || dn.description || 'Calming evening meal', keyNutrient: 'Healthy Fats & Fiber', texture: dn.texture || 'Smooth Puree' } : null,
+          snack: sn ? { title: sn.name || sn.title, description: sn.notes || sn.description || 'Snack', keyNutrient: 'Vitamin C', texture: sn.texture || 'Soft Baton' } : null
+        };
+      });
+
+      // Normalize grocery Aisles
+      let normalizedGroceries = rawData.groceryAisles;
+      if (!normalizedGroceries && rawData.groceryList) {
+        normalizedGroceries = rawData.groceryList.map((cat: any) => ({
+          category: cat.category || 'Grocery Items',
+          items: (cat.items || []).map((it: any) => typeof it === 'string' ? { name: it, quantity: '1 pack', estCost: 'Local Market Rate', currency: selectedRegion.currency } : it)
+        }));
+      }
+
+      const normalizedParsed = {
+        summary: rawData.summary || `7-Day solid food plan for ${babyName || 'Baby'} in ${selectedRegion.name}.`,
+        nutritionalGapsFilled: rawData.nutritionalGapsFilled || [
+          "High Iron: Bioavailable pairings for brain and blood health.",
+          "Brain Fats: Localized healthy fats for motor and cognitive development.",
+          "Digestive Comfort: Gentle fibers for easy transition to solids."
+        ],
+        days: normalizedDays,
+        groceryAisles: normalizedGroceries || [],
+        totalEstBudget: rawData.totalEstBudget || rawData.estimatedWeeklyCost || "Market Rate",
+        currencySymbol: rawData.currencySymbol || selectedRegion.currency
+      };
+
+      setPlanData(normalizedParsed);
+      localStorage.setItem('ama_ai_weekly_meal_plan', JSON.stringify(normalizedParsed));
       setCheckedGroceries([]);
     } catch (err: any) {
       console.error("AI Meal Planning Error:", err);
@@ -326,26 +282,25 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
       {/* Generator Controls Bar */}
       <div className="bg-slate-50 border border-slate-100 rounded-3xl p-4 sm:p-5 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Region / Currency */}
+          {/* Region / Currency Global Picker */}
           <div>
-            <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 block mb-1.5 flex items-center gap-1">
-              <Globe className="w-3.5 h-3.5 text-primary" />
-              <span>Location & Currency</span>
+            <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 block mb-1.5 flex items-center gap-1.5">
+              <span>🗺️</span>
+              <span>Global Location & Realities</span>
             </label>
-            <select
-              value={selectedRegion.id}
-              onChange={(e) => {
-                const found = REGIONS_LIST.find(r => r.id === e.target.value);
-                if (found) setSelectedRegion(found);
-              }}
-              className="w-full bg-white border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary shadow-2xs"
+            <button
+              type="button"
+              onClick={() => setIsLocationPickerOpen(true)}
+              className="w-full bg-white hover:bg-emerald-50/50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800 flex items-center justify-between shadow-2xs cursor-pointer transition-all text-left"
             >
-              {REGIONS_LIST.map(reg => (
-                <option key={reg.id} value={reg.id}>
-                  {reg.name} ({reg.currency} {reg.rateName})
-                </option>
-              ))}
-            </select>
+              <div className="truncate pr-2">
+                <span className="block truncate">{selectedRegion.name}</span>
+                <span className="text-[10px] text-emerald-700 font-bold block">{selectedRegion.currency} {selectedRegion.currencyCode || ''}</span>
+              </div>
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-black uppercase shrink-0">
+                Change 🗺️
+              </span>
+            </button>
           </div>
 
           {/* Baby Age Milestone */}
@@ -443,27 +398,41 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
             )}
           </div>
 
-          {/* Tab Selector: Meals Schedule / Grocery Shopping List */}
+          {/* Tab Selector: Meals Schedule / Grocery Shopping List / Local Markets & Map */}
           <div className="flex bg-gray-100 p-1 rounded-2xl gap-1">
             <button
               onClick={() => setActiveTab('meals')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'meals' ? 'bg-white text-primary shadow-xs font-black' : 'text-gray-500 hover:text-gray-800'
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>7-Day Meal Schedule</span>
+              <span>7-Day Meals</span>
             </button>
             <button
               onClick={() => setActiveTab('groceries')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'groceries' ? 'bg-white text-primary shadow-xs font-black' : 'text-gray-500 hover:text-gray-800'
               }`}
             >
               <ShoppingCart className="w-3.5 h-3.5" />
-              <span>Localized Grocery List ({planData.currencySymbol}{planData.totalEstBudget})</span>
+              <span>Grocery List</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('markets')}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === 'markets' ? 'bg-emerald-600 text-white shadow-xs font-black' : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>📍 Local Markets & Map</span>
             </button>
           </div>
+
+          {/* Tab 3: Local Markets & Map View */}
+          {activeTab === 'markets' && (
+            <LocalMarketMap location={selectedRegion} onLocationChange={setSelectedRegion} />
+          )}
 
           {/* Tab 1: 7-Day Meals View */}
           {activeTab === 'meals' && (
@@ -595,7 +564,7 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Estimated Weekly Budget</p>
                   <p className="text-xl font-serif font-black text-primary mt-0.5">
-                    {planData.currencySymbol}{planData.totalEstBudget} <span className="text-xs font-sans text-gray-400 font-medium">({selectedRegion.rateName})</span>
+                    {planData.currencySymbol}{planData.totalEstBudget} <span className="text-xs font-sans text-gray-400 font-medium">({selectedRegion.currencyCode || selectedRegion.currency})</span>
                   </p>
                 </div>
                 <button
@@ -660,6 +629,15 @@ Return ONLY valid JSON (no surrounding markdown code fences, raw JSON only) matc
           </div>
         </div>
       )}
+      {/* Global Location Picker Modal */}
+      <GlobalLocationPickerModal
+        isOpen={isLocationPickerOpen}
+        onClose={() => setIsLocationPickerOpen(false)}
+        currentLocation={selectedRegion}
+        onSelectLocation={(loc) => {
+          setSelectedRegion(loc);
+        }}
+      />
     </div>
   );
 };

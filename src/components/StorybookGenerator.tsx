@@ -6,42 +6,55 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import ReactMarkdown from 'react-markdown';
 
-export const StorybookGenerator = ({ diaryEntries, babyName }: { diaryEntries: any[], babyName: string }) => {
+export interface StorybookGeneratorProps {
+  diaryEntries: any[];
+  babyName: string;
+  babyAge?: string;
+  loggedMeals?: any[];
+  diaperLogs?: any[];
+  growthLogs?: any[];
+  teethingMap?: any;
+  vaccineSchedule?: any[];
+}
+
+export const StorybookGenerator: React.FC<StorybookGeneratorProps> = ({ 
+  diaryEntries = [], 
+  babyName = 'Baby',
+  babyAge = '6 Months',
+  loggedMeals = [],
+  diaperLogs = [],
+  growthLogs = [],
+  teethingMap = {},
+  vaccineSchedule = []
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [story, setStory] = useState('');
 
   const generateStory = async () => {
-    if (diaryEntries.length === 0) {
-      alert("You need to log some diary entries first!");
-      return;
-    }
-    
     setIsGenerating(true);
     setIsOpen(true);
     
     try {
-      const recentLogs = diaryEntries.slice(0, 30).map(e => `Date: ${e.date}, Mood: ${e.mood}, Entry: ${e.notes}`).join('\n');
-      
-      const prompt = `
-        You are an expert children's book author and a warm, empathetic biographer.
-        Take the following rough daily diary notes and transform them into a beautifully written, magical narrative storybook summarizing ${babyName}'s recent month.
-        Make it sound like a beautiful keepsake story. Use Markdown for formatting (bolding, headers).
-        Keep it to about 3-4 paragraphs.
-        
-        Notes:
-        ${recentLogs}
-      `;
-
       const response = await fetch("/api/ai/storybook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ babyName, diaryEntries })
+        body: JSON.stringify({ 
+          babyName,
+          babyAge,
+          diaryEntries,
+          loggedMeals,
+          diaperLogs,
+          growthLogs,
+          teethingMap,
+          vaccineSchedule
+        })
       });
       const data = await response.json();
-      setStory(data.story || '');    } catch (error) {
-      console.error(error);
-      setStory("Failed to generate the story. Please try again later.");
+      setStory(data.story || '');
+    } catch (error) {
+      console.error("Story generation error:", error);
+      setStory("Failed to generate the storybook. Please try again later.");
     } finally {
       setIsGenerating(false);
     }

@@ -24,6 +24,7 @@ import { ImmunizationScheduler } from './ImmunizationScheduler';
 import { BabyProfileManager } from './BabyProfileManager';
 import { BabyProfile } from '../types';
 import { FirebaseUser, model } from '../firebase';
+import { GlobalLocation, GlobalLocationPickerModal, POPULAR_GLOBAL_LOCATIONS } from './GlobalLocationPickerModal';
 
 export const Dashboard = ({ 
   onNavigate,
@@ -112,6 +113,11 @@ export const Dashboard = ({
   const todayVaccines = (vaccineSchedule || []).filter(v => v.date && isSameDay(new Date(v.date), new Date()));
 
   const [activeModalType, setActiveModalType] = useState<'menu' | 'activities' | 'meds' | 'immunization' | 'schedule' | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<GlobalLocation>(() => {
+    const saved = localStorage.getItem('ama_global_location');
+    return saved ? JSON.parse(saved) : POPULAR_GLOBAL_LOCATIONS[0];
+  });
+  const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
 
   // Quick Inline Scheduler State inside Dashboard Modal
   const [scheduleCategory, setScheduleCategory] = useState<'meal' | 'activity' | 'med' | 'vaccine' | 'routine'>('meal');
@@ -243,6 +249,15 @@ export const Dashboard = ({
                 <span>Offline Queue</span>
               </span>
             )}
+            {/* Global Location Pill */}
+            <button
+              onClick={() => setIsLocationPickerOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-all cursor-pointer"
+            >
+              <MapPin className="w-3 h-3 text-emerald-600" />
+              <span className="truncate max-w-[130px]">{currentLocation.name.split(',')[0]}</span>
+              <span className="text-[8px] bg-emerald-200 text-emerald-900 px-1 rounded font-bold">🌍 Pick</span>
+            </button>
           </div>
         </div>
 

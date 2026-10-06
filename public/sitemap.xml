@@ -62,6 +62,22 @@
     <priority>0.8</priority>
   </url>
 
+  <!-- About Us & Corporate Curation -->
+  <url>
+    <loc>https://ais-pre-7hifb2cmfnntmnsrbzwsc2-272660763298.europe-west2.run.app/about</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- Contact Us & Technical Help Desk -->
+  <url>
+    <loc>https://ais-pre-7hifb2cmfnntmnsrbzwsc2-272660763298.europe-west2.run.app/contact</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
   <!-- 20 Individual Blog Articles -->
   <url>
     <loc>https://ais-pre-7hifb2cmfnntmnsrbzwsc2-272660763298.europe-west2.run.app/blog/understanding-infant-wake-windows-by-age</loc>

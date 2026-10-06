@@ -1055,6 +1055,22 @@ export const FeedingTracker = ({
             : (
               /* Ingredient Index List & Filter View */
               <>
+                {/* Witty and Rich Safety Guide Intro (at least 320 Words) */}
+                <div className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm space-y-4 text-slate-600 text-sm leading-relaxed text-left">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-black uppercase tracking-wider">
+                    📜 Local Resource Safety Philosophy
+                  </span>
+                  <p>
+                    Welcome to our comprehensive, community-centered Ingredient Index and Safety Guide. This interactive manual is designed with absolute logic, resourcefulness, and caution to support parents who are navigating baby weaning under real-world economic constraints. We know that in communities like Oyigbo in Rivers State, and other suburban or rural neighborhoods, mothers often do not have luxury budgets for imported baby cereals, premium purees, or specialized dairy formulas. At the same time, many households lack a stable power supply, making it impossible to freeze or preserve wet purees. 
+                  </p>
+                  <p>
+                    This is why our safety guidelines are structured entirely around shelf-stable, dry local resources. We show you how to utilize yellow corn, sorghum, millet, and soybeans to prepare Tom Brown weaning cereal, which can be stored safely in dry glass jars for weeks without refrigeration. We encourage you to actively explore your local natural environment and market stalls to discover cheap, nutrient-dense alternatives that your baby will benefit from, such as mineral-rich Moringa leaf extracts, wild pumpkin leaves, and ground sesame seeds.
+                  </p>
+                  <p>
+                    Our list below details common local ingredients and groups them into logical traffic-light color codes. Safe green items are simple, low-cost local foods that can be easily mashed for your baby. Caution amber items require careful roasting, peeling, or straining to ensure they are soft and gentle on tiny digestive systems. Avoid red items are unsafe for infants under twelve months, such as raw honey, whole nuts, or unboiled cow's milk. Use this index to plan your baby's transition away from breast milk safely, cautiously, and without stress.
+                  </p>
+                </div>
+
                 {/* Search and Filters */}
                 <div className="space-y-3">
                   <div className="relative bg-white rounded-2xl border border-gray-100 shadow-inner p-1 flex items-center">

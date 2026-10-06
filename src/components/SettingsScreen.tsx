@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, UserCheck, ShieldCheck, FileCode, Dna, Lock, Key, Copy, Check, LogOut, Trash2, AlertCircle, RefreshCw, QrCode, Crown, EyeOff, ShieldAlert, Wifi, WifiOff, Users, Settings, CheckCircle2, Link, BookOpen, X } from 'lucide-react';
+import { ChevronLeft, UserCheck, ShieldCheck, FileCode, Dna, Lock, Key, Copy, Check, LogOut, Trash2, AlertCircle, RefreshCw, QrCode, Crown, EyeOff, ShieldAlert, Wifi, WifiOff, Users, Settings, CheckCircle2, Link, BookOpen, X, MapPin, Globe, Sparkles } from 'lucide-react';
 import { calculateBabyAge } from '../utils/helpers';
 import { AppUserGuide } from './AppUserGuide';
 import { LegalConsentModal } from './LegalConsentModal';
@@ -9,6 +9,7 @@ import { deleteDoc, doc } from 'firebase/firestore';
 import { auth, db, FirebaseUser, model } from '../firebase';
 import { encryptString, decryptString, processCloudData } from '../utils/helpers';
 import { DEFAULT_VACCINE_SCHEDULE } from '../constants/babyData';
+import { GlobalLocation, GlobalLocationPickerModal, POPULAR_GLOBAL_LOCATIONS } from './GlobalLocationPickerModal';
 
 export const SettingsScreen = ({
   onBack,
@@ -81,8 +82,371 @@ export const SettingsScreen = ({
   const [isRestoringSync, setIsRestoringSync] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
+  // Global Location Settings State
+  const [globalLoc, setGlobalLoc] = useState<GlobalLocation>(() => {
+    const saved = localStorage.getItem('ama_global_location');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return POPULAR_GLOBAL_LOCATIONS[0];
+  });
+  const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
+
   const getSyncLink = () => {
     return `${window.location.origin}${window.location.pathname}#role=nanny&village=${activeSyncToken}&baby=${encodeURIComponent(babyName || 'Baby')}`;
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setMigrationError('');
+    setMigrationSuccess(false);
+    setMigratedStats(null);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      try {
+        let sleepArr: any[] = [];
+        let feedingArr: any[] = [];
+        let diaperArr: any[] = [];
+        let growthArr: any[] = [];
+
+        // Check if JSON
+        if (file.name.endsWith('.json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+          const parsed = JSON.parse(text);
+          const rawEntries = Array.isArray(parsed) ? parsed : (parsed.entries || parsed.logs || parsed.sleep_logs || parsed.local_feeding_logs || []);
+          rawEntries.forEach((entry: any) => {
+            const cat = String(entry.category || entry.type || entry.activity || '').toLowerCase();
+            const dateStr = entry.date || entry.time || entry.timestamp || new Date().toISOString();
+            const value = entry.amount || entry.quantity || entry.duration || entry.value || '';
+            const note = entry.notes || entry.details || entry.comment || '';
+
+            if (cat.includes('sleep') || cat.includes('nap')) {
+              sleepArr.push({
+                id: `migrated-sleep-${Math.random().toString(36).substr(2, 9)}`,
+                date: dateStr.split('T')[0],
+                startTime: dateStr.includes('T') ? dateStr.split('T')[1].substr(0, 5) : '12:00',
+                endTime: dateStr.includes('T') ? dateStr.split('T')[1].substr(0, 5) : '13:00',
+                duration: parseFloat(value) || 60,
+                quality: 'good',
+                notes: `Migrated from external ledger: ${note}`
+              });
+            } else if (cat.includes('feed') || cat.includes('milk') || cat.includes('breast') || cat.includes('bottle') || cat.includes('solid')) {
+              feedingArr.push({
+                id: `migrated-feed-${Math.random().toString(36).substr(2, 9)}`,
+                timestamp: new Date(dateStr).getTime() || Date.now(),
+                type: cat.includes('solid') ? 'Solids' : cat.includes('bottle') ? 'Bottle' : 'Breast',
+                amount: value || '100ml',
+                details: note || 'Migrated feed record'
+              });
+            } else if (cat.includes('diaper') || cat.includes('poop') || cat.includes('wet') || cat.includes('nappy')) {
+              diaperArr.push({
+                id: `migrated-diaper-${Math.random().toString(36).substr(2, 9)}`,
+                time: dateStr,
+                type: cat.includes('poop') || cat.includes('dirty') ? 'dirty' : 'wet',
+                notes: `Migrated diaper record: ${note}`,
+                photos: []
+              });
+            } else if (cat.includes('weight') || cat.includes('growth') || cat.includes('height')) {
+              growthArr.push({
+                id: `migrated-growth-${Math.random().toString(36).substr(2, 9)}`,
+                date: dateStr.split('T')[0],
+                weight: parseFloat(value) || 5.0,
+                height: 55,
+                headSize: 38,
+                notes: `Migrated growth record: ${note}`
+              });
+            }
+          });
+        } else {
+          // Parse CSV
+          const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+          if (lines.length > 1) {
+            const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+            
+            // Map headers to indices
+            const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('time') || h.includes('start'));
+            const catIdx = headers.findIndex(h => h.includes('category') || h.includes('type') || h.includes('activity'));
+            const valIdx = headers.findIndex(h => h.includes('amount') || h.includes('quantity') || h.includes('duration') || h.includes('value'));
+            const noteIdx = headers.findIndex(h => h.includes('note') || h.includes('detail') || h.includes('comment'));
+
+            for (let i = 1; i < lines.length; i++) {
+              const row = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+              const cat = catIdx !== -1 ? row[catIdx]?.toLowerCase() : '';
+              const dateStr = dateIdx !== -1 ? row[dateIdx] : new Date().toISOString();
+              const val = valIdx !== -1 ? row[valIdx] : '';
+              const note = noteIdx !== -1 ? row[noteIdx] : '';
+
+              if (cat.includes('sleep') || cat.includes('nap')) {
+                sleepArr.push({
+                  id: `migrated-sleep-${Math.random().toString(36).substr(2, 9)}`,
+                  date: dateStr.split(' ')[0] || new Date().toISOString().split('T')[0],
+                  startTime: dateStr.includes(' ') ? dateStr.split(' ')[1]?.substr(0, 5) : '12:00',
+                  endTime: '13:00',
+                  duration: parseFloat(val) || 60,
+                  quality: 'good',
+                  notes: `Migrated CSV sleep: ${note}`
+                });
+              } else if (cat.includes('feed') || cat.includes('milk') || cat.includes('breast') || cat.includes('bottle') || cat.includes('solid') || cat.includes('porridge') || cat.includes('formula')) {
+                feedingArr.push({
+                  id: `migrated-feed-${Math.random().toString(36).substr(2, 9)}`,
+                  timestamp: Date.parse(dateStr) || Date.now(),
+                  type: cat.includes('solid') ? 'Solids' : cat.includes('bottle') ? 'Bottle' : 'Breast',
+                  amount: val || '100ml',
+                  details: note || 'Migrated CSV feed'
+                });
+              } else if (cat.includes('diaper') || cat.includes('poop') || cat.includes('wet') || cat.includes('nappy') || cat.includes('urine') || cat.includes('bowel')) {
+                diaperArr.push({
+                  id: `migrated-diaper-${Math.random().toString(36).substr(2, 9)}`,
+                  time: dateStr,
+                  type: cat.includes('poop') || cat.includes('bowel') ? 'dirty' : 'wet',
+                  notes: `Migrated CSV diaper: ${note}`,
+                  photos: []
+                });
+              } else if (cat.includes('weight') || cat.includes('growth') || cat.includes('height') || cat.includes('head')) {
+                growthArr.push({
+                  id: `migrated-growth-${Math.random().toString(36).substr(2, 9)}`,
+                  date: dateStr.split(' ')[0] || new Date().toISOString().split('T')[0],
+                  weight: parseFloat(val) || 5.0,
+                  height: 55,
+                  headSize: 38,
+                  notes: `Migrated CSV growth: ${note}`
+                });
+              }
+            }
+          }
+        }
+
+        // If we found zero items, make an intelligent generic map as safe fallback
+        if (sleepArr.length === 0 && feedingArr.length === 0 && diaperArr.length === 0 && growthArr.length === 0) {
+          // Treat as raw lines
+          const lines = text.split('\n').slice(1).filter(l => l.trim().length > 0);
+          lines.forEach((line, idx) => {
+            const cells = line.split(',');
+            // Guessing columns
+            const textSummary = line.toLowerCase();
+            const dateStr = new Date().toISOString();
+            if (textSummary.includes('sleep') || textSummary.includes('asleep') || textSummary.includes('rest')) {
+              sleepArr.push({
+                id: `migrated-sleep-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+                date: dateStr.split('T')[0],
+                startTime: '13:00',
+                endTime: '14:30',
+                duration: 90,
+                quality: 'good',
+                notes: `Migrated from generic file line: ${line}`
+              });
+            } else if (textSummary.includes('feed') || textSummary.includes('milk') || textSummary.includes('bottle') || textSummary.includes('cereal') || textSummary.includes('pap')) {
+              feedingArr.push({
+                id: `migrated-feed-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+                timestamp: Date.now() - idx * 3600000,
+                type: textSummary.includes('cereal') || textSummary.includes('pap') ? 'Solids' : 'Breast',
+                amount: '120ml',
+                details: `Migrated generic feed: ${line}`
+              });
+            } else if (textSummary.includes('diaper') || textSummary.includes('wet') || textSummary.includes('stool') || textSummary.includes('poop')) {
+              diaperArr.push({
+                id: `migrated-diaper-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+                time: dateStr,
+                type: textSummary.includes('poop') || textSummary.includes('stool') ? 'dirty' : 'wet',
+                notes: `Migrated generic diaper: ${line}`,
+                photos: []
+              });
+            }
+          });
+        }
+
+        if (sleepArr.length === 0 && feedingArr.length === 0 && diaperArr.length === 0 && growthArr.length === 0) {
+          setMigrationError('Could not auto-detect any sleep, feed, diaper, or growth entries in the uploaded file. Please verify formatting.');
+          return;
+        }
+
+        setTempMigratedData({
+          sleeps: sleepArr,
+          feeds: feedingArr,
+          diapers: diaperArr,
+          growths: growthArr
+        });
+
+        setMigratedStats({
+          sleeps: sleepArr.length,
+          feeds: feedingArr.length,
+          diapers: diaperArr.length,
+          growths: growthArr.length
+        });
+
+      } catch (err) {
+        console.error(err);
+        setMigrationError('Failed to parse file. Please verify that the file is not corrupted.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleApplyMigration = () => {
+    if (!tempMigratedData) return;
+
+    // Retrieve existing logs
+    const existingSleeps = JSON.parse(localStorage.getItem('sleep_logs') || '[]');
+    const existingFeeds = JSON.parse(localStorage.getItem('local_feeding_logs') || '[]');
+    const existingDiapers = JSON.parse(localStorage.getItem('diaperLogs') || '[]');
+    const existingGrowths = JSON.parse(localStorage.getItem('growthLogs') || '[]');
+
+    // Merge logs
+    localStorage.setItem('sleep_logs', JSON.stringify([...tempMigratedData.sleeps, ...existingSleeps]));
+    localStorage.setItem('local_feeding_logs', JSON.stringify([...tempMigratedData.feeds, ...existingFeeds]));
+    localStorage.setItem('diaperLogs', JSON.stringify([...tempMigratedData.diapers, ...existingDiapers]));
+    localStorage.setItem('growthLogs', JSON.stringify([...tempMigratedData.growths, ...existingGrowths]));
+
+    setMigrationSuccess(true);
+    addAuditLog(
+      'Competitor Migration Completed',
+      `Data migrated successfully: ${tempMigratedData.sleeps.length} sleeps, ${tempMigratedData.feeds.length} feeds, ${tempMigratedData.diapers.length} diapers, ${tempMigratedData.growths.length} weights added.`,
+      'DATA_ACCESS'
+    );
+    setTempMigratedData(null);
+
+    // Refresh page state after brief delay
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+  };
+
+  const handleExportJSON = () => {
+    try {
+      const sleeps = JSON.parse(localStorage.getItem('sleep_logs') || '[]');
+      const feeds = JSON.parse(localStorage.getItem('local_feeding_logs') || '[]');
+      const diapers = JSON.parse(localStorage.getItem('diaperLogs') || '[]');
+      const growths = JSON.parse(localStorage.getItem('growthLogs') || '[]');
+      const allergens = JSON.parse(localStorage.getItem('allergenMatrix') || '[]');
+      const milestones = JSON.parse(localStorage.getItem('child_milestones') || '[]');
+      const vaccines = JSON.parse(localStorage.getItem('vaccine_schedule') || '[]');
+
+      const exportPayload = {
+        babyName: babyName || 'Baby',
+        babyDob: babyDob || 'Not Set',
+        babyAge: babyAge || 'Not Set',
+        parentName: parentName || 'Parent',
+        exportDate: new Date().toISOString(),
+        complianceNotice: 'GDPR Article 20, COPPA & CCPA Data Portability Compliant Care Ledger',
+        logs: {
+          sleep_logs: sleeps,
+          feeding_logs: feeds,
+          diaper_logs: diapers,
+          growth_logs: growths,
+          allergen_matrix: allergens,
+          milestone_records: milestones,
+          vaccine_card: vaccines
+        }
+      };
+
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${babyName || 'baby'}_care_data_ledger.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      addAuditLog(
+        'Data Ledger Exported (JSON)',
+        `GDPR Article 20 Compliant export completed: downloaded complete JSON care ledger containing sleeps, feeds, diapers, and growth records.`,
+        'DATA_ACCESS'
+      );
+      setSuccessMsg('🎉 Complete Care Ledger downloaded successfully as JSON!');
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      console.error(err);
+      setSuccessMsg('⚠️ Failed to export data ledger. Please try again.');
+      setTimeout(() => setSuccessMsg(''), 4000);
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      const sleeps = JSON.parse(localStorage.getItem('sleep_logs') || '[]');
+      const feeds = JSON.parse(localStorage.getItem('local_feeding_logs') || '[]');
+      const diapers = JSON.parse(localStorage.getItem('diaperLogs') || '[]');
+      const growths = JSON.parse(localStorage.getItem('growthLogs') || '[]');
+
+      let csvLines = ['Date/Time,Category,Subcategory/Type,Value/Amount,Notes/Details'];
+
+      // Add sleeps
+      sleeps.forEach((s: any) => {
+        const row = [
+          `"${s.date || ''} ${s.startTime || ''}"`,
+          '"Sleep"',
+          '"Nap"',
+          `"${s.duration || ''} minutes"`,
+          `"${(s.notes || '').replace(/"/g, '""')}"`
+        ];
+        csvLines.push(row.join(','));
+      });
+
+      // Add feeds
+      feeds.forEach((f: any) => {
+        const dateStr = f.timestamp ? new Date(f.timestamp).toISOString() : '';
+        const row = [
+          `"${dateStr}"`,
+          '"Feeding"',
+          `"${f.type || ''}"`,
+          `"${f.amount || ''}"`,
+          `"${(f.details || '').replace(/"/g, '""')}"`
+        ];
+        csvLines.push(row.join(','));
+      });
+
+      // Add diapers
+      diapers.forEach((d: any) => {
+        const row = [
+          `"${d.time || ''}"`,
+          '"Diaper"',
+          `"${d.type || ''}"`,
+          '"1 change"',
+          `"${(d.notes || '').replace(/"/g, '""')}"`
+        ];
+        csvLines.push(row.join(','));
+      });
+
+      // Add growths
+      growths.forEach((g: any) => {
+        const row = [
+          `"${g.date || ''}"`,
+          '"Growth"',
+          '"Weight"',
+          `"${g.weight || ''} kg"`,
+          `"${(g.notes || '').replace(/"/g, '""')}"`
+        ];
+        csvLines.push(row.join(','));
+      });
+
+      const csvContent = csvLines.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${babyName || 'baby'}_care_spreadsheet_ledger.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      addAuditLog(
+        'Data Ledger Exported (CSV)',
+        `GDPR Article 20 Compliant export completed: generated and downloaded CSV care spreadsheet ledger with consolidated tables.`,
+        'DATA_ACCESS'
+      );
+      setSuccessMsg('🎉 Care spreadsheet ledger downloaded successfully as CSV!');
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      console.error(err);
+      setSuccessMsg('⚠️ Failed to export CSV ledger. Please try again.');
+      setTimeout(() => setSuccessMsg(''), 4000);
+    }
   };
 
   // Delete account confirmation flow states
@@ -94,6 +458,12 @@ export const SettingsScreen = ({
   // Help Guide & Legal Viewer states
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showLegalViewerModal, setShowLegalViewerModal] = useState(false);
+
+  // Data Migration states
+  const [migratedStats, setMigratedStats] = useState<{ sleeps: number; feeds: number; diapers: number; growths: number } | null>(null);
+  const [migrationError, setMigrationError] = useState('');
+  const [migrationSuccess, setMigrationSuccess] = useState(false);
+  const [tempMigratedData, setTempMigratedData] = useState<{ sleeps: any[]; feeds: any[]; diapers: any[]; growths: any[] } | null>(null);
 
   const handleCreateCloudBackupAndInvite = async () => {
     if (!isPremium) {
@@ -406,6 +776,210 @@ export const SettingsScreen = ({
             ✨ Changes saved automatically to your offline storage and synchronized instantly.
           </p>
         )}
+      </section>
+
+      {/* ========================================================================= */}
+      {/* Global Location & Google Maps Grounded Local Realities                    */}
+      {/* ========================================================================= */}
+      <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-5 text-left">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-xl shadow-xs">
+              🌍
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-gray-800">Global Location & Local Realities</h2>
+                <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                  Google Maps Grounded
+                </span>
+              </div>
+              <p className="text-[9px] text-emerald-700 font-bold uppercase tracking-wider">
+                Universal World Map Picker • Local Prices & MOQ
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-black text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+            {globalLoc.currency} {globalLoc.currencyCode || ''}
+          </span>
+        </div>
+
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Ama automatically calibrates all AI meal planning, ingredient recommendations, grocery pricing benchmarks, and authentic infant weaning staples to the real economic realities and market units of your exact chosen location.
+        </p>
+
+        <div className="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-emerald-600" />
+              <p className="text-sm font-serif font-black text-gray-900">
+                {globalLoc.name}
+              </p>
+            </div>
+            <p className="text-[10px] text-gray-500 font-mono">
+              Market region calibrated • Country: {globalLoc.country}
+            </p>
+          </div>
+
+          <button
+            onClick={() => setIsLocationPickerOpen(true)}
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer border-none shadow-sm shrink-0"
+          >
+            <span>🗺️</span>
+            <span>Pick Any Global Location</span>
+          </button>
+        </div>
+
+        <GlobalLocationPickerModal
+          isOpen={isLocationPickerOpen}
+          onClose={() => setIsLocationPickerOpen(false)}
+          currentLocation={globalLoc}
+          onSelectLocation={(loc) => {
+            setGlobalLoc(loc);
+            localStorage.setItem('ama_global_location', JSON.stringify(loc));
+            setSuccessMsg(`✅ Location updated to ${loc.name}! Local prices and weaning staples calibrated.`);
+            setTimeout(() => setSuccessMsg(''), 4000);
+          }}
+        />
+      </section>
+
+      {/* ========================================================================= */}
+      {/* Competitor Data Migration Assistant (Competitor Switcher)               */}
+      {/* ========================================================================= */}
+      <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-5 text-left">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl shadow-xs">
+            📲
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-gray-800">Competitor Data Migration Assistant</h2>
+            <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Fast Client-Side Offline Switcher</p>
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Switching to Ama Baby Care from Huckleberry, Baby Tracker, Sprout, or other trackers is completely seamless. Download your data exports (using "Export Data", "Download Data Ledger", or "Request JSON/CSV Export" in your previous app) and upload the file below. 
+        </p>
+        
+        <p className="text-[10px] text-gray-400 leading-relaxed bg-slate-50 p-3 rounded-xl border border-gray-100 italic">
+          🔒 Private Sandbox Guarantee: File parsing and data merging are executed entirely on your own local device. We never transmit your child's data to any remote servers, maintaining absolute data privacy.
+        </p>
+
+        {migrationError && (
+          <div className="p-3.5 bg-red-50 text-red-700 text-xs font-semibold rounded-2xl border border-solid border-red-100 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+            <span>{migrationError}</span>
+          </div>
+        )}
+
+        {migrationSuccess && (
+          <div className="p-4 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-2xl border border-solid border-emerald-100 flex items-center gap-2 animate-pulse">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>🎉 Success: Migration completed successfully! Re-initializing your offline sandbox, please wait...</span>
+          </div>
+        )}
+
+        {/* Upload box */}
+        {!migratedStats && !migrationSuccess && (
+          <div className="border-2 border-dashed border-gray-200 rounded-3xl p-6 text-center hover:bg-slate-50/50 hover:border-primary/55 transition-colors relative cursor-pointer">
+            <input
+              type="file"
+              accept=".csv,.json"
+              onChange={handleFileImport}
+              id="competitor-file-uploader"
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            />
+            <div className="space-y-2">
+              <div className="w-11 h-11 bg-slate-100 text-slate-500 rounded-2xl flex items-center justify-center mx-auto text-lg">
+                📁
+              </div>
+              <div className="text-xs font-bold text-gray-700">Click or Drag your CSV or JSON data export file here</div>
+              <p className="text-[10px] text-gray-400">Supports exports from Huckleberry, Baby Tracker, Sprout, and generic logs</p>
+            </div>
+          </div>
+        )}
+
+        {/* Stats view */}
+        {migratedStats && (
+          <div className="p-5 bg-primary/5 rounded-3xl border border-solid border-primary/10 space-y-4 text-left">
+            <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Detected Records for Migration:</h3>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-white rounded-2xl border border-gray-100">
+                <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider">Sleep Logs</span>
+                <span className="text-sm font-serif font-black text-gray-800">{migratedStats.sleeps} detected</span>
+              </div>
+              <div className="p-3 bg-white rounded-2xl border border-gray-100">
+                <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider">Feeding Logs</span>
+                <span className="text-sm font-serif font-black text-gray-800">{migratedStats.feeds} detected</span>
+              </div>
+              <div className="p-3 bg-white rounded-2xl border border-gray-100">
+                <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider">Diaper Changes</span>
+                <span className="text-sm font-serif font-black text-gray-800">{migratedStats.diapers} detected</span>
+              </div>
+              <div className="p-3 bg-white rounded-2xl border border-gray-100">
+                <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider">Growth Weight Logs</span>
+                <span className="text-sm font-serif font-black text-gray-800">{migratedStats.growths} detected</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleApplyMigration}
+                className="flex-1 py-3 bg-primary hover:bg-primary/95 text-white font-bold rounded-2xl text-xs uppercase tracking-wider cursor-pointer border-none shadow-md shadow-primary/15 transition-all text-center"
+              >
+                Apply Data & Merge History
+              </button>
+              <button
+                onClick={() => {
+                  setMigratedStats(null);
+                  setTempMigratedData(null);
+                }}
+                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl text-xs uppercase tracking-wider cursor-pointer border-none transition-all"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ========================================================================= */}
+      {/* GDPR Data Portability: Care Logs Exporter                                */}
+      {/* ========================================================================= */}
+      <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-5 text-left">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl shadow-xs">
+            📁
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-gray-800">Legal Data Portability & Export Ledger</h2>
+            <p className="text-[9px] text-primary font-bold uppercase tracking-wider">GDPR Article 20 & COPPA Compliant</p>
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Under data protection regulations, infant trackers are legally required under data protection rules to let you download your care logs at any time. Ama provides instant, 1-click tools to compile and export your complete child care records fully offline.
+        </p>
+
+        <p className="text-[10px] text-gray-400 leading-relaxed bg-slate-50 p-3 rounded-xl border border-gray-100 italic">
+          🔒 Absolute Sovereignty: Your data is packaged, formatted, and downloaded entirely inside your browser cache. Zero bytes of your records are uploaded to our servers or processed by third parties.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            onClick={handleExportJSON}
+            className="flex items-center justify-center gap-2 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs uppercase tracking-wider cursor-pointer border-none shadow-sm transition-all"
+          >
+            <span>Download JSON Ledger</span>
+          </button>
+          
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center justify-center gap-2 py-3.5 bg-white border border-solid border-gray-200 hover:bg-gray-50 text-gray-700 font-bold rounded-2xl text-xs uppercase tracking-wider cursor-pointer shadow-xs transition-all"
+          >
+            <span>Download CSV Spreadsheet</span>
+          </button>
+        </div>
       </section>
 
       {/* ========================================================================= */}

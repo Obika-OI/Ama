@@ -241,7 +241,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         const cleanText = phoneticText
           .replace(/https?:\/\/\S+/gi, '')
           .replace(/\*\*?/g, '')
-          .replace(/—|–/g, ' ')
+          .replace(/:|-/g, ' ')
           .replace(/[\#\-\*\_]/g, '')
           .replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '')
           .trim();

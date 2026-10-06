@@ -260,7 +260,7 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                     </section>
 
                     <section className="space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm">3. Clinical Medical Disclaimer — AI Does Not Diagnose</h4>
+                      <h4 className="font-bold text-gray-900 text-sm">3. Clinical Medical Disclaimer : AI Does Not Diagnose</h4>
                       <p>
                         Ama Baby Care, including the <strong>Ogoo AI Care Assistant</strong>, Baby Cry Acoustic Analyzer, and meal planning tools, is designed solely for educational, organizational, comforting, and routine care tracking purposes.
                       </p>

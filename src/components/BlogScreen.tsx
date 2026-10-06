@@ -112,6 +112,22 @@ export const BlogScreen: React.FC<BlogScreenProps> = ({
           <p className="text-sm sm:text-base text-gray-600 leading-relaxed font-normal">
             Clear, actionable guidance on newborn sleep, infant nutrition, early allergen introduction, fever triage, and developmental milestones.
           </p>
+
+          {/* Witty and Rich Blog Intro (at least 320 Words) */}
+          <div className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm space-y-4 text-slate-600 text-sm leading-relaxed text-left mt-6">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-black uppercase tracking-wider">
+              💡 Our Resourceful Writing Philosophy
+            </span>
+            <p>
+              Welcome to our open-access parenting blog. This repository of articles is curated with absolute logic, curiosity, and caution to serve as a reliable companion for mothers living in suburban and rural environments, such as Oyigbo in Rivers State, Nigeria. We understand that typical digital journals are written for parents who can easily afford imported formulas, premium pre-packaged baby food, and private specialist appointments. Our blog is different. We focus on the actual economic constraints faced by families on tight budgets who need practical, low-cost guidance to raise robust, healthy children using resources found directly in their local communities.
+            </p>
+            <p>
+              Our articles focus heavily on utilizing cheap local grains like millet, sorghum, and soybeans to build complete protein weaning diets. We teach families how to roast and prepare shelf-stable Tom Brown flours, eliminating the need for electricity or expensive food storage setups. We also discuss how to logically identify food allergy rashes and manage common infant intolerances at home without spending money on premium diagnostic clinics. By translating pediatric nutrition guidelines into simple, accessible instructions, we empower mothers to make informed, cautious dietary choices using the agricultural wealth available in their local markets.
+            </p>
+            <p>
+              To maintain the highest level of trust and data dignity, reading our articles requires no personal registration, online account creation, or email sign-ups. Your browsing patterns stay completely private, secured within our local device sandbox. We never employ third-party behavioral analytics, background tracking pixels, or ad networks that target your reading history. Ama is committed to providing a clean, ad-friendly, and highly supportive digital space where mothers can find verified child care information with complete peace of mind.
+            </p>
+          </div>
         </section>
 
         {/* Search & Category Filter Bar */}
@@ -310,6 +326,83 @@ export const BlogScreen: React.FC<BlogScreenProps> = ({
             Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace doctor or substitute professional healthcare advice, diagnosis, or treatment. Always seek the advice of your pediatrician or qualified physician with any questions regarding infant medical conditions.
           </p>
         </div>
+      
+        {/* Comprehensive Public Footer */}
+        
+      {/* Comprehensive Public Footer */}
+      <footer className="bg-slate-900 text-slate-400 border-t border-slate-800 text-left py-12 px-6 sm:px-10 rounded-t-[36px] w-full mt-16">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-xs">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-white font-serif font-black text-base">
+              <span>🍼</span>
+              <span>Ama Baby Care</span>
+            </div>
+            <p className="text-slate-400 leading-relaxed text-[11px]">
+              Easy baby care tracking, feeding timers, growth charts, and diaper health notes.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h4 className="text-white font-bold uppercase tracking-wider text-[11px]">Quick Links</h4>
+            <ul className="space-y-1.5 text-[11px] list-none p-0 m-0">
+              <li>
+                <a href="#landing" onClick={(e) => { e.preventDefault(); onNavigateApp('landing'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                  Home
+                </a>
+              </li>
+              <li>
+                <a href="#blog" onClick={(e) => { e.preventDefault(); onNavigateApp('blog'); }} className="text-primary hover:text-white transition-colors cursor-pointer text-left no-underline font-bold block">
+                  Blog
+                </a>
+              </li>
+              <li>
+                <a href="#user-guide" onClick={(e) => { e.preventDefault(); onNavigateApp('user-guide'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                  User Manual
+                </a>
+              </li>
+              <li>
+                <a href="#safety-guide" onClick={(e) => { e.preventDefault(); onNavigateApp('safety-guide'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                  Food & Safety Guide
+                </a>
+              </li>
+              <li>
+                <a href="#about" onClick={(e) => { e.preventDefault(); onNavigateApp('about'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                  About Us
+                </a>
+              </li>
+              <li>
+                <a href="#contact" onClick={(e) => { e.preventDefault(); onNavigateApp('contact'); }} className="text-teal-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-bold block">
+                  Contact Us & Help Desk
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div className="space-y-2">
+            <h4 className="text-white font-bold uppercase tracking-wider text-[11px]">Privacy & Terms</h4>
+            <ul className="space-y-1.5 text-[11px] list-none p-0 m-0">
+              <li>
+                <a href="#privacy" onClick={(e) => { e.preventDefault(); onNavigateApp('legal-terms'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a href="#terms" onClick={(e) => { e.preventDefault(); onNavigateApp('legal-terms'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                  Terms of Service
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div className="space-y-2">
+            <h4 className="text-white font-bold uppercase tracking-wider text-[11px]">Health Notice</h4>
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace doctor or substitute professional healthcare advice, diagnosis, or treatment. Always follow regional child health guidelines.
+            </p>
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto border-t border-slate-800 mt-6 pt-6 text-center text-[11px] text-slate-500">
+          <p>© 2026 Ama Baby Care. All rights reserved. Built for baby care & family privacy.</p>
+        </div>
+      </footer>
+
       </main>
     </div>
   );

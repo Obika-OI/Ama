@@ -69,11 +69,11 @@ export const ActivityTracker = ({
       if (data && data.insight) {
         setSleepInsight(data.insight);
       } else {
-        setSleepInsight("• **Nap Duration**: Regular nap tracking helps pinpoint wake windows.\n• **Sweet Spot**: Schedule naps 1.5–2 hours post-wake.\n• **Soothing Tip**: Maintain quiet, dim lighting before naps.");
+        setSleepInsight("• **Nap Duration**: Regular nap tracking helps pinpoint wake windows.\n• **Sweet Spot**: Schedule naps 1.5-2 hours post-wake.\n• **Soothing Tip**: Maintain quiet, dim lighting before naps.");
       }
     } catch (e) {
       console.error("AI Insight Error:", e);
-      setSleepInsight("• **Nap Duration**: Regular nap tracking helps pinpoint wake windows.\n• **Sweet Spot**: Schedule naps 1.5–2 hours post-wake.\n• **Soothing Tip**: Maintain quiet, dim lighting before naps.");
+      setSleepInsight("• **Nap Duration**: Regular nap tracking helps pinpoint wake windows.\n• **Sweet Spot**: Schedule naps 1.5-2 hours post-wake.\n• **Soothing Tip**: Maintain quiet, dim lighting before naps.");
     } finally {
       setIsGeneratingInsight(false);
     }
@@ -127,9 +127,32 @@ export const ActivityTracker = ({
   const happyRatio = correlationData.length > 0 ? Math.round((happyNapsCount / correlationData.length) * 100) : 0;
 
   const lullabies = [
-    { id: 1, name: 'Twinkle Twinkle', duration: '2:15' },
-    { id: 2, name: 'Rock-a-bye Baby', duration: '3:00' },
-    { id: 3, name: 'Brahms Lullaby', duration: '2:45' }
+    // 3 Free Base Lullabies
+    { id: 1, name: 'Twinkle Twinkle Little Star', duration: '2:15', isPremium: false },
+    { id: 2, name: 'Rock-a-bye Baby', duration: '3:00', isPremium: false },
+    { id: 3, name: 'Brahms Lullaby (Cradle Song)', duration: '2:45', isPremium: false },
+
+    // 20 New Extra Premium Lullabies (Behind Paystack Paywall)
+    { id: 4, name: 'Hush Little Baby (Mockingbird)', duration: '3:20', isPremium: true },
+    { id: 5, name: 'Mozart Wiegenlied (Lullaby in F)', duration: '4:10', isPremium: true },
+    { id: 6, name: 'Schubert Cradle Song', duration: '3:45', isPremium: true },
+    { id: 7, name: 'You Are My Sunshine (Bedtime Chimes)', duration: '3:15', isPremium: true },
+    { id: 8, name: 'Sleep, Baby, Sleep (Soft Flute)', duration: '3:50', isPremium: true },
+    { id: 9, name: 'Silent Night & Velvet Chimes', duration: '4:30', isPremium: true },
+    { id: 10, name: 'Golden Slumbers (Old English Air)', duration: '3:40', isPremium: true },
+    { id: 11, name: 'Starry Night Music Box', duration: '4:15', isPremium: true },
+    { id: 12, name: 'Moonlight Sonata (Celestial Synth)', duration: '5:00', isPremium: true },
+    { id: 13, name: 'Deep Sea Waves & Gentle Harps', duration: '4:45', isPremium: true },
+    { id: 14, name: 'Soft Rain & Sleep Box', duration: '5:10', isPremium: true },
+    { id: 15, name: 'All the Pretty Little Horses', duration: '3:30', isPremium: true },
+    { id: 16, name: 'Sweet Beams & Lavender Chimes', duration: '4:05', isPremium: true },
+    { id: 17, name: 'Pachelbel Lullaby Canon', duration: '5:15', isPremium: true },
+    { id: 18, name: 'Teddy Bear Dream Symphony', duration: '3:55', isPremium: true },
+    { id: 19, name: 'Whispering Pines & Wind Chimes', duration: '4:20', isPremium: true },
+    { id: 20, name: 'Over the Rainbow (Melodic Box)', duration: '3:40', isPremium: true },
+    { id: 21, name: 'Warm Hearth Fire & Soft Strings', duration: '4:50', isPremium: true },
+    { id: 22, name: 'Starlight Serenade', duration: '4:10', isPremium: true },
+    { id: 23, name: 'Angel Slumber Meadow', duration: '5:30', isPremium: true }
   ];
 
   // --- MOVED STATES FOR CARE & GROWTH ---
@@ -224,7 +247,7 @@ export const ActivityTracker = ({
       return `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
     };
 
-    setCalculatedNapWindow(`${formatTimeStr(startNap)} – ${formatTimeStr(endNap)}`);
+    setCalculatedNapWindow(`${formatTimeStr(startNap)} - ${formatTimeStr(endNap)}`);
   }, [wwAgeBracket, lastWakeTime]);
 
   const saveSunlight = (mins: number) => {
@@ -279,6 +302,7 @@ export const ActivityTracker = ({
       noiseSourceRef.current = null;
     }
     if (lullabyIntervalRef.current) {
+      clearTimeout(lullabyIntervalRef.current);
       clearInterval(lullabyIntervalRef.current);
       lullabyIntervalRef.current = null;
     }
@@ -377,6 +401,14 @@ export const ActivityTracker = ({
     }
   };
 
+  const NOTE_FREQS: Record<string, number> = {
+    'REST': 0,
+    'C3': 130.81, 'D3': 146.83, 'Eb3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'Ab3': 207.65, 'A3': 220.00, 'Bb3': 233.08, 'B3': 246.94,
+    'C4': 261.63, 'C#4': 277.18, 'Db4': 277.18, 'D4': 293.66, 'Eb4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'Ab4': 415.30, 'A4': 440.00, 'Bb4': 466.16, 'B4': 493.88,
+    'C5': 523.25, 'C#5': 554.37, 'Db5': 554.37, 'D5': 587.33, 'Eb5': 622.25, 'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'Ab5': 830.61, 'A5': 880.00, 'Bb5': 932.33, 'B5': 987.77,
+    'C6': 1046.50, 'D6': 1174.66, 'E6': 1318.51
+  };
+
   const startLullabyMelody = (lullabyId: number) => {
     stopAllAudio();
     try {
@@ -389,88 +421,246 @@ export const ActivityTracker = ({
       }
 
       const parentGain = ctx.createGain();
-      parentGain.gain.setValueAtTime(volume * 0.5, ctx.currentTime);
+      parentGain.gain.setValueAtTime(volume * 0.55, ctx.currentTime);
       gainNodeRef.current = parentGain;
       parentGain.connect(ctx.destination);
 
-      let notes: number[] = [];
-      let instrument: 'sine' | 'triangle' | 'sawtooth' | 'square' = 'sine';
-      let speed = 800;
-      let decay = 1.2;
+      let bpm = 74;
+      let score: { note: string; dur: number; bass?: string }[] = [];
 
       if (lullabyId === 1) {
-        // Twinkle Twinkle (Celeste / Bright Glockenspiel style - Triangle)
-        notes = [
-          261.63, 261.63, 392.00, 392.00, 440.00, 440.00, 392.00,
-          349.23, 349.23, 329.63, 329.63, 293.66, 293.66, 261.63,
-          392.00, 392.00, 349.23, 349.23, 329.63, 329.63, 293.66,
-          392.00, 392.00, 349.23, 349.23, 329.63, 329.63, 293.66,
-          261.63, 261.63, 392.00, 392.00, 440.00, 440.00, 392.00,
-          349.23, 349.23, 329.63, 329.63, 293.66, 293.66, 261.63
+        // 1. Twinkle Twinkle Little Star (Recognizable Classic)
+        bpm = 76;
+        score = [
+          { note: 'C4', dur: 1, bass: 'C3' }, { note: 'C4', dur: 1 },
+          { note: 'G4', dur: 1, bass: 'G3' }, { note: 'G4', dur: 1 },
+          { note: 'A4', dur: 1, bass: 'F3' }, { note: 'A4', dur: 1 },
+          { note: 'G4', dur: 2, bass: 'C3' },
+          { note: 'F4', dur: 1, bass: 'F3' }, { note: 'F4', dur: 1 },
+          { note: 'E4', dur: 1, bass: 'C3' }, { note: 'E4', dur: 1 },
+          { note: 'D4', dur: 1, bass: 'G3' }, { note: 'D4', dur: 1 },
+          { note: 'C4', dur: 2, bass: 'C3' },
+          { note: 'G4', dur: 1, bass: 'C3' }, { note: 'G4', dur: 1 },
+          { note: 'F4', dur: 1, bass: 'F3' }, { note: 'F4', dur: 1 },
+          { note: 'E4', dur: 1, bass: 'C3' }, { note: 'E4', dur: 1 },
+          { note: 'D4', dur: 2, bass: 'G3' },
+          { note: 'G4', dur: 1, bass: 'C3' }, { note: 'G4', dur: 1 },
+          { note: 'F4', dur: 1, bass: 'F3' }, { note: 'F4', dur: 1 },
+          { note: 'E4', dur: 1, bass: 'C3' }, { note: 'E4', dur: 1 },
+          { note: 'D4', dur: 2, bass: 'G3' },
+          { note: 'C4', dur: 1, bass: 'C3' }, { note: 'C4', dur: 1 },
+          { note: 'G4', dur: 1, bass: 'G3' }, { note: 'G4', dur: 1 },
+          { note: 'A4', dur: 1, bass: 'F3' }, { note: 'A4', dur: 1 },
+          { note: 'G4', dur: 2, bass: 'C3' },
+          { note: 'F4', dur: 1, bass: 'F3' }, { note: 'F4', dur: 1 },
+          { note: 'E4', dur: 1, bass: 'C3' }, { note: 'E4', dur: 1 },
+          { note: 'D4', dur: 1, bass: 'G3' }, { note: 'D4', dur: 1 },
+          { note: 'C4', dur: 3, bass: 'C3' }
         ];
-        instrument = 'triangle';
-        speed = 700;
-        decay = 1.0;
       } else if (lullabyId === 2) {
-        // Rock-a-bye Baby (Sweet Ambient Flute - Sine with longer decay)
-        notes = [
-          329.63, 392.00, 523.25, 493.88, 440.00, 392.00,
-          349.23, 440.00, 392.00, 329.63, 293.66, 261.63,
-          329.63, 392.00, 523.25, 493.88, 440.00, 392.00,
-          349.23, 329.63, 293.66, 261.63
+        // 2. Rock-a-bye Baby (6/8 Cradle Swing)
+        bpm = 60;
+        score = [
+          { note: 'E4', dur: 1.5, bass: 'C3' }, { note: 'G4', dur: 0.5 }, { note: 'C5', dur: 1 },
+          { note: 'B4', dur: 1.5, bass: 'G3' }, { note: 'A4', dur: 1.5 },
+          { note: 'G4', dur: 1.5, bass: 'C3' }, { note: 'F4', dur: 1.5 },
+          { note: 'E4', dur: 1.5, bass: 'G3' }, { note: 'D4', dur: 1.5 },
+          { note: 'E4', dur: 1.5, bass: 'C3' }, { note: 'G4', dur: 0.5 }, { note: 'C5', dur: 1 },
+          { note: 'B4', dur: 1.5, bass: 'G3' }, { note: 'A4', dur: 1.5 },
+          { note: 'G4', dur: 1.5, bass: 'C3' }, { note: 'D4', dur: 1.5 },
+          { note: 'C4', dur: 3, bass: 'C3' }
         ];
-        instrument = 'sine';
-        speed = 950;
-        decay = 1.8;
+      } else if (lullabyId === 3) {
+        // 3. Brahms Lullaby (Wiegenlied)
+        bpm = 68;
+        score = [
+          { note: 'E4', dur: 0.75, bass: 'C3' }, { note: 'E4', dur: 0.75 }, { note: 'G4', dur: 1.5 },
+          { note: 'E4', dur: 0.75, bass: 'C3' }, { note: 'E4', dur: 0.75 }, { note: 'G4', dur: 1.5 },
+          { note: 'E4', dur: 0.5, bass: 'C3' }, { note: 'G4', dur: 0.5 }, { note: 'C5', dur: 1 },
+          { note: 'B4', dur: 0.5, bass: 'F3' }, { note: 'A4', dur: 0.75 }, { note: 'A4', dur: 0.75 },
+          { note: 'G4', dur: 1.5, bass: 'C3' },
+          { note: 'D4', dur: 0.5, bass: 'G3' }, { note: 'E4', dur: 0.5 }, { note: 'F4', dur: 1 },
+          { note: 'D4', dur: 0.5, bass: 'G3' }, { note: 'D4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'F4', dur: 1 },
+          { note: 'D4', dur: 0.5, bass: 'G3' }, { note: 'F4', dur: 0.5 }, { note: 'B4', dur: 1 },
+          { note: 'A4', dur: 0.5, bass: 'G3' }, { note: 'G4', dur: 0.5 }, { note: 'B4', dur: 0.5 },
+          { note: 'C5', dur: 2.5, bass: 'C3' }
+        ];
+      } else if (lullabyId === 4) {
+        // 4. Hush Little Baby (Mockingbird)
+        bpm = 84;
+        score = [
+          { note: 'G4', dur: 0.5, bass: 'C3' }, { note: 'E4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
+          { note: 'G4', dur: 0.5, bass: 'C3' }, { note: 'G4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
+          { note: 'F4', dur: 0.5, bass: 'G3' }, { note: 'D4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
+          { note: 'F4', dur: 0.5, bass: 'G3' }, { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'F4', dur: 0.5 },
+          { note: 'E4', dur: 0.5, bass: 'C3' }, { note: 'C4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'C4', dur: 0.5 },
+          { note: 'D4', dur: 0.5, bass: 'G3' }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
+          { note: 'C4', dur: 2, bass: 'C3' }
+        ];
+      } else if (lullabyId === 5) {
+        // 5. Mozart Wiegenlied (Schlafe, mein Prinzchen)
+        bpm = 66;
+        score = [
+          { note: 'F4', dur: 1, bass: 'F3' }, { note: 'A4', dur: 0.5 }, { note: 'C5', dur: 1 }, { note: 'A4', dur: 0.5 },
+          { note: 'F4', dur: 1, bass: 'F3' }, { note: 'G4', dur: 0.5 }, { note: 'Bb4', dur: 1 }, { note: 'D5', dur: 0.5 },
+          { note: 'C5', dur: 0.75, bass: 'C3' }, { note: 'Bb4', dur: 0.5 }, { note: 'G4', dur: 0.75 }, { note: 'A4', dur: 0.5 },
+          { note: 'C5', dur: 1.5, bass: 'F3' }, { note: 'F5', dur: 1.5 }
+        ];
+      } else if (lullabyId === 6) {
+        // 6. Schubert Cradle Song
+        bpm = 64;
+        score = [
+          { note: 'G4', dur: 1.5, bass: 'C3' }, { note: 'E4', dur: 0.5 }, { note: 'C4', dur: 1 }, { note: 'D4', dur: 1 },
+          { note: 'E4', dur: 1, bass: 'G3' }, { note: 'F4', dur: 1 }, { note: 'G4', dur: 2 },
+          { note: 'A4', dur: 1.5, bass: 'F3' }, { note: 'F4', dur: 0.5 }, { note: 'D4', dur: 1 }, { note: 'B3', dur: 1 },
+          { note: 'C4', dur: 3, bass: 'C3' }
+        ];
+      } else if (lullabyId === 7) {
+        // 7. You Are My Sunshine (Bedtime Chimes)
+        bpm = 78;
+        score = [
+          { note: 'C4', dur: 0.5, bass: 'C3' }, { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
+          { note: 'A4', dur: 1.5, bass: 'F3' }, { note: 'A4', dur: 0.5 }, { note: 'A4', dur: 0.5 },
+          { note: 'G4', dur: 0.5, bass: 'C3' }, { note: 'A4', dur: 0.5 }, { note: 'F4', dur: 1.5, bass: 'F3' },
+          { note: 'F4', dur: 0.5 }, { note: 'F4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'A4', dur: 0.5 },
+          { note: 'Bb4', dur: 1.5, bass: 'Bb3' }, { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'C5', dur: 0.5 }, { note: 'Bb4', dur: 0.5 },
+          { note: 'A4', dur: 2, bass: 'F3' }
+        ];
+      } else if (lullabyId === 8) {
+        // 8. Sleep, Baby, Sleep
+        bpm = 70;
+        score = [
+          { note: 'G4', dur: 1.5, bass: 'C3' }, { note: 'E4', dur: 1.5 },
+          { note: 'G4', dur: 1.5, bass: 'C3' }, { note: 'E4', dur: 1.5 },
+          { note: 'A4', dur: 0.75, bass: 'F3' }, { note: 'G4', dur: 0.75 }, { note: 'F4', dur: 0.75 }, { note: 'E4', dur: 0.75 },
+          { note: 'D4', dur: 3, bass: 'G3' },
+          { note: 'G4', dur: 1.5, bass: 'C3' }, { note: 'E4', dur: 1.5 },
+          { note: 'D4', dur: 0.75, bass: 'G3' }, { note: 'E4', dur: 0.75 }, { note: 'D4', dur: 0.75 }, { note: 'E4', dur: 0.75 },
+          { note: 'C4', dur: 3, bass: 'C3' }
+        ];
+      } else if (lullabyId === 9) {
+        // 9. Silent Night & Velvet Chimes
+        bpm = 60;
+        score = [
+          { note: 'G4', dur: 1.5, bass: 'C3' }, { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 1 }, { note: 'E4', dur: 3 },
+          { note: 'G4', dur: 1.5, bass: 'C3' }, { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 1 }, { note: 'E4', dur: 3 },
+          { note: 'D5', dur: 2, bass: 'G3' }, { note: 'D5', dur: 1 }, { note: 'B4', dur: 3 },
+          { note: 'C5', dur: 2, bass: 'C3' }, { note: 'C5', dur: 1 }, { note: 'G4', dur: 3 }
+        ];
+      } else if (lullabyId === 10) {
+        // 10. Golden Slumbers
+        bpm = 66;
+        score = [
+          { note: 'E4', dur: 0.75, bass: 'C3' }, { note: 'G4', dur: 0.75 }, { note: 'A4', dur: 0.75 }, { note: 'B4', dur: 1.5, bass: 'G3' }, { note: 'C5', dur: 0.75 },
+          { note: 'B4', dur: 1, bass: 'G3' }, { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 0.75 }, { note: 'E4', dur: 1.5, bass: 'C3' }, { note: 'D4', dur: 0.75 },
+          { note: 'C4', dur: 0.75, bass: 'F3' }, { note: 'E4', dur: 0.75 }, { note: 'G4', dur: 0.75 }, { note: 'A4', dur: 0.75 }, { note: 'B4', dur: 1.5, bass: 'G3' },
+          { note: 'C5', dur: 0.75, bass: 'C3' }, { note: 'B4', dur: 0.75 }, { note: 'A4', dur: 0.75 }, { note: 'G4', dur: 2.5 }
+        ];
+      } else if (lullabyId === 17) {
+        // 17. Pachelbel Lullaby Canon in D
+        bpm = 64;
+        score = [
+          { note: 'D5', dur: 1.5, bass: 'D3' }, { note: 'C#5', dur: 1.5, bass: 'A3' },
+          { note: 'B4', dur: 1.5, bass: 'B3' }, { note: 'A4', dur: 1.5, bass: 'F#3' },
+          { note: 'G4', dur: 1.5, bass: 'G3' }, { note: 'F#4', dur: 1.5, bass: 'D3' },
+          { note: 'G4', dur: 1.5, bass: 'G3' }, { note: 'E4', dur: 1.5, bass: 'A3' }
+        ];
+      } else if (lullabyId === 20) {
+        // 20. Over the Rainbow (Melodic Box)
+        bpm = 64;
+        score = [
+          { note: 'C4', dur: 1.5, bass: 'C3' }, { note: 'C5', dur: 1.5 },
+          { note: 'B4', dur: 0.75, bass: 'G3' }, { note: 'G4', dur: 0.75 }, { note: 'A4', dur: 0.75 }, { note: 'B4', dur: 0.75 },
+          { note: 'C5', dur: 2.5, bass: 'C3' }, { note: 'C4', dur: 0.75 },
+          { note: 'A4', dur: 1.5, bass: 'F3' }, { note: 'F4', dur: 1.5 },
+          { note: 'G4', dur: 0.75, bass: 'C3' }, { note: 'E4', dur: 0.75 }, { note: 'F4', dur: 0.75 }, { note: 'G4', dur: 0.75 },
+          { note: 'A4', dur: 2.5, bass: 'F3' }
+        ];
       } else {
-        // Brahms Lullaby (Soft Music Box - Triangle with low-pass filter)
-        notes = [
-          329.63, 329.63, 392.00, 329.63, 329.63, 392.00,
-          329.63, 392.00, 523.25, 493.88, 440.00, 440.00, 392.00,
-          293.66, 329.63, 349.23, 293.66, 329.63, 349.23,
-          293.66, 349.23, 493.88, 440.00, 392.00, 329.63, 392.00, 523.25
+        // African / Global Gentle Slumber Pentatonic Melody (Default)
+        bpm = 70;
+        score = [
+          { note: 'C4', dur: 0.75, bass: 'C3' }, { note: 'E4', dur: 0.75 }, { note: 'G4', dur: 1 }, { note: 'A4', dur: 0.5 },
+          { note: 'G4', dur: 0.75, bass: 'C3' }, { note: 'E4', dur: 0.75 }, { note: 'D4', dur: 1.5, bass: 'G3' },
+          { note: 'C4', dur: 0.75, bass: 'C3' }, { note: 'D4', dur: 0.75 }, { note: 'E4', dur: 0.75 }, { note: 'G4', dur: 0.75 },
+          { note: 'A4', dur: 0.75, bass: 'F3' }, { note: 'G4', dur: 0.75 }, { note: 'E4', dur: 1.5, bass: 'C3' },
+          { note: 'D4', dur: 0.75, bass: 'G3' }, { note: 'E4', dur: 0.75 }, { note: 'D4', dur: 0.75 }, { note: 'C4', dur: 2.5, bass: 'C3' }
         ];
-        instrument = 'triangle';
-        speed = 850;
-        decay = 1.4;
       }
 
-      let noteIndex = 0;
+      const beatMs = (60 / bpm) * 1000;
+      let noteIdx = 0;
 
-      lullabyIntervalRef.current = setInterval(() => {
-        if (!audioCtxRef.current) return;
-        const noteFreq = notes[noteIndex % notes.length];
-        noteIndex++;
+      const playNextStep = () => {
+        if (!audioCtxRef.current || !gainNodeRef.current) return;
+        const currentItem = score[noteIdx % score.length];
+        noteIdx++;
 
-        const osc = ctx.createOscillator();
-        const chimeGain = ctx.createGain();
+        const freq = NOTE_FREQS[currentItem.note] || 0;
+        const bassFreq = currentItem.bass ? (NOTE_FREQS[currentItem.bass] || 0) : 0;
+        const durSec = (currentItem.dur * beatMs) / 1000;
 
-        osc.type = instrument;
-        osc.frequency.setValueAtTime(noteFreq, ctx.currentTime);
+        const now = ctx.currentTime;
 
-        let filterNode: BiquadFilterNode | null = null;
-        if (lullabyId === 3) {
-          filterNode = ctx.createBiquadFilter();
-          filterNode.type = 'lowpass';
-          filterNode.frequency.setValueAtTime(800, ctx.currentTime);
+        if (freq > 20) {
+          // Primary Music Box Chime
+          const osc1 = ctx.createOscillator();
+          const gain1 = ctx.createGain();
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(freq, now);
+
+          // Shimmer Bell overtone (+1 octave, triangle)
+          const osc2 = ctx.createOscillator();
+          const gain2 = ctx.createGain();
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(freq * 2, now);
+
+          const decayTime = Math.max(1.8, durSec * 2.2);
+
+          gain1.gain.setValueAtTime(0, now);
+          gain1.gain.linearRampToValueAtTime(0.20, now + 0.012);
+          gain1.gain.exponentialRampToValueAtTime(0.001, now + decayTime);
+
+          gain2.gain.setValueAtTime(0, now);
+          gain2.gain.linearRampToValueAtTime(0.05, now + 0.012);
+          gain2.gain.exponentialRampToValueAtTime(0.0005, now + decayTime * 0.75);
+
+          osc1.connect(gain1);
+          gain1.connect(parentGain);
+
+          osc2.connect(gain2);
+          gain2.connect(parentGain);
+
+          osc1.start(now);
+          osc1.stop(now + decayTime + 0.1);
+
+          osc2.start(now);
+          osc2.stop(now + decayTime + 0.1);
         }
 
-        chimeGain.gain.setValueAtTime(0, ctx.currentTime);
-        chimeGain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.08);
-        chimeGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + decay);
+        if (bassFreq > 20) {
+          const bassOsc = ctx.createOscillator();
+          const bassGain = ctx.createGain();
+          bassOsc.type = 'sine';
+          bassOsc.frequency.setValueAtTime(bassFreq, now);
 
-        if (filterNode) {
-          osc.connect(filterNode);
-          filterNode.connect(chimeGain);
-        } else {
-          osc.connect(chimeGain);
+          const bassDecay = Math.max(2.2, durSec * 2.5);
+          bassGain.gain.setValueAtTime(0, now);
+          bassGain.gain.linearRampToValueAtTime(0.12, now + 0.03);
+          bassGain.gain.exponentialRampToValueAtTime(0.0008, now + bassDecay);
+
+          bassOsc.connect(bassGain);
+          bassGain.connect(parentGain);
+
+          bassOsc.start(now);
+          bassOsc.stop(now + bassDecay + 0.1);
         }
-        chimeGain.connect(parentGain);
 
-        osc.start();
-        osc.stop(ctx.currentTime + decay + 0.2);
-      }, speed);
+        const delay = currentItem.dur * beatMs;
+        lullabyIntervalRef.current = setTimeout(playNextStep, delay);
+      };
 
+      playNextStep();
       setActiveSound('celestial');
     } catch (e) {
       console.error("Lullaby synth failed:", e);
@@ -1027,35 +1217,59 @@ export const ActivityTracker = ({
               {/* Lullabies for Baby Embedded Section */}
               <div className="border-t border-gray-200/50 pt-4 mt-2 space-y-3">
                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Lullabies for Baby</p>
-                <div className="space-y-2">
-                  {lullabies.map((lullaby) => (
-                    <div key={lullaby.id} className="flex justify-between items-center p-3 bg-white rounded-2xl border border-solid border-gray-100/50 shadow-xs">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${playingLullaby === lullaby.id ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                          🎵
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                  {lullabies.map((lullaby) => {
+                    const isLocked = lullaby.isPremium && !isPremium;
+                    return (
+                      <div key={lullaby.id} className="flex justify-between items-center p-3 bg-white rounded-2xl border border-solid border-gray-100/50 shadow-xs hover:border-primary/20 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${playingLullaby === lullaby.id ? 'bg-primary text-white' : isLocked ? 'bg-amber-100 text-amber-600 font-bold' : 'bg-primary/10 text-primary'}`}>
+                            {isLocked ? '🔒' : '🎵'}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-xs font-bold text-gray-800 leading-tight truncate">{lullaby.name}</p>
+                              {lullaby.isPremium && (
+                                <span className="text-[8px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full shrink-0">
+                                  PRO
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[8px] font-black text-muted uppercase tracking-widest">{lullaby.duration}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-gray-800 leading-tight">{lullaby.name}</p>
-                          <p className="text-[8px] font-black text-muted uppercase tracking-widest">{lullaby.duration}</p>
-                        </div>
+                        <button 
+                          onClick={() => {
+                            if (isLocked) {
+                              if (setIsSubscriptionModalOpen) setIsSubscriptionModalOpen(true);
+                              return;
+                            }
+                            if (playingLullaby === lullaby.id) {
+                              setPlayingLullaby(null);
+                              stopAllAudio();
+                            } else {
+                              setPlayingLullaby(lullaby.id);
+                              startLullabyMelody(lullaby.id);
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all border-none cursor-pointer flex items-center gap-1 shrink-0 ${
+                            isLocked
+                              ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs'
+                              : playingLullaby === lullaby.id 
+                              ? 'bg-primary/20 text-primary font-bold' 
+                              : 'bg-primary/10 hover:bg-primary text-primary hover:text-white'
+                          }`}
+                        >
+                          {isLocked ? (
+                            <>
+                              <Lock className="w-3 h-3" />
+                              <span>Unlock</span>
+                            </>
+                          ) : playingLullaby === lullaby.id ? '■ Stop' : '▶ Play'}
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => {
-                          if (playingLullaby === lullaby.id) {
-                            setPlayingLullaby(null);
-                            stopAllAudio();
-                          } else {
-                            setPlayingLullaby(lullaby.id);
-                            // Let the sounds play by launching the beautiful synthesizer!
-                            startLullabyMelody(lullaby.id);
-                          }
-                        }}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center shadow-xs transition-all border-none cursor-pointer ${playingLullaby === lullaby.id ? 'bg-primary/20 text-primary font-bold' : 'bg-white text-primary hover:scale-105'}`}
-                      >
-                        {playingLullaby === lullaby.id ? '■' : '▶'}
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

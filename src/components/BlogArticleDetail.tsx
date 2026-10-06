@@ -487,15 +487,6 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
         </div>
 
         {/* Clinical Disclaimer Notice */}
-        <footer className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 text-[11px] leading-relaxed space-y-1">
-          <div className="flex items-center gap-1.5 font-bold text-slate-800">
-            <AlertCircle className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span>Clinical Educational Notice</span>
-          </div>
-          <p>
-            Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace doctor or substitute professional healthcare advice, diagnosis, or treatment. Always seek the advice of your pediatrician or qualified physician with any questions regarding infant medical conditions.
-          </p>
-        </footer>
 
         {/* AdSense Mid-Article Placement */}
         <AdSenseBanner isPremium={isPremium} slotId="9582048123" className="my-6" />
@@ -538,6 +529,80 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
             </div>
           </section>
         )}
+      
+        {/* Comprehensive Public Footer */}
+        <footer className="bg-slate-900 text-slate-400 border-t border-slate-800 text-left py-12 px-6 sm:px-10 rounded-t-[36px] w-full mt-16 -mx-4 sm:-mx-6">
+          <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-xs">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-white font-serif font-black text-base">
+                <span>🍼</span>
+                <span>Ama Baby Care</span>
+              </div>
+              <p className="text-slate-400 leading-relaxed text-[11px]">
+                Easy baby care tracking, feeding timers, growth charts, and diaper health notes.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-white font-bold uppercase tracking-wider text-[11px]">Quick Links</h4>
+              <ul className="space-y-1.5 text-[11px] list-none p-0 m-0">
+                <li>
+                  <a href="#landing" onClick={(e) => { e.preventDefault(); onNavigateApp('landing'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                    Home
+                  </a>
+                </li>
+                <li>
+                  <a href="#blog" onClick={(e) => { e.preventDefault(); onNavigateApp('blog'); }} className="text-primary hover:text-white transition-colors cursor-pointer text-left no-underline font-bold block">
+                    Blog
+                  </a>
+                </li>
+                <li>
+                  <a href="#user-guide" onClick={(e) => { e.preventDefault(); onNavigateApp('user-guide'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                    User Manual
+                  </a>
+                </li>
+                <li>
+                  <a href="#safety-guide" onClick={(e) => { e.preventDefault(); onNavigateApp('safety-guide'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                    Food & Safety Guide
+                  </a>
+                </li>
+                <li>
+                  <a href="#about" onClick={(e) => { e.preventDefault(); onNavigateApp('about'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                    About Us
+                  </a>
+                </li>
+                <li>
+                  <a href="#contact" onClick={(e) => { e.preventDefault(); onNavigateApp('contact'); }} className="text-teal-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-bold block">
+                    Contact Us & Help Desk
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-white font-bold uppercase tracking-wider text-[11px]">Privacy & Terms</h4>
+              <ul className="space-y-1.5 text-[11px] list-none p-0 m-0">
+                <li>
+                  <a href="#privacy" onClick={(e) => { e.preventDefault(); onNavigateApp('legal-terms'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a href="#terms" onClick={(e) => { e.preventDefault(); onNavigateApp('legal-terms'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
+                    Terms of Service
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-white font-bold uppercase tracking-wider text-[11px]">Health Notice</h4>
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace doctor or substitute professional healthcare advice, diagnosis, or treatment. Always follow regional child health guidelines.
+              </p>
+            </div>
+          </div>
+          <div className="max-w-5xl mx-auto border-t border-slate-800 mt-6 pt-6 text-center text-[11px] text-slate-500">
+            <p>© {new Date().getFullYear()} Ama Baby Care. All rights reserved. Built for baby care & family privacy.</p>
+          </div>
+        </footer>
       </main>
     </article>
   );

@@ -1,7 +1,7 @@
-# Robots.txt for Ama Baby Care
-# Explicit Permissions for Landing, Privacy Policy & Terms, Blog, Safety Guides, and User Manual Pages Only
+# Robots.txt for Ama Baby Care - Strict AdSense & Search Crawler Permissions
+# Explicitly allowing Web Crawlers to access only public Landing, Legal, Blog, About, Contact, Safety Guides, and User Manual pages
 
-# Google AdSense Main Crawler
+# 1. Google AdSense Main Crawler
 User-agent: Mediapartners-Google
 Allow: /
 Allow: /landing
@@ -12,6 +12,8 @@ Allow: /blog
 Allow: /blog/*
 Allow: /articles
 Allow: /articles/*
+Allow: /about
+Allow: /contact
 Allow: /safety
 Allow: /safety-guides
 Allow: /manual
@@ -32,7 +34,7 @@ Disallow: /health
 Disallow: /vault
 Disallow: /storybook
 
-# Google Ads Crawlers
+# 2. Google Ads Crawlers
 User-agent: AdsBot-Google
 User-agent: AdsBot-Google-Mobile
 Allow: /
@@ -44,6 +46,8 @@ Allow: /blog
 Allow: /blog/*
 Allow: /articles
 Allow: /articles/*
+Allow: /about
+Allow: /contact
 Allow: /safety
 Allow: /safety-guides
 Allow: /manual
@@ -64,7 +68,7 @@ Disallow: /health
 Disallow: /vault
 Disallow: /storybook
 
-# Google Search Crawler
+# 3. Google Search Crawler
 User-agent: Googlebot
 Allow: /
 Allow: /landing
@@ -75,6 +79,8 @@ Allow: /blog
 Allow: /blog/*
 Allow: /articles
 Allow: /articles/*
+Allow: /about
+Allow: /contact
 Allow: /safety
 Allow: /safety-guides
 Allow: /manual
@@ -95,7 +101,7 @@ Disallow: /health
 Disallow: /vault
 Disallow: /storybook
 
-# Bing Search Crawler
+# 4. Bing Search Crawler
 User-agent: Bingbot
 Allow: /
 Allow: /landing
@@ -106,6 +112,8 @@ Allow: /blog
 Allow: /blog/*
 Allow: /articles
 Allow: /articles/*
+Allow: /about
+Allow: /contact
 Allow: /safety
 Allow: /safety-guides
 Allow: /manual
@@ -126,7 +134,7 @@ Disallow: /health
 Disallow: /vault
 Disallow: /storybook
 
-# DuckDuckGo Crawler
+# 5. DuckDuckGo Crawler
 User-agent: DuckDuckBot
 Allow: /
 Allow: /landing
@@ -137,6 +145,8 @@ Allow: /blog
 Allow: /blog/*
 Allow: /articles
 Allow: /articles/*
+Allow: /about
+Allow: /contact
 Allow: /safety
 Allow: /safety-guides
 Allow: /manual
@@ -157,7 +167,7 @@ Disallow: /health
 Disallow: /vault
 Disallow: /storybook
 
-# Baidu Crawler
+# 6. Baidu Crawler
 User-agent: Baiduspider
 Allow: /
 Allow: /landing
@@ -168,6 +178,8 @@ Allow: /blog
 Allow: /blog/*
 Allow: /articles
 Allow: /articles/*
+Allow: /about
+Allow: /contact
 Allow: /safety
 Allow: /safety-guides
 Allow: /manual
@@ -188,7 +200,7 @@ Disallow: /health
 Disallow: /vault
 Disallow: /storybook
 
-# Yandex Crawler
+# 7. Yandex Crawler
 User-agent: YandexBot
 Allow: /
 Allow: /landing
@@ -199,6 +211,8 @@ Allow: /blog
 Allow: /blog/*
 Allow: /articles
 Allow: /articles/*
+Allow: /about
+Allow: /contact
 Allow: /safety
 Allow: /safety-guides
 Allow: /manual
@@ -219,7 +233,7 @@ Disallow: /health
 Disallow: /vault
 Disallow: /storybook
 
-# Apple Search & Siri Crawler
+# 8. Apple Search & Siri Crawler
 User-agent: Applebot
 Allow: /
 Allow: /landing
@@ -230,6 +244,8 @@ Allow: /blog
 Allow: /blog/*
 Allow: /articles
 Allow: /articles/*
+Allow: /about
+Allow: /contact
 Allow: /safety
 Allow: /safety-guides
 Allow: /manual
@@ -250,7 +266,7 @@ Disallow: /health
 Disallow: /vault
 Disallow: /storybook
 
-# Twitter / X Social Card Crawler
+# 9. Twitter / X Social Card Crawler
 User-agent: Twitterbot
 Allow: /
 Allow: /landing
@@ -261,6 +277,8 @@ Allow: /blog
 Allow: /blog/*
 Allow: /articles
 Allow: /articles/*
+Allow: /about
+Allow: /contact
 Allow: /safety
 Allow: /safety-guides
 Allow: /manual
@@ -281,7 +299,7 @@ Disallow: /health
 Disallow: /vault
 Disallow: /storybook
 
-# Meta / Facebook Link Preview Crawler
+# 10. Meta / Facebook Link Preview Crawler
 User-agent: facebookexternalhit
 Allow: /
 Allow: /landing
@@ -292,6 +310,8 @@ Allow: /blog
 Allow: /blog/*
 Allow: /articles
 Allow: /articles/*
+Allow: /about
+Allow: /contact
 Allow: /safety
 Allow: /safety-guides
 Allow: /manual
@@ -312,22 +332,24 @@ Disallow: /health
 Disallow: /vault
 Disallow: /storybook
 
-# All Other Web Crawlers
+# 11. All Other Web Crawlers
 User-agent: *
 Allow: /
 Allow: /landing
 Allow: /privacy
 Allow: /terms
 Allow: /legal
+Allow: /blog
+Allow: /blog/*
+Allow: /articles
+Allow: /articles/*
+Allow: /about
+Allow: /contact
 Allow: /safety
 Allow: /safety-guides
 Allow: /manual
 Allow: /user-manual
 Allow: /guide
-Allow: /blog
-Allow: /blog/*
-Allow: /articles
-Allow: /articles/*
 Disallow: /api/
 Disallow: /app
 Disallow: /dashboard
