@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Mic, MicOff, Loader2, Sparkles, Send, X, Utensils, Moon, 
+  Mic, MicOff, Loader2, ShieldCheck, Send, X, Utensils, Moon, 
   CheckCircle2, Volume2, VolumeX, Crown, AlertCircle, Camera, 
   Image as ImageIcon, Globe, ExternalLink, RefreshCw, Zap, 
   ChevronRight, Compass, Heart, Paperclip, FileText, Video
@@ -705,7 +705,6 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         <OgooAvatar 
           size="sm" 
           hasPulse={isWakeListening} 
-          showSparkleBadge={true} 
           showOnlineDot={true}
         />
         <div className="text-left hidden sm:block pr-2">
@@ -855,7 +854,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                   >
                     <div className="flex items-center justify-between mb-1.5 px-1">
                       <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-primary" />
+                        <ShieldCheck className="w-3 h-3 text-primary" />
                         Proactive Care Recommendations
                       </span>
                       <button
@@ -1010,7 +1009,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                       {/* Proactive follow-up badge */}
                       {msg.proactiveInsight && (
                         <div className="mt-2 text-[10px] text-gray-600 bg-amber-50 border border-amber-200/60 p-2 rounded-xl flex items-start gap-1.5">
-                          <Sparkles className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
+                          <ShieldCheck className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
                           <span><strong>Ogoo Tip:</strong> {msg.proactiveInsight}</span>
                         </div>
                       )}

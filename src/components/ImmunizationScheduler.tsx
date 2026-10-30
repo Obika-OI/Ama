@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, RotateCcw, CheckCircle2, Calendar, Sparkles } from 'lucide-react';
+import { ShieldCheck, RotateCcw, CheckCircle2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { sanitizeVaccineSchedule, calculateVaccineScheduleFromDOB } from '../constants/babyData';
 
@@ -86,7 +86,7 @@ export const ImmunizationScheduler: React.FC<ImmunizationSchedulerProps> = ({
           >
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-primary" />
+                <ShieldCheck className="w-4 h-4 text-primary" />
                 <h4 className="text-xs font-black text-gray-800 uppercase tracking-wider">Auto-Schedule All Immunizations</h4>
               </div>
               <button onClick={() => setShowDobBox(false)} className="text-xs font-bold text-gray-400 border-none bg-transparent cursor-pointer">✕</button>

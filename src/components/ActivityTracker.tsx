@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
-import { Plus, Calendar, Clock, ChevronLeft, CheckCircle2, Star, Sparkles, Heart, Activity as ActivityIcon, Droplet, Award, Flame, AlertCircle, Edit3, Trash2, Check, Mic, Search, Crown, Lock, Unlock, RotateCcw, ShieldCheck, Video, VideoOff, Camera, Volume2 } from 'lucide-react';
+import { Plus, Calendar, Clock, ChevronLeft, CheckCircle2, Star, Heart, Activity as ActivityIcon, Droplet, Award, Flame, AlertCircle, Edit3, Trash2, Check, Mic, Search, Crown, Lock, Unlock, RotateCcw, ShieldCheck, Video, VideoOff, Camera, Volume2 } from 'lucide-react';
 import { TEETH_LIST } from '../constants/babyData';
 import { motion, AnimatePresence } from 'motion/react';
 import { MOCK_ACTIVITIES, THEME } from '../constants';
@@ -1219,7 +1219,7 @@ export const ActivityTracker = ({
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-[9px] font-black uppercase tracking-widest text-emerald-700">
-                    On Duty: {activeShift.caregiverName}
+                    Active Account: {resolvedCaregiverName}
                   </span>
                 </div>
                 <p className="text-[10px] text-gray-600 font-medium">

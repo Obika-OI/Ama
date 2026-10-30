@@ -76,6 +76,17 @@ export const LOCAL_REGIONS_DATABASE = [
 
 export const COMMON_INGREDIENTS = [
   {
+    id: 'water',
+    name: 'Water (for Babies)',
+    color: 'red',
+    icon: '💧',
+    category: 'Strict Moderation',
+    warning: '⚠️ WATER INTOXICATION RISK: Babies under 6 months must not be given water as it can dilute their tiny bodies\' electrolytes, leading to seizures or brain swelling. They get all necessary hydration from breast milk or formula.',
+    prep6m: '❌ No water allowed. 100% hydration comes from milk sessions.',
+    prep10m: '⚠️ Limit to 2-4 oz (60-120ml) per 24 hours. Offer only with meals to practice cup drinking.',
+    prep12m: '✅ Safe to offer regularly with meals. Milk remains the primary nutrient source.'
+  },
+  {
     id: 'honey',
     name: 'Honey (Raw or Processed)',
     color: 'red',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, Plus, Clock, Star, Heart, Flame, Shield, Info, Edit3, Trash2, MapPin, AlertCircle, PlusCircle, Globe, Loader2, Sparkles, Utensils, CheckCircle2, ChevronDown, ChevronUp, BookOpen, Volume2, VolumeX } from 'lucide-react';
+import { Search, ChevronLeft, Plus, Clock, Star, Heart, Flame, Shield, Info, Edit3, Trash2, MapPin, AlertCircle, PlusCircle, Globe, Loader2, Utensils, CheckCircle2, ChevronDown, ChevronUp, BookOpen, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MOCK_MEALS, THEME } from '../constants';
 import { Meal } from '../types';

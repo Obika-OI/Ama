@@ -6,7 +6,6 @@ import {
   ChevronRight, 
   Utensils, 
   Activity, 
-  Sparkles, 
   ShieldCheck,
   CheckCircle2,
   Calendar,
@@ -24,32 +23,36 @@ import {
   Wind,
   PhoneCall,
   Moon,
-  Loader2
+  Loader2,
+  Play,
+  Pause,
+  RotateCcw
 } from 'lucide-react';
 import { useSEO } from '../utils/seo';
+import { EPDSTool } from './EPDSTool';
 
 interface MotherCareScreenProps {
   onBack: () => void;
   parentName?: string;
 }
 
-export interface ClinicalPostpartumRecipe {
+export interface WellnessPostpartumRecipe {
   id: string;
   title: string;
   category: string;
-  scientificBenefit: string;
+  healthBenefit: string;
   keyNutrients: string[];
   ingredients: string[];
   instructions: string[];
   recommendedTiming: string;
 }
 
-const GLOBAL_CLINICAL_RECIPES: ClinicalPostpartumRecipe[] = [
+const GLOBAL_WELLNESS_RECIPES: WellnessPostpartumRecipe[] = [
   {
     id: 'restorative_broth',
     title: 'High-Collagen Restorative Bone & Vegetable Broth',
     category: 'Tissue Repair & Hydration',
-    scientificBenefit: 'Rich in glycine, proline, and electrolytes to accelerate perineal and cesarean tissue remodeling while providing fluid volume for blood plasma restoration.',
+    healthBenefit: 'Rich in glycine, proline, and electrolytes to accelerate perineal and cesarean tissue remodeling while providing fluid volume for blood plasma restoration.',
     keyNutrients: ['Collagen & Glycine', 'Bioavailable Zinc', 'Sodium & Potassium Electrolytes'],
     ingredients: [
       '1 kg grass-fed marrow bones or rich vegetable stock base',
@@ -73,7 +76,7 @@ const GLOBAL_CLINICAL_RECIPES: ClinicalPostpartumRecipe[] = [
     id: 'iron_rich_stew',
     title: 'Iron-Rich Spinach, Sweet Potato & Red Lentil Stew',
     category: 'Anemia Recovery & Cellular Energy',
-    scientificBenefit: 'Combines bioavailable plant iron and folate with vitamin C-rich tomatoes and sweet potatoes to enhance non-heme iron absorption and combat postpartum fatigue.',
+    healthBenefit: 'Combines bioavailable plant iron and folate with vitamin C-rich tomatoes and sweet potatoes to enhance non-heme iron absorption and combat postpartum fatigue.',
     keyNutrients: ['Non-Heme Iron', 'Folate (Vitamin B9)', 'Dietary Fiber', 'Beta-Carotene'],
     ingredients: [
       '1 cup dry red split lentils, rinsed',
@@ -97,7 +100,7 @@ const GLOBAL_CLINICAL_RECIPES: ClinicalPostpartumRecipe[] = [
     id: 'golden_oat_porridge',
     title: 'Galactagogue Golden Oat, Seed & Cinnamon Porridge',
     category: 'Lactation & Endocrine Support',
-    scientificBenefit: 'Whole rolled oats contain beta-glucan fiber, iron, and plant saponins clinically associated with stimulating prolactin secretion and maintaining steady blood glucose.',
+    healthBenefit: 'Whole rolled oats contain beta-glucan fiber, iron, and plant saponins naturally associated with stimulating prolactin secretion and maintaining steady blood glucose.',
     keyNutrients: ['Beta-Glucan Soluble Fiber', 'Alpha-Linolenic Acid (Omega-3)', 'Magnesium & B-Vitamins'],
     ingredients: [
       '1 cup rolled oats (certified gluten-free if sensitive)',
@@ -120,7 +123,7 @@ const GLOBAL_CLINICAL_RECIPES: ClinicalPostpartumRecipe[] = [
     id: 'anti_inflammatory_soup',
     title: 'Warming Anti-Inflammatory Ginger & Turmeric Broth Bowl',
     category: 'Uterine Healing & Digestion',
-    scientificBenefit: 'Active gingerols and curcumin promote gentle digestive motility, reduce systemic inflammatory markers, and ease postpartum intestinal sluggishness.',
+    healthBenefit: 'Active gingerols and curcumin promote gentle digestive motility, reduce systemic inflammatory markers, and ease postpartum intestinal sluggishness.',
     keyNutrients: ['Curcuminoids', 'Gingerols', 'Lean Protein', 'Potassium'],
     ingredients: [
       '300g boneless chicken breast or firm tofu, cubed',
@@ -144,7 +147,7 @@ const GLOBAL_CLINICAL_RECIPES: ClinicalPostpartumRecipe[] = [
     id: 'cellular_hydration_infusion',
     title: 'Cellular Electrolyte & Galactagogue Herbal Infusion',
     category: 'Breast Milk Volume & Fluid Balance',
-    scientificBenefit: 'Provides isotonic electrolytes without refined sugar spikes to support maternal milk synthesis, which demands an additional 700 to 1,000 mL of fluids daily.',
+    healthBenefit: 'Provides isotonic electrolytes without refined sugar spikes to support maternal milk synthesis, which demands an additional 700 to 1,000 mL of fluids daily.',
     keyNutrients: ['Electrolyte Potassium & Sodium', 'Magnesium Citrate', 'Trace Minerals'],
     ingredients: [
       '500 ml pure unsweetened coconut water',
@@ -164,8 +167,47 @@ const GLOBAL_CLINICAL_RECIPES: ClinicalPostpartumRecipe[] = [
 ];
 
 export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, parentName = 'Mother' }) => {
-  const [activeSection, setActiveSection] = useState<'clinical' | 'nutrition' | 'mental' | 'mobility'>('clinical');
+  const [activeSection, setActiveSection] = useState<'recovery' | 'nutrition' | 'mental' | 'mobility'>('recovery');
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
+
+  // 4-7-8 Guided Breathing & Diaphragmatic Calming Tool State
+  const [breathingActive, setBreathingActive] = useState(false);
+  const [breathingPhase, setBreathingPhase] = useState<'Inhale (4s)' | 'Hold (7s)' | 'Exhale (8s)'>('Inhale (4s)');
+  const [breathTimer, setBreathTimer] = useState(4);
+  const [completedCycles, setCompletedCycles] = useState(0);
+
+  React.useEffect(() => {
+    if (!breathingActive) return;
+    const interval = setInterval(() => {
+      setBreathTimer((prev) => {
+        if (prev > 1) return prev - 1;
+        if (breathingPhase.startsWith('Inhale')) {
+          setBreathingPhase('Hold (7s)');
+          return 7;
+        } else if (breathingPhase.startsWith('Hold')) {
+          setBreathingPhase('Exhale (8s)');
+          return 8;
+        } else {
+          setBreathingPhase('Inhale (4s)');
+          setCompletedCycles((c) => c + 1);
+          return 4;
+        }
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [breathingActive, breathingPhase]);
+
+  const toggleBreathing = () => {
+    if (breathingActive) {
+      setBreathingActive(false);
+      setBreathingPhase('Inhale (4s)');
+      setBreathTimer(4);
+    } else {
+      setBreathingActive(true);
+      setBreathingPhase('Inhale (4s)');
+      setBreathTimer(4);
+    }
+  };
 
   // Mom Go To Sleep: 4-Hour Consolidated REM Sleep Window Delegation
   const [remSleepEndTime, setRemSleepEndTime] = useState<string | null>(null);
@@ -221,13 +263,13 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
 
   useSEO({
     title: 'Mother Postpartum Care & Fourth Trimester Recovery | Ama Baby Care',
-    description: 'Evidence-based maternal recovery guides, postpartum wound and pelvic floor healing, maternal clinical nutrition, and postpartum mental health resources.',
+    description: 'Evidence-based maternal recovery guides, postpartum wound and pelvic floor healing, maternal wellness nutrition, and postpartum mental health resources.',
     canonicalUrl: 'https://amababycare.com/#mother-care'
   });
 
-  const selectedRecipe = GLOBAL_CLINICAL_RECIPES.find(r => r.id === selectedRecipeId);
+  const selectedRecipe = GLOBAL_WELLNESS_RECIPES.find(r => r.id === selectedRecipeId);
 
-  const clinicalMilestones = [
+  const healthMilestones = [
     {
       title: 'Perineal & Wound Healing',
       badge: 'Physical Recovery',
@@ -303,14 +345,14 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
         <section className="bg-card p-6 sm:p-10 rounded-[40px] border border-white shadow-xl shadow-card/20 text-gray-800 relative overflow-hidden">
           <div className="relative z-10 space-y-4 max-w-xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/80 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-wider text-primary border border-white">
-              <Stethoscope className="w-3.5 h-3.5 text-primary" />
+              <Heart className="w-3.5 h-3.5 text-primary" />
               <span>Evidence-Based Fourth Trimester Recovery</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-serif font-black text-gray-900">
               Nurturing You, {parentName}.
             </h2>
             <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-medium">
-              Maternal healing is a vital biological journey. This dedicated suite provides medically grounded guidance on surgical wound healing, lochia milestones, pelvic floor restoration, clinical nutrition, and emotional wellness.
+              Maternal healing is a vital biological journey. This dedicated suite provides health-focused guidance on restorative recovery, lochia milestones, pelvic floor restoration, wellness nutrition, and emotional wellness.
             </p>
           </div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/30 rounded-full -mr-28 -mt-28 blur-3xl pointer-events-none" />
@@ -321,11 +363,11 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
           <div className="flex items-center gap-2 text-rose-700">
             <AlertTriangle className="w-5 h-5 shrink-0" />
             <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider">
-              Postpartum Clinical Red Flags – Contact Your Doctor Immediately
+              Postpartum Wellness Red Flags – Contact Your Care Provider
             </h3>
           </div>
           <p className="text-xs text-gray-600 leading-relaxed">
-            The fourth trimester carries unique physiological risks. Seek immediate emergency obstetric or medical evaluation if you experience any of the following:
+            The fourth trimester carries unique physiological shifts. Seek immediate evaluation if you experience any of the following:
           </p>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-700 list-none p-0 m-0">
             {redFlags.map((flag, idx) => (
@@ -400,9 +442,90 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
                     : `Active On-Duty Alert Receiver: ${activeShift?.caregiverName || 'On-Duty Caregiver / Partner'}`}
                 </span>
               </span>
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                Automatic Alert Routing
-              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Maternal Relaxation Resources & Guided 4-7-8 Breathing Visualizer */}
+        <div className="bg-gradient-to-br from-sky-50 via-white to-blue-50/60 p-6 sm:p-7 rounded-[36px] border border-sky-100 shadow-xl shadow-card/10 space-y-4 text-left">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-100/80 pb-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-primary/20">
+                <Wind className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  Relaxation & Grounding Resource
+                </span>
+                <h3 className="text-lg sm:text-xl font-serif font-black text-gray-900 mt-0.5">
+                  4-7-8 Diaphragmatic Postpartum Breathing & Calming
+                </h3>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleBreathing}
+              className={`px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider cursor-pointer border-none transition-all flex items-center justify-center gap-2 shadow-md shrink-0 active:scale-95 ${
+                breathingActive
+                  ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20'
+                  : 'bg-primary hover:bg-primary/90 text-white shadow-primary/20'
+              }`}
+            >
+              {breathingActive ? (
+                <>
+                  <Pause className="w-4 h-4" />
+                  <span>Pause Relaxation</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" />
+                  <span>Start 4-7-8 Guided Breath</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            {/* Visualizer Circle */}
+            <div className="flex flex-col items-center justify-center p-6 bg-white rounded-3xl border border-sky-100 shadow-sm text-center">
+              <div className={`w-28 h-28 rounded-full flex flex-col items-center justify-center border-4 transition-all duration-1000 ${
+                breathingPhase.startsWith('Inhale')
+                  ? 'border-primary bg-sky-50 scale-110 shadow-lg shadow-sky-200'
+                  : breathingPhase.startsWith('Hold')
+                  ? 'border-amber-400 bg-amber-50 scale-105'
+                  : 'border-emerald-500 bg-emerald-50 scale-95'
+              }`}>
+                <span className="text-2xl font-black text-gray-900">{breathTimer}s</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-primary mt-0.5">
+                  {breathingPhase.split(' ')[0]}
+                </span>
+              </div>
+              <p className="text-[11px] font-bold text-gray-500 mt-3">
+                Completed Cycles: <span className="text-primary font-black">{completedCycles}</span>
+              </p>
+            </div>
+
+            {/* Instruction Steps */}
+            <div className="md:col-span-2 space-y-2.5 text-xs text-gray-700 leading-relaxed font-medium">
+              <div className="p-3 bg-white rounded-2xl border border-sky-100 flex items-start gap-2.5">
+                <span className="w-6 h-6 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0">1</span>
+                <div>
+                  <strong className="text-gray-900">Inhale gently through nose for 4 seconds:</strong> Feel your lower ribcage and abdomen naturally expand without tensing shoulders.
+                </div>
+              </div>
+              <div className="p-3 bg-white rounded-2xl border border-sky-100 flex items-start gap-2.5">
+                <span className="w-6 h-6 rounded-xl bg-amber-500/10 text-amber-700 font-black text-xs flex items-center justify-center shrink-0">2</span>
+                <div>
+                  <strong className="text-gray-900">Hold breath comfortably for 7 seconds:</strong> Oxygenates maternal bloodstream and lowers circulating adrenalin and cortisol.
+                </div>
+              </div>
+              <div className="p-3 bg-white rounded-2xl border border-sky-100 flex items-start gap-2.5">
+                <span className="w-6 h-6 rounded-xl bg-emerald-500/10 text-emerald-700 font-black text-xs flex items-center justify-center shrink-0">3</span>
+                <div>
+                  <strong className="text-gray-900">Slow woosh exhale through mouth for 8 seconds:</strong> Activates parasympathetic vagus nerve response for immediate exhaustion relief.
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -410,7 +533,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
         {/* Section Navigation Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
           {[
-            { id: 'clinical', label: 'Clinical Healing', icon: <Activity className="w-4 h-4" /> },
+            { id: 'recovery', label: 'Physical Recovery', icon: <Activity className="w-4 h-4" /> },
             { id: 'nutrition', label: 'Maternal Nutrition', icon: <Utensils className="w-4 h-4" /> },
             { id: 'mental', label: 'Mental Wellness (EPDS)', icon: <Brain className="w-4 h-4" /> },
             { id: 'mobility', label: 'Core & Mobility', icon: <Zap className="w-4 h-4" /> }
@@ -430,18 +553,18 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
           ))}
         </div>
 
-        {/* Tab 1: Clinical Healing */}
+        {/* Tab 1: Physical Recovery */}
         <AnimatePresence mode="wait">
-          {activeSection === 'clinical' && (
+          {activeSection === 'recovery' && (
             <motion.div 
-              key="clinical"
+              key="recovery"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               className="space-y-6"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {clinicalMilestones.map((item, i) => (
+                {healthMilestones.map((item, i) => (
                   <div key={i} className="bg-white/90 backdrop-blur-xs p-6 rounded-[32px] border border-white shadow-xl shadow-card/10 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="w-10 h-10 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
@@ -513,15 +636,15 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
                     Global Evidence-Based Postpartum Recipes
                   </span>
                   <h3 className="text-xl font-serif font-black text-gray-900">
-                    Clinical Nutrition for Tissue Repair & Milk Synthesis
+                    Nourishment for Tissue Repair & Milk Synthesis
                   </h3>
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    Postpartum dietary needs include approximately 450–500 additional daily calories for lactation, coupled with elevated micronutrients (iron, zinc, choline, iodine, and omega-3 DHA). Select any recipe below for step-by-step clinical preparation.
+                    Postpartum dietary needs include approximately 450–500 additional daily calories for lactation, coupled with elevated micronutrients (iron, zinc, choline, iodine, and omega-3 DHA). Select any recipe below for step-by-step preparation.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  {GLOBAL_CLINICAL_RECIPES.map((recipe) => (
+                  {GLOBAL_WELLNESS_RECIPES.map((recipe) => (
                     <button
                       key={recipe.id}
                       onClick={() => setSelectedRecipeId(recipe.id)}
@@ -535,7 +658,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
                           {recipe.title}
                         </h4>
                         <p className="text-[11px] text-gray-600 line-clamp-2 leading-relaxed">
-                          {recipe.scientificBenefit}
+                          {recipe.healthBenefit}
                         </p>
                       </div>
 
@@ -595,28 +718,8 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
                   ))}
                 </div>
 
-                <div className="p-5 bg-primary/10 rounded-[28px] border border-primary/20 flex items-start gap-3">
-                  <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-gray-900 uppercase tracking-wider">The Edinburgh Postnatal Depression Scale (EPDS)</p>
-                    <p className="text-xs text-gray-700 leading-relaxed">
-                      Obstetricians and pediatricians routinely administer the 10-question EPDS screening at the 2-week, 6-week, and well-baby checkups. Experiencing postpartum depression or anxiety is not a personal failure:it is a neurochemical reaction treatable with compassionate clinical care and therapy.
-                    </p>
-                  </div>
-                </div>
-
-                {/* International Support Helplines */}
-                <div className="p-5 bg-white rounded-[24px] border border-gray-100 space-y-2">
-                  <div className="flex items-center gap-2 text-primary text-xs font-black uppercase tracking-wider">
-                    <PhoneCall className="w-4 h-4" />
-                    <span>Global Perinatal Mental Health Helplines</span>
-                  </div>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    • <strong>Postpartum Support International (PSI):</strong> Call or text 1-800-944-4773 (English & Spanish support, available globally at postpartum.net)<br />
-                    • <strong>National Maternal Mental Health Hotline (USA):</strong> Call/text 1-833-852-6262 (Free, 24/7 confidential clinical support)<br />
-                    • <strong>International Crisis Contact:</strong> In emergency distress, dial your local emergency services (911, 999, 112, or local maternity hospital).
-                  </p>
-                </div>
+                {/* Interactive EPDS Wellness Tool */}
+                <EPDSTool parentName={parentName} />
               </div>
             </motion.div>
           )}
@@ -706,10 +809,10 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
 
                   <div className="bg-card/50 p-5 rounded-[28px] border border-white space-y-2">
                     <p className="text-[10px] font-black text-gray-800 uppercase tracking-wider">
-                      Clinical Postpartum Benefit
+                      Postpartum Health Benefit
                     </p>
                     <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium">
-                      {selectedRecipe.scientificBenefit}
+                      {selectedRecipe.healthBenefit}
                     </p>
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {selectedRecipe.keyNutrients.map((nut, i) => (

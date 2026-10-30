@@ -1,12 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  APIProvider,
-  Map,
-  AdvancedMarker,
-  Pin,
-  useMap,
-  useMapsLibrary
-} from '@vis.gl/react-google-maps';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   MapPin,
   Search,
@@ -16,7 +8,7 @@ import {
   Globe,
   Star,
   Clock,
-  Sparkles,
+  ShieldCheck,
   Navigation,
   Building2,
   Stethoscope,
@@ -25,7 +17,6 @@ import {
   BookOpen,
   Loader2,
   RefreshCw,
-  ShieldCheck,
   CheckCircle2,
   Calendar,
   Users
@@ -118,128 +109,206 @@ const DIRECTORY_CATEGORIES = [
   }
 ];
 
-/**
- * Child component inside <APIProvider> that queries live Google Maps Platform Places API (New)
- * via `placesLib.Place.searchByText` so zero place records are ever mocked or hallucinated.
- */
-const LivePlacesDirectoryFetcher: React.FC<{
+const loadGoogleMapsScript = (apiKey: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (typeof window !== 'undefined' && (window as any).google?.maps) {
+      resolve();
+      return;
+    }
+    const existingScript = document.getElementById('google-maps-js-sdk');
+    if (existingScript) {
+      if ((window as any).google?.maps) {
+        resolve();
+      } else {
+        existingScript.addEventListener('load', () => resolve());
+        existingScript.addEventListener('error', (e) => reject(e));
+      }
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'google-maps-js-sdk';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = (e) => reject(e);
+    document.head.appendChild(script);
+  });
+};
+
+const InteractiveGoogleMap: React.FC<{
+  apiKey: string;
   center: { lat: number; lng: number };
   locationName: string;
   category: 'hospitals' | 'healthcare' | 'lactation' | 'caregivers' | 'pharmacies';
   customQuery: string;
   searchTrigger: number;
+  pinColor: string;
+  places: VerifiedDirectoryPlace[];
+  selectedPlace: VerifiedDirectoryPlace | null;
+  onSelectPlace: (place: VerifiedDirectoryPlace) => void;
   onPlacesFound: (places: VerifiedDirectoryPlace[]) => void;
   onLoadingChange: (loading: boolean) => void;
-  onErrorChange: (err: string | null) => void;
 }> = ({
+  apiKey,
   center,
   locationName,
   category,
   customQuery,
   searchTrigger,
+  pinColor,
+  places,
+  selectedPlace,
+  onSelectPlace,
   onPlacesFound,
-  onLoadingChange,
-  onErrorChange
+  onLoadingChange
 }) => {
-  const map = useMap();
-  const placesLib = useMapsLibrary('places');
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
 
   useEffect(() => {
-    if (map && center) {
-      map.panTo(center);
+    if (!apiKey) return;
+    loadGoogleMapsScript(apiKey)
+      .then(() => setIsScriptLoaded(true))
+      .catch((err) => console.warn('Failed to load Google Maps SDK:', err));
+  }, [apiKey]);
+
+  // Map Initialization
+  useEffect(() => {
+    if (!isScriptLoaded || !mapContainerRef.current || mapInstanceRef.current) return;
+    try {
+      const google = (window as any).google;
+      if (google && google.maps) {
+        mapInstanceRef.current = new google.maps.Map(mapContainerRef.current, {
+          center,
+          zoom: 13,
+          gestureHandling: 'greedy',
+          disableDefaultUI: false
+        });
+      }
+    } catch (err) {
+      console.warn('Google Map instantiation warning:', err);
     }
-  }, [map, center.lat, center.lng]);
+  }, [isScriptLoaded, center]);
 
+  // Center Pan
   useEffect(() => {
-    if (!placesLib || !placesLib.Place) return;
+    if (mapInstanceRef.current && center) {
+      try {
+        mapInstanceRef.current.panTo(center);
+      } catch {}
+    }
+  }, [center.lat, center.lng]);
+
+  // Markers
+  useEffect(() => {
+    if (!mapInstanceRef.current || !(window as any).google?.maps) return;
+    const google = (window as any).google;
+
+    markersRef.current.forEach(m => {
+      try { m.setMap(null); } catch {}
+    });
+    markersRef.current = [];
+
+    places.forEach(place => {
+      const isSelected = selectedPlace?.id === place.id;
+      try {
+        const marker = new google.maps.Marker({
+          position: { lat: place.lat, lng: place.lng },
+          map: mapInstanceRef.current,
+          title: place.name,
+          icon: isSelected ? undefined : {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: pinColor || '#e11d48',
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: '#ffffff'
+          }
+        });
+
+        marker.addListener('click', () => {
+          onSelectPlace(place);
+        });
+
+        markersRef.current.push(marker);
+      } catch {}
+    });
+  }, [places, selectedPlace, pinColor, onSelectPlace]);
+
+  // Places Search
+  useEffect(() => {
+    if (!isScriptLoaded || !(window as any).google?.maps?.places) return;
 
     let cancelled = false;
-    const runPlacesSearch = async () => {
-      onLoadingChange(true);
-      onErrorChange(null);
+    const catConfig = DIRECTORY_CATEGORIES.find(c => c.id === category) || DIRECTORY_CATEGORIES[0];
+    const textQuery = customQuery.trim()
+      ? `${customQuery.trim()} in ${locationName}`
+      : `${catConfig.defaultSearchText} in ${locationName}`;
 
-      const catConfig = DIRECTORY_CATEGORIES.find(c => c.id === category) || DIRECTORY_CATEGORIES[0];
-      const textQuery = customQuery.trim()
-        ? `${customQuery.trim()} in ${locationName}`
-        : `${catConfig.defaultSearchText} in ${locationName}`;
+    onLoadingChange(true);
 
-      try {
-        const request: google.maps.places.SearchByTextRequest = {
-          textQuery,
-          fields: [
-            'id',
-            'displayName',
-            'formattedAddress',
-            'location',
-            'rating',
-            'userRatingCount',
-            'regularOpeningHours',
-            'nationalPhoneNumber',
-            'websiteURI',
-            'googleMapsURI'
-          ],
-          locationBias: {
-            center: { lat: center.lat, lng: center.lng },
-            radius: 20000
-          },
-          maxResultCount: 12
-        };
+    try {
+      const google = (window as any).google;
+      const dummyDiv = document.createElement('div');
+      const service = new google.maps.places.PlacesService(mapInstanceRef.current || dummyDiv);
 
-        const { places } = await placesLib.Place.searchByText(request);
-        if (cancelled) return;
-
-        const mapped: VerifiedDirectoryPlace[] = (places || [])
-          .filter(p => p.location)
-          .map(p => {
-            const lat = typeof p.location?.lat === 'function' ? p.location.lat() : Number((p.location as any)?.lat);
-            const lng = typeof p.location?.lng === 'function' ? p.location.lng() : Number((p.location as any)?.lng);
-            return {
-              id: p.id || `place-${lat}-${lng}`,
-              name: p.displayName || 'Healthcare Facility',
-              address: p.formattedAddress || locationName,
-              lat,
-              lng,
-              rating: p.rating ?? undefined,
-              userRatingCount: p.userRatingCount ?? undefined,
-              phone: p.nationalPhoneNumber ?? undefined,
-              website: p.websiteURI ?? undefined,
-              googleMapsURI:
-                p.googleMapsURI ||
-                `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                  (p.displayName || '') + ' ' + (p.formattedAddress || '')
-                )}`,
-              weekdayDescriptions: p.regularOpeningHours?.weekdayDescriptions,
-              category
-            };
-          });
-
-        onPlacesFound(mapped);
-      } catch (err: any) {
-        if (cancelled) return;
-        const msg = err?.message || String(err);
-        if (
-          msg.includes('OVER_QUERY_LIMIT') ||
-          msg.includes('RESOURCE_EXHAUSTED') ||
-          msg.includes('QuotaExceededError') ||
-          msg.includes('429')
-        ) {
-          window.dispatchEvent(new CustomEvent('gmp-quota-exceeded'));
-        }
-        onErrorChange('Live Places query completed via server grounding.');
-      } finally {
-        if (!cancelled) {
+      service.textSearch(
+        {
+          query: textQuery,
+          location: new google.maps.LatLng(center.lat, center.lng),
+          radius: 20000
+        },
+        (results: any[], status: any) => {
+          if (cancelled) return;
           onLoadingChange(false);
+          if (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(results)) {
+            const mapped: VerifiedDirectoryPlace[] = results.map((p, index) => {
+              const lat = typeof p.geometry?.location?.lat === 'function' ? p.geometry.location.lat() : Number(p.geometry?.location?.lat);
+              const lng = typeof p.geometry?.location?.lng === 'function' ? p.geometry.location.lng() : Number(p.geometry?.location?.lng);
+              return {
+                id: p.place_id || `place-${index}-${lat}`,
+                name: p.name || 'Healthcare Facility',
+                address: p.formatted_address || locationName,
+                lat,
+                lng,
+                rating: p.rating ?? undefined,
+                userRatingCount: p.user_ratings_total ?? undefined,
+                googleMapsURI: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((p.name || '') + ' ' + (p.formatted_address || ''))}&query_place_id=${p.place_id || ''}`,
+                category
+              };
+            });
+            onPlacesFound(mapped);
+          }
         }
-      }
-    };
+      );
+    } catch {
+      onLoadingChange(false);
+    }
 
-    runPlacesSearch();
     return () => {
       cancelled = true;
     };
-  }, [placesLib, center.lat, center.lng, locationName, category, customQuery, searchTrigger]);
+  }, [isScriptLoaded, center.lat, center.lng, locationName, category, customQuery, searchTrigger]);
 
-  return null;
+  if (!apiKey) {
+    const query = encodeURIComponent(`${category} in ${locationName}`);
+    return (
+      <iframe
+        title="Google Map Directory Preview"
+        width="100%"
+        height="100%"
+        style={{ border: 0 }}
+        loading="lazy"
+        allowFullScreen
+        src={`https://www.google.com/maps/embed/v1/search?key=${apiKey}&q=${query}&center=${center.lat},${center.lng}&zoom=13`}
+      />
+    );
+  }
+
+  return <div ref={mapContainerRef} className="w-full h-full min-h-[300px]" />;
 };
 
 export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
@@ -278,53 +347,59 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
   const [isLocatingGps, setIsLocatingGps] = useState(false);
 
   // Vetted Postpartum Caregivers & Omugwo Booking State
-  const [caregiversList, setCaregiversList] = useState<VettedCaregiver[]>(INITIAL_VETTED_CAREGIVERS);
-  const [bookingsList, setBookingsList] = useState<any[]>([]);
+  const [caregiversList] = useState<VettedCaregiver[]>(() => INITIAL_VETTED_CAREGIVERS);
+  const [selectedCaregiverForBooking, setSelectedCaregiverForBooking] = useState<VettedCaregiver | null>(null);
   const [bookingScheduleType, setBookingScheduleType] = useState<'Daily' | 'Weekend' | 'Live-In' | 'Nurse/Paediatrician Consultation'>('Daily');
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
-  const [selectedCaregiverForBooking, setSelectedCaregiverForBooking] = useState<VettedCaregiver | null>(null);
-
-  useEffect(() => {
-    fetch('/api/omugwo/state')
-      .then(r => (r.ok ? r.json() : null))
-      .then(data => {
-        if (data?.caregivers) setCaregiversList(data.caregivers);
-        if (data?.bookings) setBookingsList(data.bookings);
-      })
-      .catch(() => {});
-  }, []);
+  const [bookingsList, setBookingsList] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('ama_omugwo_bookings') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   const handleBookCaregiver = async (cg: VettedCaregiver) => {
+    const newBooking = {
+      id: `booking-${Date.now()}`,
+      caregiverId: cg.id,
+      caregiverName: cg.name,
+      scheduleType: bookingScheduleType,
+      startDate: new Date().toISOString().split('T')[0],
+      parentName,
+      notes: bookingNotes.trim() || `Requested ${bookingScheduleType} support (${cg.coreServices.slice(0, 2).join(', ')})`,
+      status: 'Confirmed & Scheduled'
+    };
+    const updated = [newBooking, ...bookingsList];
+    setBookingsList(updated);
+    try {
+      localStorage.setItem('ama_omugwo_bookings', JSON.stringify(updated));
+    } catch {}
+
     try {
       const res = await fetch('/api/omugwo/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caregiverId: cg.id,
-          caregiverName: cg.name,
-          scheduleType: bookingScheduleType,
-          startDate: new Date().toISOString().split('T')[0],
-          parentName,
-          notes: bookingNotes.trim() || `Requested ${bookingScheduleType} support (${cg.coreServices.slice(0, 2).join(', ')})`
-        })
+        body: JSON.stringify(newBooking)
       });
       if (res.ok) {
         const data = await res.json();
         if (data.bookings) setBookingsList(data.bookings);
-        setBookingSuccessMsg(`Confirmed ${bookingScheduleType} booking with ${cg.name}!`);
-        setSelectedCaregiverForBooking(null);
-        setBookingNotes('');
-        setTimeout(() => setBookingSuccessMsg(null), 5000);
       }
     } catch {}
+
+    setBookingSuccessMsg(`Confirmed ${bookingScheduleType} booking with ${cg.name}!`);
+    setSelectedCaregiverForBooking(null);
+    setBookingNotes('');
+    setTimeout(() => setBookingSuccessMsg(null), 5000);
   };
 
-  // Places from Google Maps Places API (New)
+  // Places from Google Maps Places API
   const [placesList, setPlacesList] = useState<VerifiedDirectoryPlace[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<VerifiedDirectoryPlace | null>(null);
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
-  const [placesError, setPlacesError] = useState<string | null>(null);
+  const [placesError] = useState<string | null>(null);
 
   // AI Grounding Summary + Grounded Google Maps Chunks from Gemini Maps Grounding
   const [aiGroundedSummary, setAiGroundedSummary] = useState<string>('');
@@ -363,7 +438,6 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
             setIsOfflineDirectoryActive(false);
           }
 
-          // If client-side places search produced no results yet, bridge from server directory places
           setPlacesList(prev => {
             if (prev.length > 0) return prev;
             return places.map((gp: GroundedMapLink, index: number) => ({
@@ -457,7 +531,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
               Local Care & Baby Name Directories
             </h1>
             <p className="text-xs text-gray-600 font-medium mt-0.5">
-              Map-grounded searchable database for local healthcare providers, hospitals, lactation experts, and our baby name directory.
+              Map-grounded searchable database for local healthcare providers, hospitals, lactation specialists, and our baby name directory.
             </p>
           </div>
         </div>
@@ -508,7 +582,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
         })}
       </div>
 
-      {/* Search Bar - Unified Directory Search across Care, Clinics & Baby Names */}
+      {/* Search Bar */}
       <form onSubmit={handleSearchSubmit} className="bg-white p-4 sm:p-5 rounded-[28px] border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -641,7 +715,6 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
 
                       <p className="text-xs text-gray-600 leading-relaxed">{cg.bio}</p>
 
-                      {/* Core Services */}
                       <div className="flex flex-wrap gap-1">
                         {cg.coreServices.map((srv, i) => (
                           <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-white border border-gray-200 text-gray-700">
@@ -650,7 +723,6 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
                         ))}
                       </div>
 
-                      {/* Vetting & Safety Badges */}
                       <div className="pt-2 border-t border-gray-200/60 flex flex-wrap gap-1.5 text-[9px] font-black uppercase tracking-wider text-primary">
                         <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">✓ ID & Background Verified</span>
                         <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">✓ Health & Clinical Screened</span>
@@ -734,46 +806,20 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             {/* Map Column */}
             <div className="lg:col-span-7 h-80 sm:h-[460px] rounded-[32px] overflow-hidden border border-gray-200 shadow-md relative bg-gray-100">
-              <APIProvider apiKey={apiKey}>
-                <Map
-                  mapId="DEMO_MAP_ID"
-                  defaultCenter={{ lat: currentLoc.lat, lng: currentLoc.lng }}
-                  defaultZoom={13}
-                  gestureHandling="greedy"
-                  disableDefaultUI={false}
-                  internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
-                  className="w-full h-full"
-                >
-                  <LivePlacesDirectoryFetcher
-                    center={{ lat: currentLoc.lat, lng: currentLoc.lng }}
-                    locationName={currentLoc.name}
-                    category={activeTab}
-                    customQuery={appliedQuery}
-                    searchTrigger={searchTrigger}
-                    onPlacesFound={handlePlacesFound}
-                    onLoadingChange={setIsLoadingPlaces}
-                    onErrorChange={setPlacesError}
-                  />
-
-                  {placesList.map(place => (
-                    <AdvancedMarker
-                      key={place.id}
-                      position={{ lat: place.lat, lng: place.lng }}
-                      onClick={() => setSelectedPlace(place)}
-                    >
-                      <Pin
-                        background={
-                          selectedPlace?.id === place.id
-                            ? '#111827'
-                            : currentCatMeta.pinColor
-                        }
-                        borderColor="#ffffff"
-                        glyphColor="#ffffff"
-                      />
-                    </AdvancedMarker>
-                  ))}
-                </Map>
-              </APIProvider>
+              <InteractiveGoogleMap
+                apiKey={apiKey}
+                center={{ lat: currentLoc.lat, lng: currentLoc.lng }}
+                locationName={currentLoc.name}
+                category={activeTab}
+                customQuery={appliedQuery}
+                searchTrigger={searchTrigger}
+                pinColor={currentCatMeta.pinColor}
+                places={placesList}
+                selectedPlace={selectedPlace}
+                onSelectPlace={setSelectedPlace}
+                onPlacesFound={handlePlacesFound}
+                onLoadingChange={setIsLoadingPlaces}
+              />
 
               {isLoadingPlaces && (
                 <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs px-3.5 py-2 rounded-2xl shadow-md border border-gray-100 flex items-center gap-2 text-xs font-bold text-gray-800">
@@ -918,7 +964,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                  <Sparkles className="w-5 h-5" />
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5">
@@ -962,7 +1008,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
                   </div>
                 )}
 
-                {/* Grounding Chunks Links (Mandatory per Gemini Maps Grounding specification) */}
+                {/* Grounding Chunks Links */}
                 {groundedMapLinks.length > 0 && (
                   <div className="space-y-3">
                     <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">

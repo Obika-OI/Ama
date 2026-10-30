@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { OGOO_AVATAR_PRIMARY, OGOO_AVATAR_FALLBACK } from '../constants/ogoo';
-import { Sparkles, Bot } from 'lucide-react';
+import { Heart, Bot } from 'lucide-react';
 
 export interface OgooAvatarProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -28,7 +28,7 @@ export const OgooAvatar: React.FC<OgooAvatarProps> = ({
   isThinking = false,
   showOnlineDot = false,
   showSparkleBadge = false,
-  alt = 'Ogoo AI Agent',
+  alt = 'Ogoo Assistant',
   onClick
 }) => {
   const [imgSrc, setImgSrc] = useState<string>(OGOO_AVATAR_PRIMARY);
@@ -81,13 +81,6 @@ export const OgooAvatar: React.FC<OgooAvatarProps> = ({
       {/* Online indicator dot */}
       {showOnlineDot && (
         <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full shadow-xs" />
-      )}
-
-      {/* Proactive Research Sparkle Badge */}
-      {showSparkleBadge && (
-        <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 text-amber-950 rounded-full flex items-center justify-center shadow-xs border border-white">
-          <Sparkles className="w-2.5 h-2.5" />
-        </span>
       )}
     </div>
   );

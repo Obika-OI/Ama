@@ -4,7 +4,6 @@ import {
   BookOpen, 
   Search, 
   HelpCircle, 
-  Sparkles, 
   Utensils, 
   Moon, 
   ShieldCheck, 
@@ -22,6 +21,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { useSEO } from '../utils/seo';
+import { UniversalFooter } from './UniversalFooter';
 
 interface AppUserGuideProps {
   onClose?: () => void;
@@ -101,7 +101,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       title: '3. Allergen Matrix & Skin Rash Tracker',
       category: 'HEALTH',
       icon: '🛡️',
-      summary: 'Identifying infant food sensitivities is a crucial process, but it can be highly stressful and expensive. Our third guide section details how to navigate food sensitivities logically and cautiously without requiring premium diagnostic consultations. Under our solid foods portal, you will find a pre-configured Allergen Matrix covering major infant irritants such as soy, peanuts, dairy, wheat, and eggs. We explain how to employ a cautious three-day exposure protocol, introducing tiny amounts of new local ingredients during daylight hours when you can easily observe your child’s physical reaction. If your baby develops an allergic skin rash, watery stools, or general fussiness, you can immediately record these symptoms in your on-device diary. This systematic, offline logging system helps you pinpoint specific triggers, allowing you to substitute irritating crops with highly nutritious local grains, ensuring your baby’s digestive system and skin stay healthy, calm, and completely protected.',
+      summary: 'Identifying infant food sensitivities is a vital process that should be calm and methodical. Under our solid foods portal, you will find an Allergen Matrix covering major common foods such as soy, peanuts, dairy, wheat, and eggs. We explain how to employ a cautious three-day exposure protocol, introducing tiny amounts of new local ingredients during daylight hours when you can easily observe your child’s response. If your baby develops skin flushing, loose stools, or fussiness, you can immediately record these observations in your on-device diary. This systematic, offline logging system helps you pinpoint specific triggers, allowing you to substitute foods with gentle, nutritious local grains to keep your baby’s digestion and skin comfortable.',
       steps: [
         'Open the Allergen Matrix under the Feeding tab to view common infant allergens.',
         'Introduce new ingredients individually over 3 consecutive days in tiny quantities.',
@@ -117,15 +117,15 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       title: '4. Protecting Immunization Calendars',
       category: 'HEALTH',
       icon: '📅',
-      summary: 'Keeping track of immunization dates can get incredibly difficult when you are managing a busy, economically constrained household, but missing vaccine appointments places your baby’s health at risk. Our immunization tracker provides pre-configured checklists that are aligned directly with standardized childhood vaccine calendars. This helps sleep-deprived parents maintain a permanent, easy-to-read record of all crucial health milestones from birth up to twelve months of age. You can set custom, gentle offline reminders that do not consume your mobile data plan or require cellular networks. These notifications ensure you always attend clinic appointments on time, protecting your baby from preventable childhood illnesses. If a baby does experience a post-clinic fever, you can log paracetamol doses in our cautious medicine tracker, which displays a logical countdown before the next dose is safe to administer, preventing accidental double-dosing.',
+      summary: 'Keeping track of immunization dates is essential for your baby’s health. Our immunization tracker provides pre-configured checklists aligned with standard childhood health calendars, helping you maintain a permanent record from birth up to twelve months. You can set gentle offline reminders that do not consume mobile data, ensuring you attend health checkups on time. If your baby experiences post-vaccination fussiness or warmth, you can log temperature readings and hydration observations to share with your healthcare provider.',
       steps: [
         'Open the Immunization Scheduler to view pre-loaded vaccination cards and timelines.',
-        'Log completion dates and clinic notes as your baby receives their childhood immunizations.',
+        'Log completion dates and healthcare notes as your baby receives their childhood immunizations.',
         'Set gentle offline reminders for upcoming vaccine appointments to stay organized.'
       ],
       tips: [
-        'Save clinic nurse recommendations in the offline notes area to reference during later checkups.',
-        'Use the medicine countdown timer to track fever remedies cautiously and safely.'
+        'Save nurse or doctor recommendations in the offline notes area to reference during later visits.',
+        'Monitor temperature observations and keep baby cool and hydrated after immunizations.'
       ]
     },
     {
@@ -133,7 +133,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       title: '5. Sibling Logging & Household Syncing',
       category: 'SECURITY',
       icon: '👥',
-      summary: 'Childcare is a collaborative effort, which is why Ama is built to support smooth, secure household coordination across shared family devices. Our fifth guide section details how to manage multiple child profiles (such as twins, siblings, or newborns) and share logs with family helpers or nannies. By navigating to the Village panel in settings, you can generate secure, encrypted sync codes to mirror baby diaries onto another phone. To protect family privacy, our platform employs restricted profiles for secondary users like temporary nannies or caregivers. While in caregiver mode, the user can log active feeding timers, wet diapers, and sleep schedules, but is blocked from browsing your private journal notes, historical logs, or account settings. This cautious, highly logical framework ensures that everyone coordinates with the exact same level of care, while protecting sensitive family histories and maintaining complete data security at all times.',
+      summary: 'Childcare is a collaborative effort. Ama is built to support smooth, secure household coordination across shared family devices. You can manage multiple child profiles (such as twins, siblings, or newborns) and share logs with family helpers or nannies. By navigating to the Village panel in settings, you can generate secure, encrypted sync tokens or QR codes to mirror baby diaries onto another phone. To protect family privacy, our platform supports role permissions: secondary users like caregivers can log active feeding timers, wet diapers, and sleep schedules, while private journal reflections remain shielded.',
       steps: [
         'Add multiple child profiles in Settings to log records for siblings or twins separately.',
         'Generate secure, encrypted sync tokens to mirror tracking logs on your partner’s device.',
@@ -149,14 +149,14 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       title: '6. Private Device-Only Database Sandbox',
       category: 'SECURITY',
       icon: '🔒',
-      summary: 'Data dignity is a fundamental right, and Ama is designed to guard your family records with absolute security. Unlike typical free parenting applications that track your locations, log your screen clicks, and sell your baby’s growth curves to advertising networks, Ama uses a strict, zero-telemetry local-first sandbox model. This means that all baby names, feeding patterns, sleep durations, and medical records are saved exclusively within your browser’s private database. You do not need to create an online account or register an email address to start tracking, ensuring complete anonymity. We do not transmit logs to remote servers unless you explicitly activate our secure partner backup. You have the sovereign right to download your complete care logs as a structured JSON file, and you can instantly erase your entire database from our settings with a single, cautious button click, leaving zero digital footprints behind.',
+      summary: 'Data dignity is a fundamental right, and Ama is designed to guard your family records with absolute security. Unlike typical free parenting applications that track your locations, log screen clicks, and sell baby growth curves to advertising networks, Ama uses a strict, zero-telemetry local-first sandbox model. All baby names, feeding patterns, sleep durations, and health records are saved exclusively within your browser’s private database. You do not need to create an online account or register an email address to start tracking, ensuring complete privacy.',
       steps: [
         'Verify that your baby logs are stored securely in your local browser sandbox.',
         'Use the data export tool in Settings to download your complete tracking ledger as a structured file.',
         'Tap the database purge button in settings to permanently wipe all local and cloud records.'
       ],
       tips: [
-        'Export your care ledger as a printable summary to hand over to community nurses during clinic visits.',
+        'Export your care ledger as a printable summary to share with your healthcare provider during visits.',
         'Keep the Zero-Tracking option enabled in Settings for maximum privacy protection.'
       ]
     },
@@ -165,7 +165,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       title: '7. Acoustic Cry Analyzer & Core Safety Principles',
       category: 'HEALTH',
       icon: '🎙️',
-      summary: 'Infant cries are a biological language, but deciphering what your baby needs during exhausting nights can be challenging. Ama incorporates smart acoustic frequency analysis to support parents. The system processes sound waves using two core principles: Frequency Matching (measuring the pitch, rhythm, and intensity of the sound) and Need Prediction (comparing the audio data against large databases of infant sounds to suggest if the baby is hungry, sleepy, or uncomfortable). To maintain parental peace of mind and safety, it includes essential medical disclaimers: this tool is Not a Medical Device and offers general parenting support rather than precise diagnoses, and Variable Accuracy means background noise can interfere with readings, so parental intuition remains essential.',
+      summary: 'Infant cries are a natural biological communication, but deciphering what your baby needs during exhausting nights can be challenging. Ama incorporates smart acoustic frequency analysis to support parents. The system processes sound waves using two core principles: Frequency Matching (measuring pitch, rhythm, and intensity) and Need Prediction (comparing audio patterns against sound reflex patterns to suggest if the baby is hungry, sleepy, gassy, or uncomfortable). This tool is for educational parenting support and does not replace professional medical evaluations.',
       steps: [
         'Open the Cry Analyzer and hold your microphone near the baby in a quiet room for 6 seconds.',
         'Review Frequency Matching metrics including pitch (Hz), rhythm tempo, and intensity (dB).',
@@ -174,9 +174,9 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       ],
       tips: [
         'Frequency Matching: The software measures the pitch, rhythm, and intensity of the sound.',
-        'Need Prediction: It compares the audio data against large databases of infant sounds to suggest if the baby is hungry, sleepy, or uncomfortable.',
-        'Warning: Not a Medical Device — These tools offer general parenting support rather than precise medical diagnoses.',
-        'Warning: Variable Accuracy — Background noise can interfere with readings, and parental intuition remains essential.'
+        'Need Prediction: It compares audio data against common infant sound reflexes (such as hunger or burping cues).',
+        'Important Notice: Educational Support Only — This tool is not a medical device and provides supportive parenting guidance.',
+        'Intuition First: Environmental noise may affect acoustic readings; always prioritize parental instincts and consult healthcare providers for illness.'
       ],
       faqs: [
         {
@@ -339,81 +339,17 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
 
       {/* Footer */}
       
-      {/* Comprehensive Public Footer */}
-      <footer className="bg-slate-900 text-slate-400 border-t border-slate-800 text-left py-12 px-6 sm:px-10 rounded-t-[36px] w-full mt-16">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-xs">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-white font-serif font-black text-base">
-              <span>🍼</span>
-              <span>Ama Baby Care</span>
-            </div>
-            <p className="text-slate-400 leading-relaxed text-[11px]">
-              Easy baby care tracking, feeding timers, growth charts, and diaper health notes.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h4 className="text-white font-bold uppercase tracking-wider text-[11px]">Quick Links</h4>
-            <ul className="space-y-1.5 text-[11px] list-none p-0 m-0">
-              <li>
-                <a href="#landing" onClick={(e) => { e.preventDefault(); onNavigateToScreen('landing'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
-                  Home
-                </a>
-              </li>
-              <li>
-                <a href="#blog" onClick={(e) => { e.preventDefault(); onNavigateToScreen('blog'); }} className="text-primary hover:text-white transition-colors cursor-pointer text-left no-underline font-bold block">
-                  Blog
-                </a>
-              </li>
-              <li>
-                <a href="#user-guide" onClick={(e) => { e.preventDefault(); onNavigateToScreen('user-guide'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
-                  User Manual
-                </a>
-              </li>
-              <li>
-                <a href="#safety-guide" onClick={(e) => { e.preventDefault(); onNavigateToScreen('safety-guide'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
-                  Food & Safety Guide
-                </a>
-              </li>
-              <li>
-                <a href="#about" onClick={(e) => { e.preventDefault(); onNavigateToScreen('about'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
-                  About Us
-                </a>
-              </li>
-              <li>
-                <a href="#contact" onClick={(e) => { e.preventDefault(); onNavigateToScreen('contact'); }} className="text-teal-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-bold block">
-                  Contact Us & Help Desk
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div className="space-y-2">
-            <h4 className="text-white font-bold uppercase tracking-wider text-[11px]">Privacy & Terms</h4>
-            <ul className="space-y-1.5 text-[11px] list-none p-0 m-0">
-              <li>
-                <a href="#privacy" onClick={(e) => { e.preventDefault(); onNavigateToScreen('legal-terms'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a href="#terms" onClick={(e) => { e.preventDefault(); onNavigateToScreen('legal-terms'); }} className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left no-underline font-medium block">
-                  Terms of Service
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div className="space-y-2">
-            <h4 className="text-white font-bold uppercase tracking-wider text-[11px]">Health Notice</h4>
-            <p className="text-[10px] text-slate-400 leading-relaxed">
-              Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace doctor or substitute professional healthcare advice, diagnosis, or treatment. Always follow regional child health guidelines.
-            </p>
-          </div>
-        </div>
-        <div className="max-w-5xl mx-auto border-t border-slate-800 mt-6 pt-6 text-center text-[11px] text-slate-500">
-          <p>© 2026 Ama Baby Care. All rights reserved. Built for baby care & family privacy.</p>
-        </div>
-      </footer>
-
-
+      {/* Universal Footer */}
+      <UniversalFooter 
+        onNavigate={(screen) => {
+          if (onNavigateToScreen) {
+            onNavigateToScreen(screen);
+          } else if (onClose) {
+            onClose();
+          }
+        }} 
+        activeScreen="user-guide" 
+      />
     </div>
   );
 };

@@ -162,7 +162,7 @@ export const LegalTermsScreen = ({
             <div>
               <h2 className="text-xl font-serif font-black text-gray-900 mb-2">3. Educational & Safety Disclaimer</h2>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Ama Baby Care is an interactive record-keeping utility and educational guide designed to help parents stay organized. We approach infant care with a helpful and highly logical mindset, but we must emphasize that our app does not provide professional medical advice, clinical diagnosis, or prescriptive healthcare treatment. The information provided on our landing pages, blog articles, safety guides, and user manuals is curated from public health standards, but it should never replace the direct guidance of a qualified human healthcare professional.
+                Ama Baby Care is an interactive record-keeping utility and educational guide designed to help parents stay organized. We approach infant care with a helpful and highly logical mindset, but we must emphasize that our app does not provide professional medical advice, wellness assessments, or prescriptive healthcare treatment. The information provided on our landing pages, blog articles, safety guides, and user manuals is curated from public health standards, but it should never replace the direct guidance of a qualified human healthcare professional.
               </p>
             </div>
 
@@ -174,7 +174,7 @@ export const LegalTermsScreen = ({
                 If your child exhibits serious physical symptoms (such as rapid or labored breathing, continuous high fever, lethargy, blue lips, severe vomiting, dehydration, or an immediate allergic reaction following food exposure), please do not open this application to log the event. Immediately contact your local community health station, emergency services, or proceed directly to the nearest primary healthcare clinic or hospital. Your baby's immediate safety is the absolute priority, and digital trackers should only be consulted once the child is in a stable, professionally managed physical condition.
               </p>
               <p className="leading-relaxed">
-                When tracking food exposures or testing for common dairy intolerances, always introduce new foods slowly, in tiny amounts, and during daylight hours so you can carefully observe your baby's reaction. Our logs are designed to help you document and analyze these observations logically, but they are not a substitute for professional clinical allergy evaluations or in-person nursing care.
+                When tracking food exposures or testing for common dairy intolerances, always introduce new foods slowly, in tiny amounts, and during daylight hours so you can carefully observe your baby's reaction. Our logs are designed to help you document and analyze these observations logically, but they are not a substitute for professional allergy evaluations or in-person nursing care.
               </p>
             </div>
           </div>

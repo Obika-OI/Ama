@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Search, Plus, Filter, Heart, Sparkles, Globe, BookOpen, ChevronLeft,
+  Search, Plus, Filter, Heart, Compass, Globe, BookOpen, ChevronLeft,
   CheckCircle2, X, Volume2, User, Tag, ArrowUpDown, RotateCcw, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -533,7 +533,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                 className="px-4 py-3 rounded-2xl bg-gradient-to-r from-primary to-accent text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm hover:opacity-95 disabled:opacity-60 cursor-pointer border-none transition-all"
                 title="Use AI Etymology Search to discover and add more global names matching your filters"
               >
-                {isDiscovering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                {isDiscovering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Compass className="w-4 h-4" />}
                 <span>{isDiscovering ? 'Searching...' : 'AI Global Search'}</span>
               </button>
             </div>
@@ -561,7 +561,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                 disabled={isDiscovering}
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-xs border-none cursor-pointer"
               >
-                {isDiscovering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {isDiscovering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Compass className="w-3.5 h-3.5" />}
                 <span>{isDiscovering ? 'Searching...' : 'AI Discover'}</span>
               </button>
             </div>
@@ -891,7 +891,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
               disabled={isDiscovering}
               className="px-5 py-2.5 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md border-none cursor-pointer"
             >
-              {isDiscovering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {isDiscovering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Compass className="w-4 h-4" />}
               <span>{isDiscovering ? 'Searching Global Names...' : 'Discover Matching Names with AI'}</span>
             </button>
             <button
@@ -1045,7 +1045,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                       disabled={isEnrichingName}
                       className="text-[10px] font-black text-primary hover:underline flex items-center gap-1 bg-transparent border-none cursor-pointer"
                     >
-                      {isEnrichingName ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      {isEnrichingName ? <Loader2 className="w-3 h-3 animate-spin" /> : <Compass className="w-3 h-3" />}
                       <span>{isEnrichingName ? 'Looking up etymology...' : 'Auto-Fill Meaning & Origin with AI'}</span>
                     </button>
                   </div>

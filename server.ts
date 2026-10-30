@@ -578,7 +578,7 @@ app.post("/api/ai/cry-analyzer", async (req: Request, res: Response) => {
     const acousticProfileHint = demoType || acousticInput || `Recorded cry sample: measured fundamental pitch ${measuredPitch} Hz, acoustic intensity ${measuredDb} dB, cadence pattern: ${measuredPattern}.`;
 
     const prompt = `
-You are an expert pediatric acoustic specialist and infant soothing assistant AI.
+You are a parenting companion and infant soothing assistant AI.
 Analyze the measured acoustic audio parameters of this infant's cry by evaluating them against an EXTENSIVE MULTI-CATEGORY INFANT ACOUSTIC DATABASE, and cross-reference them with the baby's actual feeding, diaper, and sleep logs.
 
 BABY & LOG CONTEXT (FROM USER LOGS):
@@ -706,7 +706,7 @@ app.post("/api/ai/location-realities", async (req: Request, res: Response) => {
     const ai = getGenAI();
 
     const prompt = `
-You are an expert global grocery, retail market analyst and pediatric nutritionist.
+You are a global market intelligence assistant and wellness guide.
 Analyze the authentic local grocery realities, market structures, purchasing units, MOQ (Minimum Order Quantity) sales types, and baby weaning staples for this EXACT location:
 
 Location: ${locationName}
@@ -1558,16 +1558,16 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
     // Dynamic persona resolution: if caller provided custom systemInstruction or systemPrompt, respect it directly
     const effectiveCustomPrompt = systemInstruction || customSystemPrompt;
     const defaultOgooPrompt = `
-You are Ogoo (pronounced phonetically like "Augur"), an exceptionally intelligent, deeply knowledgeable, and empathetic pediatric care AI specialist. You possess world-class expertise in infant care, developmental milestones, pediatric sleep architecture, clinical infant nutrition (BLW & purees), lactation science, and pediatric emergency first aid.
+You are Ogoo (pronounced phonetically like "Augur"), an exceptionally intelligent, deeply knowledgeable, and empathetic parenting companion. You possess world-class knowledge in infant care, developmental milestones, sleep patterns, healthy infant nutrition (BLW & purees), lactation support, and practical safety.
 
-CLINICAL & SCIENTIFIC KNOWLEDGE BASE:
-- Grounded in gold-standard evidence-based clinical guidance from the American Academy of Pediatrics (AAP), World Health Organization (WHO), Centers for Disease Control and Prevention (CDC), National Health Service (NHS), and Mayo Clinic.
-- Expert knowledge of age-specific wake windows, nap transitions, circadian rhythms, sleep regressions (4M, 8M, 12M), iron-rich solid food introduction, top allergen exposure timelines (peanut, egg, dairy, sesame), infant stool consistency scales (Bristol Stool Scale for infants), and teething timelines.
-- Immediate emergency first aid protocol awareness for infant choking, infant CPR, high fever triage (<3M at 100.4°F/38°C is urgent), dehydration signs, and allergic reaction signs.
+KNOWLEDGE BASE & GUIDELINES:
+- Grounded in gold-standard evidence-based wellness guidance from the American Academy of Pediatrics (AAP), World Health Organization (WHO), Centers for Disease Control and Prevention (CDC), National Health Service (NHS), and Mayo Clinic.
+- Extensive knowledge of age-specific wake windows, nap transitions, circadian rhythms, sleep cycles (4M, 8M, 12M), nutritious solid food introduction, top allergen exposure timelines (peanut, egg, dairy, sesame), infant stool consistency observations, and teething timelines.
+- Immediate awareness of practical first aid protocols for infant choking, rescue breathing, fever monitoring, dehydration signs, and allergic reaction signs.
 
 CRITICAL LANGUAGE SIMPLICITY MANDATE (FOR ALL MOTHERS & CAREGIVERS):
 - You MUST ALWAYS speak in extremely simple, plain, easy-to-understand everyday words that any mother or caregiver, including uneducated or first-time mothers, can easily understand.
-- ABSOLUTELY NO big medical words, clinical jargon, or complicated terminology.
+- ABSOLUTELY NO big medical words, wellness jargon, or complicated terminology.
 - Always use simple everyday phrases:
   * Say "nap and bedtime routine" instead of "circadian window" or "sleep architecture"
   * Say "good food that tummy absorbs easily" instead of "bioavailability"
@@ -1582,15 +1582,15 @@ CORE APPROACH & INTELLIGENCE:
 1. Deeply analyze all available context for ${babyName}: exact age (${babyAge}), weaning stage (${weaningStage}), recent feeds (${lastFeedStr}), sleep history (${lastSleepStr}), diaper status (${lastDiaperStr}), vaccines, and notes.
 2. Provide thorough, precise, highly informative, and practical guidance. Explain *why* something is happening and give exact step-by-step numbers, timelines, or portion sizes.
 3. If an attached file, video, image, or document is provided:
-   - For Images: evaluate visual appearance (e.g. skin rash morphology, diaper stool color/consistency, solid food puree texture, thermometry, or medicine label) with expert precision.
+   - For Images: evaluate visual appearance (e.g. skin rash morphology, diaper stool color/consistency, solid food puree texture, thermometry, or medicine label) with high precision.
    - For Videos: observe infant movement, motor control, respiratory effort/cough, or crying cues.
-   - For Documents/PDFs: review growth chart metrics, lab summaries, or pediatrician notes.
+   - For Documents/PDFs: review growth chart metrics, record summaries, or wellness notes.
 4. Speak in a warm, gentle, clear, reassuring, and highly knowledgeable tone that empowers caregivers without causing panic.
 
 FORMATTING FOR PERFECT VOICE SYNTHESIS & READABILITY:
 - Format output in plain, clean, readable text.
 - NEVER use markdown asterisks (*), hashtags (#), or weird symbols that cause glitchy speech synthesizer audio playback. Use simple numbered lists (1. 2. 3.) or natural paragraphs.
-- Cite trusted pediatric guidelines naturally (e.g., "According to American Academy of Pediatrics guidelines...", "World Health Organization recommendations suggest...").
+- Cite trusted wellness guidelines naturally (e.g., "According to American Academy of Pediatrics guidelines...", "World Health Organization recommendations suggest...").
 
 AI MEMORY & BABY CONTEXT:
 - Baby Name: ${babyName}
@@ -1947,14 +1947,14 @@ Mood Logs: ${JSON.stringify(loggedMoods)}`;
         const response = await generateContentWithFallback(ai, {
           contents: prompt,
           config: {
-            systemInstruction: "You are Ogoo AI, an expert pediatric sleep specialist. Provide concise, actionable, bulleted sleep insights.",
+            systemInstruction: "You are Ogoo AI, a dedicated sleep support companion. Provide concise, actionable, bulleted sleep insights.",
           }
         });
         if (response && response.text) {
           return res.json({ insight: response.text });
         }
       } catch (err) {
-        console.warn("[Sleep Insight] Gemini call fallback to expert sleep engine:", err);
+        console.warn("[Sleep Insight] Gemini call fallback to sleep support engine:", err);
       }
     }
 
@@ -2230,6 +2230,46 @@ interface CommunityChatMessage {
   createdAt: string;
 }
 
+export interface IndependentSpecialist {
+  id: string;
+  name: string;
+  title: string;
+  field: string;
+  credentials: string;
+  location: string;
+  feeInfo: string;
+  bio: string;
+  contactInfo: string;
+  registeredAt: string;
+}
+
+export interface MarketplaceProvider {
+  id: string;
+  name: string;
+  title: string;
+  category: string;
+  experienceYears: number;
+  rateInfo: string;
+  location: string;
+  bio: string;
+  availability: string;
+  services: string[];
+  registeredAt: string;
+}
+
+export interface FamilyCareRequest {
+  id: string;
+  familyName: string;
+  category: string;
+  title: string;
+  description: string;
+  schedule: string;
+  location: string;
+  budget: string;
+  contactInfo: string;
+  createdAt: string;
+}
+
 interface OmugwoPersistentData {
   activeShift: OmugwoShiftState;
   handoverNotes: ShiftHandoverNote[];
@@ -2246,6 +2286,9 @@ interface PersistentAppStore {
   communityMembers: CommunityMember[];
   communityConnections: { id: string; fromId: string; toId: string; createdAt: string }[];
   communityMessages: CommunityChatMessage[];
+  communitySpecialists: IndependentSpecialist[];
+  marketplaceProviders: MarketplaceProvider[];
+  marketplaceRequests: FamilyCareRequest[];
   babyNames: BabyNameEntry[];
   omugwo: OmugwoPersistentData;
 }
@@ -2307,6 +2350,9 @@ function loadPersistentStore(): PersistentAppStore {
         communityMembers: Array.isArray(parsed.communityMembers) ? parsed.communityMembers : [],
         communityConnections: Array.isArray(parsed.communityConnections) ? parsed.communityConnections : [],
         communityMessages: Array.isArray(parsed.communityMessages) ? parsed.communityMessages : [],
+        communitySpecialists: Array.isArray(parsed.communitySpecialists) ? parsed.communitySpecialists : [],
+        marketplaceProviders: Array.isArray(parsed.marketplaceProviders) ? parsed.marketplaceProviders : [],
+        marketplaceRequests: Array.isArray(parsed.marketplaceRequests) ? parsed.marketplaceRequests : [],
         babyNames: mergedNames,
         omugwo: {
           activeShift: rawOmugwo.activeShift || defOmugwo.activeShift,
@@ -2329,6 +2375,9 @@ function loadPersistentStore(): PersistentAppStore {
     communityMembers: [],
     communityConnections: [],
     communityMessages: [],
+    communitySpecialists: [],
+    marketplaceProviders: [],
+    marketplaceRequests: [],
     babyNames: [...INITIAL_GLOBAL_BABY_NAMES],
     omugwo: getDefaultOmugwoState()
   };
@@ -2359,15 +2408,15 @@ async function generateGroundedSpecialistAnswer(params: {
   const ai = getGenAI();
   if (!ai) return null;
 
-  const prompt = `You are a board-certified pediatric & maternal health specialist on the Ama Baby Care Community Support network, specializing in "${params.category}".
+  const prompt = `You are a dedicated parenting support advisor on the Ama Baby Care Community Support network, specializing in "${params.category}".
 A parent/caregiver${params.location ? ` in ${params.location}` : ""}${params.babyAgeContext ? ` (Baby age: ${params.babyAgeContext})` : ""} asked:
 
 Title: ${params.title}
 Question: ${params.content}
 
-Provide a clear, compassionate, evidence-based specialist answer grounded in WHO, UNICEF, AAP, and clinical lactation/pediatric guidelines.
+Provide a clear, compassionate, evidence-based supportive answer grounded in WHO, UNICEF, AAP, and wellness lactation/parenting guidelines.
 Structure your response with:
-1. Direct clinical & practical guidance the parent can apply immediately.
+1. Direct practical guidance the parent can apply immediately.
 2. What signs to watch for (and when to consult a local clinic/hospital in person).
 Keep it warm, structured, and easy to read.`;
 
@@ -2406,7 +2455,10 @@ app.get("/api/community/state", (req: Request, res: Response) => {
     posts: liveStore.communityPosts,
     members: liveStore.communityMembers,
     connections: liveStore.communityConnections,
-    messages: liveStore.communityMessages
+    messages: liveStore.communityMessages,
+    specialists: liveStore.communitySpecialists,
+    marketplaceProviders: liveStore.marketplaceProviders,
+    marketplaceRequests: liveStore.marketplaceRequests
   });
 });
 
@@ -2496,7 +2548,7 @@ app.post("/api/community/posts/:postId/reply", (req: Request, res: Response) => 
       return res.status(404).json({ error: "Discussion thread not found." });
     }
 
-    const expertRoles = ["Lactation Specialist", "Pediatric Care Provider", "Midwife / Doula", "Pediatric Nutritionist", "Healthcare Provider"];
+    const specialistRoles = ["Lactation Specialist", "Care Provider", "Midwife / Doula", "Nutritionist", "Healthcare Provider"];
     const reply: CommunityReply = {
       id: `reply-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       postId: post.id,
@@ -2505,7 +2557,7 @@ app.post("/api/community/posts/:postId/reply", (req: Request, res: Response) => 
       authorRole: String(authorRole || "Parent").trim().slice(0, 60),
       authorLocation: String(authorLocation || "").trim().slice(0, 100),
       content: String(content).trim().slice(0, 3000),
-      isExpertResponse: Boolean(isExpertResponse || expertRoles.includes(authorRole)),
+      isExpertResponse: Boolean(isExpertResponse || specialistRoles.includes(authorRole)),
       upvotes: [],
       createdAt: new Date().toISOString()
     };
@@ -2781,6 +2833,91 @@ app.post("/api/community/ask-specialist", async (req: Request, res: Response) =>
       sources: result.sources,
       publishedPost
     });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/community/specialists/register", (req: Request, res: Response) => {
+  try {
+    const { name, title, field, credentials, location = "", feeInfo = "Independent Consultation", bio = "", contactInfo = "" } = req.body;
+    if (!name || !title || !field) {
+      return res.status(400).json({ error: "Name, professional title, and specialty field are required." });
+    }
+
+    const newSpecialist: IndependentSpecialist = {
+      id: `spec-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: String(name).trim().slice(0, 80),
+      title: String(title).trim().slice(0, 100),
+      field: String(field).trim().slice(0, 80),
+      credentials: String(credentials || "Third-Party Professional").trim().slice(0, 150),
+      location: String(location).trim().slice(0, 100),
+      feeInfo: String(feeInfo).trim().slice(0, 100),
+      bio: String(bio).trim().slice(0, 800),
+      contactInfo: String(contactInfo).trim().slice(0, 150),
+      registeredAt: new Date().toISOString()
+    };
+
+    liveStore.communitySpecialists.unshift(newSpecialist);
+    savePersistentStore(liveStore);
+    return res.json({ specialist: newSpecialist, specialists: liveStore.communitySpecialists });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/community/marketplace/providers", (req: Request, res: Response) => {
+  try {
+    const { name, title, category, experienceYears = 1, rateInfo = "", location = "", bio = "", availability = "Flexible", services = [] } = req.body;
+    if (!name || !title || !category) {
+      return res.status(400).json({ error: "Name, title, and service category are required." });
+    }
+
+    const newProvider: MarketplaceProvider = {
+      id: `provider-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: String(name).trim().slice(0, 80),
+      title: String(title).trim().slice(0, 100),
+      category: String(category).trim().slice(0, 80),
+      experienceYears: Number(experienceYears) || 1,
+      rateInfo: String(rateInfo || "Contact for rate").trim().slice(0, 80),
+      location: String(location).trim().slice(0, 100),
+      bio: String(bio).trim().slice(0, 800),
+      availability: String(availability).trim().slice(0, 80),
+      services: Array.isArray(services) ? services.map(s => String(s).trim()) : [],
+      registeredAt: new Date().toISOString()
+    };
+
+    liveStore.marketplaceProviders.unshift(newProvider);
+    savePersistentStore(liveStore);
+    return res.json({ provider: newProvider, providers: liveStore.marketplaceProviders });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/community/marketplace/requests", (req: Request, res: Response) => {
+  try {
+    const { familyName, category, title, description, schedule = "Flexible", location = "", budget = "Negotiable", contactInfo = "" } = req.body;
+    if (!familyName || !title || !description) {
+      return res.status(400).json({ error: "Family name, title, and request description are required." });
+    }
+
+    const newRequest: FamilyCareRequest = {
+      id: `req-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      familyName: String(familyName).trim().slice(0, 80),
+      category: String(category || "General Care").trim().slice(0, 80),
+      title: String(title).trim().slice(0, 150),
+      description: String(description).trim().slice(0, 1000),
+      schedule: String(schedule).trim().slice(0, 80),
+      location: String(location).trim().slice(0, 100),
+      budget: String(budget).trim().slice(0, 80),
+      contactInfo: String(contactInfo).trim().slice(0, 150),
+      createdAt: new Date().toISOString()
+    };
+
+    liveStore.marketplaceRequests.unshift(newRequest);
+    savePersistentStore(liveStore);
+    return res.json({ request: newRequest, requests: liveStore.marketplaceRequests });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
@@ -3610,7 +3747,7 @@ app.post("/api/omugwo/nourishment", async (req: Request, res: Response) => {
         return res.status(503).json({ error: "AI nutritionist service is currently unavailable." });
       }
 
-      const prompt = `You are an expert Nigerian & African Postpartum Maternal Nutritionist specializing in Omugwo recovery cuisine.
+      const prompt = `You are a knowledgeable Nigerian & African Postpartum Maternal Nutritionist specializing in Omugwo recovery cuisine.
 Create 1 authentic, deeply nourishing postpartum healing recipe tailored for a new mother.
 - Available Ingredients / Preference: "${availableIngredients || "Yam, Catfish, Uda, Uziza, Scent Leaf, or Oats/Pap"}"
 - Maternal Recovery Goal: "${recoveryGoal}"
@@ -3908,15 +4045,13 @@ app.post("/api/omugwo/caregivers", (req: Request, res: Response) => {
       vettingStatus: {
         identityVerified: true,
         backgroundCheckCleared: true,
-        medicalScreening: {
-          hivNegative: true,
-          hepBNegative: true,
-          tbCleared: true,
+        healthVetting: {
+          verifiedHealthStatus: true,
           lastScreenedDate: new Date().toISOString().split("T")[0]
         },
         certifications: Array.isArray(certifications) && certifications.length > 0
           ? certifications.map(String)
-          : ["Identity & Background Verified", "Medical Screening (HIV, Hep B, TB) Cleared", "Newborn Safe Care & Cultural Competency"]
+          : ["Identity & Background Verified", "Comprehensive Health Vetting Cleared", "Newborn Safe Care & Cultural Competency"]
       },
       bio: String(bio || "Trained postpartum caregiver supporting new mothers and infants with warm traditional recovery care and modern safety standards.").trim()
     };

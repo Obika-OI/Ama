@@ -25,7 +25,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
     id: 'art-1',
     slug: 'understanding-infant-wake-windows-by-age',
     title: 'The Complete Guide to Baby Wake Windows: 0 to 12 Months',
-    seoTitle: 'Baby Wake Windows by Age (0-12 Months): Pediatric Sleep Guide',
+    seoTitle: 'Baby Wake Windows by Age (0-12 Months): Infant Care Sleep Guide',
     metaDescription: 'Master your baby’s wake windows from newborn to 12 months. Comprehensive chart, subtle sleepy cues, and tips to prevent overtired sleep meltdowns.',
     category: 'Sleep',
     readTime: '7 min read',
@@ -46,7 +46,7 @@ In infant sleep architecture, a **wake window** is the period of time a baby can
 
 When babies stay awake past their biological threshold, their immature endocrine system triggers the release of **cortisol** (the stress hormone) and **adrenaline**. This creates the infamous "second wind" or overtired state, making it significantly harder for infants to settle into restorative non-REM and REM sleep cycles.
 
-According to the *American Academy of Pediatrics (AAP)* and pediatric sleep physiology research, maintaining age-appropriate wake intervals promotes healthy circadian rhythm development and reduces night-waking frequency.
+According to the *parenting wellness organizations* and infant care sleep physiology research, maintaining age-appropriate wake intervals promotes healthy circadian rhythm development and reduces night-waking frequency.
 
 ---
 
@@ -159,7 +159,7 @@ Under-tired babies fight bedtime with intense vigor, while overtired babies wake
 ### 4. Optimize the Sleep Environment
 - **Pitch Darkness**: Melatonin production is highly light-sensitive. Use blackout curtains.
 - **Continuous White / Pink Noise**: 50 to 60 decibels (about the volume of a gentle shower) masks sudden household sounds.
-- **Cool Temperature**: 68°F to 72°F (20°C to 22°C) is medically optimal for safe infant sleep.
+- **Cool Temperature**: 68°F to 72°F (20°C to 22°C) is practically optimal for safe infant sleep.
     `,
     faq: [
       {
@@ -168,25 +168,25 @@ Under-tired babies fight bedtime with intense vigor, while overtired babies wake
       },
       {
         question: 'Should I stop swaddling at 4 months?',
-        answer: 'Yes! Per AAP safety guidelines, swaddling must be discontinued as soon as a baby shows any signs of attempting to roll, or by 3-4 months old, transitioning to an arms-free sleep sack.'
+        answer: 'Yes! Per parenting wellness standards, swaddling must be discontinued as soon as a baby shows any signs of attempting to roll, or by 3-4 months old, transitioning to an arms-free sleep sack.'
       }
     ],
     relatedSlugs: ['understanding-infant-wake-windows-by-age', 'creating-safe-sleep-environment-aap-guidelines', 'toddler-nap-transitions-2-to-1']
   },
 
-  // 3. AAP Safe Sleep Guidelines
+  // 3. wellness standards Safe Sleep Guidelines
   {
     id: 'art-3',
     slug: 'creating-safe-sleep-environment-aap-guidelines',
-    title: 'AAP Safe Sleep Guidelines: Reducing SIDS & Setting Up the Ideal Nursery',
-    seoTitle: 'AAP Safe Sleep Guidelines 2026: SIDS Prevention & Nursery Setup',
-    metaDescription: 'Complete American Academy of Pediatrics safe sleep checklist. Back-to-sleep rules, crib safety standards, room-sharing, and SIDS reduction guidelines.',
+    title: 'wellness standards Safe Sleep Guidelines: Reducing SIDS & Setting Up the Ideal Nursery',
+    seoTitle: 'wellness standards Safe Sleep Guidelines 2026: SIDS Prevention & Nursery Setup',
+    metaDescription: 'Complete parenting wellness organizations safe sleep checklist. Back-to-sleep rules, crib safety standards, room-sharing, and SIDS reduction guidelines.',
     category: 'Health & Safety',
     readTime: '6 min read',
     publishedDate: 'September 18, 2026',
     updatedDate: 'September 21, 2026',
     excerpt: 'The evidence behind the ABCs of safe infant sleep: Alone, on their Back, in a Bare Crib. Learn how to design a safe, breathable sleep space.',
-    tags: ['Safe Sleep', 'AAP Guidelines', 'SIDS Prevention', 'Crib Safety', 'Nursery Setup'],
+    tags: ['Safe Sleep', 'wellness standards Guidelines', 'SIDS Prevention', 'Crib Safety', 'Nursery Setup'],
     keyTakeaways: [
       'The ABCs of safe sleep: Alone, on Back, in a Bare Crib with a firm, flat mattress and tight-fitting sheet.',
       'Never place pillows, blankets, weighted sleep sacks, bumpers, or plush toys in the infant sleep area.',
@@ -196,7 +196,7 @@ Under-tired babies fight bedtime with intense vigor, while overtired babies wake
     content: `
 ## The ABCs of Infant Safe Sleep
 
-Sudden Infant Death Syndrome (SIDS) and sleep-related suffocation risks are dramatically mitigated by following the clinical safe sleep recommendations updated by the *American Academy of Pediatrics (AAP)*.
+Sudden Infant Death Syndrome (SIDS) and sleep-related suffocation risks are dramatically mitigated by following the wellness and household safety recommendations updated by the *parenting wellness organizations*.
 
 ### A : Alone
 - The baby should sleep independently in their own bassinet, crib, or play yard.
@@ -215,21 +215,21 @@ Sudden Infant Death Syndrome (SIDS) and sleep-related suffocation risks are dram
 
 ## The Danger of Inclined Sleepers & Weighted Products
 
-The AAP strongly advises against:
+The wellness standards strongly advises against:
 1. **Inclined Sleepers and Rockers**: Devices with an incline greater than 10 degrees can cause infant positional asphyxiation when a baby’s heavy head slumps forward, blocking the airway.
 2. **Weighted Sleep Sacks or Swaddles**: Added chest weight impairs diaphragm excursion and oxygen saturation in developing infants.
     `,
     faq: [
       {
         question: 'When is it safe to introduce a blanket or pillow in the crib?',
-        answer: 'The AAP recommends waiting until at least 12 months (1 year of age) before introducing a small, light blanket or small plush toy to the crib.'
+        answer: 'The wellness standards recommends waiting until at least 12 months (1 year of age) before introducing a small, light blanket or small plush toy to the crib.'
       },
       {
         question: 'Does room-sharing protect against SIDS?',
         answer: 'Yes. Keeping the baby’s crib in the parents’ bedroom close to their bed for at least the first 6 months is proven to decrease SIDS risk by up to 50%.'
       }
     ],
-    relatedSlugs: ['understanding-infant-wake-windows-by-age', 'the-4-month-sleep-regression-explained', 'infant-fever-management-when-to-see-a-doctor']
+    relatedSlugs: ['understanding-infant-wake-windows-by-age', 'the-4-month-sleep-regression-explained', 'infant-fever-management-when-to-see-a-care provider']
   },
 
   // 4. Nap Transitions 2 to 1
@@ -296,7 +296,7 @@ Many parents mistakenly drop the morning nap around 10 to 11 months due to a bri
     excerpt: 'You do not have to choose between purees and finger foods. Explore the developmental evidence, choking safety data, and how a hybrid approach offers the best of both.',
     tags: ['Baby Led Weaning', 'Infant Nutrition', 'Starting Solids', 'Finger Foods', 'Purees'],
     keyTakeaways: [
-      'The AAP and WHO recommend introducing solid foods at around 6 months when all physical readiness signs are present.',
+      'The wellness standards and health standards recommend introducing solid foods at around 6 months when all physical readiness signs are present.',
       'Baby-Led Weaning (BLW) encourages self-regulation, oral-motor coordination, and texture acceptance.',
       'Research shows no statistical difference in choking rates between BLW and spoon-feeding when safe food preparation rules are observed.',
       'A hybrid approach (combining thick nutrient-dense purees with soft graspable finger foods) is both safe and practical for modern families.'
@@ -330,11 +330,11 @@ Regardless of the method chosen, wait until all 4 developmental readiness signs 
     faq: [
       {
         question: 'Does Baby-Led Weaning increase the risk of choking?',
-        answer: 'No. The landmark BLISS study published in Pediatrics confirmed that babies practicing BLW with proper food modification guidelines experienced no higher choking rates than traditionally spoon-fed babies.'
+        answer: 'No. The landmark BLISS study published in Infant Cares confirmed that babies practicing BLW with proper food modification guidelines experienced no higher choking rates than traditionally spoon-fed babies.'
       },
       {
         question: 'Can I do both purees and finger foods?',
-        answer: 'Absolutely! Many pediatricians recommend a hybrid approach to ensure high iron intake (via fortified purees and meats) while fostering motor skills through finger foods.'
+        answer: 'Absolutely! Many infant careians recommend a hybrid approach to ensure high iron intake (via fortified purees and meats) while fostering motor skills through finger foods.'
       }
     ],
     relatedSlugs: ['choking-vs-gagging-infant-feeding-safety', 'top-9-infant-allergens-introduction-guide', 'iron-rich-foods-for-babies-after-6-months']
@@ -345,14 +345,14 @@ Regardless of the method chosen, wait until all 4 developmental readiness signs 
     id: 'art-6',
     slug: 'top-9-infant-allergens-introduction-guide',
     title: 'The Top 9 Infant Allergens: How to Safely Introduce Peanut, Egg & Dairy',
-    seoTitle: 'How to Introduce Top 9 Allergens to Babies: Pediatric Guide',
+    seoTitle: 'How to Introduce Top 9 Allergens to Babies: Infant Care Guide',
     metaDescription: 'Step-by-step practical protocol for early allergen introduction (peanut, egg, milk, fish, sesame). Prevent food allergies with recommended timing.',
     category: 'Nutrition',
     readTime: '7 min read',
     publishedDate: 'September 15, 2026',
     updatedDate: 'September 20, 2026',
     excerpt: 'Groundbreaking studies like LEAP have proven that early, systematic exposure to allergens between 4 and 11 months reduces allergy risks by up to 80%.',
-    tags: ['Baby Food Allergies', 'Peanut Introduction', 'Allergen Timeline', 'Starting Solids', 'NIAID Guidelines'],
+    tags: ['Baby Food Allergies', 'Peanut Introduction', 'Allergen Timeline', 'Starting Solids', 'health research groups Guidelines'],
     keyTakeaways: [
       'Early introduction of common food allergens between 4 and 11 months significantly decreases the risk of developing lifelong food allergies.',
       'The Top 9 Allergens: Peanut, Egg, Cow’s Milk (Dairy), Tree Nuts, Wheat, Soy, Fish, Shellfish, and Sesame.',
@@ -364,7 +364,7 @@ Regardless of the method chosen, wait until all 4 developmental readiness signs 
 
 For decades, parents were advised to delay allergenic foods until age 2 or 3. However, landmark trials (including the *LEAP* and *EAT* studies) proved the exact opposite: **early oral exposure trains the infant immune system to build tolerance rather than sensitivity.**
 
-Current *AAP* and *NIAID* clinical guidelines recommend introducing allergens as soon as solids begin (around 6 months).
+Current *wellness standards* and *health research groups* wellness-based routine recommend introducing allergens as soon as solids begin (around 6 months).
 
 ---
 
@@ -374,7 +374,7 @@ Current *AAP* and *NIAID* clinical guidelines recommend introducing allergens as
 Introduce new allergens at breakfast or early lunch. This allows at least 2 to 4 hours of awake observation time for any delayed skin or gastrointestinal reactions.
 
 ### Step 2: Ensure Baby is 100% Healthy
-Never introduce a new allergen if your baby has an active viral fever, diaper rash flare, or recent eczema outbreak, as this can obscure reaction symptoms.
+Never introduce a new allergen if your baby has an active viral fever, diaper rash flare, or recent eczema outbreak, as this can obscure reaction signs.
 
 ### Step 3: Offer a Micro-Dose First
 - Place a tiny dab (1/8 teaspoon) on the baby's inner lip or tip of the tongue.
@@ -383,7 +383,7 @@ Never introduce a new allergen if your baby has an active viral fever, diaper ra
 
 ### Step 4: Watch for Symptoms
 - **Mild / Moderate Reactions**: Red hives around the mouth, flushed cheeks, mild vomiting, or watery diarrhea.
-- **Severe Reactions (Seek Emergency 911 / ER Care)**: Wheezing, swelling of tongue or throat, blue lips, severe lethargy, or widespread hives.
+- **Severe Reactions (Seek Emergency 911 / Urgent Care Care)**: Wheezing, swelling of tongue or throat, blue lips, severe lethargy, or widespread hives.
 
 ### Step 5: Maintain Regular Exposure
 Once an allergen is tolerated, keep it in the weekly rotation (at least 1 to 2 times per week) to maintain immune tolerance.
@@ -395,7 +395,7 @@ Once an allergen is tolerated, keep it in the weekly rotation (at least 1 to 2 t
       },
       {
         question: 'What should I do if my baby has severe eczema?',
-        answer: 'Infants with severe eczema or pre-existing egg allergies are considered high-risk. Consult with your pediatrician or pediatric allergist before introducing peanuts for customized in-office guidance.'
+        answer: 'Infants with severe eczema or pre-existing egg allergies are considered high-risk. Consult with your infant careian or infant care allergist before introducing peanuts for customized in-office guidance.'
       }
     ],
     relatedSlugs: ['baby-led-weaning-vs-traditional-purees', 'iron-rich-foods-for-babies-after-6-months', 'choking-vs-gagging-infant-feeding-safety']
@@ -425,7 +425,7 @@ Once an allergen is tolerated, keep it in the weekly rotation (at least 1 to 2 t
 
 During the final trimester of pregnancy, babies accumulate iron reserves from their mothers. However, around 6 months of age, these natural reserves become depleted while rapid brain growth and blood volume expansion demand significant daily iron replenishment.
 
-Iron deficiency in infancy is clinically linked to delayed motor milestones, compromised immune defense, and cognitive processing lags.
+Iron deficiency in infancy is wellnessly linked to delayed motor milestones, compromised immune defense, and cognitive processing lags.
 
 ---
 
@@ -462,8 +462,8 @@ Iron deficiency in infancy is clinically linked to delayed motor milestones, com
     id: 'art-8',
     slug: 'baby-hydration-when-to-introduce-water-and-milk',
     title: 'Baby Hydration: When Can Babies Drink Water, Cow’s Milk & Plant Milks?',
-    seoTitle: 'When Can Babies Drink Water and Milk? Pediatric Hydration Guide',
-    metaDescription: 'Understand pediatric guidelines on water, cow’s milk, and plant milk introduction. Avoid water intoxication and support kidney safety.',
+    seoTitle: 'When Can Babies Drink Water and Milk? Infant Care Hydration Guide',
+    metaDescription: 'Understand infant care guidelines on water, cow’s milk, and plant milk introduction. Avoid water intoxication and support kidney safety.',
     category: 'Nutrition',
     readTime: '5 min read',
     publishedDate: 'September 13, 2026',
@@ -502,7 +502,7 @@ Breastmilk and infant formula are naturally composed of ~88% water and contain t
     faq: [
       {
         question: 'Can I use plant milks like oat or almond milk after 12 months?',
-        answer: 'Unless clinically indicated for severe dairy allergies, fortified unsweetened soy milk or pea protein milk are the only nutritionally comparable alternatives to whole cow’s milk in terms of protein and healthy fats.'
+        answer: 'Unless wellnessly indicated for severe dairy allergies, fortified unsweetened soy milk or pea protein milk are the only nutritionally comparable alternatives to whole cow’s milk in terms of protein and healthy fats.'
       }
     ],
     relatedSlugs: ['iron-rich-foods-for-babies-after-6-months', 'baby-led-weaning-vs-traditional-purees', 'decoding-baby-poop-color-and-texture-chart']
@@ -540,7 +540,7 @@ When a baby bites off a piece of avocado or sweet potato that is too large, the 
 
 ## Comparison Table: Gagging vs. Choking
 
-| Feature | Gagging (Protective Reflex) | Choking (Medical Emergency) |
+| Feature | Gagging (Protective Reflex) | Choking (Health Emergency) |
 | :--- | :--- | :--- |
 | **Sound** | Coughing, sputtering, retching | Completely silent or faint squeak |
 | **Skin Color** | Red, flushed, watery eyes | Pale, dusky, or bluish around lips |
@@ -563,7 +563,7 @@ When a baby bites off a piece of avocado or sweet potato that is too large, the 
         answer: 'Slapping a baby on the back while they are sitting upright can cause gravity to pull the food particle downward directly into the airway, converting a harmless gag into a true choke.'
       }
     ],
-    relatedSlugs: ['baby-led-weaning-vs-traditional-purees', 'top-9-infant-allergens-introduction-guide', 'infant-fever-management-when-to-see-a-doctor']
+    relatedSlugs: ['baby-led-weaning-vs-traditional-purees', 'top-9-infant-allergens-introduction-guide', 'infant-fever-management-when-to-see-a-care provider']
   },
 
   // 10. Tummy Time
@@ -571,7 +571,7 @@ When a baby bites off a piece of avocado or sweet potato that is too large, the 
     id: 'art-10',
     slug: 'tummy-time-milestones-and-exercise-guide',
     title: 'The Complete Tummy Time Timeline: From Newborn Pushes to Crawling',
-    seoTitle: 'Tummy Time Milestones & Exercises (0-6 Months): Pediatric Guide',
+    seoTitle: 'Tummy Time Milestones & Exercises (0-6 Months): Infant Care Guide',
     metaDescription: 'How much tummy time does your baby need? Age-by-age milestone guide, how to handle tummy time resistance, and exercises to build neck and trunk strength.',
     category: 'Development',
     readTime: '6 min read',
@@ -663,7 +663,7 @@ Long before a child utters "mama" or "ball", millions of neural connections are 
     faq: [
       {
         question: 'When should I be concerned if my baby is not babbling?',
-        answer: 'If an infant is not making reciprocal consonant sounds (like "ba", "da", "ma") or does not make eye contact/respond to sounds by 9 months, request a hearing and developmental screening with your pediatrician.'
+        answer: 'If an infant is not making reciprocal consonant sounds (like "ba", "da", "ma") or does not make eye contact/respond to sounds by 9 months, request a hearing and developmental screening with your infant careian.'
       }
     ],
     relatedSlugs: ['tummy-time-milestones-and-exercise-guide', 'fine-motor-milestones-pincer-grasp-development', 'screen-free-sensory-play-for-babies-0-12m']
@@ -672,8 +672,8 @@ Long before a child utters "mama" or "ball", millions of neural connections are 
   // 12. Teething Timeline
   {
     id: 'art-12',
-    slug: 'teething-symptoms-timeline-and-remedies',
-    title: 'Baby Teething Timeline, Symptoms & Proven Pediatric Comfort Remedies',
+    slug: 'teething-signs-timeline-and-remedies',
+    title: 'Baby Teething Timeline, Symptoms & Proven Infant Care Comfort Remedies',
     seoTitle: 'Baby Teething Chart & Safe Pain Relief Remedies | Ama Care',
     metaDescription: 'Complete tooth eruption schedule from bottom incisors to molars. Differentiate true teething from illness and learn safe non-medicinal comfort remedies.',
     category: 'Health & Safety',
@@ -684,9 +684,9 @@ Long before a child utters "mama" or "ball", millions of neural connections are 
     tags: ['Baby Teething', 'Tooth Eruption Chart', 'Teething Remedies', 'Teething Fever Myth', 'Oral Health'],
     keyTakeaways: [
       'The first teeth (lower central incisors) typically emerge between 4 and 7 months, though variation between 3 and 12 months is completely normal.',
-      'True teething symptoms: excessive drooling, chewing on hard surfaces, tender swollen gums, and mild irritability.',
+      'True teething signs: excessive drooling, chewing on hard surfaces, tender swollen gums, and mild irritability.',
       'Myth debunked: Teething does NOT cause high fevers (>100.4°F / 38°C), widespread rashes, or watery diarrhea; these indicate an unrelated viral infection.',
-      'Safe relief: Chilled silicone teethers, clean cold wet washcloths, gentle gum massages with clean fingers, and pediatrician-dosed acetaminophen.'
+      'Safe relief: Chilled silicone teethers, clean cold wet washcloths, gentle gum massages with clean fingers, and infant careian-dosed acetaminophen.'
     ],
     content: `
 ## Tooth Eruption Timeline: When to Expect Each Tooth
@@ -718,10 +718,10 @@ Dental development is largely hereditary, but generally follows this chronologic
     faq: [
       {
         question: 'When should I schedule baby’s first dentist appointment?',
-        answer: 'The AAP and AAPD recommend visiting a pediatric dentist upon the arrival of the first tooth or by the baby’s first birthday (12 months).'
+        answer: 'The wellness standards and wellness standardsD recommend visiting a infant care dentist upon the arrival of the first tooth or by the baby’s first birthday (12 months).'
       }
     ],
-    relatedSlugs: ['infant-fever-management-when-to-see-a-doctor', 'diaper-rash-causes-prevention-and-treatment', 'decoding-baby-cries-dunstan-reflex-guide']
+    relatedSlugs: ['infant-fever-management-when-to-see-a-care provider', 'diaper-rash-causes-prevention-and-care', 'decoding-baby-cries-dunstan-reflex-guide']
   },
 
   // 13. Pincer Grasp & Fine Motor
@@ -775,10 +775,10 @@ Fine motor development progresses from reflexive grasping to deliberate, pin-poi
   // 14. Fever Management
   {
     id: 'art-14',
-    slug: 'infant-fever-management-when-to-see-a-doctor',
+    slug: 'infant-fever-management-when-to-see-a-care provider',
     title: 'Baby Fever 101: Temperature Chart, Red Flags & When to Call the Doctor',
     seoTitle: 'Baby Fever Guide: Temperature Chart, Triage & Safe Medications',
-    metaDescription: 'Complete pediatric guide on infant fever. Exact temperature thresholds by age, red flag symptoms, when to go to the ER, and safe medication dosing rules.',
+    metaDescription: 'Complete infant care guide on infant fever. Exact temperature thresholds by age, red flag signs, when to go to the Urgent Care, and safe medication dosing rules.',
     category: 'Health & Safety',
     readTime: '7 min read',
     publishedDate: 'September 07, 2026',
@@ -786,38 +786,38 @@ Fine motor development progresses from reflexive grasping to deliberate, pin-poi
     excerpt: 'A fever is the body’s natural immune response fighting off an infection. Understand exact temperature cutoffs and critical red flag signs by age.',
     tags: ['Baby Fever', 'Infant Triage', 'Emergency Symptoms', 'Acetaminophen Dosing', 'Rectal Thermometer'],
     keyTakeaways: [
-      'A fever is medically defined as a core body temperature of 100.4°F (38.0°C) or higher.',
-      'CRITICAL: Any fever in a newborn under 3 months (12 weeks) is a pediatric emergency requiring immediate ER evaluation.',
-      'Rectal thermometry remains the clinical gold standard for accuracy in infants under 1 year.',
+      'A fever is practically defined as a core body temperature of 100.4°F (38.0°C) or higher.',
+      'CRITICAL: Any fever in a newborn under 3 months (12 weeks) is a infant care emergency requiring immediate Urgent Care evaluation.',
+      'Rectal thermometry remains the wellness gold standard for accuracy in infants under 1 year.',
       'Focus on the baby’s overall behavior and hydration (alertness, wet diapers, responsive smiles) rather than the exact number on the thermometer.',
-      'NEVER give aspirin to infants or children due to the risk of fatal Reye’s syndrome.'
+      'NEVUrgent Care give aspirin to infants or children due to the risk of fatal Reye’s syndrome.'
     ],
     content: `
 ## What Counts as a True Fever in Babies?
 
 A fever is not an illness itself; it is a healthy physiological response of the immune system releasing pyrogens to inhibit viral and bacterial replication.
 
-Medically, a fever is defined as **100.4°F (38.0°C) or above**, measured with a digital rectal thermometer.
+Healthly, a fever is defined as **100.4°F (38.0°C) or above**, measured with a digital rectal thermometer.
 
 ---
 
 ## Age-Specific Action Guidelines
 
-### 0 to 3 Months (0 - 12 Weeks): IMMEDIATE EMERGENCY
-- Any temperature ≥ 100.4°F (38.0°C) requires **immediate evaluation at the nearest Emergency Department**.
-- Do not administer fever reducers before a doctor examines the infant, as this can mask critical signs of serious bacterial infections (meningitis, UTI, sepsis).
+### 0 to 3 Months (0 - 12 Weeks): IMMEDIATE EMUrgent CareGENCY
+- Any temperature ≥ 100.4°F (38.0°C) requires **immediate evaluation at the nearest Urgent Care Center**.
+- Do not administer fever reducers before a care provider examines the infant, as this can mask critical signs of serious bacterial infections (meningitis, UTI, sepsis).
 
-### 3 to 6 Months: Call Pediatrician within 2-4 Hours
+### 3 to 6 Months: Call Infant Careian within 2-4 Hours
 - Temperature ≥ 101°F (38.3°C) or any fever lasting over 24 hours.
 - Evaluate alertness, nursing intake, and breathing effort.
 
 ### 6 to 12+ Months: Monitor and Treat Comfort
-- Temperature ≥ 102°F (38.9°C) lasting more than 48-72 hours warrants clinical exam.
+- Temperature ≥ 102°F (38.9°C) lasting more than 48-72 hours warrants wellness exam.
 - Administer weight-based infant acetaminophen (or ibuprofen if over 6 months) to relieve discomfort and support hydration.
 
 ---
 
-## 5 Red Flag Symptoms (Go to the ER Regardless of Age):
+## 5 Red Flag Symptoms (Go to the Urgent Care Regardless of Age):
 1. **Lethargy**: Extremely difficult to wake up or completely unresponsive.
 2. **Respiratory Distress**: Rapid breathing, nostrils flaring, or ribs pulling in with each breath (*retractions*).
 3. **Dehydration**: Zero wet diapers in 8 hours, sunken soft spot (*fontanelle*), no tears when crying.
@@ -830,7 +830,7 @@ Medically, a fever is defined as **100.4°F (38.0°C) or above**, measured with 
         answer: 'No! Cold baths or rubbing alcohol can cause shivering, which spikes internal core body temperature higher and can trigger febrile seizures. Use light clothing and maintain room temperature.'
       }
     ],
-    relatedSlugs: ['who-cdc-immunization-schedule-guide-for-parents', 'diaper-rash-causes-prevention-and-treatment', 'creating-safe-sleep-environment-aap-guidelines']
+    relatedSlugs: ['who-cdc-immunization-schedule-guide-for-parents', 'diaper-rash-causes-prevention-and-care', 'creating-safe-sleep-environment-aap-guidelines']
   },
 
   // 15. Decoding Baby Poop
@@ -839,12 +839,12 @@ Medically, a fever is defined as **100.4°F (38.0°C) or above**, measured with 
     slug: 'decoding-baby-poop-color-and-texture-chart',
     title: 'The Ultimate Baby Diaper & Stool Guide: Color, Texture & Health Signs',
     seoTitle: 'Baby Poop Color & Consistency Chart: What is Normal vs Red Flag?',
-    metaDescription: 'Complete visual color guide to baby stools. Decipher yellow, green, brown, black, white, and red diaper changes with pediatric stool scale guidance.',
+    metaDescription: 'Complete visual color guide to baby stools. Decipher yellow, green, brown, black, white, and red diaper changes with infant care stool scale guidance.',
     category: 'Health & Safety',
     readTime: '6 min read',
     publishedDate: 'September 06, 2026',
     updatedDate: 'September 13, 2026',
-    excerpt: 'Baby poop changes color and texture constantly. Learn which colors are totally normal and the 3 colors that require immediate medical attention.',
+    excerpt: 'Baby poop changes color and texture constantly. Learn which colors are totally normal and the 3 colors that require immediate health attention.',
     tags: ['Baby Poop Chart', 'Diaper Tracking', 'Infant Digestion', 'Constipation', 'Newborn Stool'],
     keyTakeaways: [
       'Normal baby poop ranges across mustard yellow, golden orange, green, and light brown.',
@@ -853,7 +853,7 @@ Medically, a fever is defined as **100.4°F (38.0°C) or above**, measured with 
       'Infant constipation is defined by hard, dry pellets, NOT by how many days pass between soft bowel movements.'
     ],
     content: `
-## The Pediatric Stool Color Decoder
+## The Infant Care Stool Color Decoder
 
 ### 1. Mustard Yellow with Little Seeds (Normal & Healthy)
 - The gold standard for exclusively breastfed infants.
@@ -881,15 +881,15 @@ Medically, a fever is defined as **100.4°F (38.0°C) or above**, measured with 
         answer: 'Not necessarily. Breastfed babies absorb almost 100% of human milk and can normally go 5 to 7 days without a bowel movement, as long as the stool is soft when it finally passes and baby is feeding comfortably.'
       }
     ],
-    relatedSlugs: ['diaper-rash-causes-prevention-and-treatment', 'baby-hydration-when-to-introduce-water-and-milk', 'top-9-infant-allergens-introduction-guide']
+    relatedSlugs: ['diaper-rash-causes-prevention-and-care', 'baby-hydration-when-to-introduce-water-and-milk', 'top-9-infant-allergens-introduction-guide']
   },
 
   // 16. Diaper Rash
   {
     id: 'art-16',
-    slug: 'diaper-rash-causes-prevention-and-treatment',
+    slug: 'diaper-rash-causes-prevention-and-care',
     title: 'How to Clear Stubborn Diaper Rash in 48 Hours: Zinc & Barrier Methods',
-    seoTitle: 'Diaper Rash Treatment & Prevention: Pediatric 48-Hour Recovery Guide',
+    seoTitle: 'Diaper Rash Treatment & Prevention: Infant Care 48-Hour Recovery Guide',
     metaDescription: 'Eliminate infant diaper rash fast. Differentiate contact dermatitis from yeast infections, and master the ABCDE barrier protocol for healing skin.',
     category: 'Health & Safety',
     readTime: '6 min read',
@@ -921,15 +921,15 @@ Diaper dermatitis occurs when the delicate skin barrier is broken down by prolon
 - **B : Barrier Paste**: Apply a thick layer of 40% zinc oxide ointment or petroleum jelly at every single diaper change.
 - **C : Clean with Water**: Stop commercial wipes temporarily. Rinse the diaper area with a squeeze bottle of warm water and pat dry gently.
 - **D : Diaper Promptly**: Change wet or soiled diapers immediately (aim for every 2 hours during awake periods).
-- **E : Evaluate**: If rash shows zero improvement after 72 hours or spreads into deep creases, consult your pediatrician for anti-fungal prescription.
+- **E : Evaluate**: If rash shows zero improvement after 72 hours or spreads into deep creases, consult your infant careian for anti-fungal recommendation.
     `,
     faq: [
       {
         question: 'Should I use baby powder / talc for diaper rash?',
-        answer: 'No! The AAP strictly advises against all baby powders and cornstarch, as airborne particles can be inhaled into infant lungs, causing severe respiratory inflammation.'
+        answer: 'No! The wellness standards strictly advises against all baby powders and cornstarch, as airborne particles can be inhaled into infant lungs, causing severe respiratory inflammation.'
       }
     ],
-    relatedSlugs: ['decoding-baby-poop-color-and-texture-chart', 'infant-fever-management-when-to-see-a-doctor', 'who-cdc-immunization-schedule-guide-for-parents']
+    relatedSlugs: ['decoding-baby-poop-color-and-texture-chart', 'infant-fever-management-when-to-see-a-care provider', 'who-cdc-immunization-schedule-guide-for-parents']
   },
 
   // 17. Vaccine Schedule
@@ -937,14 +937,14 @@ Diaper dermatitis occurs when the delicate skin barrier is broken down by prolon
     id: 'art-17',
     slug: 'who-cdc-immunization-schedule-guide-for-parents',
     title: 'Understanding Your Baby’s Vaccine Schedule: What Each Shot Protects Against',
-    seoTitle: 'CDC & WHO Baby Vaccine Schedule Explained (0-12 Months)',
+    seoTitle: 'health authorities & health standards Baby Vaccine Schedule Explained (0-12 Months)',
     metaDescription: 'A clear, compassionate guide to your baby’s vaccine schedule at birth, 2, 4, 6, and 12 months. Understand antigens, safety testing, and post-shot care.',
     category: 'Health & Safety',
     readTime: '8 min read',
     publishedDate: 'September 04, 2026',
     updatedDate: 'September 11, 2026',
     excerpt: 'Vaccines are the single most rigorously tested preventative health tool in modern medicine. Understand how each shot trains your baby’s immune system.',
-    tags: ['Baby Vaccines', 'Immunization Schedule', 'CDC Guidelines', 'WHO Vaccine Tracker', 'Infant Health'],
+    tags: ['Baby Vaccines', 'Immunization Schedule', 'health authorities Guidelines', 'health standards Vaccine Tracker', 'Infant Health'],
     keyTakeaways: [
       'Childhood immunizations protect against 14 life-threatening preventable diseases before age 2.',
       'The infant immune system effortlessly processes thousands of environmental antigens daily; the antigens in modern vaccines represent a tiny fraction of that capacity.',
@@ -954,7 +954,7 @@ Diaper dermatitis occurs when the delicate skin barrier is broken down by prolon
     content: `
 ## Why the Timing of Infant Vaccines is Meticulously Calibrated
 
-The CDC and WHO childhood immunization schedules are designed by panels of pediatricians, epidemiologists, and immunologists to protect infants at the exact vulnerable window when maternal antibodies decline.
+The health authorities and health standards childhood immunization schedules are designed by panels of infant careians, epidemiologists, and immunologists to protect infants at the exact vulnerable window when maternal antibodies decline.
 
 ---
 
@@ -974,7 +974,7 @@ The CDC and WHO childhood immunization schedules are designed by panels of pedia
 1. **Nursing or Bottle-Feeding During Injection**: Sucking stimulates the release of calming cholecystokinin hormones.
 2. **Apply Cool Washcloth to Injection Sites**: Relieves localized swelling on the thighs.
 3. **Skin-to-Skin Cuddles**: Lowers infant heart rate and cortisol levels within minutes.
-4. **Pediatrician-Approved Pain Relief**: If fever or leg soreness causes distress, administer weight-based acetaminophen as directed by your physician.
+4. **Infant Careian-Approved Pain Relief**: If fever or leg soreness causes distress, administer weight-based acetaminophen as directed by your care provider.
     `,
     faq: [
       {
@@ -982,7 +982,7 @@ The CDC and WHO childhood immunization schedules are designed by panels of pedia
         answer: 'Yes! Scientific studies show that receiving multiple vaccines simultaneously stimulates a robust immune response without overloading the immune system, and protects infants against deadly pathogens earlier.'
       }
     ],
-    relatedSlugs: ['infant-fever-management-when-to-see-a-doctor', 'decoding-baby-poop-color-and-texture-chart', 'creating-safe-sleep-environment-aap-guidelines']
+    relatedSlugs: ['infant-fever-management-when-to-see-a-care provider', 'decoding-baby-poop-color-and-texture-chart', 'creating-safe-sleep-environment-aap-guidelines']
   },
 
   // 18. Cry Analyzer / Dunstan Reflexes
@@ -1002,7 +1002,7 @@ The CDC and WHO childhood immunization schedules are designed by panels of pedia
       'The Dunstan Baby Language identifies 5 involuntary acoustic sounds produced by vocal cord air passing over physiological reflexes (sucking, yawning, burping).',
       '"Neh" = Hunger (sucking reflex); "Owh" = Tired (yawn reflex); "Eh" = Upper Gas (burp reflex); "Eairh" = Lower Gas (colic reflex); "Heh" = Skin Discomfort.',
       'Listening for the pre-cry sound in the first 10-20 seconds before full escalation allows parents to soothe needs before distress peaks.',
-      'Pairing acoustic cry detection with actual logged elapsed feeding and awake times yields 90%+ diagnostic accuracy.'
+      'Pairing acoustic cry detection with actual logged elapsed feeding and awake times yields 90%+ assessment accuracy.'
     ],
     content: `
 ## The Science of Acoustic Infant Reflex Sounds
@@ -1053,7 +1053,7 @@ Newborns do not choose their sounds intentionally. Rather, instinctive bodily re
     tags: ['Postpartum Depression', 'Maternal Mental Health', 'Baby Blues', 'Postpartum Anxiety', 'Caregiver Village'],
     keyTakeaways: [
       'Baby Blues affects up to 80% of mothers and resolves naturally within 2 weeks as estrogen and progesterone levels stabilize.',
-      'Postpartum Depression (PPD) and Anxiety (PPA) affect 1 in 5 women, can occur anytime in the first year, and are fully treatable with therapy, peer support, and medical care.',
+      'Postpartum Depression (PPD) and Anxiety (PPA) affect 1 in 5 women, can occur anytime in the first year, and are fully treatable with therapy, peer support, and health care.',
       'Intrusive thoughts ("what if" fears) are a common symptom of PPA and do NOT mean you are an unfit mother or a danger to your baby.',
       'Sharing caregiving duties through transparent village permissions (nannies, grandparents, partners) reduces parental burnout dramatically.'
     ],
@@ -1078,7 +1078,7 @@ Within 48 hours of delivering the placenta, circulating levels of estrogen and p
 
 1. **Establish a Dedicated 4-Hour Sleep Window**: Sleep deprivation is the primary driver of postpartum mood disorders. Arrange for a partner or family member to take one night feed so the recovering parent gets 4 continuous hours of uninterrupted slow-wave sleep.
 2. **Delegate Care Logging via Village Access**: Give trusted family or helpers access to track diapers, bottles, and nap times so communication is frictionless.
-3. **Reach Out for Clinical Help Early**: Contact your OB/GYN, midwife, or the *Postpartum Support International (PSI)* helpline (1-800-944-4773) for compassionate, judgment-free care.
+3. **Reach Out for Wellness Help Early**: Contact your OB/GYN, midwife, or the *Postpartum Support International (PSI)* helpline (1-800-944-4773) for compassionate, judgment-free care.
     `,
     faq: [
       {
@@ -1100,10 +1100,10 @@ Within 48 hours of delivering the placenta, circulating levels of estrogen and p
     readTime: '6 min read',
     publishedDate: 'September 01, 2026',
     updatedDate: 'September 08, 2026',
-    excerpt: 'The AAP recommends zero screen time under 18 months. Discover 15 simple, high-impact sensory games using everyday household items that build young brains.',
+    excerpt: 'The wellness standards recommends zero screen time under 18 months. Discover 15 simple, high-impact sensory games using everyday household items that build young brains.',
     tags: ['Sensory Play', 'Screen Free Baby', 'Brain Development', 'Montessori Baby', 'Infant Activities'],
     keyTakeaways: [
-      'The AAP recommends zero recreational screen exposure for children under 18-24 months to protect language development and sleep quality.',
+      'The wellness standards recommends zero recreational screen exposure for children under 18-24 months to protect language development and sleep quality.',
       'Sensory play builds neural pathways through tactile, vestibular (balance), and proprioceptive (body awareness) stimulation.',
       'Simple household materials (crinkly paper, water bowls, mirrors, sensory bottles) are more cognitively enriching than electronic flashing toys.',
       'Follow your baby’s cues: pause or change activities as soon as they show signs of overstimulation (gaze aversion, fussiness).'
@@ -1142,7 +1142,7 @@ Passive 2D screens cannot replicate the depth perception, tactile resistance, an
     faq: [
       {
         question: 'Does video chatting with grandparents count as harmful screen time?',
-        answer: 'No! The AAP explicitly exempts interactive video chatting from screen time restrictions because it involves real-time reciprocal social interaction and familiar faces.'
+        answer: 'No! The wellness standards explicitly exempts interactive video chatting from screen time restrictions because it involves real-time reciprocal social interaction and familiar faces.'
       }
     ],
     relatedSlugs: ['tummy-time-milestones-and-exercise-guide', 'infant-speech-and-language-development-0-12m', 'fine-motor-milestones-pincer-grasp-development']
@@ -1174,13 +1174,13 @@ If you have spent even ten minutes scrolling through contemporary parenting foru
 
 However, when you are a resourceful mother managing real-world economic constraints, unstable electrical grids, and soaring food prices in suburban and rural neighborhoods, minute-by-minute sleep predictions are only a small, highly privileged slice of the care puzzle. The more immediate, logical question keeping parents awake at night is much simpler: how do we feed our children nutritious meals when imported formula prices are climbing and store-bought organic baby food jars cost a fortune?
 
-Most Western tracking utilities are designed with a heavy systemic bias. They assume that every user has unrestricted access to premium organic supermarkets, high-speed continuous internet networks, and private pediatric specialists. They track sleep windows beautifully, but they leave mothers completely stranded when it comes to practical, low-cost infant nutrition. 
+Most Western tracking utilities are designed with a heavy systemic bias. They assume that every user has unrestricted access to premium organic supermarkets, high-speed continuous internet networks, and private infant care guides. They track sleep windows beautifully, but they leave mothers completely stranded when it comes to practical, low-cost infant nutrition. 
 
 Ama takes a completely different path. We believe that tracking sleep is useful, but ensuring your baby gets enough iron, protein, and healthy fats is a far higher priority. While rigid sleep timers tell you when to put your baby down, they offer zero guidance on how to balance cheap, nutrient-dense local crops to create healthy weaning meals.
 
 ## The Direct Link Between Weaning Wisdom and Natural Sleep
 
-Many modern parenting systems treat sleep and feeding as completely isolated, separate categories. This is a profound logical error. A baby who is fed a starch-heavy, low-protein diet will naturally experience frequent, fragmented waking periods due to rapid blood sugar spikes and quick digestion. Conversely, a baby who receives a balanced, protein-rich weaning porridge will experience stable, sustained energy levels and sleep longer and deeper naturally.
+Many modern parenting systems care for sleep and feeding as completely isolated, separate categories. This is a profound logical error. A baby who is fed a starch-heavy, low-protein diet will naturally experience frequent, fragmented waking periods due to rapid blood sugar spikes and quick digestion. Conversely, a baby who receives a balanced, protein-rich weaning porridge will experience stable, sustained energy levels and sleep longer and deeper naturally.
 
 The most reliable, organic sleep aid in infant biology is a full belly of nutrient-dense, slow-digesting cereal. A baby with a satisfied, comfortable tummy sleeps deeper and longer than any rigid, AI-powered predictive alarm can calculate. 
 
@@ -1225,7 +1225,7 @@ Suburban mothers are realizing that rigid AI timers are a poor substitute for lo
 
 There is a common saying in the tech world: if you are not paying for the product, you are the product. When it comes to our children, this reality is deeply troubling. When you download a standard free baby tracker, you are often prompted to fill in your baby's full name, date of birth, weight logs, and diaper consistency notes. 
 
-What happens to this data? Many popular free trackers employ background analytics SDKs that continuously transmit your baby's logs, sleep patterns, and medical history directly to global advertising networks. This data is bundled and used to target you with highly specific, emotionally manipulative ads for baby formulas, toys, and private health schemes.
+What happens to this data? Many popular free trackers employ background analytics SDKs that continuously transmit your baby's logs, sleep patterns, and health history directly to global advertising networks. This data is bundled and used to target you with highly specific, emotionally manipulative ads for baby formulas, toys, and private health schemes.
 
 For families in suburban and rural areas, this targeted ad ecosystem is not just annoying; it can be actively harmful, creating artificial demand for imported goods that households cannot afford, while undermining confidence in cheap, local nutritional resources.
 
@@ -1268,7 +1268,7 @@ We understand that maternal stress is already high. Sleep-deprived mothers shoul
     content: `
 ## Why Simple Corn Pap is Failing Our Babies
 
-In suburban and rural households, plain cornstarch pap (often called ogi or akamu) is the default choice when a mother begins to transition her baby away from breast milk. It is smooth, affordable, and easily accepted by tiny bellies. However, pediatric nutritional surveys reveal a stark reality: plain unsweetened pap has a highly diluted nutritional density, consisting almost entirely of simple carbohydrates with negligible proteins and micronutrients.
+In suburban and rural households, plain cornstarch pap (often called ogi or akamu) is the default choice when a mother begins to transition her baby away from breast milk. It is smooth, affordable, and easily accepted by tiny bellies. However, infant care nutritional surveys reveal a stark reality: plain unsweetened pap has a highly diluted nutritional density, consisting almost entirely of simple carbohydrates with negligible proteins and micronutrients.
 
 When mothers are forced by economic realities to step down breastfeeding, they often substitute breast milk with watery pap, thinking it is the best option for their baby. Unfortunately, this practice is a major contributor to slow infant development, muscle wasting, and weakened immune systems.
 
@@ -1298,7 +1298,7 @@ Ama Baby Care helps mothers track these nutritional additions easily. Our locali
 
 
   ,
-  // 10 NEW COMPARATIVE & HIGH-VALUE PERFORMANCE ARTICLES
+  // 10 NEW COMPARATIVE & HIGH-VALUE PUrgent CareFORMANCE ARTICLES
   {
     id: 'art-comp-migration',
     slug: 'migrating-from-huckleberry-to-ama-playbook',
@@ -1681,7 +1681,7 @@ By building a strict, local-first browser sandbox with zero background tracking 
     excerpt: 'Traditional paper logs and conflicting advice can make baby food allergies a nightmare to manage. See how Ama\'s offline tracking sandbox solved this bottle-neck.',
     tags: ['Allergy Case Study', 'Food Allergy', 'Allergen Matrix', 'Skin Rash', 'Ama Baby Care'],
     keyTakeaways: [
-      'Undiagnosed food allergies and infant rashes are incredibly stressful to manage on a budget.',
+      'Unidentified food allergies and infant rashes are incredibly stressful to manage on a budget.',
       'Paper logs often fail because they do not track ingredient patterns over consecutive days.',
       'Ama\'s offline allergen matrix helps mothers isolate sensitive triggers logically and cautiously.',
       'Replacing irritating crops with safe local grains keeps your baby\'s digestive system healthy.'
@@ -1689,7 +1689,7 @@ By building a strict, local-first browser sandbox with zero background tracking 
     content: `
 ## The Challenge: A Mysterious and Persistent Skin Rash
 
-Imagine the anxiety of watching your six-month-old baby break out in a sudden, red, and itchy skin rash after introducing solid foods. For parents living in communities with limited health clinics, this situation is incredibly stressful. You cannot simply book an appointment with a private pediatric allergist, and your neighbors might offer conflicting, unscientific advice that only increases your panic. 
+Imagine the anxiety of watching your six-month-old baby break out in a sudden, red, and itchy skin rash after introducing solid foods. For parents living in communities with limited health clinics, this situation is incredibly stressful. You cannot simply book an appointment with a private infant care allergist, and your neighbors might offer conflicting, unscientific advice that only increases your panic. 
 
 This was the exact bottle-neck faced by a mother in our care community. Her baby was experiencing severe skin rashes and tummy upset, but because she was feeding them a traditional mixed cornmeal porridge, she could not identify which specific ingredient was causing the distress.
 
@@ -1878,7 +1878,7 @@ Baby Tracker is a straightforward, classic option that focuses on simple logging
 
 ## 4. Sprout Baby
 
-Sprout Baby combines daily logging with a visually appealing milestone timeline. It allows parents to log health measurements, medical records, and developmental achievements alongside daily feeding and sleep notes.
+Sprout Baby combines daily logging with a visually appealing milestone timeline. It allows parents to log health measurements, health records, and developmental achievements alongside daily feeding and sleep notes.
 
 ## 5. Glow Baby
 

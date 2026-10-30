@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Globe, 
   MapPin, 
   Search, 
   Crosshair, 
   Check, 
-  Sparkles, 
   X, 
   Loader2, 
   Tag, 
@@ -72,6 +70,111 @@ export const POPULAR_GLOBAL_LOCATIONS: GlobalLocation[] = [
   { name: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503, country: 'Japan', currency: '¥', currencyCode: 'JPY', stateOrRegion: 'Kanto', flag: '🇯🇵' },
   { name: 'Sydney, Australia', lat: -33.8688, lng: 151.2093, country: 'Australia', currency: 'A$', currencyCode: 'AUD', stateOrRegion: 'New South Wales', flag: '🇦🇺' }
 ];
+
+const loadGoogleMapsScript = (apiKey: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (typeof window !== 'undefined' && (window as any).google?.maps) {
+      resolve();
+      return;
+    }
+    const existingScript = document.getElementById('google-maps-js-sdk');
+    if (existingScript) {
+      if ((window as any).google?.maps) {
+        resolve();
+      } else {
+        existingScript.addEventListener('load', () => resolve());
+        existingScript.addEventListener('error', (e) => reject(e));
+      }
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'google-maps-js-sdk';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = (e) => reject(e);
+    document.head.appendChild(script);
+  });
+};
+
+const PickerGoogleMap: React.FC<{
+  apiKey: string;
+  center: { lat: number; lng: number };
+  onMapClick?: (lat: number, lng: number) => void;
+}> = ({ apiKey, center, onMapClick }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!apiKey) return;
+    loadGoogleMapsScript(apiKey)
+      .then(() => setIsLoaded(true))
+      .catch((err) => console.warn('Failed to load Google Maps SDK:', err));
+  }, [apiKey]);
+
+  useEffect(() => {
+    if (!isLoaded || !containerRef.current || mapInstanceRef.current) return;
+    try {
+      const google = (window as any).google;
+      if (google && google.maps) {
+        const map = new google.maps.Map(containerRef.current, {
+          center,
+          zoom: 11,
+          gestureHandling: 'greedy',
+          disableDefaultUI: false
+        });
+        mapInstanceRef.current = map;
+
+        if (onMapClick) {
+          map.addListener('click', (e: any) => {
+            if (e.latLng) {
+              onMapClick(e.latLng.lat(), e.latLng.lng());
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Picker map instantiation error:', err);
+    }
+  }, [isLoaded]);
+
+  useEffect(() => {
+    if (!mapInstanceRef.current || !(window as any).google?.maps) return;
+    const google = (window as any).google;
+    try {
+      mapInstanceRef.current.panTo(center);
+
+      if (markerRef.current) {
+        markerRef.current.setPosition(center);
+      } else {
+        markerRef.current = new google.maps.Marker({
+          position: center,
+          map: mapInstanceRef.current,
+          title: 'Selected Location'
+        });
+      }
+    } catch {}
+  }, [center.lat, center.lng]);
+
+  if (!apiKey) {
+    const query = encodeURIComponent(`${center.lat},${center.lng}`);
+    return (
+      <iframe
+        title="Location Picker Map"
+        width="100%"
+        height="100%"
+        style={{ border: 0 }}
+        loading="lazy"
+        src={`https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${query}&zoom=11`}
+      />
+    );
+  }
+
+  return <div ref={containerRef} className="w-full h-full min-h-[300px]" />;
+};
 
 interface GlobalLocationPickerModalProps {
   isOpen: boolean;
@@ -521,22 +624,11 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
                   <span>🗺️</span> <span>Tap anywhere on map to select place</span>
                 </p>
                 <div className="h-80 sm:h-[400px] rounded-3xl overflow-hidden border border-gray-200 relative shadow-inner">
-                  <APIProvider apiKey={apiKey}>
-                    <Map
-                      mapId="DEMO_MAP_ID"
-                      defaultCenter={{ lat: selectedLoc.lat, lng: selectedLoc.lng }}
-                      center={{ lat: selectedLoc.lat, lng: selectedLoc.lng }}
-                      defaultZoom={11}
-                      gestureHandling={'greedy'}
-                      onClick={handleMapClick}
-                      internalUsageAttributionIds={["gmp_mcp_codeassist_v1_aistudio"]}
-                      className="w-full h-full"
-                    >
-                      <AdvancedMarker position={{ lat: selectedLoc.lat, lng: selectedLoc.lng }}>
-                        <Pin background="#37b1f5" borderColor="#ffffff" glyphColor="#ffffff" scale={1.2} />
-                      </AdvancedMarker>
-                    </Map>
-                  </APIProvider>
+                  <PickerGoogleMap
+                    apiKey={apiKey}
+                    center={{ lat: selectedLoc.lat, lng: selectedLoc.lng }}
+                    onMapClick={(lat, lng) => handleMapClick({ detail: { latLng: { lat, lng } } })}
+                  />
 
                   <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-white shadow-md text-[10px] font-bold text-gray-700 flex items-center gap-1.5 pointer-events-none">
                     <MapPin className="w-3.5 h-3.5 text-primary animate-bounce" />

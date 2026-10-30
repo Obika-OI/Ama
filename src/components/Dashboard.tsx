@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Home, Utensils, BookOpen, Calendar, Plus, Timer, ChevronRight, Star, AlertCircle,
   Droplet, PlusCircle, Search, Clock, ChevronLeft, Heart, MapPin, Trophy, Bell,
-  CheckCircle2, Flame, Sparkles, RefreshCw, Award, Shield, Info, Printer, ShoppingBag,
+  CheckCircle2, Flame, Compass, RefreshCw, Award, Shield, Info, Printer, ShoppingBag,
   Trash2, FileText, Edit3, Copy, RotateCcw, ChevronDown, LogOut, QrCode, Wifi, WifiOff,
   Link, X, Settings, Lock, Unlock, Crown, ShieldAlert, EyeOff, UserCheck, ShieldCheck, FileCode,
   Dna, Activity as ActivityIcon, Users, Check, HelpCircle, Mic, MicOff, Video, VideoOff, Volume2, Thermometer, Moon
@@ -729,9 +729,8 @@ export const Dashboard = ({
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <Sparkles className="w-4 h-4" />
-              
-    </div>
+              <Compass className="w-4 h-4" />
+            </div>
             <div>
               <h2 className="text-xl font-serif font-black text-gray-800">AI Suite</h2>
               <p className="text-xs text-gray-400 font-medium">Smart acoustic cry analyzer & localized weekly meal planning</p>
@@ -796,7 +795,7 @@ export const Dashboard = ({
             </div>
             <div className="pt-1 flex items-center justify-between text-xs font-bold text-primary group-hover:text-primary">
               <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" /> Build 7-Day Plan
+                <Utensils className="w-3.5 h-3.5" /> Build 7-Day Plan
               </span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -814,7 +813,7 @@ export const Dashboard = ({
             </div>
             <div>
               <h2 className="text-xl font-serif font-black text-gray-800">Community, Local Care & Baby Names</h2>
-              <p className="text-xs text-gray-400 font-medium">Parent & expert forum, map-grounded care directories, and global baby name encyclopedia</p>
+              <p className="text-xs text-gray-400 font-medium">Parent & specialist forum, map-grounded care directories, and global baby name encyclopedia</p>
             </div>
           </div>
           <span className="text-[9px] font-black text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-widest border border-primary/20">
@@ -841,13 +840,13 @@ export const Dashboard = ({
               <div className="space-y-1">
                 <h3 className="text-base font-serif font-black text-gray-800">Community Support</h3>
                 <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                  Connect, chat, ask, and get answers from other parents, pediatricians, lactation consultants, and care experts across all fields.
+                  Connect, chat, ask, and get answers from other parents, lactation consultants, and care specialists across all fields.
                 </p>
               </div>
             </div>
             <div className="pt-2 flex items-center justify-between text-xs font-bold text-primary">
               <span className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5" /> Join Parent & Expert Forum
+                <Users className="w-3.5 h-3.5" /> Join Parent & Specialist Forum
               </span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -871,7 +870,7 @@ export const Dashboard = ({
               <div className="space-y-1">
                 <h3 className="text-base font-serif font-black text-gray-800">Local Directories</h3>
                 <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                  Map-grounded AI searchable database for local healthcare providers, hospitals, lactation experts, and baby name directory.
+                  Map-grounded searchable database for local healthcare providers, hospitals, lactation specialists, and baby name directory.
                 </p>
               </div>
             </div>
@@ -1143,7 +1142,7 @@ export const Dashboard = ({
         <div className="flex justify-between items-end px-2">
           <div>
             <h2 className="text-xl font-serif font-black text-gray-800">Mother Postpartum Care</h2>
-            <p className="text-xs text-gray-400 font-medium">Fourth trimester clinical healing, rest windows, nutrition & mental wellness</p>
+            <p className="text-xs text-gray-400 font-medium">Fourth trimester recovery, rest windows, nutrition & mental wellness</p>
           </div>
           <button 
             onClick={() => onNavigate('mother-care')}
@@ -1161,11 +1160,11 @@ export const Dashboard = ({
           <div className="space-y-3 relative z-10 max-w-xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/80 backdrop-blur-md rounded-full text-[9px] font-black text-primary uppercase tracking-widest border border-white">
               <span>🩺</span>
-              <span>Clinical Recovery & Fourth Trimester Care</span>
+              <span>Wellness Recovery & Fourth Trimester Care</span>
             </div>
             <h3 className="text-2xl sm:text-3xl font-serif font-black text-gray-800">Nurturing You, {parentName}.</h3>
             <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium">
-              Evidence-based maternal recovery for the fourth trimester. Track pelvic floor rehabilitation, surgical incision healing, lochia milestones, postpartum mental wellness (EPDS guidance), 4-hour consolidated REM sleep windows, and clinical nutrition for restorative healing.
+              Evidence-based maternal recovery for the fourth trimester. Track pelvic floor rehabilitation, surgical incision healing, lochia milestones, postpartum mental wellness (EPDS guidance), 4-hour consolidated REM sleep windows, and restorative nutrition for restorative healing.
             </p>
             <div className="pt-1">
               <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-wider shadow-sm group-hover:bg-primary/90 transition-all">

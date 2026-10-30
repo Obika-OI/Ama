@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Home, Utensils, BookOpen, Calendar, Plus, Timer, ChevronRight, Star, AlertCircle,
   Droplet, PlusCircle, Search, Clock, ChevronLeft, Heart, MapPin, Trophy, Bell,
-  CheckCircle2, Flame, Sparkles, RefreshCw, Award, Shield, Info, Printer, ShoppingBag,
+  CheckCircle2, Flame, Compass, RefreshCw, Award, Shield, Info, Printer, ShoppingBag,
   Trash2, FileText, Edit3, Copy, RotateCcw, ChevronDown, LogOut, QrCode, Wifi, WifiOff,
   Link, X, Settings, Lock, Crown, ShieldAlert, EyeOff, UserCheck, ShieldCheck, FileCode,
   Dna, Activity as ActivityIcon, Users, Check, HelpCircle, Mic
@@ -893,7 +893,7 @@ export default function App() {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {}
     }
-    return DEFAULT_REMINDERS as Reminder[];
+    return [];
   });
 
   const [activeAlarm, setActiveAlarm] = useState<{
@@ -1835,9 +1835,13 @@ export default function App() {
   }, [lastLocalUpdate]);
 
   const handleNavigate = (screen: string, data?: any, autoOpenLog?: boolean) => {
-    if (screen === 'safety-guide') {
+    if (screen === 'safety-guide-meal') {
       setFeedingTrackerTab('guide');
       setActiveScreen('feeding');
+      return;
+    }
+    if (screen === 'safety-guide') {
+      setActiveScreen('safety-guide');
       return;
     }
     if (screen === 'recipe-detail') {
@@ -2233,7 +2237,10 @@ export default function App() {
         {/* In-App User Guide Screen */}
         {activeScreen === 'user-guide' && (
           <motion.div key="user-guide" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="p-4 sm:p-6 pb-28 max-w-4xl mx-auto">
-            <AppUserGuide onClose={() => setActiveScreen('home')} />
+            <AppUserGuide 
+              onClose={() => setActiveScreen('home')} 
+              onNavigateToScreen={(screen) => setActiveScreen(screen)}
+            />
           </motion.div>
         )}
 
@@ -2358,7 +2365,27 @@ export default function App() {
 
         {activeScreen === 'safety-guide' && (
           <motion.div key="safety-guide" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="min-h-screen">
-            <SafetyGuideScreen onBack={() => setActiveScreen('home')} />
+            <SafetyGuideScreen 
+              onBack={() => {
+                if (localStorage.getItem('ama_onboarded')) {
+                  setActiveScreen('home');
+                } else {
+                  setActiveScreen('landing');
+                }
+              }}
+              onNavigateApp={(screen) => {
+                if (screen === 'safety-guide-meal') {
+                  setFeedingTrackerTab('guide');
+                  setActiveScreen('feeding');
+                } else {
+                  setActiveScreen(screen);
+                }
+              }}
+              onConnectMealSafety={() => {
+                setFeedingTrackerTab('guide');
+                setActiveScreen('feeding');
+              }}
+            />
           </motion.div>
         )}
 
@@ -2371,7 +2398,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Bottom Navigation: Clean 5 Core Baby Care Tabs (Community accessible via Dashboard) */}
-      {activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && activeScreen !== 'about' && activeScreen !== 'contact' && (
+      {activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'user-guide' && activeScreen !== 'safety-guide' && activeScreen !== 'legal-terms' && activeScreen !== 'about' && activeScreen !== 'contact' && (
         <nav className="fixed bottom-0 sm:bottom-4 left-0 right-0 w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto bg-white/95 backdrop-blur-xl border border-gray-200/80 rounded-t-3xl sm:rounded-full px-3 sm:px-6 py-2 sm:py-2.5 flex justify-around items-center z-40 shadow-xl shadow-gray-900/10 transition-all">
           <NavButton active={activeScreen === 'home'} icon={<Home />} label="Dashboard" onClick={() => setActiveScreen('home')} />
           <NavButton active={activeScreen === 'feeding'} icon={<Utensils />} label="Meal Log" onClick={() => setActiveScreen('feeding')} />

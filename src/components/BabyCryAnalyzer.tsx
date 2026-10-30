@@ -4,7 +4,7 @@ import {
   Mic, 
   MicOff, 
   Loader2, 
-  Sparkles, 
+  ShieldCheck, 
   AlertCircle, 
   CheckCircle2, 
   Clock, 
@@ -415,7 +415,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
 
   const handleRunDemoCry = (typeKey: string, promptHint: string) => {
     setSelectedDemoCry(typeKey);
-    // Target acoustic pitch Hz per clinical database profile
+    // Target acoustic pitch Hz per reference database profile
     let samplePitch = 480;
     let sampleDb = 74;
     let samplePattern = "Rhythmic rising pulses with sucking pauses (1.2s cycles)";

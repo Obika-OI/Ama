@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Check, ShieldCheck, Crown, Sparkles, CreditCard, Lock, HelpCircle } from 'lucide-react';
+import { X, Check, ShieldCheck, Crown, CreditCard, Lock, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export type SupportedCurrency = 'NGN' | 'USD' | 'GBP';
@@ -164,7 +164,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               {/* 2. Monthly Pro Subscription */}
               <div id="plan-card-monthly" className="bg-white border-2 border-primary shadow-xl rounded-3xl p-6 relative flex flex-col justify-between transform md:-translate-y-2">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-black uppercase tracking-widest py-1 px-3.5 rounded-full shadow-sm flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
+                  <Crown className="w-3 h-3" />
                   <span>Most Popular</span>
                 </div>
 

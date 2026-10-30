@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, Line } from 'recharts';
-import { ChevronLeft, Search, Star, Award, Sparkles, CheckCircle2, Flame, Trophy, Activity as ActivityIcon, PlusCircle, X, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Search, Star, Award, CheckCircle2, Flame, Trophy, Activity as ActivityIcon, PlusCircle, X, RefreshCw } from 'lucide-react';
 import { QUEST_POOL } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { MOCK_ACTIVITIES, THEME } from '../constants';
@@ -668,7 +668,7 @@ export const ActivitiesScreen = ({
             </div>
 
             <div className="p-3 bg-primary/5 rounded-2xl border border-primary/10 text-[9px] text-gray-500 font-medium">
-              ℹ️ <strong>AI Accuracy Disclaimer:</strong> Growth projections and development suggestions are AI-generated models based on reference percentiles. They are not medical assessments or clinical diagnoses. Always verify your baby's growth parameters directly with a qualified healthcare provider.
+              ℹ️ <strong>AI Accuracy Disclaimer:</strong> Growth projections and development suggestions are AI-generated models based on reference percentiles. They are not medical assessments or health assessments. Always verify your baby's growth parameters directly with a qualified healthcare provider.
             </div>
             
             <div className="h-52 w-full pr-4">

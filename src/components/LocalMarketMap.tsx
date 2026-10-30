@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Store, 
   MapPin, 
@@ -9,7 +8,6 @@ import {
   Clock, 
   Tag, 
   PackageCheck, 
-  Sparkles, 
   Info, 
   ExternalLink,
   ChevronRight,
@@ -43,6 +41,128 @@ interface LocalMarketMapProps {
   onLocationChange?: (loc: GlobalLocation) => void;
   onClose?: () => void;
 }
+
+const loadGoogleMapsScript = (apiKey: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (typeof window !== 'undefined' && (window as any).google?.maps) {
+      resolve();
+      return;
+    }
+    const existingScript = document.getElementById('google-maps-js-sdk');
+    if (existingScript) {
+      if ((window as any).google?.maps) {
+        resolve();
+      } else {
+        existingScript.addEventListener('load', () => resolve());
+        existingScript.addEventListener('error', (e) => reject(e));
+      }
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'google-maps-js-sdk';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = (e) => reject(e);
+    document.head.appendChild(script);
+  });
+};
+
+const MarketPlacesGoogleMap: React.FC<{
+  apiKey: string;
+  center: { lat: number; lng: number };
+  places: LocalMarketPlace[];
+  onSelectPlace?: (place: LocalMarketPlace) => void;
+}> = ({ apiKey, center, places, onSelectPlace }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!apiKey) return;
+    loadGoogleMapsScript(apiKey)
+      .then(() => setIsLoaded(true))
+      .catch((err) => console.warn('Failed to load Google Maps SDK:', err));
+  }, [apiKey]);
+
+  useEffect(() => {
+    if (!isLoaded || !containerRef.current || mapInstanceRef.current) return;
+    try {
+      const google = (window as any).google;
+      if (google && google.maps) {
+        mapInstanceRef.current = new google.maps.Map(containerRef.current, {
+          center,
+          zoom: 12,
+          gestureHandling: 'greedy',
+          disableDefaultUI: false
+        });
+      }
+    } catch (err) {
+      console.warn('Market map instantiation error:', err);
+    }
+  }, [isLoaded]);
+
+  useEffect(() => {
+    if (mapInstanceRef.current && center) {
+      try {
+        mapInstanceRef.current.panTo(center);
+      } catch {}
+    }
+  }, [center.lat, center.lng]);
+
+  useEffect(() => {
+    if (!mapInstanceRef.current || !(window as any).google?.maps) return;
+    const google = (window as any).google;
+
+    markersRef.current.forEach(m => {
+      try { m.setMap(null); } catch {}
+    });
+    markersRef.current = [];
+
+    places.forEach(place => {
+      try {
+        const pinColor = place.category === 'market' ? '#37b1f5' : place.category === 'supermarket' ? '#4f46e5' : '#e11d48';
+        const marker = new google.maps.Marker({
+          position: { lat: place.lat, lng: place.lng },
+          map: mapInstanceRef.current,
+          title: place.name,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: pinColor,
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: '#ffffff'
+          }
+        });
+
+        marker.addListener('click', () => {
+          if (onSelectPlace) onSelectPlace(place);
+        });
+
+        markersRef.current.push(marker);
+      } catch {}
+    });
+  }, [places, onSelectPlace]);
+
+  if (!apiKey) {
+    const query = encodeURIComponent(`markets in ${center.lat},${center.lng}`);
+    return (
+      <iframe
+        title="Local Markets Map"
+        width="100%"
+        height="100%"
+        style={{ border: 0 }}
+        loading="lazy"
+        src={`https://www.google.com/maps/embed/v1/search?key=${apiKey}&q=${query}&zoom=12`}
+      />
+    );
+  }
+
+  return <div ref={containerRef} className="w-full h-full min-h-[300px]" />;
+};
 
 export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
   location,
@@ -251,40 +371,16 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
 
       {/* Main Grid: Interactive Map + Local Outlet List */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Map View Container */}
         <div className="lg:col-span-7 h-72 sm:h-96 rounded-3xl overflow-hidden border border-gray-200 relative shadow-inner">
-          <APIProvider apiKey={apiKey}>
-            <Map
-              mapId="DEMO_MAP_ID"
-              defaultCenter={{ lat: currentLoc.lat, lng: currentLoc.lng }}
-              center={{ lat: currentLoc.lat, lng: currentLoc.lng }}
-              defaultZoom={12}
-              gestureHandling={'greedy'}
-              disableDefaultUI={false}
-              internalUsageAttributionIds={["gmp_mcp_codeassist_v1_aistudio"]}
-              className="w-full h-full"
-            >
-              {filteredPlaces.map((place) => (
-                <AdvancedMarker
-                  key={place.id}
-                  position={{ lat: place.lat, lng: place.lng }}
-                  onClick={() => {
-                    setSelectedPlace(place);
-                    if (onSelectPlace) onSelectPlace(place);
-                  }}
-                >
-                  <Pin 
-                    background={
-                      place.category === 'market' ? '#37b1f5' : 
-                      place.category === 'supermarket' ? '#4f46e5' : '#e11d48'
-                    } 
-                    borderColor="#ffffff" 
-                    glyphColor="#ffffff" 
-                  />
-                </AdvancedMarker>
-              ))}
-            </Map>
-          </APIProvider>
+          <MarketPlacesGoogleMap
+            apiKey={apiKey}
+            center={{ lat: currentLoc.lat, lng: currentLoc.lng }}
+            places={filteredPlaces}
+            onSelectPlace={(place) => {
+              setSelectedPlace(place);
+              if (onSelectPlace) onSelectPlace(place);
+            }}
+          />
         </div>
 
         {/* Selected Outlet Local Realities Panel */}

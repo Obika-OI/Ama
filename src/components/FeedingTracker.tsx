@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Droplet, Timer, Play, Pause, RotateCcw, Plus, Calendar, Clock, ChevronLeft, AlertCircle, Info, Check, Trash2, Edit3, Heart, PlusCircle, Award, Sparkles, CheckCircle2, Lock, Flame, Dna, Shield, Search, ChevronRight } from 'lucide-react';
+import { Droplet, Timer, Play, Pause, RotateCcw, Plus, Calendar, Clock, ChevronLeft, AlertCircle, Info, Check, Trash2, Edit3, Heart, PlusCircle, Award, CheckCircle2, Lock, Flame, Dna, Shield, Search, ChevronRight } from 'lucide-react';
 import { CircularProgress } from './CircularProgress';
 import { motion, AnimatePresence } from 'motion/react';
 import { COMMON_INGREDIENTS } from '../constants/babyData';
@@ -151,6 +151,7 @@ export const FeedingTracker = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [guideFilter, setGuideFilter] = useState<'all' | 'green' | 'amber' | 'red'>('all');
   const [selectedFood, setSelectedFood] = useState<any | null>(null);
+  const [expandedAlertId, setExpandedAlertId] = useState<string | null>(null);
 
   useEffect(() => {
     let interval: any;
@@ -624,7 +625,7 @@ export const FeedingTracker = ({
 
                 <div className="bg-primary/5 p-3.5 rounded-2xl border border-primary/10">
                   <div className="flex items-center gap-1.5 text-primary mb-1">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                     <span className="text-[9px] font-black uppercase tracking-wider">Vitamins</span>
                   </div>
                   <p className="text-lg font-serif font-black text-gray-800">
@@ -637,7 +638,7 @@ export const FeedingTracker = ({
 
                 <div className="bg-primary/5 p-3.5 rounded-2xl border border-primary/10">
                   <div className="flex items-center gap-1.5 text-primary mb-1">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Heart className="w-3.5 h-3.5" />
                     <span className="text-[9px] font-black uppercase tracking-wider">Variety</span>
                   </div>
                   <p className="text-lg font-serif font-black text-gray-800">{new Set(todayScheduledMeals.map(m => m.meal?.title || m.title)).size} <span className="text-[10px] font-sans font-bold text-gray-400">foods</span></p>
@@ -931,8 +932,8 @@ export const FeedingTracker = ({
                     <h1 className="text-3xl sm:text-4xl font-serif font-black text-gray-900 tracking-tight leading-tight">
                       Is {selectedFood.name} Safe for Babies? Full Feeding Guide
                     </h1>
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
-                      Written by Infant Weaning Safety Experts
+                    <p className="text-xs text-primary font-black uppercase tracking-[0.2em]">
+                      Ama Parenting Companion
                     </p>
                   </div>
 
@@ -1055,19 +1056,169 @@ export const FeedingTracker = ({
             : (
               /* Ingredient Index List & Filter View */
               <>
-                {/* Witty and Rich Safety Guide Intro (at least 320 Words) */}
-                <div className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm space-y-4 text-slate-600 text-sm leading-relaxed text-left">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-black uppercase tracking-wider">
-                    📜 Local Resource Safety Philosophy
+                {/* Safety Hub Banner Link */}
+                <div className="bg-gradient-to-r from-rose-600 to-rose-700 text-white rounded-[2rem] p-6 sm:p-7 shadow-lg shadow-rose-900/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left">
+                  <div className="space-y-1 max-w-xl">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-rose-200" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-rose-200">Emergency & Prevention</span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-serif font-black">
+                      Infant Safety Hub: First Aid & Emergency Guidelines
+                    </h3>
+                    <p className="text-xs text-rose-100 opacity-95 leading-relaxed">
+                      Instant location-aware emergency numbers, pediatric hospital navigation, 4-step Heimlich maneuver for infants, safe sleep checklist, and home babyproofing.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('safety-guide')}
+                    className="px-5 py-3 bg-white text-rose-700 rounded-2xl font-black text-xs uppercase tracking-wider hover:bg-rose-50 transition-all shadow-sm flex items-center gap-2 shrink-0 cursor-pointer border-none"
+                  >
+                    <span>Open Safety Hub</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Summaries of Key Feeding Alerts & In-Depth Advice */}
+                <div className="space-y-3.5 text-left">
+                  <div className="flex items-center justify-between px-1">
+                    <div>
+                      <h3 className="text-base font-serif font-black text-gray-900">
+                        Infant Feeding Safety Alerts & Practical Advice
+                      </h3>
+                      <p className="text-xs text-gray-500 font-medium">
+                        Essential nutritional precautions and safe food preparation practices for infants 0 to 12+ months.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 5 Alert & Advice Cards */}
+                  {[
+                    {
+                      id: 'alert-choking',
+                      title: 'Choking Prevention & Food Texture Rules',
+                      badge: 'High Importance',
+                      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+                      summary: 'Whole round foods, hard vegetables, and slippery solids can block infant airways. Proper cutting and softening prevent choking.',
+                      inDepth: [
+                        'Always slice round foods (grapes, cherry tomatoes, large berries) lengthwise into quarters before offering.',
+                        'Steam or boil hard vegetables (carrots, squash, sweet potatoes) until they yield effortlessly when pressed between thumb and forefinger.',
+                        'Never offer whole nuts, seeds, raw carrot coins, popcorn, or thick spoonfuls of nut butter to children under four.',
+                        'Thin out thick seed pastes and nut butters with warm water, breast milk, or formula to create a smooth, runny puree.',
+                        'Always supervise feedings closely while the infant is seated upright in a supported chair; never feed while crawling, reclining, or running.'
+                      ]
+                    },
+                    {
+                      id: 'alert-botulism',
+                      title: 'Honey & Infant Botulism Warning (Never Under 12 Months)',
+                      badge: 'Strict Avoidance',
+                      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+                      summary: 'Raw honey, baked honey, and unpasteurized syrups contain bacterial spores that can cause severe infant botulism before 12 months.',
+                      inDepth: [
+                        'Honey may harbor dormant spores of Clostridium botulinum. While older digestive tracts neutralize these spores harmlessly, infant gut flora allows them to germinate and release dangerous toxins.',
+                        'Symptoms of infant botulism include constipation, limp muscle tone, head lag, weak crying, and difficulty feeding.',
+                        'Baking or boiling honey in porridges or baked goods does NOT reliably neutralize the heat-resistant spores.',
+                        'Wait until after baby’s first birthday before introducing any honey or foods prepared with honey.'
+                      ]
+                    },
+                    {
+                      id: 'alert-dairy',
+                      title: 'Whole Cow’s Milk & Kidney Solute Load',
+                      badge: 'Age-Appropriate Caution',
+                      badgeColor: 'bg-amber-50 text-amber-800 border-amber-200',
+                      summary: 'Whole cow’s milk should not replace breast milk or formula before age one because its mineral concentration strains infant kidneys.',
+                      inDepth: [
+                        'Whole cow’s milk contains high concentrations of protein and minerals that place an unnecessary filtering load on developing infant kidneys.',
+                        'It lacks sufficient iron, and excessive consumption can cause microscopic intestinal bleeding and iron-deficiency anemia.',
+                        'Small amounts of whole cow’s milk or plain whole-milk yogurt used in cooking or mashing foods after 6 months are acceptable, but breast milk or iron-fortified formula must remain the primary milk drink until 12 months.',
+                        'After 12 months, pasteurized whole cow’s milk may be introduced gradually as part of a varied solid diet.'
+                      ]
+                    },
+                    {
+                      id: 'alert-allergens',
+                      title: 'Top Allergen Introduction Protocol',
+                      badge: 'Safe Weaning Routine',
+                      badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+                      summary: 'Introduce potential allergens (peanut, egg, fish, sesame, soy, dairy, wheat) early starting around 6 months, one food at a time.',
+                      inDepth: [
+                        'Evidence shows that early, routine allergen introduction between 6 and 12 months helps build immune tolerance and lowers lifetime allergy risk.',
+                        'Introduce one allergen at a time in small quantities (e.g., 1/4 teaspoon of smooth peanut powder mixed into cereal or well-cooked mashed egg).',
+                        'Offer allergen tastings in the morning when baby is well-rested, alert, and healthy. Avoid first tastings at night or when the infant has a fever.',
+                        'Wait 2 to 3 days before introducing another new high-priority food, observing for hives, swelling around lips or eyes, persistent vomiting, or breathing changes.',
+                        'Once an allergen is tolerated, keep it regularly in baby’s weekly diet to maintain tolerance.'
+                      ]
+                    },
+                    {
+                      id: 'alert-storage',
+                      title: 'Safe Storage of Local Dry Grains & Tom Brown Weaning Flours',
+                      badge: 'Resourceful Kitchen Safety',
+                      badgeColor: 'bg-blue-50 text-blue-800 border-blue-200',
+                      summary: 'Dry roasting grains halts spoilage and eliminates moisture, allowing dry weaning flour to be safely stored without refrigeration.',
+                      inDepth: [
+                        'Roasting local grains (millet, sorghum, yellow corn, and soybeans) prior to milling drives off residual moisture and naturally deters weevils and molds.',
+                        'Store milled weaning flours in clean, completely dry, airtight glass or food-grade containers in a cool pantry away from floor moisture.',
+                        'Always scoop flour with a clean, dry spoon to avoid introducing moisture that could cause mold growth.',
+                        'Prepare fresh porridge portions per meal. Do not leave warm, cooked porridge standing at room temperature for more than 2 hours. Discard unconsumed porridge left in the feeding bowl.'
+                      ]
+                    }
+                  ].map(alert => {
+                    const isExpanded = expandedAlertId === alert.id;
+                    return (
+                      <div
+                        key={alert.id}
+                        className="bg-white rounded-3xl border border-gray-100 p-5 shadow-xs space-y-3 transition-all"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${alert.badgeColor}`}>
+                              {alert.badge}
+                            </span>
+                            <h4 className="font-bold text-gray-900 text-sm">{alert.title}</h4>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedAlertId(isExpanded ? null : alert.id)}
+                            className="text-xs font-bold text-primary hover:text-primary-dark cursor-pointer border-none bg-transparent flex items-center gap-1 self-start sm:self-auto py-1"
+                          >
+                            <span>{isExpanded ? 'Hide Details' : 'Read In-Depth Advice'}</span>
+                            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                          </button>
+                        </div>
+
+                        <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                          {alert.summary}
+                        </p>
+
+                        {isExpanded && (
+                          <div className="pt-2 border-t border-gray-100 space-y-2 bg-slate-50/70 p-4 rounded-2xl">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+                              Detailed Preparation & Care Guidance
+                            </span>
+                            <ul className="space-y-1.5 text-xs text-slate-700 leading-relaxed list-disc pl-4">
+                              {alert.inDepth.map((point, idx) => (
+                                <li key={idx} className="pl-1">
+                                  {point}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Section Header for Single-Ingredient Safety Index */}
+                <div className="pt-4 border-t border-gray-100 space-y-1 text-left">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-primary">
+                    Single-Ingredient Traffic-Light Index
                   </span>
-                  <p>
-                    Welcome to our comprehensive, community-centered Ingredient Index and Safety Guide. This interactive manual is designed with absolute logic, resourcefulness, and caution to support parents who are navigating baby weaning under real-world economic constraints. We know that in communities like Oyigbo in Rivers State, and other suburban or rural neighborhoods, mothers often do not have luxury budgets for imported baby cereals, premium purees, or specialized dairy formulas. At the same time, many households lack a stable power supply, making it impossible to freeze or preserve wet purees. 
-                  </p>
-                  <p>
-                    This is why our safety guidelines are structured entirely around shelf-stable, dry local resources. We show you how to utilize yellow corn, sorghum, millet, and soybeans to prepare Tom Brown weaning cereal, which can be stored safely in dry glass jars for weeks without refrigeration. We encourage you to actively explore your local natural environment and market stalls to discover cheap, nutrient-dense alternatives that your baby will benefit from, such as mineral-rich Moringa leaf extracts, wild pumpkin leaves, and ground sesame seeds.
-                  </p>
-                  <p>
-                    Our list below details common local ingredients and groups them into logical traffic-light color codes. Safe green items are simple, low-cost local foods that can be easily mashed for your baby. Caution amber items require careful roasting, peeling, or straining to ensure they are soft and gentle on tiny digestive systems. Avoid red items are unsafe for infants under twelve months, such as raw honey, whole nuts, or unboiled cow's milk. Use this index to plan your baby's transition away from breast milk safely, cautiously, and without stress.
+                  <h3 className="text-base font-serif font-black text-gray-900">
+                    Food Safety & Preparation Directory
+                  </h3>
+                  <p className="text-xs text-gray-500 font-medium">
+                    Filter by traffic-light safety rating or search any ingredient for step-by-step preparation, texture rules, and nutrition facts.
                   </p>
                 </div>
 
@@ -1122,29 +1273,61 @@ export const FeedingTracker = ({
                 </div>
 
                 {/* Ingredients Index List */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {COMMON_INGREDIENTS.filter(food => {
                     const matchesSearch = food.name.toLowerCase().includes(searchQuery.toLowerCase());
                     const matchesFilter = guideFilter === 'all' || food.color === guideFilter;
                     return matchesSearch && matchesFilter;
                   }).map(food => (
-                    <button 
+                    <div 
                       key={food.id}
-                      onClick={() => setSelectedFood(food)}
-                      className="w-full bg-card p-5 rounded-[28px] border border-white hover:border-primary/20 shadow-sm hover:scale-[1.01] transition-transform text-left flex justify-between items-center cursor-pointer"
+                      className="bg-card p-6 rounded-[32px] border border-white shadow-sm space-y-4"
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-2.5 h-2.5 rounded-full ${
-                            food.color === 'green' ? 'bg-primary' :
-                            food.color === 'amber' ? 'bg-gray-400' : 'bg-pink-400'
-                          }`} />
-                          <h4 className="font-bold text-gray-800 text-sm">{food.name}</h4>
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-3 h-3 rounded-full ${
+                              food.color === 'green' ? 'bg-primary' :
+                              food.color === 'amber' ? 'bg-amber-400' : 'bg-rose-500'
+                            }`} />
+                            <h4 className="font-serif font-black text-gray-900 text-base">{food.name}</h4>
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-2 py-0.5 rounded-full">
+                            Category: {food.category}
+                          </span>
                         </div>
-                        <p className="text-[10px] text-gray-400 font-medium line-clamp-1 pr-6">{food.warning}</p>
+                        <button
+                          onClick={() => setSelectedFood(food)}
+                          className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none shadow-sm flex items-center gap-2"
+                        >
+                          <span>Read Full Safety Guide</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-gray-300 shrink-0" />
-                    </button>
+
+                      <div className="space-y-3 bg-white/50 p-4 rounded-2xl border border-white/60">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className={`w-4 h-4 shrink-0 mt-0.5 ${
+                            food.color === 'green' ? 'text-emerald-500' :
+                            food.color === 'amber' ? 'text-amber-500' : 'text-rose-500'
+                          }`} />
+                          <div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Key Safety Alert</p>
+                            <p className="text-xs text-gray-700 font-bold leading-relaxed">{food.warning}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-2">
+                          <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Preparation Summary</p>
+                            <p className="text-xs text-gray-600 font-medium leading-relaxed">
+                              {food.prep6m.substring(0, 120)}...
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </>

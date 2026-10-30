@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   ChevronLeft, Plus, Bell, Clock, Edit3, Trash2, CheckCircle2, 
-  Repeat, Calendar, Shield, Sparkles, Filter, Check, AlertTriangle, 
+  Repeat, Calendar, Shield, ShieldCheck, Filter, Check, AlertTriangle, 
   ChevronDown, ChevronUp, Sun, Moon, Info, Eye, Droplet, Heart, Utensils
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';

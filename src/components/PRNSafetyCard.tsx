@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Shield, ShieldAlert, ShieldCheck, Clock, Plus, CheckCircle2, 
-  AlertTriangle, History, Trash2, ChevronDown, ChevronUp, Lock, Sparkles 
+  AlertTriangle, History, Trash2, ChevronDown, ChevronUp, Lock 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Reminder, PRNDoseLog } from '../types';

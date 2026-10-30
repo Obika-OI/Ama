@@ -3,7 +3,7 @@ import { DiaperAnalyzer } from './DiaperAnalyzer';
 import { StorybookGenerator } from './StorybookGenerator';
 import { MemorySlideshow } from './MemorySlideshow';
 import { FlexibleScheduleBuilder } from './FlexibleScheduleBuilder';
-import { Plus, Calendar, Search, Star, Heart, FileText, Printer, Trash2, Edit3, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Sparkles, Award, Shield, Info, Copy, Share2, Crown, ChevronDown, ShoppingBag, Mic, MicOff, Volume2 } from 'lucide-react';
+import { Plus, Calendar, Search, Star, Heart, FileText, Printer, Trash2, Edit3, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Award, Shield, Info, Copy, Share2, Crown, ChevronDown, ShoppingBag, Mic, MicOff, Volume2, Utensils } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { MOCK_MEALS, THEME } from '../constants';
@@ -1100,7 +1100,7 @@ export const Journal = ({  isPremium,
             exit={{ opacity: 0, y: -20 }}
             className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-5 py-3 rounded-full text-xs font-bold shadow-2xl flex items-center gap-2 border border-white/20"
           >
-            <Sparkles className="w-4 h-4 text-primary" />
+            <CheckCircle2 className="w-4 h-4 text-primary" />
             <span>{toastMsg}</span>
           </motion.div>
         )}
@@ -2096,94 +2096,7 @@ export const Journal = ({  isPremium,
         )}
       </AnimatePresence>
 
-      {/* Observation Notes & Shift Handover Coordination */}
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-2 px-2">
-          <h2 className="text-xl font-serif font-black text-gray-800 text-left">Care Notes & Shift Handover</h2>
-          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-            🟢 On Duty: {onDutyCaregiver.caregiverName}
-          </span>
-        </div>
-        <div className="bg-card rounded-[48px] shadow-xl shadow-card/20 border border-white p-8 text-left space-y-5">
-          {/* Quick On-Duty Caregiver Selector */}
-          <div className="bg-white/70 p-4 rounded-3xl border border-gray-100 space-y-2.5">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                Active On-Duty Caregiver (Auto-Assigned from Signed-in Account)
-              </p>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Signed In: {resolvedAccountCaregiver}</span>
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { role: resolvedAccountRole, name: `${resolvedAccountCaregiver} (Active Account)` },
-                { role: 'Grandma', name: 'Grandma (Elder)' },
-                { role: 'Dad', name: 'Dad / Partner' },
-                { role: 'Caregiver', name: 'Caregiver / Nanny' }
-              ].map(cg => (
-                <button
-                  key={cg.name}
-                  type="button"
-                  onClick={() => handleSetOnDutyRole(cg.role, cg.name)}
-                  className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer border transition-all ${
-                    onDutyCaregiver.caregiverName === cg.name || (cg.role === resolvedAccountRole && onDutyCaregiver.caregiverName === resolvedAccountCaregiver)
-                      ? 'bg-primary text-white border-primary shadow-xs'
-                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                  }`}
-                >
-                  {cg.name}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {currentObs ? (
-            <div className="space-y-4">
-              {currentObs.symptoms && (
-                <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Care Observations</p>
-                  <p className="font-medium text-gray-800 text-xs">{currentObs.symptoms}</p>
-                </div>
-              )}
-              {currentObs.notes && (
-                <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Shift Handover & Caregiver Notes</p>
-                  <p className="font-medium text-gray-800 text-xs leading-relaxed">{currentObs.notes}</p>
-                </div>
-              )}
-              {!currentObs.symptoms && !currentObs.notes && (
-                <p className="text-xs text-gray-400 italic px-2">No care observations or handover notes logged for this date.</p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Observations (If Any)</label>
-                <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-xs font-medium outline-none text-gray-700" placeholder="Fussiness, teething drool, mood changes..." value={obsSymptoms} onChange={e => setObsSymptoms(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">End-of-Shift Handover & Caregiver Notes</label>
-                <textarea className="w-full bg-gray-50 border-none rounded-xl p-3 text-xs font-medium outline-none text-gray-700 h-20 resize-none" placeholder="e.g. Baby was fussy at 3 PM, loved the white blanket today..." value={obsNotes} onChange={e => setObsNotes(e.target.value)} />
-              </div>
-              <button onClick={saveObservation} className="w-full py-4 rounded-full bg-primary text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 cursor-pointer border-none">Save Care & Handover Notes</button>
-            </div>
-          )}
-
-          {handoverHistory.length > 0 && (
-            <div className="pt-3 border-t border-gray-100 space-y-2">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent Shift Handovers</p>
-              {handoverHistory.slice(0, 2).map((h: any) => (
-                <div key={h.id} className="bg-white/80 p-3 rounded-2xl border border-gray-100 text-xs text-gray-700">
-                  <span className="font-black text-primary">{h.caregiverName} → {h.recipientName}: </span>
-                  <span>{h.summary}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
           </motion.div>
         )}
 
@@ -2544,7 +2457,7 @@ export const Journal = ({  isPremium,
                     : 'bg-gray-300 cursor-not-allowed shadow-none'
                 }`}
               >
-                <Sparkles className="w-4 h-4" />
+                <Heart className="w-4 h-4" />
                 <span>{editingDiaryId ? 'Update Diary Entry' : `Save Entry for ${selectedDateLabel}`}</span>
               </button>
               
@@ -2809,7 +2722,7 @@ export const Journal = ({  isPremium,
                     onClick={() => isPremium ? onNavigate('ai-meal-planner') : setIsSubscriptionModalOpen(true)}
                     className="px-3.5 py-1.5 rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border-none font-bold flex items-center gap-1 shadow-sm"
                   >
-                    <Sparkles className="w-3 h-3" />
+                    <Utensils className="w-3 h-3" />
                     <span>{isPremium ? 'AI Generate Plan' : '👑 AI Generate Plan'}</span>
                   </button>
                   <button 

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Sparkles, 
   Utensils, 
   ShoppingCart, 
   Calendar, 
@@ -358,7 +357,7 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
             </>
           ) : (
             <>
-              <Sparkles className="w-4 h-4 text-white" />
+              <Utensils className="w-4 h-4 text-white" />
               <span>{planData ? 'Regenerate Age-Optimized Weekly Plan' : 'Generate Full Weekly Plan with AI'}</span>
             </>
           )}

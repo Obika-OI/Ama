@@ -7,7 +7,7 @@ import {
   Plus,
   Search,
   ThumbsUp,
-  Sparkles,
+  Stethoscope,
   CheckCircle2,
   MapPin,
   ChevronLeft,
@@ -24,7 +24,16 @@ import {
   HeartHandshake,
   Calendar,
   Star,
-  Check
+  Check,
+  Briefcase,
+  DollarSign,
+  FileText,
+  UserCheck,
+  PhoneCall,
+  Mail,
+  ShieldAlert,
+  Building,
+  Heart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSEO } from '../utils/seo';
@@ -84,6 +93,46 @@ export interface CommunityChatMessageItem {
   createdAt: string;
 }
 
+export interface IndependentSpecialist {
+  id: string;
+  name: string;
+  title: string;
+  field: string;
+  credentials: string;
+  location: string;
+  feeInfo: string;
+  bio: string;
+  contactInfo: string;
+  registeredAt: string;
+}
+
+export interface MarketplaceProvider {
+  id: string;
+  name: string;
+  title: string;
+  category: string;
+  experienceYears: number;
+  rateInfo: string;
+  location: string;
+  bio: string;
+  availability: string;
+  services?: string[];
+  registeredAt: string;
+}
+
+export interface FamilyCareRequest {
+  id: string;
+  familyName: string;
+  category: string;
+  title: string;
+  description: string;
+  schedule: string;
+  location: string;
+  budget: string;
+  contactInfo?: string;
+  createdAt: string;
+}
+
 interface CommunitySupportScreenProps {
   onBack: () => void;
   userId?: string;
@@ -96,23 +145,34 @@ interface CommunitySupportScreenProps {
 
 const COMMUNITY_FIELDS = [
   'All Fields',
+  'Caregivers & Sitters',
+  'Elder Sitters & Senior Care',
+  'Doulas & Night Care',
+  'Family Financial & Trust Planning',
+  'Career Coaching & Work-Life Balance',
+  'Mental Health & Emotional Wellness',
+  'Family Law & Estate Legal',
+  'Home Organization & Meal Support',
   'Feeding & Weaning',
   'Lactation & Breastfeeding',
   'Sleep & Wake Windows',
-  'Pediatric Health & Fever',
-  'Postpartum & Maternal Care',
-  'Developmental Milestones',
-  'Childcare & Working Parents'
+  'Wellness & Routine',
+  'Developmental Milestones'
 ];
 
 const MEMBER_ROLES = [
   'Parent',
-  'Family Circle',
+  'Family Circle / Grandparent',
+  'Caregiver / Nanny',
+  'Elder Sitter / Companion',
+  'Doula / Birth Worker',
+  'Financial & Trust Advisor',
+  'Career & Family Coach',
+  'Mental Health Counselor',
+  'Family Law / Legal Advisor',
+  'Home Organizer',
   'Lactation Specialist',
-  'Pediatric Care Provider',
-  'Midwife / Doula',
-  'Pediatric Nutritionist',
-  'Caregiver / Nanny'
+  'Wellness Provider'
 ];
 
 const CHAT_ROOMS = [
@@ -120,7 +180,18 @@ const CHAT_ROOMS = [
   { id: 'lactation-nursing', name: '# Lactation & Nursing Support', desc: 'Breastfeeding, pumping, bottle feeds & latch guidance' },
   { id: 'weaning-nutrition', name: '# Weaning & Local Recipes', desc: 'First solids, Tom Brown, purees & food allergies' },
   { id: 'sleep-wake-windows', name: '# Night Feeds & Sleep Lounge', desc: '2 AM check-ins, wake windows & gentle soothing' },
-  { id: 'pediatric-care', name: '# Care Providers & Health Q&A', desc: 'Discuss immunizations, teething & developmental care' }
+  { id: 'pediatric-care', name: '# Care Providers & Health Q&A', desc: 'Teething, routines, immunizations & developmental care' }
+];
+
+const MARKETPLACE_CATEGORIES = [
+  'All Services',
+  'Caregivers & Sitters',
+  'Elder Sitters & Senior Care',
+  'Doulas & Night Care',
+  'Financial & Trust Advisors',
+  'Career & Work-Life Coaches',
+  'Mental Health & Therapy',
+  'Household & Meal Support'
 ];
 
 export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
@@ -133,8 +204,8 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   onNavigate
 }) => {
   useSEO({
-    title: 'Community Support Forum & Parent-Expert Network | Ama Baby Care',
-    description: 'Connect, chat, ask questions, and get answers from other parents, families, lactation consultants, and pediatric care providers across all parenting fields.',
+    title: 'Community Support Forum & Peer Network | Ama Baby Care',
+    description: 'Connect with fellow parents, peer networks, independent specialists, caregivers, and family service providers across all childcare phases.',
     canonicalUrl: 'https://amababycare.com/#community'
   });
 
@@ -148,12 +219,33 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     return stored;
   }, [userId]);
 
-  const [activeTab, setActiveTab] = useState<'forum' | 'omugwo' | 'network' | 'chat' | 'specialist'>('forum');
+  // Main navigation tab order strictly enforced
+  const [activeTab, setActiveTab] = useState<'forum' | 'network' | 'chat' | 'omugwo' | 'specialist'>('forum');
   const [isLoadingState, setIsLoadingState] = useState(false);
 
-  // Omugwo Marketplace state inside Community
-  const [caregiverScheduleFilter, setCaregiverScheduleFilter] = useState<'All' | 'Daily' | 'Weekend' | 'Live-In' | 'Consultation'>('All');
-  const [selectedCaregiverForBooking, setSelectedCaregiverForBooking] = useState<VettedCaregiver | null>(null);
+  // Profile onboarding status
+  const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean>(() => {
+    return localStorage.getItem('ama_comm_profile_created') === 'true';
+  });
+
+  // User's active community identity
+  const [myDisplayName, setMyDisplayName] = useState(() => localStorage.getItem('ama_comm_name') || parentName || 'Parent');
+  const [myRole, setMyRole] = useState(() => localStorage.getItem('ama_comm_role') || 'Parent');
+  const [mySpecialty, setMySpecialty] = useState(() => localStorage.getItem('ama_comm_specialty') || '');
+  const [myBio, setMyBio] = useState(() => localStorage.getItem('ama_comm_bio') || '');
+
+  // Community state synced with server
+  const [posts, setPosts] = useState<CommunityPostItem[]>([]);
+  const [members, setMembers] = useState<CommunityMemberItem[]>([]);
+  const [connections, setConnections] = useState<{ id: string; fromId: string; toId: string; createdAt: string }[]>([]);
+  const [chatMessages, setChatMessages] = useState<CommunityChatMessageItem[]>([]);
+  const [specialists, setSpecialists] = useState<IndependentSpecialist[]>([]);
+  const [marketplaceProviders, setMarketplaceProviders] = useState<MarketplaceProvider[]>([]);
+  const [marketplaceRequests, setMarketplaceRequests] = useState<FamilyCareRequest[]>([]);
+
+  // Care Marketplace State
+  const [marketplaceCategoryFilter, setMarketplaceCategoryFilter] = useState('All Services');
+  const [selectedCaregiverForBooking, setSelectedCaregiverForBooking] = useState<any | null>(null);
   const [bookingScheduleType, setBookingScheduleType] = useState<'Daily' | 'Weekend' | 'Live-In' | 'Nurse/Paediatrician Consultation'>('Daily');
   const [bookingDate, setBookingDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [bookingDietNotes, setBookingDietNotes] = useState('Ji Mmiri Oku (Postpartum Pepper Soup) & Tom Brown pap');
@@ -165,43 +257,6 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
       return [];
     }
   });
-
-  const handleBookCaregiver = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCaregiverForBooking) return;
-    const newBooking = {
-      id: `booking-${Date.now()}`,
-      caregiverId: selectedCaregiverForBooking.id,
-      caregiverName: selectedCaregiverForBooking.name,
-      scheduleType: bookingScheduleType,
-      startDate: bookingDate,
-      notes: bookingDietNotes,
-      status: 'Confirmed & Scheduled',
-      createdAt: new Date().toISOString()
-    };
-    const updated = [newBooking, ...activeBookings];
-    setActiveBookings(updated);
-    try {
-      localStorage.setItem('ama_omugwo_bookings', JSON.stringify(updated));
-    } catch {}
-    setBookingSuccessMsg(`✅ Booking confirmed for ${selectedCaregiverForBooking.name} (${bookingScheduleType})! Caregiver coordinator will contact you.`);
-    setTimeout(() => {
-      setSelectedCaregiverForBooking(null);
-      setBookingSuccessMsg('');
-    }, 3000);
-  };
-
-  // Community state synced with server
-  const [posts, setPosts] = useState<CommunityPostItem[]>([]);
-  const [members, setMembers] = useState<CommunityMemberItem[]>([]);
-  const [connections, setConnections] = useState<{ id: string; fromId: string; toId: string; createdAt: string }[]>([]);
-  const [chatMessages, setChatMessages] = useState<CommunityChatMessageItem[]>([]);
-
-  // User's active community identity
-  const [myDisplayName, setMyDisplayName] = useState(() => localStorage.getItem('ama_comm_name') || parentName || 'Parent');
-  const [myRole, setMyRole] = useState(() => localStorage.getItem('ama_comm_role') || 'Parent');
-  const [mySpecialty, setMySpecialty] = useState(() => localStorage.getItem('ama_comm_specialty') || '');
-  const [myBio, setMyBio] = useState(() => localStorage.getItem('ama_comm_bio') || '');
 
   // Forum state
   const [selectedField, setSelectedField] = useState('All Fields');
@@ -247,6 +302,42 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   } | null>(null);
   const [specialistError, setSpecialistError] = useState('');
 
+  // Modal open states for new registrations & requests
+  const [isSpecialistRegisterModalOpen, setIsSpecialistRegisterModalOpen] = useState(false);
+  const [isProviderRegisterModalOpen, setIsProviderRegisterModalOpen] = useState(false);
+  const [isCareRequestModalOpen, setIsCareRequestModalOpen] = useState(false);
+
+  // Registration Form States
+  const [specName, setSpecName] = useState('');
+  const [specTitle, setSpecTitle] = useState('');
+  const [specField, setSpecField] = useState('Lactation & Breastfeeding');
+  const [specCredentials, setSpecCredentials] = useState('');
+  const [specLocation, setSpecLocation] = useState(userLocation);
+  const [specFeeInfo, setSpecFeeInfo] = useState('Independent Consultation / Fee Varies');
+  const [specBio, setSpecBio] = useState('');
+  const [specContactInfo, setSpecContactInfo] = useState('');
+  const [isSubmittingSpecialist, setIsSubmittingSpecialist] = useState(false);
+
+  const [provName, setProvName] = useState('');
+  const [provTitle, setProvTitle] = useState('');
+  const [provCategory, setProvCategory] = useState('Caregivers & Sitters');
+  const [provExpYears, setProvExpYears] = useState('3');
+  const [provRateInfo, setProvRateInfo] = useState('$25/hr or Negotiable');
+  const [provLocation, setProvLocation] = useState(userLocation);
+  const [provBio, setProvBio] = useState('');
+  const [provAvailability, setProvAvailability] = useState('Daily & Night Support');
+  const [isSubmittingProvider, setIsSubmittingProvider] = useState(false);
+
+  const [reqFamilyName, setReqFamilyName] = useState(myDisplayName || parentName || 'Family');
+  const [reqCategory, setReqCategory] = useState('Caregivers & Sitters');
+  const [reqTitle, setReqTitle] = useState('');
+  const [reqDescription, setReqDescription] = useState('');
+  const [reqSchedule, setReqSchedule] = useState('Immediate / Flexible');
+  const [reqLocation, setReqLocation] = useState(userLocation);
+  const [reqBudget, setReqBudget] = useState('Market Rate / Negotiable');
+  const [reqContactInfo, setReqContactInfo] = useState('');
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+
   const fetchCommunityState = async () => {
     setIsLoadingState(true);
     try {
@@ -257,6 +348,9 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         if (Array.isArray(data.members)) setMembers(data.members);
         if (Array.isArray(data.connections)) setConnections(data.connections);
         if (Array.isArray(data.messages)) setChatMessages(data.messages);
+        if (Array.isArray(data.specialists)) setSpecialists(data.specialists);
+        if (Array.isArray(data.marketplaceProviders)) setMarketplaceProviders(data.marketplaceProviders);
+        if (Array.isArray(data.marketplaceRequests)) setMarketplaceRequests(data.marketplaceRequests);
       }
     } catch (err) {
       console.warn('Could not fetch community state:', err);
@@ -269,7 +363,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     fetchCommunityState();
   }, []);
 
-  // Poll chat messages when on the Live Chat tab
+  // Poll chat messages when on Live Rooms tab
   useEffect(() => {
     if (activeTab !== 'chat') return;
     const interval = setInterval(async () => {
@@ -282,7 +376,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
           }
         }
       } catch {}
-    }, 5000);
+    }, 4000);
     return () => clearInterval(interval);
   }, [activeTab]);
 
@@ -332,6 +426,16 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
       return true;
     });
   }, [members, networkSearch, networkRoleFilter]);
+
+  // Active Connections List for the user
+  const myConnectionsList = useMemo(() => {
+    const connectedMemberIds = new Set(
+      connections
+        .filter(c => c.fromId === effectiveUserId || c.toId === effectiveUserId)
+        .map(c => (c.fromId === effectiveUserId ? c.toId : c.fromId))
+    );
+    return members.filter(m => connectedMemberIds.has(m.id));
+  }, [connections, members, effectiveUserId]);
 
   const currentRoomMessages = useMemo(() => {
     return chatMessages.filter(m => m.roomId === activeRoomId);
@@ -467,6 +571,8 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     localStorage.setItem('ama_comm_role', myRole);
     localStorage.setItem('ama_comm_specialty', mySpecialty.trim());
     localStorage.setItem('ama_comm_bio', myBio.trim());
+    localStorage.setItem('ama_comm_profile_created', 'true');
+    setHasCompletedProfile(true);
 
     try {
       const res = await fetch('/api/community/members', {
@@ -485,11 +591,11 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
       const data = await res.json();
       if (res.ok && Array.isArray(data.members)) {
         setMembers(data.members);
-        setProfileSavedNotice('Your profile is live in the Parent & Care Provider Network!');
+        setProfileSavedNotice('Your Peer Network Profile is active!');
         setTimeout(() => {
           setIsProfileModalOpen(false);
           setProfileSavedNotice('');
-        }, 1000);
+        }, 800);
       }
     } catch {
       setIsProfileModalOpen(false);
@@ -515,10 +621,10 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     } catch {}
   };
 
-  const handleOpenDirectChat = (targetMember: CommunityMemberItem) => {
+  const handleOpenDirectChat = (targetMember: { id: string; name: string; role?: string }) => {
     const pair = [effectiveUserId, targetMember.id].sort().join('--');
     const dmRoomId = `dm-${pair}`;
-    setCustomDmRoom({ id: dmRoomId, name: `Chat with ${targetMember.name} (${targetMember.role})` });
+    setCustomDmRoom({ id: dmRoomId, name: `Direct Chat with ${targetMember.name}` });
     setActiveRoomId(dmRoomId);
     setActiveTab('chat');
   };
@@ -595,6 +701,132 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     }
   };
 
+  const handleRegisterSpecialist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!specName.trim() || !specTitle.trim()) return;
+    setIsSubmittingSpecialist(true);
+    try {
+      const res = await fetch('/api/community/specialists/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: specName.trim(),
+          title: specTitle.trim(),
+          field: specField,
+          credentials: specCredentials.trim(),
+          location: specLocation.trim(),
+          feeInfo: specFeeInfo.trim(),
+          bio: specBio.trim(),
+          contactInfo: specContactInfo.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.specialists)) {
+        setSpecialists(data.specialists);
+        setIsSpecialistRegisterModalOpen(false);
+        setSpecName('');
+        setSpecTitle('');
+        setSpecCredentials('');
+        setSpecBio('');
+        setSpecContactInfo('');
+      }
+    } catch (err) {
+      console.warn('Specialist registration failed:', err);
+    } finally {
+      setIsSubmittingSpecialist(false);
+    }
+  };
+
+  const handleRegisterProvider = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!provName.trim() || !provTitle.trim()) return;
+    setIsSubmittingProvider(true);
+    try {
+      const res = await fetch('/api/community/marketplace/providers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: provName.trim(),
+          title: provTitle.trim(),
+          category: provCategory,
+          experienceYears: Number(provExpYears) || 1,
+          rateInfo: provRateInfo.trim(),
+          location: provLocation.trim(),
+          bio: provBio.trim(),
+          availability: provAvailability.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.providers)) {
+        setMarketplaceProviders(data.providers);
+        setIsProviderRegisterModalOpen(false);
+        setProvName('');
+        setProvTitle('');
+        setProvBio('');
+      }
+    } catch (err) {
+      console.warn('Provider registration failed:', err);
+    } finally {
+      setIsSubmittingProvider(false);
+    }
+  };
+
+  const handlePostCareRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reqTitle.trim() || !reqDescription.trim()) return;
+    setIsSubmittingRequest(true);
+    try {
+      const res = await fetch('/api/community/marketplace/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          familyName: reqFamilyName.trim() || myDisplayName || 'Family',
+          category: reqCategory,
+          title: reqTitle.trim(),
+          description: reqDescription.trim(),
+          schedule: reqSchedule.trim(),
+          location: reqLocation.trim(),
+          budget: reqBudget.trim(),
+          contactInfo: reqContactInfo.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.requests)) {
+        setMarketplaceRequests(data.requests);
+        setIsCareRequestModalOpen(false);
+        setReqTitle('');
+        setReqDescription('');
+      }
+    } catch (err) {
+      console.warn('Care request submission failed:', err);
+    } finally {
+      setIsSubmittingRequest(false);
+    }
+  };
+
+  const handleBookCaregiver = (caregiverItem: any) => {
+    const newBooking = {
+      id: `booking-${Date.now()}`,
+      caregiverId: caregiverItem.id,
+      caregiverName: caregiverItem.name,
+      scheduleType: bookingScheduleType,
+      startDate: bookingDate,
+      notes: bookingDietNotes,
+      status: 'Scheduled & Confirmed',
+      createdAt: new Date().toISOString()
+    };
+    const updated = [newBooking, ...activeBookings];
+    setActiveBookings(updated);
+    try {
+      localStorage.setItem('ama_omugwo_bookings', JSON.stringify(updated));
+    } catch {}
+    setBookingSuccessMsg(`✅ Care request confirmed for ${caregiverItem.name}! Connection coordinates sent.`);
+    setTimeout(() => {
+      setSelectedCaregiverForBooking(null);
+      setBookingSuccessMsg('');
+    }, 3000);
+  };
+
   const isConnectedWith = (memberId: string) =>
     connections.some(
       c =>
@@ -617,17 +849,17 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                Parent, Family & Care Provider Network
+                Parent, Peer & Care Community
               </span>
               <span className="text-[10px] font-bold text-gray-600 bg-white px-2.5 py-0.5 rounded-full border border-gray-100">
-                Acting as: {myDisplayName} ({myRole})
+                Active: {myDisplayName} ({myRole})
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-serif font-black text-gray-900 mt-1">
-              Community Support & Expert Forum
+              Community Village & Care Ecosystem
             </h1>
             <p className="text-xs text-gray-600 font-medium mt-0.5">
-              Connect, chat, ask questions, and get answers from other parents, families, and care providers across all useful fields.
+              Connect with parents, explore care providers, join live rooms, and consult independent specialists.
             </p>
           </div>
         </div>
@@ -651,55 +883,141 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         </div>
       </header>
 
-      {/* Community Social Media Platform Policy & Medical Disclaimer */}
+      {/* Community Social Platform Policy & Third-Party Notice */}
       <div className="bg-amber-50/90 border border-amber-200/90 rounded-3xl p-4 sm:p-5 flex items-start gap-3 shadow-2xs">
         <ShieldCheck className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
         <div className="space-y-1 text-xs">
           <p className="font-black text-amber-950 uppercase tracking-wider text-[11px]">
-            Community Social Platform & Independence Policy
+            Community Platform Policy & Independence Notice
           </p>
           <p className="text-amber-900 leading-relaxed">
-            Ama Community is a dedicated parenting social platform. Discussions, posts, shared tips, and Omugwo marketplace listings are created independently by community members and families; third-party user content is independent and does not constitute medical advice. Only clinicians and certified consultants displaying the <strong className="text-emerald-800 font-black">✓ Verified Ama Specialist</strong> badge are officially vetted and associated with our care advisory board.
+            Ama Community is an open peer-to-peer parent, family, and caregiver support network. <strong>Please note that we currently have no medical, legal, or health experts directly associated or affiliated with the app yet.</strong> All specialists, advice providers, caregivers, and marketplace listings are independent third-party community members or practitioners. Content shared here is generated independently for peer support, education, and connection, and does not constitute formal medical or professional advice from the app company. Always consult your personal primary physician or emergency services for urgent health matters.
           </p>
         </div>
       </div>
 
-      {/* Main Navigation Tabs - Sleek Social Media Navigation */}
-      <div className="bg-white p-1.5 sm:p-2 rounded-2xl border border-gray-100 shadow-xs flex items-center gap-1 overflow-x-auto no-scrollbar">
-        {[
-          { id: 'forum', label: 'Feed', count: posts.length, icon: MessageSquare },
-          { id: 'omugwo', label: 'Care Marketplace', count: null, icon: HeartHandshake },
-          { id: 'network', label: 'Parent Network', count: members.length, icon: Users },
-          { id: 'chat', label: 'Live Chat', count: chatMessages.length, icon: MessageCircle },
-          { id: 'specialist', label: 'Ask Specialist', count: null, icon: Sparkles }
-        ].map(tab => {
-          const Icon = tab.icon;
-          const active = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 min-w-max px-3.5 sm:px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                active
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-gray-500'}`} />
-              <span>{tab.label}</span>
-              {tab.count !== null && tab.count > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                  active ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* Profile Onboarding Gate: Must be completed BEFORE starting to use community network */}
+      {!hasCompletedProfile ? (
+        <div className="bg-gradient-to-r from-emerald-800 to-teal-900 text-white rounded-[32px] p-6 sm:p-10 shadow-xl space-y-6 max-w-2xl mx-auto my-4 text-left">
+          <div className="space-y-2">
+            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-400/20 text-emerald-200 border border-emerald-300/30 inline-block">
+              One-Time Onboarding Required
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-serif font-black text-emerald-100">
+              Create Your Network Profile & Join the Village
+            </h2>
+            <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed font-normal">
+              Before browsing community discussions, connecting with peers, chatting in live rooms, or exploring the care marketplace, please set up your profile so fellow parents and caregivers know who you are.
+            </p>
+          </div>
 
-      {/* TAB 1: Q&A FORUM */}
+          <form onSubmit={handleSaveMemberProfile} className="bg-white text-gray-900 p-6 rounded-3xl space-y-4 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-500 block mb-1">Your Display Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={myDisplayName}
+                  onChange={e => setMyDisplayName(e.target.value)}
+                  placeholder="e.g. Sarah O., Chinedu K."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-gray-800 outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-500 block mb-1">Your Role *</label>
+                <select
+                  value={myRole}
+                  onChange={e => setMyRole(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-gray-800 outline-none focus:border-primary"
+                >
+                  {MEMBER_ROLES.map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-500 block mb-1">Location / City</label>
+                <input
+                  type="text"
+                  value={userLocation}
+                  disabled
+                  className="w-full bg-gray-100 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-600"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-500 block mb-1">Specialty / Family Context</label>
+                <input
+                  type="text"
+                  value={mySpecialty}
+                  onChange={e => setMySpecialty(e.target.value)}
+                  placeholder="e.g. Parent of 6mo, Doula, Caregiver..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-800 outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase text-gray-500 block mb-1">Short Bio & Introduction</label>
+              <textarea
+                rows={3}
+                value={myBio}
+                onChange={e => setMyBio(e.target.value)}
+                placeholder="Share a brief note about yourself, your childcare journey, or what you offer..."
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-gray-800 outline-none focus:border-primary resize-none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSavingProfile}
+              className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer shadow-md transition-all disabled:opacity-60"
+            >
+              {isSavingProfile ? 'Creating Profile...' : 'Complete Profile & Unlock Community Network'}
+            </button>
+          </form>
+        </div>
+      ) : (
+        <>
+          {/* Main Navigation Tabs: Feed -> Peer Network -> Live Rooms -> Care Marketplace -> Ask Specialist */}
+          <div className="bg-white p-1.5 sm:p-2 rounded-2xl border border-gray-100 shadow-xs flex items-center gap-1 overflow-x-auto no-scrollbar">
+            {[
+              { id: 'forum', label: 'Feed', count: posts.length, icon: MessageSquare },
+              { id: 'network', label: 'Peer Network', count: members.length, icon: Users },
+              { id: 'chat', label: 'Live Rooms', count: chatMessages.length, icon: MessageCircle },
+              { id: 'omugwo', label: 'Care Marketplace', count: null, icon: HeartHandshake },
+              { id: 'specialist', label: 'Ask Specialist', count: null, icon: Stethoscope }
+            ].map(tab => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex-1 min-w-max px-3.5 sm:px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    active
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-gray-500'}`} />
+                  <span>{tab.label}</span>
+                  {tab.count !== null && tab.count > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      active ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+      {/* TAB 1: FEED (Q&A FORUM) */}
       {activeTab === 'forum' && (
         <div className="space-y-5">
           {/* Search & Topic Filters */}
@@ -711,7 +1029,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   type="text"
                   value={forumSearch}
                   onChange={e => setForumSearch(e.target.value)}
-                  placeholder="Search parent & expert discussions by topic, keyword, or question..."
+                  placeholder="Search parent & specialist discussions by topic, keyword, or question..."
                   className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-primary"
                 />
               </div>
@@ -720,7 +1038,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 {[
                   { id: 'all', label: 'All' },
                   { id: 'unanswered', label: 'Needs Answer' },
-                  { id: 'expert', label: 'Expert Answered' },
+                  { id: 'expert', label: 'Specialist Answered' },
                   { id: 'popular', label: 'Most Helpful' }
                 ].map(f => (
                   <button
@@ -728,269 +1046,232 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     onClick={() => setForumFilter(f.id as any)}
                     className={`px-3 py-2 rounded-xl text-xs font-bold shrink-0 cursor-pointer border transition-all ${
                       forumFilter === f.id
-                        ? 'bg-gray-900 text-white border-gray-900'
-                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                        ? 'bg-primary text-white border-primary shadow-2xs'
+                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                     }`}
                   >
                     {f.label}
                   </button>
                 ))}
-                <button
-                  onClick={fetchCommunityState}
-                  className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 border-none cursor-pointer"
-                  title="Refresh discussions"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isLoadingState ? 'animate-spin' : ''}`} />
-                </button>
               </div>
             </div>
 
-            {/* Field Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-              {COMMUNITY_FIELDS.map(field => (
+            {/* Field Category Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+              {COMMUNITY_FIELDS.map(f => (
                 <button
-                  key={field}
-                  onClick={() => setSelectedField(field)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 cursor-pointer border transition-all ${
-                    selectedField === field
-                      ? 'bg-primary text-white border-primary shadow-2xs'
-                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                  key={f}
+                  onClick={() => setSelectedField(f)}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold shrink-0 cursor-pointer transition-all border ${
+                    selectedField === f
+                      ? 'bg-gray-900 text-white border-gray-900'
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                   }`}
                 >
-                  {field}
+                  {f}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Forum Threads List */}
+          {/* Forum Posts List */}
           {filteredPosts.length > 0 ? (
             <div className="space-y-4">
               {filteredPosts.map(post => {
                 const isExpanded = expandedPostId === post.id;
-                const hasUpvoted = post.upvotes.includes(effectiveUserId);
                 const hasExpertReply = post.replies.some(r => r.isExpertResponse);
+                const isMyPost = post.authorId === effectiveUserId;
 
                 return (
                   <div
                     key={post.id}
-                    className="bg-white rounded-[32px] p-5 sm:p-6 border border-gray-100 shadow-sm space-y-4 transition-all"
+                    className="bg-white rounded-[32px] p-5 sm:p-6 border border-gray-100 shadow-xs space-y-4 transition-all hover:border-gray-200"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary">
-                          {post.category}
-                        </span>
-                        {hasExpertReply && (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 flex items-center gap-1">
-                            <ShieldCheck className="w-3.5 h-3.5" />
-                            <span>Specialist Answered</span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                            {post.category}
                           </span>
-                        )}
-                        {post.babyAgeContext && (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600">
-                            👶 {post.babyAgeContext}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 text-[11px] text-gray-400 font-semibold">
-                        <span>{new Date(post.createdAt).toLocaleString()}</span>
-                        {post.authorId === effectiveUserId && (
-                          <button
-                            onClick={() => handleDeletePost(post.id)}
-                            className="p-1.5 rounded-lg hover:bg-rose-50 text-gray-400 hover:text-rose-600 border-none bg-transparent cursor-pointer"
-                            title="Delete my post"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div
-                      onClick={() => setExpandedPostId(isExpanded ? null : post.id)}
-                      className="cursor-pointer space-y-2"
-                    >
-                      <h3 className="text-lg font-serif font-black text-gray-900 hover:text-primary transition-colors">
-                        {post.title}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                        {post.content}
-                      </p>
-                    </div>
-
-                    {/* Author & Action Footer */}
-                    <div className="pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 text-xs">
-                        <div className="w-7 h-7 rounded-full bg-primary/15 text-primary font-black flex items-center justify-center text-xs">
-                          {post.authorName.charAt(0).toUpperCase()}
+                          {hasExpertReply && (
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                              <ShieldCheck className="w-3 h-3 text-emerald-700" />
+                              <span>Clinical Reference Attached</span>
+                            </span>
+                          )}
+                          {post.babyAgeContext && (
+                            <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                              Baby: {post.babyAgeContext}
+                            </span>
+                          )}
                         </div>
-                        <span className="font-bold text-gray-800">{post.authorName}</span>
-                        {['Pediatric Care Provider', 'Lactation Specialist', 'Pediatric Nutritionist', 'Midwife / Doula'].includes(post.authorRole) ? (
-                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
-                            <Check className="w-3 h-3 text-emerald-700" />
-                            <span>✓ Verified Ama Specialist</span>
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md bg-gray-100 text-gray-600">
-                            {post.authorRole} • Independent Post
-                          </span>
-                        )}
-                        {post.authorLocation && (
-                          <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
-                            <MapPin className="w-3 h-3" /> {post.authorLocation.split(',')[0]}
-                          </span>
-                        )}
+
+                        <h3 className="text-base sm:text-lg font-serif font-black text-gray-900 leading-snug">
+                          {post.title}
+                        </h3>
+
+                        <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                          <span className="font-bold text-gray-800">{post.authorName}</span>
+                          <span>•</span>
+                          <span>{post.authorRole}</span>
+                          {post.authorLocation && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center gap-0.5">
+                                <MapPin className="w-3 h-3 text-gray-400" />
+                                {post.authorLocation}
+                              </span>
+                            </>
+                          )}
+                          <span>•</span>
+                          <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                        </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
+                      {isMyPost && (
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
+                          className="p-1.5 rounded-xl text-gray-400 hover:text-rose-600 hover:bg-rose-50 border-none cursor-pointer"
+                          title="Delete Post"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap font-medium">
+                      {post.content}
+                    </p>
+
+                    {/* Post Footer Actions */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100 text-xs">
+                      <div className="flex items-center gap-3">
                         <button
                           onClick={() => handleToggleUpvote(post.id)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border cursor-pointer transition-all ${
-                            hasUpvoted
-                              ? 'bg-primary text-white border-primary'
-                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all border ${
+                            post.upvotes.includes(effectiveUserId)
+                              ? 'bg-primary text-white border-primary shadow-2xs'
+                              : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
                           }`}
                         >
                           <ThumbsUp className="w-3.5 h-3.5" />
-                          <span>Helpful ({post.upvotes.length})</span>
+                          <span>{post.upvotes.length} Helped</span>
                         </button>
 
                         <button
                           onClick={() => setExpandedPostId(isExpanded ? null : post.id)}
-                          className="px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 font-bold cursor-pointer"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>{post.replies.length} {post.replies.length === 1 ? 'Answer' : 'Answers'}</span>
+                          <MessageSquare className="w-3.5 h-3.5 text-gray-500" />
+                          <span>{post.replies.length} Replies</span>
                         </button>
+                      </div>
 
+                      {!hasExpertReply && (
                         <button
                           onClick={() => handleRequestSpecialistOnPost(post.id)}
                           disabled={requestingSpecialistId === post.id}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-extrabold cursor-pointer text-[11px]"
                         >
                           {requestingSpecialistId === post.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
                           ) : (
-                            <Sparkles className="w-3.5 h-3.5" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
                           )}
-                          <span>Get Specialist Synthesis</span>
+                          <span>Attach Evidence Synthesis</span>
                         </button>
-                      </div>
+                      )}
                     </div>
 
-                    {/* Expanded Replies & Reply Composer */}
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="pt-4 border-t border-gray-100 space-y-3"
-                        >
-                          {post.replies.length > 0 ? (
-                            <div className="space-y-3">
-                              {post.replies.map(reply => (
-                                <div
-                                  key={reply.id}
-                                  className={`p-4 rounded-2xl border space-y-2 ${
-                                    reply.isExpertResponse
-                                      ? 'bg-emerald-50/60 border-emerald-200'
-                                      : 'bg-gray-50 border-gray-100'
-                                  }`}
-                                >
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs font-black text-gray-900">
-                                        {reply.authorName}
+                    {/* Thread Replies Section */}
+                    {isExpanded && (
+                      <div className="pt-3 space-y-3 bg-gray-50/70 p-4 rounded-2xl border border-gray-100">
+                        {post.replies.length > 0 ? (
+                          <div className="space-y-3">
+                            {post.replies.map(reply => (
+                              <div
+                                key={reply.id}
+                                className={`p-3.5 rounded-2xl space-y-2 border text-xs ${
+                                  reply.isExpertResponse
+                                    ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                                    : 'bg-white border-gray-200 text-gray-800'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-black">{reply.authorName}</span>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-200/80 text-gray-700">
+                                      {reply.authorRole}
+                                    </span>
+                                    {reply.isExpertResponse && (
+                                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-700 text-white flex items-center gap-1">
+                                        <ShieldCheck className="w-3 h-3" /> Grounded Synthesis
                                       </span>
-                                      <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
-                                        reply.isExpertResponse
-                                          ? 'bg-emerald-600 text-white'
-                                          : 'bg-white text-gray-600 border border-gray-200'
-                                      }`}>
-                                        {reply.isExpertResponse ? (
-                                          <>
-                                            <ShieldCheck className="w-3 h-3 text-emerald-100" />
-                                            <span>✓ Verified Ama Specialist ({reply.authorRole})</span>
-                                          </>
-                                        ) : (
-                                          <span>{reply.authorRole} • Community Member</span>
-                                        )}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[10px] text-gray-400">
-                                        {new Date(reply.createdAt).toLocaleString()}
-                                      </span>
-                                      <button
-                                        onClick={() => handleToggleUpvote(post.id, reply.id)}
-                                        className="px-2 py-1 rounded-lg bg-white border border-gray-200 text-[10px] font-bold text-gray-700 flex items-center gap-1 cursor-pointer"
-                                      >
-                                        <ThumbsUp className="w-3 h-3" />
-                                        <span>{reply.upvotes.length}</span>
-                                      </button>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-gray-400">
+                                    {new Date(reply.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+
+                                <p className="leading-relaxed font-medium whitespace-pre-wrap">
+                                  {reply.content}
+                                </p>
+
+                                {reply.sources && reply.sources.length > 0 && (
+                                  <div className="pt-2 border-t border-emerald-200/60 space-y-1">
+                                    <p className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                                      Evidence Grounding Sources:
+                                    </p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {reply.sources.map((src, idx) => (
+                                        <a
+                                          key={idx}
+                                          href={src.uri}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-[10px] font-bold text-emerald-800 hover:underline bg-white px-2.5 py-1 rounded-lg border border-emerald-200 inline-flex items-center gap-1"
+                                        >
+                                          <span>{src.title}</span>
+                                          <ExternalLink className="w-2.5 h-2.5" />
+                                        </a>
+                                      ))}
                                     </div>
                                   </div>
-
-                                  <p className="text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                                    {reply.content}
-                                  </p>
-
-                                  {reply.sources && reply.sources.length > 0 && (
-                                    <div className="pt-2 border-t border-emerald-200/60 space-y-1">
-                                      <p className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
-                                        Verified Reference Sources:
-                                      </p>
-                                      <div className="flex flex-wrap gap-2">
-                                        {reply.sources.map((src, i) => (
-                                          <a
-                                            key={i}
-                                            href={src.uri}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-[11px] font-bold text-emerald-700 hover:underline flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 no-underline"
-                                          >
-                                            <span>{src.title}</span>
-                                            <ExternalLink className="w-3 h-3" />
-                                          </a>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-gray-500 italic">
-                              No parent or care provider answers yet. Share your experience or tap "Get Specialist Synthesis" above.
-                            </p>
-                          )}
-
-                          {/* Add Answer Input */}
-                          <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                            <input
-                              type="text"
-                              value={replyDrafts[post.id] || ''}
-                              onChange={e =>
-                                setReplyDrafts(prev => ({ ...prev, [post.id]: e.target.value }))
-                              }
-                              placeholder={`Write a helpful answer as ${myDisplayName} (${myRole})...`}
-                              className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-primary"
-                            />
-                            <button
-                              onClick={() => handleAddReply(post.id)}
-                              disabled={submittingReplyId === post.id}
-                              className="px-5 py-2.5 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border-none cursor-pointer shrink-0"
-                            >
-                              <Send className="w-3.5 h-3.5" />
-                              <span>{submittingReplyId === post.id ? 'Posting...' : 'Post Answer'}</span>
-                            </button>
+                                )}
+                              </div>
+                            ))}
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                        ) : (
+                          <p className="text-xs text-gray-500 italic">No answers or comments yet. Be the first to answer!</p>
+                        )}
+
+                        {/* Reply Box */}
+                        <div className="pt-2 flex gap-2">
+                          <input
+                            type="text"
+                            value={replyDrafts[post.id] || ''}
+                            onChange={e =>
+                              setReplyDrafts(prev => ({ ...prev, [post.id]: e.target.value }))
+                            }
+                            placeholder="Write an answer or share your experience..."
+                            className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 outline-none focus:border-primary"
+                          />
+                          <button
+                            onClick={() => handleAddReply(post.id)}
+                            disabled={submittingReplyId === post.id || !(replyDrafts[post.id] || '').trim()}
+                            className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-black uppercase tracking-wider disabled:opacity-50 border-none cursor-pointer flex items-center gap-1"
+                          >
+                            {submittingReplyId === post.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Send className="w-3.5 h-3.5" />
+                            )}
+                            <span>Reply</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -1005,7 +1286,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   Start the First Discussion in {selectedField}
                 </h3>
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  Ask a real question about feeding, sleep, lactation, or infant health to get answers from other parents and evidence-based specialists.
+                  Ask a question about feeding, sleep, lactation, or infant health to get answers from other parents and evidence-based specialists.
                 </p>
               </div>
               <button
@@ -1020,314 +1301,108 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         </div>
       )}
 
-      {/* TAB: OMUGWO SOCIAL MARKETPLACE */}
-      {activeTab === 'omugwo' && (
+      {/* TAB 2: PEER NETWORK */}
+      {activeTab === 'network' && (
         <div className="space-y-6">
-          {/* Marketplace Intro Header */}
-          <div className="bg-gradient-to-r from-amber-900 to-amber-800 text-white rounded-[32px] p-6 sm:p-8 shadow-md relative overflow-hidden">
-            <div className="max-w-2xl space-y-2 relative z-10">
-              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-400/20 text-amber-200 border border-amber-300/30 inline-block">
-                Cultural Postpartum Care Circle
-              </span>
-              <h2 className="text-xl sm:text-2xl font-serif font-black text-amber-100">
-                Omugwo Social Marketplace
-              </h2>
-              <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed font-normal">
-                Discover and connect with vetted traditional postpartum caregivers, elder sitters, and doulas. Our caregivers specialize in African postpartum recuperation, traditional belly binding, nourishing herbal soups (Ji Mmiri Oku), and night infant soothing.
-              </p>
-            </div>
-            <div className="absolute right-4 bottom-2 text-7xl opacity-10 select-none pointer-events-none">
-              🌿
-            </div>
-          </div>
-
-          {/* Schedule Filter and Booking Feedback */}
-          <div className="bg-white rounded-[32px] p-5 border border-gray-100 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-              <span className="text-xs font-black text-gray-500 uppercase tracking-wider shrink-0 flex items-center gap-1">
-                <Filter className="w-3.5 h-3.5 text-gray-400" />
-                Schedule:
-              </span>
-              {(['All', 'Daily', 'Weekend', 'Live-In', 'Consultation'] as const).map(sch => (
-                <button
-                  key={sch}
-                  onClick={() => setCaregiverScheduleFilter(sch)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 cursor-pointer border transition-all ${
-                    caregiverScheduleFilter === sch
-                      ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
-                      : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                  }`}
-                >
-                  {sch === 'All' ? 'All Schedules' : sch}
-                </button>
-              ))}
-            </div>
-
-            {bookingSuccessMsg && (
-              <div className="px-4 py-2 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold animate-fadeIn">
-                {bookingSuccessMsg}
+          {/* Connected Peers Section: How to message them & active connections */}
+          <div className="bg-white rounded-[32px] p-5 sm:p-6 border border-gray-100 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+              <div>
+                <h2 className="text-lg font-serif font-black text-gray-900 flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-emerald-600" />
+                  <span>My Village Connections ({myConnectionsList.length})</span>
+                </h2>
+                <p className="text-xs text-gray-600 font-medium">
+                  Connect with parents, nannies, and family advisors. Tap <strong>Message Connection</strong> on any connection to open an instant 1-on-1 private room in Live Rooms.
+                </p>
               </div>
-            )}
-          </div>
+            </div>
 
-          {/* Active Bookings (if any) */}
-          {activeBookings.length > 0 && (
-            <div className="bg-amber-50/70 border border-amber-200 rounded-[28px] p-5 space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-amber-700" />
-                Your Scheduled Caregiver Bookings ({activeBookings.length})
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {activeBookings.map((b: any) => (
-                  <div key={b.id} className="bg-white rounded-2xl p-4 border border-amber-100 shadow-xs space-y-1.5 text-xs">
-                    <div className="flex justify-between items-start">
-                      <span className="font-black text-gray-900">{b.caregiverName}</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
-                        {b.status}
-                      </span>
+            {myConnectionsList.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {myConnectionsList.map(peer => (
+                  <div key={peer.id} className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/90 space-y-3 text-xs flex flex-col justify-between shadow-2xs">
+                    <div className="space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="font-black text-gray-900 text-sm">{peer.name}</h4>
+                          <span className="text-[10px] text-gray-500 font-semibold">{peer.location || userLocation}</span>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 shrink-0">
+                          {peer.role}
+                        </span>
+                      </div>
+                      {peer.specialty && (
+                        <p className="text-emerald-950 font-bold text-[11px] bg-white/70 px-2.5 py-1 rounded-lg border border-emerald-100">
+                          {peer.specialty}
+                        </p>
+                      )}
+                      {peer.bio && (
+                        <p className="text-gray-700 leading-relaxed font-normal text-[11px] line-clamp-2">
+                          {peer.bio}
+                        </p>
+                      )}
                     </div>
-                    <p className="text-gray-600 font-medium">Type: {b.scheduleType}</p>
-                    <p className="text-gray-500 text-[11px]">Start Date: {b.startDate}</p>
-                    {b.notes && <p className="text-gray-600 italic text-[11px] truncate">Diet: {b.notes}</p>}
+                    
+                    <button
+                      onClick={() => handleOpenDirectChat(peer)}
+                      className="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold flex items-center justify-center gap-1.5 border-none cursor-pointer shadow-xs transition-colors"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>Message Connection</span>
+                    </button>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Caregiver Listings Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {INITIAL_VETTED_CAREGIVERS
-              .filter(c => {
-                if (caregiverScheduleFilter === 'All') return true;
-                return c.availability.includes(caregiverScheduleFilter);
-              })
-              .map(caregiver => (
-                <div
-                  key={caregiver.id}
-                  className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm flex flex-col justify-between gap-5 transition-all hover:shadow-md"
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-base sm:text-lg font-black text-gray-900">
-                            {caregiver.name}
-                          </h3>
-                          <span className="text-xs text-gray-400 font-semibold">({caregiver.ageGroup})</span>
-                        </div>
-                        <p className="text-xs font-bold text-amber-700 mt-0.5">
-                          {caregiver.title}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 shrink-0">
-                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                        <span className="text-xs font-black text-amber-900">{caregiver.rating}</span>
-                        <span className="text-[10px] font-medium text-gray-500">({caregiver.reviewCount})</span>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-gray-700 leading-relaxed">
-                      {caregiver.bio}
-                    </p>
-
-                    {/* Vetting badges */}
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-600" /> Identity Verified
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
-                        <Check className="w-3 h-3 text-blue-600" /> Background Checked
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200 flex items-center gap-1">
-                        <Check className="w-3 h-3 text-purple-600" /> Health Screened
-                      </span>
-                    </div>
-
-                    {/* Services and languages */}
-                    <div className="space-y-1.5 pt-2 border-t border-gray-100">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Core Expertise:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {caregiver.coreServices.map((svc, i) => (
-                          <span key={i} className="px-2.5 py-0.5 rounded-lg bg-gray-50 text-gray-700 text-[11px] font-semibold border border-gray-200">
-                            {svc}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 pt-1">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-gray-400" /> {caregiver.location}
-                      </span>
-                      <span>Languages: {caregiver.languages.join(', ')}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase">Rate</p>
-                      <p className="text-sm font-black text-gray-900">
-                        ₦{caregiver.dailyRateNGN.toLocaleString()}{' '}
-                        <span className="text-xs font-normal text-gray-500">/ day</span>
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setSelectedCaregiverForBooking(caregiver);
-                        setBookingScheduleType(caregiver.availability[0] as any || 'Daily');
-                      }}
-                      className="px-5 py-2.5 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-xs cursor-pointer border-none"
-                    >
-                      <HeartHandshake className="w-4 h-4" />
-                      <span>Book Caregiver</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-          </div>
-
-          {/* Booking Modal */}
-          <AnimatePresence>
-            {selectedCaregiverForBooking && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full space-y-5 border border-gray-100 shadow-2xl text-left"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
-                        Omugwo Care Request
-                      </span>
-                      <h3 className="text-xl font-serif font-black text-gray-900 mt-0.5">
-                        Schedule {selectedCaregiverForBooking.name}
-                      </h3>
-                      <p className="text-xs text-gray-500 font-medium">
-                        {selectedCaregiverForBooking.title} • {selectedCaregiverForBooking.location}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setSelectedCaregiverForBooking(null)}
-                      className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 border-none cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleBookCaregiver} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Select Caregiver Schedule Type
-                      </label>
-                      <select
-                        value={bookingScheduleType}
-                        onChange={e => setBookingScheduleType(e.target.value as any)}
-                        className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-amber-600"
-                      >
-                        <option value="Daily">Daily Care (Morning to Evening)</option>
-                        <option value="Weekend">Weekend Support</option>
-                        <option value="Live-In">Live-In Omugwo (1 to 4 Weeks)</option>
-                        <option value="Nurse/Paediatrician Consultation">Caregiver Clinical Consultation</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Preferred Start Date
-                      </label>
-                      <input
-                        type="date"
-                        value={bookingDate}
-                        onChange={e => setBookingDate(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-amber-600"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Postpartum Dietary & Cultural Preferences
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={bookingDietNotes}
-                        onChange={e => setBookingDietNotes(e.target.value)}
-                        placeholder="E.g., Daily Ji Mmiri Oku (Postpartum Yam Pepper Soup), Tom Brown porridge, gentle hot compress..."
-                        className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-amber-600 resize-none"
-                      />
-                    </div>
-
-                    <div className="bg-amber-50 p-3.5 rounded-2xl text-[11px] text-amber-900 border border-amber-200 leading-relaxed">
-                      💡 <strong>Direct Social Marketplace:</strong> Ama coordinates credential validation and connects families. The caregiver will contact you via WhatsApp / Phone to confirm specific hours, food supply lists, and logistics.
-                    </div>
-
-                    <div className="flex items-center gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCaregiverForBooking(null)}
-                        className="flex-1 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold border-none cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="flex-1 py-3 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer shadow-md"
-                      >
-                        Confirm Booking
-                      </button>
-                    </div>
-                  </form>
-                </motion.div>
+            ) : (
+              <div className="p-6 rounded-2xl bg-gray-50 border border-dashed border-gray-200 text-xs text-gray-500 text-center space-y-2">
+                <Users className="w-8 h-8 text-gray-400 mx-auto" />
+                <p className="font-bold text-gray-700">No active connections yet</p>
+                <p className="text-gray-500 max-w-sm mx-auto">
+                  Browse the village directory below and tap <strong>+ Connect</strong> to build your care support network. Once connected, you can directly message them anytime.
+                </p>
               </div>
             )}
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* TAB 2: PARENT & CARE PROVIDER NETWORK */}
-      {activeTab === 'network' && (
-        <div className="space-y-5">
-          <div className="bg-white rounded-[32px] p-5 border border-gray-100 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={networkSearch}
-                onChange={e => setNetworkSearch(e.target.value)}
-                placeholder="Search parents, families, lactation consultants & care providers by name, city, or specialty..."
-                className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-primary"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {['All', 'Parents', 'Providers'].map(roleOpt => (
-                <button
-                  key={roleOpt}
-                  onClick={() => setNetworkRoleFilter(roleOpt)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer border transition-all ${
-                    networkRoleFilter === roleOpt
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-gray-50 text-gray-700 border-gray-200'
-                  }`}
-                >
-                  {roleOpt === 'All' ? 'All Members' : roleOpt === 'Parents' ? 'Parents & Families' : 'Care Providers & Experts'}
-                </button>
-              ))}
-
-              <button
-                onClick={() => setIsProfileModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer"
-              >
-                + Join / Edit My Profile
-              </button>
-            </div>
           </div>
 
-          {filteredMembers.length > 0 ? (
+          {/* Directory Search & Members Grid */}
+          <div className="space-y-4">
+            <div className="bg-white rounded-[32px] p-5 border border-gray-100 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={networkSearch}
+                  onChange={e => setNetworkSearch(e.target.value)}
+                  placeholder="Search peers, parents, doulas, advisors by name, city, or focus..."
+                  className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {['All', 'Parents', 'Providers'].map(roleOpt => (
+                  <button
+                    key={roleOpt}
+                    onClick={() => setNetworkRoleFilter(roleOpt)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer border transition-all ${
+                      networkRoleFilter === roleOpt
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}
+                  >
+                    {roleOpt === 'All' ? 'All Directory' : roleOpt === 'Parents' ? 'Parents' : 'Care & Service Providers'}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer"
+                >
+                  Edit Profile
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredMembers.map(member => {
                 const connected = isConnectedWith(member.id);
@@ -1391,7 +1466,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                           className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center gap-1 border-none cursor-pointer"
                         >
                           <MessageCircle className="w-3.5 h-3.5" />
-                          <span>Chat</span>
+                          <span>Message</span>
                         </button>
                       </div>
                     )}
@@ -1399,38 +1474,17 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 );
               })}
             </div>
-          ) : (
-            <div className="bg-white rounded-[32px] p-8 sm:p-12 text-center border border-gray-100 space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto text-2xl">
-                🤝
-              </div>
-              <div className="space-y-1 max-w-md mx-auto">
-                <h3 className="text-lg font-serif font-black text-gray-900">
-                  Register Your Parent or Care Provider Profile
-                </h3>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Add your profile to the Community Network Directory so other parents, families, and care providers can connect and chat with you.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsProfileModalOpen(true)}
-                className="px-6 py-3 rounded-2xl bg-emerald-600 text-white text-xs font-black uppercase tracking-wider inline-flex items-center gap-2 shadow-md border-none cursor-pointer"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Create My Network Profile</span>
-              </button>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
-      {/* TAB 3: LIVE CHAT ROOMS */}
+      {/* TAB 3: LIVE ROOMS */}
       {activeTab === 'chat' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Channels Sidebar */}
           <div className="lg:col-span-4 bg-white rounded-[32px] p-4 border border-gray-100 shadow-xs space-y-2 h-fit">
             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2 py-1">
-              Community Topic Rooms
+              Community Live Rooms
             </p>
             {CHAT_ROOMS.map(room => (
               <button
@@ -1452,7 +1506,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
             {customDmRoom && (
               <div className="pt-2 border-t border-gray-100">
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2 py-1">
-                  Direct Conversation
+                  Direct Peer Conversation
                 </p>
                 <button
                   onClick={() => setActiveRoomId(customDmRoom.id)}
@@ -1475,7 +1529,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 <h3 className="text-sm sm:text-base font-serif font-black text-gray-900">
                   {customDmRoom && activeRoomId === customDmRoom.id
                     ? customDmRoom.name
-                    : CHAT_ROOMS.find(r => r.id === activeRoomId)?.name || '# Chat Room'}
+                    : CHAT_ROOMS.find(r => r.id === activeRoomId)?.name || '# Live Room'}
                 </h3>
                 <p className="text-[11px] text-gray-500">
                   Real-time persistent room • Chatting as <strong>{myDisplayName}</strong> ({myRole})
@@ -1526,10 +1580,10 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 <div className="h-full flex flex-col items-center justify-center text-center p-6 text-gray-400 space-y-2">
                   <MessageCircle className="w-8 h-8 text-gray-300" />
                   <p className="text-xs font-bold text-gray-600">
-                    No messages in this room yet.
+                    No messages in this live room yet.
                   </p>
                   <p className="text-[11px] text-gray-400 max-w-xs">
-                    Send the first message below to start chatting with parents and care providers in this channel.
+                    Send the first message below to start chatting with peers and care providers in this channel.
                   </p>
                 </div>
               )}
@@ -1560,136 +1614,407 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         </div>
       )}
 
-      {/* TAB 4: ASK A SPECIALIST (MULTI-FIELD EVIDENCE CONSULTATION) */}
-      {activeTab === 'specialist' && (
-        <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
-          <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">
-              Evidence-Based Specialist Consultation
-            </span>
-            <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-900 pt-1">
-              Ask a Specialist Across All Parenting & Care Fields
-            </h2>
-            <p className="text-xs text-gray-600">
-              Select a clinical or parenting field below to receive an evidence-based response grounded in WHO, AAP, and clinical guidelines, and optionally share it with the Community Forum.
-            </p>
+      {/* TAB 4: CARE MARKETPLACE (OMUGWO CARE & FAMILY SERVICE ECOSYSTEM) */}
+      {activeTab === 'omugwo' && (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-amber-900 to-amber-800 text-white rounded-[32px] p-6 sm:p-8 shadow-md relative overflow-hidden">
+            <div className="max-w-2xl space-y-2 relative z-10">
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-400/20 text-amber-200 border border-amber-300/30 inline-block">
+                Comprehensive Childcare & Family Support Network
+              </span>
+              <h2 className="text-xl sm:text-2xl font-serif font-black text-amber-100">
+                Care & Family Service Marketplace
+              </h2>
+              <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed font-normal">
+                An open peer-to-peer and professional network connecting families with help across all childcare phases — from daily caregivers, night sitters, and doulas to financial planners, trust & estate advisors, career coaches, and postpartum mental health specialists. Anybody can register as a provider or post a care request!
+              </p>
+            </div>
+            <div className="absolute right-4 bottom-2 text-7xl opacity-10 select-none pointer-events-none">
+              🤝
+            </div>
           </div>
 
-          <form onSubmit={handleAskSpecialistDirect} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
-                  Select Specialist Field
-                </label>
-                <select
-                  value={specialistField}
-                  onChange={e => setSpecialistField(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold text-gray-800 outline-none focus:border-primary"
+          {/* Category Filter & Action Bar */}
+          <div className="bg-white rounded-[32px] p-5 border border-gray-100 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+              <span className="text-xs font-black text-gray-500 uppercase tracking-wider shrink-0 flex items-center gap-1 pr-1">
+                <Filter className="w-3.5 h-3.5 text-gray-400" />
+                Category:
+              </span>
+              {MARKETPLACE_CATEGORIES.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setMarketplaceCategoryFilter(cat)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 cursor-pointer border transition-all ${
+                    marketplaceCategoryFilter === cat
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                      : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                  }`}
                 >
-                  {COMMUNITY_FIELDS.filter(f => f !== 'All Fields').map(field => (
-                    <option key={field} value={field}>
-                      {field}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-end">
-                <label className="flex items-center gap-2.5 p-3 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer w-full">
-                  <input
-                    type="checkbox"
-                    checked={publishToForum}
-                    onChange={e => setPublishToForum(e.target.checked)}
-                    className="w-4 h-4 accent-primary"
-                  />
-                  <span className="text-xs font-bold text-gray-700">
-                    Also publish question & answer to the Community Forum so other parents can reply
-                  </span>
-                </label>
-              </div>
+                  {cat}
+                </button>
+              ))}
             </div>
 
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
-                Your Question (Baby Age: {babyAge} • Location: {userLocation})
-              </label>
-              <textarea
-                rows={4}
-                required
-                value={specialistQuestion}
-                onChange={e => setSpecialistQuestion(e.target.value)}
-                placeholder="Describe your question in detail (e.g. latch discomfort, introducing iron-rich local weaning foods, frequent night waking at 6 months, fever after pentavalent vaccine)..."
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-primary resize-none"
-              />
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setIsProviderRegisterModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Offer Services / Register</span>
+              </button>
+
+              <button
+                onClick={() => setIsCareRequestModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Post Care Need</span>
+              </button>
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={isAskingSpecialist}
-              className="px-6 py-3.5 rounded-2xl bg-primary hover:bg-primary/90 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md border-none cursor-pointer"
-            >
-              {isAskingSpecialist ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              <span>{isAskingSpecialist ? 'Consulting Specialist Grounding...' : 'Get Specialist Answer'}</span>
-            </button>
-          </form>
-
-          {specialistError && (
-            <p className="text-xs font-bold text-rose-600 bg-rose-50 p-3.5 rounded-2xl border border-rose-200">
-              {specialistError}
-            </p>
+          {bookingSuccessMsg && (
+            <div className="px-4 py-3 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold animate-fadeIn">
+              {bookingSuccessMsg}
+            </div>
           )}
 
-          {specialistResult && (
-            <div className="bg-emerald-50/60 border border-emerald-200 rounded-3xl p-5 sm:p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                  <span>{specialistField} Specialist Response</span>
-                </span>
-                {publishToForum && (
-                  <span className="text-[10px] font-bold bg-white text-emerald-800 px-2.5 py-1 rounded-full border border-emerald-200">
-                    ✓ Shared to Q&A Forum
-                  </span>
-                )}
+          {/* Active Family Care Requests */}
+          {marketplaceRequests.length > 0 && (
+            <div className="bg-amber-50/70 border border-amber-200 rounded-[28px] p-5 space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-amber-700" />
+                Active Family Care Needs & Open Requests ({marketplaceRequests.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {marketplaceRequests.map(req => (
+                  <div key={req.id} className="bg-white rounded-2xl p-4 border border-amber-200 shadow-xs space-y-2 text-xs">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="font-black text-gray-900">{req.title}</span>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-100 text-amber-900 shrink-0">
+                        {req.category}
+                      </span>
+                    </div>
+                    <p className="text-gray-700 leading-snug">{req.description}</p>
+                    <div className="text-[10px] text-gray-500 font-bold space-y-0.5 pt-1 border-t border-gray-100">
+                      <p>Family: {req.familyName} • Location: {req.location || 'Local'}</p>
+                      <p>Budget: {req.budget} • Schedule: {req.schedule}</p>
+                    </div>
+                    <button
+                      onClick={() => handleOpenDirectChat({ id: `req-${req.id}`, name: `${req.familyName} (Care Request)` })}
+                      className="w-full py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] border-none cursor-pointer"
+                    >
+                      Offer Help / Contact Family
+                    </button>
+                  </div>
+                ))}
               </div>
+            </div>
+          )}
 
-              <div className="text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap bg-white p-4 rounded-2xl border border-emerald-100">
-                {specialistResult.answer}
-              </div>
+          {/* Service Providers & Vetted Caregivers Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* User-registered Marketplace Providers */}
+            {marketplaceProviders
+              .filter(p => marketplaceCategoryFilter === 'All Services' || p.category === marketplaceCategoryFilter)
+              .map(prov => (
+                <div
+                  key={prov.id}
+                  className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm flex flex-col justify-between gap-5 transition-all hover:shadow-md"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-base sm:text-lg font-black text-gray-900">
+                          {prov.name}
+                        </h3>
+                        <p className="text-xs font-bold text-amber-800">
+                          {prov.title} • {prov.category}
+                        </p>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {prov.rateInfo}
+                      </span>
+                    </div>
 
-              {specialistResult.sources.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
-                    Verified Clinical & Web Grounding Sources
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {specialistResult.sources.map((src, i) => (
-                      <a
-                        key={i}
-                        href={src.uri}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-bold text-emerald-800 hover:underline bg-white px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 no-underline"
-                      >
-                        <span>{src.title}</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    ))}
+                    <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                      {prov.bio}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 text-[11px] text-gray-500 font-bold">
+                      <span>Experience: {prov.experienceYears} Years</span>
+                      <span>•</span>
+                      <span>Location: {prov.location}</span>
+                      <span>•</span>
+                      <span>Availability: {prov.availability}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
+                    <button
+                      onClick={() => setSelectedCaregiverForBooking(prov)}
+                      className="flex-1 py-2.5 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer"
+                    >
+                      Book / Request Service
+                    </button>
+                    <button
+                      onClick={() => handleOpenDirectChat(prov)}
+                      className="px-4 py-2.5 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold border-none cursor-pointer"
+                    >
+                      Chat
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+              ))}
+
+            {/* Initial Vetted Caregivers */}
+            {INITIAL_VETTED_CAREGIVERS
+              .filter(c => {
+                if (marketplaceCategoryFilter === 'All Services') return true;
+                if (marketplaceCategoryFilter === 'Caregivers & Sitters' || marketplaceCategoryFilter === 'Doulas & Night Care') return true;
+                return false;
+              })
+              .map(caregiver => (
+                <div
+                  key={caregiver.id}
+                  className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm flex flex-col justify-between gap-5 transition-all hover:shadow-md"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base sm:text-lg font-black text-gray-900">
+                            {caregiver.name}
+                          </h3>
+                          <span className="text-xs text-gray-400 font-semibold">({caregiver.ageGroup})</span>
+                        </div>
+                        <p className="text-xs font-bold text-amber-700 mt-0.5">
+                          {caregiver.title}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 shrink-0">
+                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                        <span className="text-xs font-black text-amber-900">{caregiver.rating}</span>
+                        <span className="text-[10px] font-medium text-gray-500">({caregiver.reviewCount})</span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                      {caregiver.bio}
+                    </p>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-600" /> Verified
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-blue-600" /> Background Checked
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
+                    <button
+                      onClick={() => setSelectedCaregiverForBooking(caregiver)}
+                      className="flex-1 py-2.5 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer"
+                    >
+                      Schedule Caregiver
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
         </div>
       )}
 
-      {/* MODAL: Ask a Question / Create Forum Post */}
+      {/* TAB 5: ASK SPECIALIST */}
+      {activeTab === 'specialist' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">
+                  Independent Third-Party Specialist Directory
+                </span>
+                <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-900 pt-1">
+                  Ask or Connect with Independent Specialists
+                </h2>
+                <p className="text-xs text-gray-600">
+                  Select any family, caregiving, doula, financial, career, or mental health field to ask questions, or connect with independent third-party specialists. Please note we currently have no specialist associated with the app yet.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsSpecialistRegisterModalOpen(true)}
+                className="px-4 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5 shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Register as Third-Party Specialist</span>
+              </button>
+            </div>
+
+            {/* Third-Party Independent Specialists Directory Grid */}
+            {specialists.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-black uppercase tracking-wider text-gray-500">
+                  Registered Third-Party Independent Specialists ({specialists.length})
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {specialists.map(spec => (
+                    <div key={spec.id} className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-2 text-xs">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-black text-gray-900 text-sm">{spec.name}</h4>
+                          <p className="text-emerald-800 font-bold text-[11px]">{spec.title}</p>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-white text-emerald-900 border border-emerald-200">
+                          {spec.field}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 font-semibold text-[11px]">Credentials: {spec.credentials}</p>
+                      <p className="text-gray-700 leading-relaxed font-medium">{spec.bio}</p>
+                      <div className="pt-2 border-t border-emerald-200 flex items-center justify-between text-[10px] text-gray-500 font-bold">
+                        <span>Fee: {spec.feeInfo}</span>
+                        <span>Location: {spec.location}</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSpecialistField(spec.field);
+                          setSpecialistQuestion(`Question for ${spec.name} (${spec.title}): `);
+                        }}
+                        className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold border-none cursor-pointer mt-1"
+                      >
+                        Consult {spec.name}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Specialist Q&A Form */}
+            <form onSubmit={handleAskSpecialistDirect} className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
+                    Select Specialist Field
+                  </label>
+                  <select
+                    value={specialistField}
+                    onChange={e => setSpecialistField(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold text-gray-800 outline-none focus:border-primary"
+                  >
+                    {COMMUNITY_FIELDS.filter(f => f !== 'All Fields').map(field => (
+                      <option key={field} value={field}>
+                        {field}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2.5 p-3 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer w-full">
+                    <input
+                      type="checkbox"
+                      checked={publishToForum}
+                      onChange={e => setPublishToForum(e.target.checked)}
+                      className="w-4 h-4 accent-primary"
+                    />
+                    <span className="text-xs font-bold text-gray-700">
+                      Also publish question & answer to Feed so other parents can reply
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
+                  Your Question (Baby Age: {babyAge} • Location: {userLocation})
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  value={specialistQuestion}
+                  onChange={e => setSpecialistQuestion(e.target.value)}
+                  placeholder="Describe your question in detail (e.g. latch discomfort, introducing iron-rich local weaning foods, frequent night waking at 6 months, fever after pentavalent vaccine)..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-primary resize-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isAskingSpecialist}
+                className="px-6 py-3.5 rounded-2xl bg-primary hover:bg-primary/90 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md border-none cursor-pointer"
+              >
+                {isAskingSpecialist ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Stethoscope className="w-4 h-4" />
+                )}
+                <span>{isAskingSpecialist ? 'Consulting Specialist Engine...' : 'Get Evidence-Based Specialist Answer'}</span>
+              </button>
+            </form>
+
+            {specialistError && (
+              <p className="text-xs font-bold text-rose-600 bg-rose-50 p-3.5 rounded-2xl border border-rose-200">
+                {specialistError}
+              </p>
+            )}
+
+            {specialistResult && (
+              <div className="bg-emerald-50/60 border border-emerald-200 rounded-3xl p-5 sm:p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                    <span>{specialistField} Specialist Answer</span>
+                  </span>
+                  {publishToForum && (
+                    <span className="text-[10px] font-bold bg-white text-emerald-800 px-2.5 py-1 rounded-full border border-emerald-200">
+                      ✓ Shared to Feed
+                    </span>
+                  )}
+                </div>
+
+                <div className="text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap bg-white p-4 rounded-2xl border border-emerald-100 font-medium">
+                  {specialistResult.answer}
+                </div>
+
+                {specialistResult.sources.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
+                      Evidence Grounding Sources
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {specialistResult.sources.map((src, i) => (
+                        <a
+                          key={i}
+                          href={src.uri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-bold text-emerald-800 hover:underline bg-white px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 no-underline"
+                        >
+                          <span>{src.title}</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      </>
+      )}
+
+      {/* MODAL: Register as Third-Party Specialist */}
       <AnimatePresence>
-        {isAskModalOpen && (
+        {isSpecialistRegisterModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -1699,131 +2024,438 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
             >
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary">
-                    Community Q&A Forum
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                    Third-Party Registration
                   </span>
                   <h2 className="text-xl font-serif font-black text-gray-900">
-                    Ask Parents & Care Providers
+                    Register as an Independent Specialist
                   </h2>
                 </div>
                 <button
-                  onClick={() => setIsAskModalOpen(false)}
-                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                  onClick={() => setIsSpecialistRegisterModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreatePost} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
-                      Your Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={myDisplayName}
-                      onChange={e => setMyDisplayName(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
-                      Your Role
-                    </label>
-                    <select
-                      value={myRole}
-                      onChange={e => setMyRole(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800"
-                    >
-                      {MEMBER_ROLES.map(r => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <form onSubmit={handleRegisterSpecialist} className="space-y-4 text-xs">
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Full Name & Title *</label>
+                  <input
+                    type="text"
+                    required
+                    value={specName}
+                    onChange={e => setSpecName(e.target.value)}
+                    placeholder="e.g. Dr. Ngozi Eze / Sarah Jenkins, IBCLC"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                  />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
-                    Field / Topic Category *
-                  </label>
+                  <label className="font-bold text-gray-700 block mb-1">Professional Designation / Role *</label>
+                  <input
+                    type="text"
+                    required
+                    value={specTitle}
+                    onChange={e => setSpecTitle(e.target.value)}
+                    placeholder="e.g. Independent Lactation Consultant / Pediatric Specialist"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Specialty Field *</label>
                   <select
-                    value={newPostCategory}
-                    onChange={e => setNewPostCategory(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800"
+                    value={specField}
+                    onChange={e => setSpecField(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
                   >
                     {COMMUNITY_FIELDS.filter(f => f !== 'All Fields').map(f => (
-                      <option key={f} value={f}>
-                        {f}
-                      </option>
+                      <option key={f} value={f}>{f}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
-                    Question Title *
-                  </label>
+                  <label className="font-bold text-gray-700 block mb-1">Professional License / Credentials</label>
                   <input
                     type="text"
-                    required
-                    value={newPostTitle}
-                    onChange={e => setNewPostTitle(e.target.value)}
-                    placeholder="e.g. Best ways to enrich pap/cereal for a 6-month-old?"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold text-gray-900 outline-none focus:border-primary"
+                    value={specCredentials}
+                    onChange={e => setSpecCredentials(e.target.value)}
+                    placeholder="e.g. IBCLC #123456, Medical License #MD-882"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
-                    Details & Context *
-                  </label>
-                  <textarea
-                    rows={4}
-                    required
-                    value={newPostContent}
-                    onChange={e => setNewPostContent(e.target.value)}
-                    placeholder="Share details so other parents and care providers can give practical, relevant answers..."
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 text-xs font-medium text-gray-800 outline-none focus:border-primary resize-none"
+                  <label className="font-bold text-gray-700 block mb-1">Consultation Fee & Availability</label>
+                  <input
+                    type="text"
+                    value={specFeeInfo}
+                    onChange={e => setSpecFeeInfo(e.target.value)}
+                    placeholder="e.g. Free Q&A Forum / $50 Session"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
                   />
                 </div>
 
-                <label className="flex items-center gap-2.5 p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={requestExpertOnCreate}
-                    onChange={e => setRequestExpertOnCreate(e.target.checked)}
-                    className="w-4 h-4 accent-emerald-600"
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Bio & Practice Background</label>
+                  <textarea
+                    rows={3}
+                    value={specBio}
+                    onChange={e => setSpecBio(e.target.value)}
+                    placeholder="Describe your background and how you support parents..."
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium resize-none"
                   />
-                  <span className="text-xs font-bold text-emerald-950">
-                    Also attach an immediate Evidence-Based Specialist synthesis (grounded in clinical guidelines)
-                  </span>
-                </label>
+                </div>
 
-                {postError && (
-                  <p className="text-xs font-bold text-rose-600 bg-rose-50 px-3.5 py-2 rounded-xl border border-rose-200">
-                    {postError}
-                  </p>
-                )}
-
-                <div className="flex items-center justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2 pt-2">
                   <button
                     type="button"
-                    onClick={() => setIsAskModalOpen(false)}
-                    className="px-5 py-2.5 rounded-2xl bg-gray-100 text-gray-700 text-xs font-bold border-none cursor-pointer"
+                    onClick={() => setIsSpecialistRegisterModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmittingPost}
-                    className="px-6 py-2.5 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-wider shadow-md border-none cursor-pointer flex items-center gap-1.5"
+                    disabled={isSubmittingSpecialist}
+                    className="px-5 py-2 rounded-xl bg-emerald-700 text-white font-black uppercase border-none cursor-pointer shadow-md"
                   >
-                    {isSubmittingPost && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    <span>{isSubmittingPost ? 'Publishing...' : 'Publish Question'}</span>
+                    {isSubmittingSpecialist ? 'Registering...' : 'Complete Specialist Listing'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Offer Services / Register as Marketplace Provider */}
+      <AnimatePresence>
+        {isProviderRegisterModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-gray-100 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+                    Care Marketplace Provider
+                  </span>
+                  <h2 className="text-xl font-serif font-black text-gray-900">
+                    Register as a Service Provider
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setIsProviderRegisterModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleRegisterProvider} className="space-y-4 text-xs">
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Your Name / Organization *</label>
+                  <input
+                    type="text"
+                    required
+                    value={provName}
+                    onChange={e => setProvName(e.target.value)}
+                    placeholder="e.g. Mary Okon / Bloom Financial Advisors"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Service Title *</label>
+                  <input
+                    type="text"
+                    required
+                    value={provTitle}
+                    onChange={e => setProvTitle(e.target.value)}
+                    placeholder="e.g. Postpartum Doula & Night Caregiver / Estate & Family Trust Planner"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Category *</label>
+                  <select
+                    value={provCategory}
+                    onChange={e => setProvCategory(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                  >
+                    {MARKETPLACE_CATEGORIES.filter(c => c !== 'All Services').map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">Years of Experience</label>
+                    <input
+                      type="number"
+                      value={provExpYears}
+                      onChange={e => setProvExpYears(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">Rate / Fee Structure</label>
+                    <input
+                      type="text"
+                      value={provRateInfo}
+                      onChange={e => setProvRateInfo(e.target.value)}
+                      placeholder="e.g. $25/hr or NGN rates"
+                      className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Services & Bio Description</label>
+                  <textarea
+                    rows={3}
+                    value={provBio}
+                    onChange={e => setProvBio(e.target.value)}
+                    placeholder="Describe what services you offer to families..."
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsProviderRegisterModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingProvider}
+                    className="px-5 py-2 rounded-xl bg-amber-700 text-white font-black uppercase border-none cursor-pointer shadow-md"
+                  >
+                    {isSubmittingProvider ? 'Publishing...' : 'List Provider Service'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Post a Care Request / Need Help */}
+      <AnimatePresence>
+        {isCareRequestModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-gray-100 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+                    Family Care Request
+                  </span>
+                  <h2 className="text-xl font-serif font-black text-gray-900">
+                    Post a Family Need or Care Request
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setIsCareRequestModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handlePostCareRequest} className="space-y-4 text-xs">
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Family Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={reqFamilyName}
+                    onChange={e => setReqFamilyName(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Category Needed *</label>
+                  <select
+                    value={reqCategory}
+                    onChange={e => setReqCategory(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                  >
+                    {MARKETPLACE_CATEGORIES.filter(c => c !== 'All Services').map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Request Title *</label>
+                  <input
+                    type="text"
+                    required
+                    value={reqTitle}
+                    onChange={e => setReqTitle(e.target.value)}
+                    placeholder="e.g. Seeking Night Nanny for 2 weeks / Need Family Trust Attorney"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Description & Requirements *</label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={reqDescription}
+                    onChange={e => setReqDescription(e.target.value)}
+                    placeholder="Describe what help you need and when..."
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">Schedule / Timeline</label>
+                    <input
+                      type="text"
+                      value={reqSchedule}
+                      onChange={e => setReqSchedule(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">Budget / Offered Rate</label>
+                    <input
+                      type="text"
+                      value={reqBudget}
+                      onChange={e => setReqBudget(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCareRequestModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingRequest}
+                    className="px-5 py-2 rounded-xl bg-gray-900 text-white font-black uppercase border-none cursor-pointer shadow-md"
+                  >
+                    {isSubmittingRequest ? 'Posting...' : 'Publish Care Need'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Book / Request Caregiver Modal */}
+      <AnimatePresence>
+        {selectedCaregiverForBooking && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full space-y-5 border border-gray-100 shadow-2xl text-left"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+                    Care Request Form
+                  </span>
+                  <h3 className="text-xl font-serif font-black text-gray-900 mt-0.5">
+                    Schedule {selectedCaregiverForBooking.name}
+                  </h3>
+                  <p className="text-xs text-gray-500 font-medium">
+                    {selectedCaregiverForBooking.title} • {selectedCaregiverForBooking.location || userLocation}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedCaregiverForBooking(null)}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={e => { e.preventDefault(); handleBookCaregiver(selectedCaregiverForBooking); }} className="space-y-4 text-xs">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Select Schedule Type
+                  </label>
+                  <select
+                    value={bookingScheduleType}
+                    onChange={e => setBookingScheduleType(e.target.value as any)}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-amber-600"
+                  >
+                    <option value="Daily">Daily Support</option>
+                    <option value="Weekend">Weekend Support</option>
+                    <option value="Live-In">Live-In Support (1 to 4 Weeks)</option>
+                    <option value="Nurse/Paediatrician Consultation">Consultation & Planning</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Preferred Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={bookingDate}
+                    onChange={e => setBookingDate(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-amber-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Care Notes & Special Instructions
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={bookingDietNotes}
+                    onChange={e => setBookingDietNotes(e.target.value)}
+                    placeholder="Specific instructions or requirements for your family..."
+                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-amber-600 resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCaregiverForBooking(null)}
+                    className="flex-1 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold border-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer shadow-md"
+                  >
+                    Confirm Request
                   </button>
                 </div>
               </form>
@@ -1845,10 +2477,10 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
-                    Community Network Profile
+                    Peer Network Profile
                   </span>
                   <h2 className="text-xl font-serif font-black text-gray-900">
-                    Your Parent / Care Provider Profile
+                    Your Parent & Provider Profile
                   </h2>
                 </div>
                 <button
@@ -1859,7 +2491,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 </button>
               </div>
 
-              <form onSubmit={handleSaveMemberProfile} className="space-y-4">
+              <form onSubmit={handleSaveMemberProfile} className="space-y-4 text-xs">
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
                     Display Name *
@@ -1911,7 +2543,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     rows={3}
                     value={myBio}
                     onChange={e => setMyBio(e.target.value)}
-                    placeholder="Introduce yourself to other parents, families, and care providers..."
+                    placeholder="Introduce yourself to fellow parents, families, and care providers..."
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 text-xs font-medium text-gray-800 resize-none"
                   />
                 </div>

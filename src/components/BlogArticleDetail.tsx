@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ArrowLeft, Clock, Calendar, User, ShieldCheck, Share2, Check, BookOpen, 
-  ChevronRight, Sparkles, AlertCircle, HelpCircle, Bookmark, Printer, Heart,
+  ChevronRight, AlertCircle, HelpCircle, Bookmark, Printer, Heart,
   Utensils, Activity, Moon, Mic, ExternalLink, ChevronDown, ChevronUp, Copy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -372,7 +372,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
                   <span className="text-sm font-bold text-gray-900">Ama Baby Care Reference</span>
                   <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                 </div>
-                <p className="text-xs text-gray-500 font-medium">Pediatric Care Guidelines & Parent Guidance</p>
+                <p className="text-xs text-gray-500 font-medium">Standard Parenting Reference & Household Guidance</p>
                 <div className="flex items-center gap-3 text-[10px] text-gray-400 mt-1 font-medium">
                   <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Published: {article.publishedDate}</span>
                   <span>•</span>
@@ -383,7 +383,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
 
             <div className="text-left sm:text-right border-t sm:border-t-0 sm:border-l border-gray-100 pt-2 sm:pt-0 sm:pl-4 w-full sm:w-auto">
               <span className="text-[10px] font-black text-primary uppercase tracking-wider block">Standard Reference</span>
-              <span className="text-xs font-semibold text-gray-700 block">AAP / WHO Pediatric Best Practices</span>
+              <span className="text-xs font-semibold text-gray-700 block">General Wellness Best Practices</span>
             </div>
           </div>
         </div>
@@ -391,7 +391,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
         {/* Key Takeaways Callout Box */}
         <section aria-labelledby="key-takeaways" className="p-6 rounded-3xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 space-y-3">
           <div className="flex items-center gap-2 text-amber-900 font-serif font-black text-sm uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 text-amber-600" />
+            <ShieldCheck className="w-4 h-4 text-amber-600" />
             <span id="key-takeaways">Executive Takeaways for Parents</span>
           </div>
           <ul className="space-y-2">
@@ -441,7 +441,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
             <div className="flex items-center gap-2">
               <HelpCircle className="w-5 h-5 text-primary" />
               <h2 id="faq-heading" className="font-serif font-black text-xl text-gray-900">
-                Frequently Asked Pediatric Questions
+                Commonly Asked Parenting Questions
               </h2>
             </div>
 

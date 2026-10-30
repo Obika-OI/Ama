@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Bell, Clock, CheckCircle2, RotateCcw, X, Shield, Sparkles } from 'lucide-react';
+import { Bell, Clock, CheckCircle2, RotateCcw, X, Shield, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Reminder } from '../types';
 import { playSynthesizedChime } from '../utils/scheduleEngine';

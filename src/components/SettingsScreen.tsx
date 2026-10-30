@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, UserCheck, ShieldCheck, FileCode, Dna, Lock, Key, Copy, Check, LogOut, Trash2, AlertCircle, RefreshCw, QrCode, Crown, EyeOff, ShieldAlert, Wifi, WifiOff, Users, Settings, CheckCircle2, Link, BookOpen, X, MapPin, Globe, Sparkles } from 'lucide-react';
+import { ChevronLeft, UserCheck, ShieldCheck, FileCode, Dna, Lock, Key, Copy, Check, LogOut, Trash2, AlertCircle, RefreshCw, QrCode, Crown, EyeOff, ShieldAlert, Wifi, WifiOff, Users, Settings, CheckCircle2, Link, BookOpen, X, MapPin, Globe } from 'lucide-react';
 import { calculateBabyAge } from '../utils/helpers';
 import { AppUserGuide } from './AppUserGuide';
 import { LegalConsentModal } from './LegalConsentModal';
@@ -1122,117 +1122,130 @@ export const SettingsScreen = ({
           </div>
         </div>
 
-        {/* Integrated Multi-Device Sync & Village Caregiver Invite Engine */}
-        <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200/80 space-y-4 text-left">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-primary">
-                Multi-Device Cloud Sync & Village Caregiver Invite
-              </span>
-              <h3 className="text-sm font-bold text-gray-800 mt-0.5">
-                Caregiver Invite Link, QR Code & Cross-Device Sync Engine
-              </h3>
+        {/* Unified Multi-Device Cloud Sync & Village Sharing Hub */}
+        <div className="bg-slate-50/95 p-6 sm:p-8 rounded-[36px] border border-slate-200 shadow-xs space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-6">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Village Care Hub</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-extrabold uppercase">Encrypted</span>
+              </div>
+              <h3 className="text-xl font-serif font-black text-gray-900">Multi-Device Coordination</h3>
             </div>
-            <span className="text-[9px] font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-full font-bold">
-              NODE BACKEND V1
-            </span>
-          </div>
-
-          <p className="text-xs text-gray-500 leading-relaxed">
-            Generate an instant Multi-Device Sync Snapshot key, share the Village Caregiver Invite Link, or scan the QR Code with your partner, nanny, or daycare provider for instant care synchronization.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Generate Invite & Backup Button */}
-            <div className="bg-white p-4 rounded-2xl border border-gray-200 space-y-3 flex flex-col justify-between">
-              <div>
-                <p className="text-xs font-bold text-gray-800">1. Generate Caregiver Invite Link</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">Creates encrypted cloud sync snapshot & copies nanny invitation link.</p>
-              </div>
-              <button
-                onClick={handleCreateCloudBackupAndInvite}
-                disabled={isCreatingSync}
-                className="w-full py-2.5 px-3 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/95 transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span>{isCreatingSync ? 'Generating...' : 'Copy Village Caregiver Invite Link'}</span>
-              </button>
-            </div>
-
-            {/* Sync Snapshot Code display & Restore */}
-            <div className="bg-white p-4 rounded-2xl border border-gray-200 space-y-3 flex flex-col justify-between">
-              <div>
-                <p className="text-xs font-bold text-gray-800">2. Restore / Join Village Sync</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">Input sync snapshot key received from Primary Parent.</p>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={syncKeyInput}
-                  onChange={(e) => setSyncKeyInput(e.target.value)}
-                  placeholder="Paste Sync Key..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono font-bold text-gray-800 focus:outline-none focus:border-primary"
-                />
-                <button
-                  onClick={handleRestoreFromSyncKey}
-                  disabled={isRestoringSync || !syncKeyInput.trim()}
-                  className="px-3 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl transition-all cursor-pointer border-none disabled:opacity-40 shrink-0"
-                >
-                  {isRestoringSync ? 'Syncing...' : 'Sync Data'}
-                </button>
-              </div>
+            <div className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-emerald-700 border border-emerald-100 text-xs font-bold shadow-2xs">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Private Village Sync</span>
             </div>
           </div>
 
-          {/* QR Code Syncing Section Merged Here */}
-          <div className="bg-white p-4 rounded-2xl border border-gray-200 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                  <QrCode className="w-4 h-4 text-primary" />
-                  <span>Partner QR Code & Link Syncing</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* INVITE & SHARE SECTION */}
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <h4 className="font-black text-gray-900 text-sm uppercase tracking-wider flex items-center gap-2">
+                  <Link className="w-4 h-4 text-primary" />
+                  Invite a Partner or Caregiver
+                </h4>
+                <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                  Generate a one-tap invite link that includes your encrypted village token. Your partner or nanny can scan the QR or click the link to sync instantly.
                 </p>
-                <p className="text-[10px] text-gray-400 mt-0.5">Scan or copy direct sync link to mirror baby logs with your partner.</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsQrModalOpen(!isQrModalOpen)}
-                className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-xl hover:bg-primary/20 transition-all border-none cursor-pointer"
-              >
-                {isQrModalOpen ? 'Hide QR Code' : 'Show QR Code'}
-              </button>
-            </div>
 
-            {isQrModalOpen && (
-              <div className="pt-2 flex flex-col items-center justify-center space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-                  <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(getSyncLink())}`}
-                    alt="Sync QR Code"
-                    className="w-44 h-44"
-                  />
+              <div className="space-y-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-2xs">
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleCreateCloudBackupAndInvite}
+                    disabled={isCreatingSync}
+                    className="w-full py-4 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-primary/95 transition-all shadow-md shadow-primary/20 border-none cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {isCreatingSync ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                    <span>{isCreatingSync ? 'Generating...' : 'Copy Village Invite Link'}</span>
+                  </button>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIsQrModalOpen(!isQrModalOpen)}
+                      className="flex-1 py-3 bg-gray-50 text-gray-700 text-[10px] font-black uppercase tracking-wider rounded-xl hover:bg-gray-100 border border-gray-200 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <QrCode className="w-4 h-4" />
+                      <span>{isQrModalOpen ? 'Hide QR' : 'Show Share QR'}</span>
+                    </button>
+                    <div className="flex-[2] bg-slate-50 px-4 py-3 rounded-xl border border-gray-100 flex items-center justify-between">
+                      <code className="font-mono text-[10px] font-bold text-gray-500 truncate max-w-[120px]">
+                        {activeSyncToken}
+                      </code>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(activeSyncToken);
+                          setSuccessMsg('Token copied!');
+                          setTimeout(() => setSuccessMsg(''), 2000);
+                        }}
+                        className="p-1.5 hover:bg-white rounded-md text-gray-400 hover:text-primary transition-colors cursor-pointer border-none bg-transparent"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider text-center">
-                  Scan with partner's camera to import live tracking state
-                </p>
-                <button
-                  onClick={() => {
-                    const link = getSyncLink();
-                    navigator.clipboard.writeText(link);
-                    alert("Partner Sync URL copied to clipboard!");
-                  }}
-                  className="w-full py-2.5 rounded-xl bg-primary text-white font-bold text-xs uppercase tracking-wider shadow-sm cursor-pointer border-none flex items-center justify-center gap-1.5"
-                >
-                  <Link className="w-3.5 h-3.5" />
-                  <span>Copy Partner Sync Link</span>
-                </button>
-              </div>
-            )}
-          </div>
 
-          <div className="flex items-center gap-2 bg-white px-3.5 py-2.5 rounded-xl border border-gray-200 font-mono text-[11px] text-gray-600">
-            <span className="text-gray-400 select-none">Active Token:</span>
-            <span className="font-bold text-primary truncate">{activeSyncToken}</span>
+                <AnimatePresence>
+                  {isQrModalOpen && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden pt-4 flex flex-col items-center gap-3 border-t border-gray-50 mt-2"
+                    >
+                      <div className="bg-white p-4 rounded-2xl shadow-inner border border-gray-50">
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(getSyncLink())}`}
+                          alt="Sync QR Code"
+                          className="w-32 h-32 mix-blend-multiply"
+                        />
+                      </div>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">
+                        Scan to Join {babyName || 'Baby'}'s Village
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* JOIN SECTION */}
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <h4 className="font-black text-gray-900 text-sm uppercase tracking-wider flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-primary" />
+                  Join an Existing Village
+                </h4>
+                <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                  Received a token or link from a partner? Paste the Village Token below to mirror the care journal on this device and start collaborating.
+                </p>
+              </div>
+
+              <div className="space-y-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-2xs h-full">
+                <div className="space-y-3">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Input Shared Token</label>
+                  <input
+                    type="text"
+                    value={syncKeyInput}
+                    onChange={(e) => setSyncKeyInput(e.target.value)}
+                    placeholder="e.g. VILLAGE-LEO-NANNY-8821"
+                    className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-4 py-4 text-xs font-mono font-bold text-gray-800 focus:outline-none focus:border-primary transition-colors placeholder:text-gray-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRestoreFromSyncKey}
+                    disabled={isRestoringSync || !syncKeyInput.trim()}
+                    className="w-full py-4 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-black transition-all flex items-center justify-center gap-2 border-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {isRestoringSync ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    <span>{isRestoringSync ? 'Connecting...' : 'Connect to Village Hub'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

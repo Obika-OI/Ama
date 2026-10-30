@@ -1,10 +1,11 @@
 import React from 'react';
 import { 
   ShieldCheck, Heart, Utensils, Activity, BookOpen, Clock, Lock, 
-  CheckCircle2, ArrowRight, Sparkles, Shield, ChevronRight, Globe, FileText, UserCheck, Mic, 
-  Book, CheckCircle, HelpCircle, Star, Sparkle
+  CheckCircle2, ArrowRight, Shield, ChevronRight, Globe, FileText, UserCheck, Mic, 
+  Book, CheckCircle, HelpCircle, Star
 } from 'lucide-react';
 import { useSEO } from '../utils/seo';
+import { UniversalFooter } from './UniversalFooter';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -14,12 +15,12 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNavigate }) => {
   // SEO Optimization for the Landing Page
   useSEO({
-    title: 'Ama Baby Care – Smart Baby Feeding, Weaning, Sleep & Cry Tracker App',
-    description: 'Track breastfeeding, bottle feeds, and solid baby meals in one place. Prepare affordable local weaning foods like Tom Brown without a fridge, decode baby cries, and track sleep wake windows, diapers, and vaccines offline.',
+    title: 'Ama Baby Care: Smart Feeding, Weaning, Sleep & Cry Tracker',
+    description: 'Track breastfeeding, bottle feeds, and solid baby meals in one place. Prepare affordable local weaning foods like Tom Brown without a fridge, decode baby cries, and track sleep wake windows, diapers, and wellness records offline.',
     robots: 'index, follow',
     ogType: 'website',
-    ogTitle: 'Ama Baby Care – Smart Baby Feeding, Weaning, Sleep & Cry Tracker App',
-    ogDescription: 'Built for families on tight budgets. Track breastfeeding, bottle feeds, and solid weaning meals, prepare protein-rich Tom Brown cereal without refrigeration, decode baby cries, and log sleep and immunizations privately offline.',
+    ogTitle: 'Ama Baby Care: Smart Baby Care & Local Weaning Companion',
+    ogDescription: 'Built for real families everywhere. Track breastfeeding, bottle feeds, and solid weaning meals, prepare protein-rich Tom Brown cereal without refrigeration, decode baby cries, and log sleep and immunizations privately offline.',
     canonicalUrl: window.location.origin
   });
 
@@ -116,23 +117,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
         </div>
       </header>
 
-      {/* Hero Section (At least 300 words of witty intro text) */}
+      {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-24 text-center space-y-8">
         <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-black uppercase tracking-wider">
-          <Sparkle className="w-4 h-4 text-primary" />
-          <span>Care Companion Built For Real Budget Realities</span>
+          <ShieldCheck className="w-4 h-4 text-primary" />
+          <span>Care Companion Built For Real Household Realities</span>
         </div>
         
         <h1 className="text-4xl sm:text-6xl font-serif font-black text-gray-900 leading-tight max-w-4xl mx-auto">
-          Growing Healthy, Robust Babies Using Affordable Local Resources
+          Growing Healthy, Robust Babies Using Wholesome Local Resources
         </h1>
 
         <div className="text-base sm:text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed space-y-4">
           <p>
-            Welcome to a parenting utility engineered with absolute logic, resourcefulness, and caution. Most baby care applications assume you have an active high-speed internet connection, a continuous electricity grid to freeze purees, and a deep wallet to purchase expensive imported cereal brands or organic formulas. We understand that in communities like Oyigbo in Rivers State, Nigeria, and similar suburban or rural neighborhoods, families operate under entirely different conditions. Many mothers do not own personal smartphones, sharing a single household device instead, and do not have power to store fresh foods.
+            Welcome to a parenting companion built on logic, practical wisdom, and respect for household budgets. While many baby apps assume uninterrupted internet access, continuous electricity to freeze purees, and disposable budgets for premium imported cereals, real families often operate under very different conditions.
           </p>
           <p>
-            Ama Baby Care is a free, lightweight, offline-first web application designed to load instantly on any shared device, older mobile browser, or low-bandwidth connection. Whether you are looking for an app to track breastfeeding, bottle feeding, and solid baby meals in one chronological timeline, decode why your baby is crying, or prepare nutritious weaning food without a refrigerator, Ama gives you practical answers. Instead of encouraging costly store-bought weaning boxes, we detail how to roast and blend millet, sorghum, yellow corn, and soybeans into a stable, high-protein flour known as Tom Brown, requiring zero refrigeration. You can log infant sleep wake windows, map clinic vaccination dates, calculate safe fever medication intervals, and track diaper changes and food allergies privately without spending money on mobile data.
+            Ama Baby Care is a free, lightweight, offline-first web companion designed to run smoothly on any device. Whether tracking breastfeeds, bottle amounts, and first solid meals, understanding infant cry cues, or preparing protein-dense weaning blends without refrigeration, Ama delivers clear and trustworthy guidance. Learn how to combine affordable yellow corn, sorghum, millet, and roasted soybeans into shelf-stable Tom Brown flour, log wake windows, follow standard vaccination milestones, and monitor food sensitivities privately.
           </p>
         </div>
 
@@ -410,100 +411,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
 
       {/* Comprehensive Footer */}
       
-      {/* Comprehensive Public Footer */}
-      <footer className="bg-white/90 backdrop-blur-md text-gray-600 border-t border-white/60 text-left py-12 px-6 sm:px-10 rounded-t-[48px] w-full mt-16 shadow-lg shadow-card/10">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-xs">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-gray-900 font-serif font-black text-base">
-              <span>🍼</span>
-              <span>Ama Baby Care</span>
-            </div>
-            <p className="text-gray-500 leading-relaxed text-[11px]">
-              Easy baby care tracking, feeding timers, growth charts, and diaper health notes.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h4 className="text-gray-900 font-bold uppercase tracking-wider text-[11px]">Quick Links</h4>
-            <ul className="space-y-1.5 text-[11px] list-none p-0 m-0">
-              <li>
-                <a href="#landing" onClick={(e) => { e.preventDefault(); onNavigate('landing'); }} className="text-gray-600 hover:text-primary transition-colors cursor-pointer text-left no-underline font-medium block">
-                  Home
-                </a>
-              </li>
-              <li>
-                <a href="#blog" onClick={(e) => { e.preventDefault(); onNavigate('blog'); }} className="text-primary hover:text-primary/80 transition-colors cursor-pointer text-left no-underline font-bold block">
-                  Blog
-                </a>
-              </li>
-              <li>
-                <a href="#user-guide" onClick={(e) => { e.preventDefault(); onNavigate('user-guide'); }} className="text-gray-600 hover:text-primary transition-colors cursor-pointer text-left no-underline font-medium block">
-                  User Manual
-                </a>
-              </li>
-              <li>
-                <a href="#safety-guide" onClick={(e) => { e.preventDefault(); onNavigate('safety-guide'); }} className="text-gray-600 hover:text-primary transition-colors cursor-pointer text-left no-underline font-medium block">
-                  Food & Safety Guide
-                </a>
-              </li>
-              <li>
-                <a href="#about" onClick={(e) => { e.preventDefault(); onNavigate('about'); }} className="text-gray-600 hover:text-primary transition-colors cursor-pointer text-left no-underline font-medium block">
-                  About Us
-                </a>
-              </li>
-              <li>
-                <a href="#community" onClick={(e) => { e.preventDefault(); onNavigate('community'); }} className="text-gray-600 hover:text-primary transition-colors cursor-pointer text-left no-underline font-medium block">
-                  Community Support & Forum
-                </a>
-              </li>
-              <li>
-                <a href="#local-directories" onClick={(e) => { e.preventDefault(); onNavigate('local-directories'); }} className="text-gray-600 hover:text-primary transition-colors cursor-pointer text-left no-underline font-medium block">
-                  Local Care & Hospital Directory
-                </a>
-              </li>
-              <li>
-                <a href="#baby-names" onClick={(e) => { e.preventDefault(); onNavigate('baby-names'); }} className="text-gray-600 hover:text-primary transition-colors cursor-pointer text-left no-underline font-medium block">
-                  Global Baby Name Database
-                </a>
-              </li>
-              <li>
-                <a href="#contact" onClick={(e) => { e.preventDefault(); onNavigate('contact'); }} className="text-primary hover:text-primary/80 transition-colors cursor-pointer text-left no-underline font-bold block">
-                  Contact Us & Help Desk
-                </a>
-              </li>
-              <li>
-                <a href="#mother-care" onClick={(e) => { e.preventDefault(); onNavigate('mother-care'); }} className="text-primary hover:text-primary/80 transition-colors cursor-pointer text-left no-underline font-bold block">
-                  Mother Postpartum Care
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div className="space-y-2">
-            <h4 className="text-gray-900 font-bold uppercase tracking-wider text-[11px]">Privacy & Terms</h4>
-            <ul className="space-y-1.5 text-[11px] list-none p-0 m-0">
-              <li>
-                <a href="#privacy" onClick={(e) => { e.preventDefault(); onNavigate('legal-terms'); }} className="text-gray-600 hover:text-primary transition-colors cursor-pointer text-left no-underline font-medium block">
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a href="#terms" onClick={(e) => { e.preventDefault(); onNavigate('legal-terms'); }} className="text-gray-600 hover:text-primary transition-colors cursor-pointer text-left no-underline font-medium block">
-                  Terms of Service
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div className="space-y-2">
-            <h4 className="text-gray-900 font-bold uppercase tracking-wider text-[11px]">Health Notice</h4>
-            <p className="text-[10px] text-gray-500 leading-relaxed">
-              Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace doctor or substitute professional healthcare advice, diagnosis, or treatment. Always follow regional child health guidelines.
-            </p>
-          </div>
-        </div>
-        <div className="max-w-5xl mx-auto border-t border-gray-200/80 mt-8 pt-6 text-center text-[11px] text-gray-500">
-          <p>© 2026 Ama Baby Care. All rights reserved. Built for baby care & family privacy.</p>
-        </div>
-      </footer>
-
+      {/* Universal Footer */}
+      <UniversalFooter onNavigate={onNavigate} activeScreen="landing" />
     </div>
   );
 };

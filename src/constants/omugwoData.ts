@@ -27,10 +27,8 @@ export interface VettedCaregiver {
   vettingStatus: {
     identityVerified: boolean;
     backgroundCheckCleared: boolean;
-    medicalScreening: {
-      hivNegative: boolean;
-      hepBNegative: boolean;
-      tbCleared: boolean;
+    healthVetting: {
+      verifiedHealthStatus: boolean;
       lastScreenedDate: string;
     };
     certifications: string[];
@@ -99,7 +97,7 @@ export interface OmugwoBookingEntry {
   caregiverId: string;
   caregiverName: string;
   serviceType: string;
-  bookingMode: 'Daily' | 'Weekend' | 'Live-In' | 'Nurse/Pediatrician Consultation';
+  bookingMode: 'Daily' | 'Weekend' | 'Live-In' | 'Wellness Consultation';
   startDate: string;
   timeSlot: string;
   parentName: string;
@@ -222,145 +220,4 @@ export const TRADITIONAL_POSTPARTUM_RECIPES: PostpartumRecipe[] = [
   }
 ];
 
-export const INITIAL_VETTED_CAREGIVERS: VettedCaregiver[] = [
-  {
-    id: 'cg-mama-ngozi',
-    name: 'Mama Ngozi Okafor (RN, Certified Postpartum Matron)',
-    title: 'Retired Midwife & Postpartum Care Specialist',
-    ageGroup: '58 yrs',
-    location: 'Lekki / Victoria Island, Lagos',
-    languages: ['English', 'Igbo', 'Pidgin'],
-    experienceYears: 24,
-    rating: 4.98,
-    reviewCount: 64,
-    availability: ['Daily', 'Weekend', 'Live-In', 'Consultation'],
-    dailyRateNGN: 18500,
-    coreServices: [
-      'Warm Abdominal Compress & Postpartum Massage',
-      'Newborn Bathing, Umbilical Cord Care & Gentle Stretching',
-      'Nutritious Postpartum Recovery & Lactation Meal Prep',
-      'Overnight Newborn Soothing (4h REM Sleep Relief for Mom)'
-    ],
-    vettingStatus: {
-      identityVerified: true,
-      backgroundCheckCleared: true,
-      medicalScreening: {
-        hivNegative: true,
-        hepBNegative: true,
-        tbCleared: true,
-        lastScreenedDate: '2026-09-15'
-      },
-      certifications: [
-        'Registered Midwife (NMCN Verified)',
-        'Certified Newborn Safe Sleep & Resuscitation',
-        'Postpartum Maternal Recovery & Nutrition Certified'
-      ]
-    },
-    bio: 'Retired maternity ward matron who blends evidence-based neonatal nursing with gentle, loving maternal home care for families seeking compassionate postpartum recovery support.'
-  },
-  {
-    id: 'cg-iya-abike',
-    name: 'Iya Abike Adeyemi',
-    title: 'Senior Postpartum Doula & Infant Care Grandma',
-    ageGroup: '54 yrs',
-    location: 'Ikeja / Magodo, Lagos & Ibadan',
-    languages: ['English', 'Yoruba'],
-    experienceYears: 16,
-    rating: 4.95,
-    reviewCount: 49,
-    availability: ['Daily', 'Weekend', 'Live-In'],
-    dailyRateNGN: 15000,
-    coreServices: [
-      'Traditional Infant Shea Butter Massage & Bathing',
-      'Herbal Postpartum Recovery Soups & Ogi Preparation',
-      'Twin & C-Section Incision Recovery Support',
-      'Light Nursery Organization & Emotional Support'
-    ],
-    vettingStatus: {
-      identityVerified: true,
-      backgroundCheckCleared: true,
-      medicalScreening: {
-        hivNegative: true,
-        hepBNegative: true,
-        tbCleared: true,
-        lastScreenedDate: '2026-08-28'
-      },
-      certifications: [
-        'Certified Postpartum Doula',
-        'Infant Hygiene & First Aid Certified',
-        'C-Section Maternal Mobility & Recovery Training'
-      ]
-    },
-    bio: 'Warm, calm grandmother figure experienced in supporting first-time parents and C-section recovery mothers with nourishing meals, newborn bathing, and patient emotional reassurance.'
-  },
-  {
-    id: 'cg-nurse-amina',
-    name: 'Nurse Amina Suleiman (BSN, IBCLC)',
-    title: 'Pediatric Nurse & Postnatal Lactation Specialist',
-    ageGroup: '42 yrs',
-    location: 'Wuse II / Maitama, Abuja',
-    languages: ['English', 'Hausa'],
-    experienceYears: 14,
-    rating: 4.97,
-    reviewCount: 52,
-    availability: ['Daily', 'Weekend', 'Consultation'],
-    dailyRateNGN: 22000,
-    coreServices: [
-      'Home & Virtual Pediatrician / Nurse Postnatal Checkups',
-      'Lactation Latch Correction & Engorgement Relief',
-      'Newborn Jaundice, Weight & Umbilical Monitoring',
-      'Kunu Aya & Postpartum Recovery Meal Planning'
-    ],
-    vettingStatus: {
-      identityVerified: true,
-      backgroundCheckCleared: true,
-      medicalScreening: {
-        hivNegative: true,
-        hepBNegative: true,
-        tbCleared: true,
-        lastScreenedDate: '2026-09-22'
-      },
-      certifications: [
-        'B.Sc. Nursing & Pediatric Care Specialist',
-        'International Board Certified Lactation Consultant (IBCLC)',
-        'Verified Background & Clinical Health Clearance'
-      ]
-    },
-    bio: 'Specializes in bridging clinical postnatal nursing with traditional Northern and West African maternal recovery nutrition, offering home visits and scheduled video consultations.'
-  },
-  {
-    id: 'cg-mama-wanjiku',
-    name: 'Mama Grace Wanjiku',
-    title: 'Postpartum Recovery Caregiver & Night Nanny',
-    ageGroup: '51 yrs',
-    location: 'Port Harcourt / Diaspora Remote Support',
-    languages: ['English', 'Swahili', 'Igbo'],
-    experienceYears: 19,
-    rating: 4.94,
-    reviewCount: 38,
-    availability: ['Daily', 'Weekend', 'Live-In'],
-    dailyRateNGN: 16500,
-    coreServices: [
-      'Night-Shift Baby Monitoring & Bottle/Pumped Milk Feeding',
-      'Postpartum Bone Broth & Pepper Soup Preparation',
-      'Newborn Colic Soothing & Winding Techniques',
-      'Daily Shift Handover Logging via Grandma Mode'
-    ],
-    vettingStatus: {
-      identityVerified: true,
-      backgroundCheckCleared: true,
-      medicalScreening: {
-        hivNegative: true,
-        hepBNegative: true,
-        tbCleared: true,
-        lastScreenedDate: '2026-09-05'
-      },
-      certifications: [
-        'Vetted Postpartum Caregiver & Night Specialist',
-        'Full Medical Panel (HIV, Hep B, TB) Cleared',
-        'Infant Safe Sleep & Colic Soothing Certificate'
-      ]
-    },
-    bio: 'Dedicated to helping exhausted new mothers get uninterrupted 4-hour REM sleep windows while keeping detailed voice-activated logs of every feed and nap.'
-  }
-];
+export const INITIAL_VETTED_CAREGIVERS: VettedCaregiver[] = [];

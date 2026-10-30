@@ -11,192 +11,224 @@ export interface FoodArticle {
 }
 
 export const RICH_FOOD_ARTICLES: Record<string, FoodArticle> = {
-  honey: {
-    intro: "Honey is a natural sweet syrup made by bees. While it is healthy for older kids and grown ups, it is extremely dangerous for little babies who are under one year old.",
-    benefitsOrRisks: "Honey has tiny, invisible germs called botulism spores. A grown up's body can easily destroy these germs. But a baby's tummy is still too small and weak. If these germs get into a baby's tummy, they can make a poison. This poison can make your baby very weak, make it hard for them to breathe, and can even cause death.",
-    howToChooseAndWash: "You do not need to buy or prepare honey for a baby under twelve months old. If you have honey in your house, keep it on a high shelf where a child cannot reach it. Never use honey to sweeten your baby's milk, porridge, or water.",
+  water: {
+    intro: "Water is the most basic fluid on Earth, but for a tiny baby, it can actually be quite dangerous if given too early or in the wrong amounts. Many parents feel the need to give water when it is hot outside, but babies under six months old already get all the water they need from breast milk or formula.",
+    benefitsOrRisks: "The biggest risk with giving water to a small baby is something called water intoxication. A baby's kidneys are very small and cannot handle extra water. This extra water can thin out the important salts and minerals in their blood. If these salts get too low, it can cause the baby's brain to swell, leading to seizures, or in very bad cases, death. Additionally, giving water fills up their tiny stomachs, making them less hungry for the milk they need to grow strong.",
+    howToChooseAndWash: "You do not need to buy special water for babies. If you are using water to mix formula, always use fresh water from the tap that has been boiled and cooled down. Never use bottled water that has high levels of minerals or salts, as these are too hard for a baby's kidneys to process.",
     safetyChecklist: [
-      "Never give raw or cooked honey to a baby under one year old.",
-      "Check the labels of bought foods like biscuits or breads to make sure they do not have honey.",
-      "Do not put honey on your baby's dummy or pacifier to make them stop crying.",
-      "If your baby accidentally eats honey and looks sleepy, weak, or has trouble sucking, take them to a doctor immediately."
+      "Wait until your baby is six months old before offering any water to drink.",
+      "Only give water during meal times to help your baby learn how to use a cup.",
+      "Limit water to no more than two to four ounces (about half a small cup) in a whole day for babies between six and twelve months.",
+      "Always use a clean open cup or a straw cup instead of a bottle for water to help with their mouth development.",
+      "If it is very hot, offer more frequent breast milk or formula sessions instead of water."
     ],
     faqs: [
       {
-        q: "Can I use honey if it is baked or cooked in baby food?",
-        a: "No. Cooking or baking honey does not kill the dangerous germs. It remains unsafe for your baby until they reach their first birthday."
+        q: "Does my baby need water during a heatwave?",
+        a: "No. If your baby is under six months old, just give them more frequent breast milk or formula. These are made of mostly water and have the perfect balance of salts to keep your baby safe and hydrated."
       },
       {
-        q: "What should I do if my baby gets honey by mistake?",
-        a: "Watch your baby closely. If your baby gets weak, has a floppy neck, has constipation, or has trouble crying, go to the nearest hospital right away."
+        q: "When can my baby start drinking as much water as they want?",
+        a: "After your baby turns one year old, they can start drinking water more freely. Before that, milk should always be their main and most important drink."
+      }
+    ]
+  },
+  honey: {
+    intro: "Honey is a thick, golden syrup made by honeybees from the nectar of flowers. It has been used for thousands of years as a natural sweetener. However, despite its natural origin, it is one of the most dangerous foods you can give to a baby who has not yet reached their first birthday.",
+    benefitsOrRisks: "The primary danger in honey is a type of germ called Clostridium botulinum. These germs live in soil and dust and often find their way into honey. In adults and older children, the digestive system is strong enough to move these germs through the body without any harm. But a baby's digestive system is immature and very sensitive. In a baby's tummy, these germs can grow and produce a powerful poison that attacks the baby's nerves. This condition is called infant botulism. It causes the baby's muscles to become very weak and floppy, makes it difficult for them to swallow, and can stop them from being able to breathe on their own.",
+    howToChooseAndWash: "There is no way to wash or clean honey to make it safe for a baby. Even honey that is sold as organic, raw, or high quality still contains these dangerous germs. You should keep all honey containers tightly sealed and stored in a high kitchen cabinet where your children cannot reach them. When you are out at restaurants or visiting friends, always ask if there is honey in the food before letting your baby have a taste.",
+    safetyChecklist: [
+      "Keep all types of honey—whether raw, processed, or local—away from babies under twelve months old.",
+      "Read the ingredient lists on boxes of cereal, bread, and crackers carefully to ensure no honey is hidden inside.",
+      "Never follow old advice to put honey on a baby's tongue or pacifier to help them sleep or stop crying.",
+      "If you are breastfeeding, it is safe for you to eat honey, as the germs cannot pass through your breast milk to the baby.",
+      "Look for warning signs like constipation, a weak cry, or a floppy neck if you think your baby might have eaten honey accidentally."
+    ],
+    faqs: [
+      {
+        q: "Is honey safe if it has been boiled or baked in a cake?",
+        a: "No. The germs in honey are very tough and can survive the high heat of boiling and baking. Even if the honey is cooked, it can still cause botulism in your baby. Wait until they are one year old before giving them any food made with honey."
+      },
+      {
+        q: "What is the very first sign of botulism I should look for?",
+        a: "Constipation (not being able to poo) is usually the first sign. If this is followed by your baby looking very tired, having a weak suck, or acting like a 'rag doll' with no muscle strength, seek emergency medical help immediately."
       }
     ]
   },
   whole_nuts: {
-    intro: "Whole nuts are hard, dry fruits like peanuts, cashews, and almonds. They are packed with protein, but their hard shape makes them one of the biggest choking dangers for babies.",
-    benefitsOrRisks: "Because nuts are small and hard, a baby cannot chew them with their gums. If a baby tries to swallow a whole nut, it can easily slide into their breathing pipe instead of their food pipe. This can block their air completely, which makes it impossible for them to breathe.",
-    howToChooseAndWash: "Only buy smooth nut powders or smooth nut butter for babies. Never buy whole nuts or chopped nuts for your baby. Store whole nuts in locked cupboards away from children.",
+    intro: "Whole nuts are small, hard, and dry fruits like peanuts, walnuts, cashews, and almonds. They are incredibly healthy for adults, providing essential proteins and minerals. However, their physical shape and hardness make them one of the leading causes of choking in young children under the age of five.",
+    benefitsOrRisks: "The main danger with whole nuts is their size and rigid texture. A baby or young toddler does not have the back teeth (molars) needed to grind hard nuts into a safe paste. If a baby tries to swallow a whole nut, it can easily get stuck in their airway. Even more dangerous is the risk of aspiration, where a small piece of nut is inhaled into the lungs. This can cause severe lung inflammation and infections that are very hard to treat.",
+    howToChooseAndWash: "When shopping for your baby, only choose products that are smooth and creamy, like smooth peanut butter or finely ground nut flours. Never buy whole nuts, chopped nuts, or 'chunky' nut butters for a child who cannot yet chew perfectly. Always store your own snacks in high, locked cabinets to prevent curious toddlers from finding them on the floor or in low drawers.",
     safetyChecklist: [
-      "Never give whole, chopped, or crushed nuts to a baby under five years old.",
-      "You can introduce the taste of peanuts early by using smooth peanut butter thinned with water or breast milk.",
-      "Always stay close and watch your baby when they try any food that has nut ingredients.",
-      "Store nuts high up so older siblings cannot accidentally feed them to the baby."
+      "Wait until your child is at least four or five years old before giving them any whole or chopped nuts.",
+      "Introduce the taste of peanuts early (from 6 months) using smooth peanut butter thinned with water or breast milk to help prevent allergies.",
+      "Always supervise your child when they are eating any food that might contain nut pieces.",
+      "If you have older children, teach them that they must never share their nuts or hard snacks with the baby.",
+      "Learn the difference between a gag and a choke so you can react quickly if a child has trouble with a hard texture."
     ],
     faqs: [
       {
-        q: "When can a child safely eat whole nuts?",
-        a: "Doctors recommend waiting until your child is four or five years old before giving them whole nuts. By this age, they have back teeth to grind hard foods safely."
+        q: "Is it safe to give my baby crushed nuts in their porridge?",
+        a: "No. Even small crushed pieces are hard and can be breathed into the lungs. It is much safer to use a smooth nut butter that has been thinned out with liquid, or a very fine nut powder that dissolves completely."
       },
       {
-        q: "How can I give peanut protein safely to my six month old?",
-        a: "Mix a tiny half spoon of smooth peanut butter with two spoons of warm water or breast milk until it is thin and runny. Stir it into their warm baby cereal."
+        q: "At what age can a child safely grind nuts with their teeth?",
+        a: "Most children do not have the coordination and the full set of back molars needed to safely grind hard nuts until they are about four or five years old."
       }
     ]
   },
   popcorn: {
-    intro: "Popcorn is a popular snack made from heated corn kernels. It is very dry and light, but it has sharp edges and hard pieces that are highly dangerous for young children.",
-    benefitsOrRisks: "Popcorn has hard unpopped kernels and dry skins that can get stuck in a baby's throat. Because it is light and dry, a baby can easily breathe it into their lungs when they gasp or laugh. This can cause severe breathing blockages and lung infections.",
-    howToChooseAndWash: "Do not buy or make popcorn for your baby. Instead, choose soft snacks like well boiled sweet potato cubes or soft mashed fruits that melt easily in the baby's mouth.",
+    intro: "Popcorn is a very popular light snack, but it is one of the most hazardous foods for babies and toddlers. While it feels soft and fluffy, the hard unpopped kernels and the thin, sharp hulls (skins) pose a major threat to a baby's small throat and lungs.",
+    benefitsOrRisks: "Popcorn is a 'high-risk' choking food because of how it behaves in the mouth. It is light and dry, which makes it very easy for a baby to accidentally inhale a piece into their breathing pipe if they laugh, gasp, or cry while eating. Once inside, the dry hulls can stick to the sensitive lining of the throat or lungs, causing a blockage or a serious infection called aspiration pneumonia. The hard unpopped kernels are also exactly the right size to block a baby's airway completely.",
+    howToChooseAndWash: "Do not offer popcorn to your baby or toddler under any circumstances. If you want to give your baby a crunchy snack, choose puffed corn snacks that are specially made for infants. These are designed to dissolve instantly when they touch the baby's saliva, making them much safer than traditional popcorn.",
     safetyChecklist: [
-      "Do not give popcorn to babies or toddlers under four years of age.",
-      "Keep popcorn bowls out of reach during family movie nights.",
-      "If an older child is eating popcorn, make sure they do not drop pieces on the floor where the baby can crawl and find them.",
-      "Choose puffed corn snacks made specifically for babies that dissolve instantly without choking hazards."
+      "Avoid giving popcorn to any child under the age of four.",
+      "During family gatherings or movie nights, ensure that bowls of popcorn are kept on high tables out of the baby's reach.",
+      "Always check the floor under the couch or high chair to make sure no stray kernels have been dropped by others.",
+      "Choose safer alternatives like soft cooked vegetable sticks or soft fruits for snack time.",
+      "Be aware that even 'hull-less' popcorn still has hard parts that are unsafe for infants."
     ],
     faqs: [
       {
-        q: "Is soft popcorn safe if I cut off the hard kernel pieces?",
-        a: "No. Even the soft white part of popcorn can gather into a sticky ball in a baby's small throat and block their breathing. It is best to avoid it completely."
+        q: "Can I give my baby the soft white part of the popcorn if I remove the kernel?",
+        a: "No. Even the soft part can clump together in the throat and cause a blockage. It is better to wait until your child is older and has better chewing skills."
       },
       {
-        q: "What are safe alternative finger foods for my ten month old?",
-        a: "Try giving your baby soft food like small pieces of banana, well cooked sweet potato, or small cooked peas."
+        q: "What is a safe 'crunchy' snack for a ten-month-old?",
+        a: "Try giving your baby 'teething wafers' or puffed grain snacks that are labeled for their specific age. These are tested to ensure they melt quickly and do not break into hard, sharp pieces."
       }
     ]
   },
   hot_dogs: {
-    intro: "Hot dogs and sausages are processed meat cylinders. While easy to prepare, their round shape and rubbery texture pose an extreme choking risk for babies.",
-    benefitsOrRisks: "A whole hot dog or a round circular slice of hot dog is the exact same size as a baby's windpipe. If it gets stuck, it acts like a cork in a bottle, sealing the airway completely. Processed meats also contain high levels of salt and chemicals that are bad for a baby's small kidneys.",
-    howToChooseAndWash: "If you must serve sausages to an older baby, buy low sodium varieties. Always remove the tough outer skin or casing before cooking. Boil thoroughly before cutting.",
+    intro: "Hot dogs and sausages are common household foods, but their shape and texture are extremely dangerous for young children. When cut into round circles, they become a perfect plug that can block a child's breathing tube completely.",
+    benefitsOrRisks: "The physical shape of a hot dog is the main problem. A round slice of hot dog is almost exactly the same diameter as a baby's airway. If a child swallows a round 'coin' of hot dog without chewing it properly, it can get stuck and form an airtight seal, making it impossible for the child to breathe. Hot dogs are also very high in sodium (salt) and nitrates, which are not healthy for a baby's developing kidneys and heart.",
+    howToChooseAndWash: "If you decide to serve sausages to an older baby (closer to 12 months), always look for low-sodium or nitrate-free versions. Remove the tough outer skin or casing before cooking, as this skin is very hard for a baby to chew and can also cause choking.",
     safetyChecklist: [
-      "Never cut hot dogs or sausages into round circular discs or coins.",
-      "Always peel off the skin and slice the meat lengthwise into thin, long strips like matchsticks.",
-      "Serve sausage only to babies who are already good at chewing other soft foods.",
-      "Avoid giving high salt foods to babies to protect their delicate kidneys."
+      "Never, ever cut hot dogs, sausages, or carrots into round 'coin' shapes.",
+      "Always slice the meat lengthwise (from top to bottom) into thin, long strips like matchsticks.",
+      "Dice the long strips into very small, pea-sized pieces for babies who are just learning to chew.",
+      "Avoid giving processed meats frequently due to the high salt content.",
+      "Always stay within arm's reach while your baby is eating any firm meat products."
     ],
     faqs: [
       {
-        q: "Why are round sausage coins so dangerous?",
-        a: "Because they are round and firm, they can perfectly block your baby's throat like a plug. Slicing them lengthwise into thin strips makes them safe."
+        q: "Is it okay to give my baby a whole hot dog to hold?",
+        a: "No. A baby can easily bite off a large chunk that they cannot chew, leading to a serious choking incident. Always cut the food for them into safe, thin pieces."
       },
       {
-        q: "Are vegetarian sausages safer for babies?",
-        a: "Vegetarian sausages can still cause choking if cut into round discs. You must always slice any sausage shape lengthwise into thin strips."
+        q: "Are soft veggie dogs safer than meat hot dogs?",
+        a: "While they might be slightly softer, the round shape is still the danger. You must still slice any sausage-shaped food lengthwise into thin strips to keep your baby safe."
       }
     ]
   },
   cows_milk: {
-    intro: "Cow's milk is the milk that comes from cows. While it is good for older toddlers, it should not be given to your baby as their main drink before they are one year old.",
-    benefitsOrRisks: "Before twelve months, a baby's stomach cannot digest the heavy proteins and minerals in cow's milk. It can cause tiny bleeding inside their tummy, which can make them lose iron and become weak. Cow's milk also does not have enough iron and nutrients to help a young baby grow properly.",
-    howToChooseAndWash: "Always buy pasteurized, full fat whole cow's milk. Do not buy skimmed or low fat milk for young children, as they need the healthy fats for their growing brains.",
+    intro: "Cow's milk is a staple in many diets, but for a baby under one year old, it is not a suitable replacement for breast milk or formula. While it is full of calcium, its nutritional balance is not right for a growing infant.",
+    benefitsOrRisks: "The proteins and minerals in cow's milk are very heavy and difficult for a baby's immature kidneys and stomach to process. Drinking large amounts of cow's milk before 12 months can lead to microscopic bleeding in the baby's intestines, which can cause them to lose blood and become anemic (low in iron). Cow's milk also lacks the high levels of iron and Vitamin C that babies need to develop their brains and immune systems properly.",
+    howToChooseAndWash: "When your baby reaches 12 months, you should choose whole, pasteurized cow's milk. Babies need the healthy fats in whole milk for their brain development until they are at least two years old. Do not use raw (unpasteurized) milk, as it can carry dangerous bacteria like E. coli or Salmonella.",
     safetyChecklist: [
-      "Keep using breast milk or baby formula as your baby's main drink until they are one year old.",
-      "You can use small amounts of cow's milk to mix into baby cereal or mashed foods from six months.",
-      "Plain full fat yogurt and cheese are safe and healthy to give before twelve months because they are easier to digest.",
-      "When your baby turns one, you can start giving them whole cow's milk as a drink."
+      "Keep using breast milk or formula as your baby's main drink until their first birthday.",
+      "You can safely use small amounts of cow's milk to cook porridge or mash vegetables from 6 months of age.",
+      "Plain, full-fat yogurt and cheese are excellent foods to introduce before 12 months because the culturing process makes the milk proteins easier to digest.",
+      "Avoid giving your baby plant-based milks (like almond or soy milk) as a main drink unless recommended by a healthcare provider, as they often lack the necessary fat and protein.",
+      "Transition to whole cow's milk gradually after 12 months, limiting it to about 2 cups (500ml) a day to ensure they still have room for solid foods."
     ],
     faqs: [
       {
-        q: "Why can babies eat yogurt but not drink cow's milk?",
-        a: "The way yogurt is made breaks down the heavy milk proteins. This makes it much gentler and easier for your baby's small stomach to digest."
+        q: "Can I give my baby cow's milk if I run out of formula?",
+        a: "No. If you have an emergency, it is better to contact a friend, neighbor, or a local pharmacy for formula. Cow's milk does not have the right nutrients and can cause tummy problems for a young baby."
       },
       {
-        q: "Can I give my baby skimmed or semi-skimmed milk?",
-        a: "No. Babies under two years old need the full fat in whole milk to help their brains and bodies grow strong."
+        q: "Is skimmed milk better for my baby to prevent them from getting too heavy?",
+        a: "No. Babies need fat for their brains to grow. Skimmed and semi-skimmed milk do not have enough energy and vitamins for a child under two years old."
       }
     ]
   },
   salt_sugar: {
-    intro: "Added salt and refined sugar are white crystals used to flavor food. While grown ups use them daily, they should be kept out of your baby's food entirely.",
-    benefitsOrRisks: "A baby has very small, delicate kidneys that cannot process added salt. Giving them too much salt can make them very sick. Added sugar is also bad because it causes tooth decay and makes your baby only want sweet things, refusing healthy vegetables.",
-    howToChooseAndWash: "Prepare your baby's food at home using fresh ingredients without adding any salt or sugar. Use natural herbs like a pinch of cinnamon, garlic, or coriander to make food taste nice without risks.",
+    intro: "Added salt and refined sugar are very common in the adult diet, but they have no place in a baby's meals. Introducing these ingredients too early can harm your baby's health and set them up for poor eating habits in the future.",
+    benefitsOrRisks: "A baby's kidneys are very small and still developing. They cannot process more than a tiny amount of salt (sodium). If a baby eats too much salt, it can cause high blood pressure and put a dangerous strain on their kidneys. Refined sugar is also harmful as it causes tooth decay (even before teeth come in) and encourages a preference for only sweet foods, which can lead to obesity and a refusal to eat healthy vegetables later on.",
+    howToChooseAndWash: "The best way to avoid salt and sugar is to prepare your baby's food at home using fresh, whole ingredients. If you are buying pre-made baby food, always check the label carefully. Many 'healthy' snacks for babies actually contain hidden sugars like fruit juice concentrate or maltodextrin. Look for labels that say 'no added salt' and 'no added sugar'.",
     safetyChecklist: [
-      "Do not add salt, bouillon cubes, or soy sauce to your baby's pot.",
-      "Do not give your baby sugary juices, sodas, or sweets.",
-      "Check the labels of bought baby foods and avoid any with added sugar or high sodium.",
-      "Keep your baby's meals simple, fresh, and naturally flavored."
+      "Do not add any salt to the pot when cooking for your baby.",
+      "Avoid using bouillon cubes, stock powders, or soy sauce, as these are almost entirely made of salt.",
+      "Keep your baby away from sugary drinks like sodas, fruit juices, and flavored milks.",
+      "Use natural herbs and spices like cinnamon, ginger, garlic, or lemon juice to make food taste exciting without using salt or sugar.",
+      "Be careful with processed 'toddler snacks' like biscuits and rusks, which are often very high in sugar.",
+      "Check that your baby is having less than 1 gram of salt (0.4 grams of sodium) in a whole day."
     ],
     faqs: [
       {
-        q: "How much salt can my baby have in a day?",
-        a: "Babies under one year old should have less than one gram of salt per day. This small amount is already naturally present in breast milk and basic foods."
+        q: "What if my baby's food tastes bland without salt?",
+        a: "Babies do not have the same taste preferences as adults. They find the natural taste of a carrot or a potato very flavorful. Adding salt is an adult habit that babies do not need and cannot handle safely."
       },
       {
-        q: "Can I use honey or brown sugar instead of white sugar?",
-        a: "No. Never use honey for babies under one year. Brown sugar, maple syrup, and fruit juices still damage teeth and should be avoided."
+        q: "Is honey or maple syrup a better choice than white sugar?",
+        a: "No. Honey is strictly dangerous for babies under one year due to botulism. Maple syrup and other 'natural' sugars still cause tooth decay and should be avoided to help your baby develop a healthy palate."
       }
     ]
   },
   grapes: {
-    intro: "Grapes and cherry tomatoes are juicy, round fruits. They are excellent sources of vitamins, but their round shape is highly dangerous for babies.",
-    benefitsOrRisks: "The round, smooth shape of a whole grape matches the exact size of a baby's airway. If swallowed whole, it can get stuck tightly in their throat, blocking all air. The skin can also make it slippery and hard to cough out.",
-    howToChooseAndWash: "Pluck grapes from their stems and wash them thoroughly in clean, running water. Always touch each grape to make sure it is not rotten.",
+    intro: "Grapes and cherry tomatoes are fantastic, juicy fruits that are full of vitamins and hydration. However, their physical shape is one of the most dangerous choking hazards for babies and young children.",
+    benefitsOrRisks: "The problem with a grape is its size, shape, and skin. A whole grape is the perfect size and shape to completely block a child's airway. Because it is smooth and slippery, it can slide to the back of the throat before the baby has a chance to chew it. Once it is stuck, its rubbery texture makes it act like a plug, making it very difficult to dislodge with back blows.",
+    howToChooseAndWash: "Always wash grapes and cherry tomatoes thoroughly under running water. Remove them from the stems and check for any that are bruised or overly soft. Even if the grapes are small, you must never serve them whole.",
     safetyChecklist: [
-      "Never serve whole grapes or whole cherry tomatoes to a baby or toddler.",
-      "Always cut grapes lengthwise into four long quarters (top to bottom).",
-      "Do not cut grapes horizontally into round wheels, as these are still dangerous.",
-      "Always stay with your baby while they eat and make sure they sit up straight."
+      "Never serve a whole grape or a whole cherry tomato to a child under five years old.",
+      "Always cut grapes and cherry tomatoes lengthwise (from the stem end to the bottom) into at least four long quarters.",
+      "Do not cut them into round 'wheels' or 'coins', as these can still block the airway.",
+      "If you are at a party or a park, watch your baby closely to make sure they do not find a stray grape on a low table or on the ground.",
+      "Always ensure your baby is sitting upright and focused on eating when having slippery fruits."
     ],
     faqs: [
       {
-        q: "Is it safe to peel grapes before giving them to my baby?",
-        a: "Peeling makes them less slippery, but they are still a choking hazard if served whole. You must always cut them lengthwise into quarters."
+        q: "Is it safe to peel grapes for my baby?",
+        a: "Peeling makes the grape less slippery, but the round shape is still the danger. You must still cut the peeled grape lengthwise into quarters to make it safe."
       },
       {
-        q: "What should I do if my baby chokes on a grape?",
-        a: "If your baby cannot make sound or breathe, lay them face down on your arm and give five firm slaps on their back between the shoulder blades. Seek emergency medical help immediately."
+        q: "When can my child eat a whole grape?",
+        a: "Most safety guidelines recommend waiting until a child is at least five years old. Even then, you should supervise them and encourage them to chew thoroughly."
       }
     ]
   },
   hard_raw_apples: {
-    intro: "Raw apples and raw carrots are crunchy, hard fruits and vegetables. They are full of fiber, but they are too hard for a baby to chew safely with their gums.",
-    benefitsOrRisks: "When a baby bites a raw apple or carrot, their front teeth can snap off a hard chunk. Since they do not have back teeth to grind it, they try to swallow it whole. This hard chunk can get stuck in their throat and stop their breathing.",
-    howToChooseAndWash: "Peel raw carrots and apples, and wash them well with clean water. Always cook them until they are soft before serving them to your baby.",
+    intro: "Raw apples and raw carrots are very healthy and crunchy, but for a baby, they are far too hard to chew safely. They are responsible for many choking incidents in infants who are just starting to eat solid foods.",
+    benefitsOrRisks: "When a baby bites into a raw apple or a hard carrot, their sharp front teeth can easily snap off a large, hard piece. Because they do not have the back teeth needed to grind this hard chunk into a soft mush, they often try to swallow it whole. This hard piece can easily get stuck in their throat, blocking their breathing. Inhaling a hard piece of raw vegetable can also lead to serious lung issues.",
+    howToChooseAndWash: "Wash all fruits and vegetables well before peeling. For babies, you must always soften these hard foods. Steaming or baking until the food is fork-tender is the safest way to prepare them. Alternatively, you can grate them into very fine shreds that the baby can swallow easily without chewing.",
     safetyChecklist: [
-      "Never give raw chunks of hard apples or carrots to a baby under one year.",
-      "Steam or bake apple slices and carrots until they are soft enough to mash easily with your fingers.",
-      "You can grate raw apples or carrots finely and mix them into oatmeal or yogurt.",
-      "Make sure the cooked pieces are soft and easy for the baby's gums to crush."
+      "Never give raw chunks of apple, carrot, or pear to a baby under one year old.",
+      "Steam or bake apple and carrot slices until you can easily mash them between your thumb and finger.",
+      "If serving raw apple, use a fine grater to create a soft 'slush' that you can mix into yogurt or cereal.",
+      "Offer very thin, translucent shavings of apple only if your baby is already a very confident eater.",
+      "Always peel the skin off apples and carrots for younger babies, as the skin can be tough and hard to swallow."
     ],
     faqs: [
       {
-        q: "Is a raw apple safe if I cut it very small?",
-        a: "Small raw chunks are still hard and can easily slide down the throat and cause choking. It is much safer to grate them finely or cook them until soft."
+        q: "My baby has four front teeth. Can they eat a raw apple now?",
+        a: "No. Front teeth are for biting, not for grinding. Without back molars, your baby cannot break down a hard chunk of raw apple safely. Keep softening their food until they are older."
       },
       {
-        q: "How can I tell if a cooked carrot is soft enough?",
-        a: "Press the cooked carrot piece between your thumb and index finger. If it mashes flat easily, it is perfectly safe for your baby."
+        q: "Is a boiled carrot safe if it's still a bit crunchy?",
+        a: "No. For a baby, the carrot must be completely soft. If you can't squash it easily with your fingers, it is not soft enough for your baby's gums."
       }
     ]
   },
   peanut_butter: {
-    intro: "Peanut butter is a thick paste made from ground peanuts. It is full of healthy fats and protein, but its sticky nature requires careful preparation.",
-    benefitsOrRisks: "Giving your baby a thick spoonful of peanut butter can be very dangerous. It is extremely sticky and can glue itself to the roof of your baby's mouth and throat, making it very hard for them to swallow or breathe.",
-    howToChooseAndWash: "Buy smooth, unsalted peanut butter. Do not buy crunchy peanut butter because it has hard nut pieces that can choke your baby.",
+    intro: "Peanut butter is an excellent source of protein and healthy fats. Introducing peanuts early (around 6 months) is actually recommended to help prevent your baby from developing a peanut allergy, but the texture must be handled with extreme care.",
+    benefitsOrRisks: "The main danger with peanut butter is its thick, sticky texture. If you give a baby a large spoonful of straight peanut butter, it can stick to the roof of their mouth and the back of their throat, making it nearly impossible for them to swallow or breathe. It acts like a glue that can block the airway. You must also ensure the peanut butter does not have added salt or sugar.",
+    howToChooseAndWash: "Look for 'natural' smooth peanut butter that lists only 'peanuts' as the ingredient. Avoid 'crunchy' varieties because the tiny nut pieces are a choking risk. Never buy peanut butter with added oils, salt, or sugars for your baby.",
     safetyChecklist: [
-      "Never give a spoonful of straight peanut butter to a baby.",
-      "Always thin peanut butter with warm water, breast milk, or mix it into a warm fruit puree.",
-      "Spread peanut butter very thinly on toast strips instead of leaving thick clumps.",
-      "Introduce peanut butter early to help prevent allergies, but always in a safe, thin form."
+      "Never give your baby a spoonful of plain, thick peanut butter.",
+      "Always thin out peanut butter by mixing one teaspoon of it with two or three teaspoons of warm water, breast milk, or fruit puree until it is runny.",
+      "Spread peanut butter very thinly on a piece of toast or a cracker so there are no thick clumps.",
+      "When introducing peanuts for the first time, give a tiny amount and wait ten minutes to watch for any immediate allergic reaction like hives or swelling.",
+      "Stir thinned peanut butter into warm oatmeal or yogurt for a safe and nutritious meal."
     ],
     faqs: [
       {
-        q: "How do I make peanut butter safe for my six month old?",
-        a: "Mix half a teaspoon of smooth peanut butter with two teaspoons of warm water or breast milk. Stir until it is thin and watery, then mix it into warm cereal."
+        q: "What if my family has a history of peanut allergies?",
+        a: "If you are worried, talk to your care provider before introducing peanuts. However, many current guidelines suggest that early introduction under supervision is the best way to prevent an allergy from starting."
       },
       {
-        q: "Can I use crunchy peanut butter?",
-        a: "No. Crunchy peanut butter contains tiny hard nut pieces that are a choking danger for babies. Always use 100% smooth peanut butter."
+        q: "Can I use peanut butter as a dip for apple slices?",
+        a: "Only if the apple slices are cooked soft and the peanut butter is thinned out. Thick peanut butter on a firm piece of fruit is a high-risk combination for choking."
       }
     ]
   },
