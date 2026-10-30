@@ -101,25 +101,25 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
 
       if (res.ok) {
         const data = await res.json();
-        setMarketIntelligence(data);
-        if (data.outlets && Array.isArray(data.outlets) && data.outlets.length > 0) {
+        setMarketIntelligence(data.realities);
+        if (data.outlets && Array.isArray(data.outlets)) {
           setPlacesList(data.outlets);
-          setSelectedPlace(data.outlets[0]);
         }
       }
-    } catch (err) {
-      console.warn("Failed to fetch location realities:", err);
+    } catch {
+      // Fallback defaults if offline
     } finally {
       setIsLoadingRealities(false);
     }
   };
 
   const filteredPlaces = placesList.filter(p => {
-    const matchesCategory = activeCategory === 'all' || p.category === activeCategory;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.popularStaples?.some(s => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                          (p.address && p.address.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
+    const matchesCat = activeCategory === 'all' || p.category === activeCategory;
+    const matchesSearch = !searchQuery || 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.popularStaples?.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCat && matchesSearch;
   });
 
   const handleLocationPicked = (loc: GlobalLocation) => {
@@ -128,19 +128,19 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-[36px] p-4 sm:p-6 border border-gray-100 shadow-xl space-y-5 text-left relative overflow-hidden">
+    <div className="bg-white/95 rounded-[36px] p-4 sm:p-6 border border-white shadow-xl space-y-5 text-left relative overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-3">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0 shadow-2xs">
+          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl shrink-0 shadow-2xs">
             📍
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
+              <span className="text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20">
                 Google Maps Grounding
               </span>
-              <span className="text-[9px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+              <span className="text-[9px] font-bold text-gray-600 bg-card px-2 py-0.5 rounded-full border border-white">
                 Global Location Awareness
               </span>
             </div>
@@ -153,7 +153,7 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsPickerOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer border-none transition-all"
+            className="px-4 py-2.5 rounded-2xl bg-primary hover:bg-primary/90 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-primary/20 cursor-pointer border-none transition-all"
           >
             <span>🗺️</span>
             <span>Change Location ({currentLoc.name.split(',')[0]})</span>
@@ -171,29 +171,29 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
       </div>
 
       {/* Global Location Reality Context Banner */}
-      <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-3xl p-4 space-y-2.5 text-left">
+      <div className="bg-card/40 border border-white rounded-3xl p-4 space-y-2.5 text-left">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="text-base">🌍</span>
             <h4 className="text-xs sm:text-sm font-bold text-gray-900">
-              Current Location: <span className="text-emerald-800 font-black">{currentLoc.name}</span>
+              Current Location: <span className="text-primary font-black">{currentLoc.name}</span>
             </h4>
           </div>
-          <span className="text-xs font-black text-emerald-800 bg-white px-2.5 py-1 rounded-xl border border-emerald-200 self-start sm:self-auto">
+          <span className="text-xs font-black text-gray-800 bg-white px-2.5 py-1 rounded-xl border border-white shadow-2xs self-start sm:self-auto">
             Local Currency: {marketIntelligence?.currencySymbol || currentLoc.currency} ({marketIntelligence?.currencyCode || currentLoc.currencyCode || ''})
           </span>
         </div>
 
         {isLoadingRealities ? (
           <div className="flex items-center gap-2 text-xs text-gray-500 py-1 font-medium">
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
             <span>Updating local market intelligence with Google Maps...</span>
           </div>
         ) : marketIntelligence && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-            <div className="bg-white/90 p-2.5 rounded-2xl border border-emerald-100 space-y-0.5">
-              <p className="text-[9px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1">
-                <Tag className="w-3 h-3 text-emerald-600" />
+            <div className="bg-white/90 p-2.5 rounded-2xl border border-white space-y-0.5 shadow-2xs">
+              <p className="text-[9px] font-black uppercase tracking-wider text-primary flex items-center gap-1">
+                <Tag className="w-3 h-3 text-primary" />
                 <span>Local Sales Types & MOQ Reality</span>
               </p>
               <p className="text-[11px] text-gray-700 leading-snug">
@@ -201,9 +201,9 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
               </p>
             </div>
 
-            <div className="bg-white/90 p-2.5 rounded-2xl border border-emerald-100 space-y-0.5">
-              <p className="text-[9px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1">
-                <ShoppingCart className="w-3 h-3 text-emerald-600" />
+            <div className="bg-white/90 p-2.5 rounded-2xl border border-white space-y-0.5 shadow-2xs">
+              <p className="text-[9px] font-black uppercase tracking-wider text-primary flex items-center gap-1">
+                <ShoppingCart className="w-3 h-3 text-primary" />
                 <span>Market Overview</span>
               </p>
               <p className="text-[11px] text-gray-700 leading-snug">
@@ -223,7 +223,7 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
             placeholder={`Search markets, supermarkets, staples in ${currentLoc.name.split(',')[0]}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-800 outline-none focus:border-emerald-500 shadow-2xs"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-800 outline-none focus:border-primary shadow-2xs"
           />
         </div>
 
@@ -239,7 +239,7 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
               onClick={() => setActiveCategory(cat.id)}
               className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shrink-0 transition-all border-none cursor-pointer flex items-center gap-1.5 ${
                 activeCategory === cat.id
-                  ? 'bg-emerald-600 text-white shadow-xs'
+                  ? 'bg-primary text-white shadow-xs'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -275,8 +275,8 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
                 >
                   <Pin 
                     background={
-                      place.category === 'market' ? '#10b981' : 
-                      place.category === 'supermarket' ? '#3b82f6' : '#ec4899'
+                      place.category === 'market' ? '#37b1f5' : 
+                      place.category === 'supermarket' ? '#4f46e5' : '#e11d48'
                     } 
                     borderColor="#ffffff" 
                     glyphColor="#ffffff" 
@@ -290,12 +290,12 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
         {/* Selected Outlet Local Realities Panel */}
         <div className="lg:col-span-5 space-y-3 flex flex-col justify-between">
           {selectedPlace ? (
-            <div className="bg-emerald-50/60 border-2 border-emerald-200/80 rounded-3xl p-4 space-y-3 text-left">
+            <div className="bg-card/40 border-2 border-white rounded-3xl p-4 space-y-3 text-left">
               <div className="flex justify-between items-start gap-2">
                 <div>
                   <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                    selectedPlace.category === 'market' ? 'bg-emerald-100 text-emerald-800' :
-                    selectedPlace.category === 'supermarket' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
+                    selectedPlace.category === 'market' ? 'bg-primary/10 text-primary border border-primary/20' :
+                    selectedPlace.category === 'supermarket' ? 'bg-indigo-100 text-indigo-800' : 'bg-rose-100 text-rose-800'
                   }`}>
                     {selectedPlace.category === 'market' ? '🥬 Open-Air Fresh Market' :
                      selectedPlace.category === 'supermarket' ? '🛒 Modern Supermarket' : '💊 Certified Pharmacy'}
@@ -304,19 +304,19 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
                     {selectedPlace.name}
                   </h3>
                   <p className="text-[11px] font-medium text-gray-600 flex items-center gap-1 mt-0.5">
-                    <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <MapPin className="w-3 h-3 text-primary shrink-0" />
                     <span>{selectedPlace.address}</span>
                   </p>
                 </div>
-                <span className="text-xs font-black text-emerald-700 bg-white px-2.5 py-1 rounded-xl shadow-2xs border border-emerald-100">
+                <span className="text-xs font-black text-gray-900 bg-white px-2.5 py-1 rounded-xl shadow-2xs border border-white">
                   ⭐ {selectedPlace.rating}
                 </span>
               </div>
 
               {/* Local Reality: MOQ & Sales Type */}
-              <div className="bg-white p-3 rounded-2xl border border-emerald-100 space-y-1">
-                <p className="text-[9px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1">
-                  <Tag className="w-3 h-3 text-emerald-600" />
+              <div className="bg-white p-3 rounded-2xl border border-white shadow-2xs space-y-1">
+                <p className="text-[9px] font-black uppercase tracking-wider text-primary flex items-center gap-1">
+                  <Tag className="w-3 h-3 text-primary" />
                   <span>MOQ & Local Sales Type</span>
                 </p>
                 <p className="text-xs font-bold text-gray-800">{selectedPlace.moqSalesType}</p>
@@ -338,7 +338,7 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
               </div>
 
               {/* Hours & Direct Link */}
-              <div className="flex justify-between items-center pt-2 border-t border-emerald-200/60 text-[10px] text-gray-600">
+              <div className="flex justify-between items-center pt-2 border-t border-gray-200/60 text-[10px] text-gray-600">
                 <div className="flex items-center gap-1 font-medium">
                   <Clock className="w-3 h-3 text-gray-400" />
                   <span>{selectedPlace.hours}</span>
@@ -347,7 +347,7 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedPlace.name + ' ' + selectedPlace.address)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 no-underline"
+                  className="text-primary hover:text-primary/80 font-bold flex items-center gap-1 no-underline"
                 >
                   <span>Google Maps</span>
                   <ExternalLink className="w-3 h-3" />
@@ -355,7 +355,7 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
               </div>
             </div>
           ) : (
-            <div className="bg-gray-50 p-6 rounded-3xl border border-gray-200 text-center text-gray-500 text-xs font-medium">
+            <div className="bg-white/80 p-6 rounded-3xl border border-white shadow-xs text-center text-gray-500 text-xs font-medium">
               Click a marker on the map to inspect local price realities and sales types.
             </div>
           )}
@@ -372,13 +372,13 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
                 }}
                 className={`w-full p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex justify-between items-center ${
                   selectedPlace?.id === place.id
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    ? 'bg-primary text-white border-primary shadow-xs'
                     : 'bg-white hover:bg-gray-50 text-gray-800 border-gray-100'
                 }`}
               >
                 <div>
                   <p className="text-xs font-bold leading-tight">{place.name}</p>
-                  <p className={`text-[10px] font-medium mt-0.5 ${selectedPlace?.id === place.id ? 'text-emerald-100' : 'text-gray-500'}`}>
+                  <p className={`text-[10px] font-medium mt-0.5 ${selectedPlace?.id === place.id ? 'text-white/80' : 'text-gray-500'}`}>
                     {place.priceLevel} • {place.moqSalesType?.split(',')[0]}
                   </p>
                 </div>

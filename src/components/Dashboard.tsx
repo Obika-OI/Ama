@@ -4,8 +4,8 @@ import {
   Droplet, PlusCircle, Search, Clock, ChevronLeft, Heart, MapPin, Trophy, Bell,
   CheckCircle2, Flame, Sparkles, RefreshCw, Award, Shield, Info, Printer, ShoppingBag,
   Trash2, FileText, Edit3, Copy, RotateCcw, ChevronDown, LogOut, QrCode, Wifi, WifiOff,
-  Link, X, Settings, Lock, Crown, ShieldAlert, EyeOff, UserCheck, ShieldCheck, FileCode,
-  Dna, Activity as ActivityIcon, Users, Check, HelpCircle, Mic
+  Link, X, Settings, Lock, Unlock, Crown, ShieldAlert, EyeOff, UserCheck, ShieldCheck, FileCode,
+  Dna, Activity as ActivityIcon, Users, Check, HelpCircle, Mic, MicOff, Video, VideoOff, Volume2, Thermometer, Moon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MOCK_MEALS, THEME, MOCK_ACTIVITIES, MOCK_REMINDERS, QUEST_POOL } from '../constants';
@@ -62,7 +62,16 @@ export const Dashboard = ({
   onSelectBaby,
   onAddBaby,
   onUpdateBaby,
-  onDeleteBaby
+  onDeleteBaby,
+  loggedMeals = [],
+  setLoggedMeals,
+  diaperLogs = [],
+  setDiaperLogs,
+  setFluidMl,
+  observationLogs = [],
+  setObservationLogs,
+  memories = [],
+  setMemories
 }: { 
   onNavigate: (screen: string, data?: any, autoOpenLog?: boolean) => void; 
   isPremium: boolean;
@@ -100,6 +109,15 @@ export const Dashboard = ({
   onAddBaby?: (baby: BabyProfile) => void;
   onUpdateBaby?: (baby: BabyProfile) => void;
   onDeleteBaby?: (babyId: string) => void;
+  loggedMeals?: any[];
+  setLoggedMeals?: React.Dispatch<React.SetStateAction<any[]>>;
+  diaperLogs?: any[];
+  setDiaperLogs?: React.Dispatch<React.SetStateAction<any[]>>;
+  setFluidMl?: React.Dispatch<React.SetStateAction<number>>;
+  observationLogs?: any[];
+  setObservationLogs?: React.Dispatch<React.SetStateAction<any[]>>;
+  memories?: any[];
+  setMemories?: React.Dispatch<React.SetStateAction<any[]>>;
 }) => {
   const fluidProgress = Math.min(100, (fluidMl / fluidTarget) * 100);
   
@@ -118,6 +136,113 @@ export const Dashboard = ({
     return saved ? JSON.parse(saved) : POPULAR_GLOBAL_LOCATIONS[0];
   });
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
+
+  // Grandma Mode (Automatic with Village Family Member Access)
+  const [isGrandmaModeActive, setIsGrandmaModeActive] = useState(userRole === 'family');
+  const [grandmaVoiceListening, setGrandmaVoiceListening] = useState(false);
+  const [grandmaToast, setGrandmaToast] = useState('');
+
+  useEffect(() => {
+    if (userRole === 'family') {
+      setIsGrandmaModeActive(true);
+    }
+  }, [userRole]);
+
+  const handleGrandmaQuickFeed = () => {
+    if (setLoggedMeals) {
+      const newFeed = {
+        id: `grandma-feed-${Date.now()}`,
+        title: 'Bottle Feed (4 oz)',
+        type: 'bottle',
+        amount: 4,
+        unit: 'oz',
+        timestamp: new Date().toISOString(),
+        date: new Date().toISOString(),
+        loggedBy: 'Grandma / Elder'
+      };
+      setLoggedMeals([newFeed, ...(loggedMeals || [])]);
+    }
+    if (setFluidMl) setFluidMl(prev => prev + 120);
+    setGrandmaToast('🍼 Feed recorded: 4 oz bottle logged for baby!');
+    setTimeout(() => setGrandmaToast(''), 3000);
+  };
+
+  const handleGrandmaQuickNap = () => {
+    if (setScheduledActivities) {
+      const newNap = {
+        id: `grandma-nap-${Date.now()}`,
+        title: `Baby Nap (Logged by Grandma)`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isCompleted: true,
+        category: 'Sleep'
+      };
+      setScheduledActivities([newNap, ...(scheduledActivities || [])]);
+    }
+    setGrandmaToast('😴 Nap recorded: baby is sleeping peacefully!');
+    setTimeout(() => setGrandmaToast(''), 3000);
+  };
+
+  const handleGrandmaQuickDiaper = () => {
+    if (setDiaperLogs) {
+      const newDiaper = {
+        id: `grandma-diaper-${Date.now()}`,
+        type: 'Wet',
+        status: 'Normal',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: new Date().toISOString(),
+        loggedBy: 'Grandma / Elder'
+      };
+      setDiaperLogs([newDiaper, ...(diaperLogs || [])]);
+    }
+    setGrandmaToast('🚼 Diaper change recorded!');
+    setTimeout(() => setGrandmaToast(''), 3000);
+  };
+
+  const handleGrandmaVoiceLog = () => {
+    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRec) {
+      const rec = new SpeechRec();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.lang = 'en-US';
+      rec.onstart = () => setGrandmaVoiceListening(true);
+      rec.onend = () => setGrandmaVoiceListening(false);
+      rec.onerror = () => {
+        setGrandmaVoiceListening(false);
+        setGrandmaToast('Tap again to speak your log.');
+        setTimeout(() => setGrandmaToast(''), 2500);
+      };
+      rec.onresult = (evt: any) => {
+        const transcript = evt.results?.[0]?.[0]?.transcript || '';
+        setGrandmaVoiceListening(false);
+        if (!transcript) return;
+        const lower = transcript.toLowerCase();
+        if (lower.includes('sleep') || lower.includes('nap')) {
+          handleGrandmaQuickNap();
+          setGrandmaToast(`🎙️ Voice Logged: "${transcript}" → Nap recorded!`);
+        } else if (lower.includes('feed') || lower.includes('bottle') || lower.includes('milk') || lower.includes('drank') || lower.includes('oz')) {
+          handleGrandmaQuickFeed();
+          setGrandmaToast(`🎙️ Voice Logged: "${transcript}" → Feed recorded!`);
+        } else if (lower.includes('diaper') || lower.includes('wet') || lower.includes('change')) {
+          handleGrandmaQuickDiaper();
+          setGrandmaToast(`🎙️ Voice Logged: "${transcript}" → Diaper recorded!`);
+        } else {
+          setGrandmaToast(`🎙️ Heard: "${transcript}". Say "baby slept" or "baby drank milk".`);
+        }
+        setTimeout(() => setGrandmaToast(''), 3500);
+      };
+      rec.start();
+    } else {
+      const phrase = prompt('Grandma Voice Quick Log: What did baby do? (e.g. "baby slept", "baby drank 3 oz", "clean diaper")');
+      if (phrase) {
+        const lower = phrase.toLowerCase();
+        if (lower.includes('sleep') || lower.includes('nap')) handleGrandmaQuickNap();
+        else if (lower.includes('feed') || lower.includes('milk') || lower.includes('bottle') || lower.includes('oz')) handleGrandmaQuickFeed();
+        else if (lower.includes('diaper')) handleGrandmaQuickDiaper();
+        else handleGrandmaQuickFeed();
+      }
+    }
+  };
 
   // Quick Inline Scheduler State inside Dashboard Modal
   const [scheduleCategory, setScheduleCategory] = useState<'meal' | 'activity' | 'med' | 'vaccine' | 'routine'>('meal');
@@ -227,36 +352,21 @@ export const Dashboard = ({
     <div className="p-4 sm:p-6 md:p-8 lg:p-10 pb-32 space-y-8 sm:space-y-10 bg-background min-h-screen">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-3 sm:pt-4 pb-2 px-1 overflow-visible">
         <div className="space-y-1.5 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-serif font-black text-gray-800 tracking-tight truncate">Hello, {parentName}!</h1>
-          {/* User Role Badge (Unclickable & Below User Name) */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border select-none w-fit bg-primary/10 text-primary border-primary/20">
-            <span className="text-xs">{userRole === 'admin' ? '👑' : userRole === 'family' ? '🏡' : '🧸'}</span>
-            <span className="font-bold">{userRole === 'admin' ? 'Parent (Admin)' : userRole === 'family' ? 'Family Circle' : 'Caregiver'}</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-0.5">
-            <div className="flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-serif font-black text-gray-800 tracking-tight truncate">
+            Hello, {parentName}!
+          </h1>
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">{currentDateStr}</p>
             </div>
-            {isOnline ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-primary/10 text-primary border border-primary/20">
-                <Wifi className="w-2.5 h-2.5" />
-                <span>Sync Active</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 animate-pulse">
-                <WifiOff className="w-2.5 h-2.5" />
-                <span>Offline Queue</span>
-              </span>
-            )}
             {/* Global Location Pill */}
             <button
               onClick={() => setIsLocationPickerOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-all cursor-pointer"
             >
-              <MapPin className="w-3 h-3 text-emerald-600" />
-              <span className="truncate max-w-[130px]">{currentLocation.name.split(',')[0]}</span>
-              <span className="text-[8px] bg-emerald-200 text-emerald-900 px-1 rounded font-bold">🌍 Pick</span>
+              <MapPin className="w-2.5 h-2.5 text-emerald-600" />
+              <span className="truncate max-w-[120px]">{currentLocation.name.split(',')[0]}</span>
             </button>
           </div>
         </div>
@@ -339,6 +449,179 @@ export const Dashboard = ({
           
     </div>
       </header>
+
+      {/* Grandma Mode (Automatic with Family Member Village Access) */}
+      {(userRole === 'family' || isGrandmaModeActive) && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-amber-50/80 p-6 sm:p-8 rounded-[36px] border-2 border-amber-300 shadow-lg shadow-amber-900/5 space-y-5 text-left"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-200/80 text-amber-900 flex items-center justify-center text-2xl shadow-inner shrink-0">
+                👵
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950 font-sans">
+                    Grandma Mode • Village Access
+                  </span>
+                  <span className="text-[10px] font-bold text-amber-800">
+                    High-Contrast One-Touch View
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-900 mt-0.5">
+                  Welcome, Grandma / Family Elder!
+                </h2>
+                <p className="text-xs text-gray-700">
+                  Easy one-touch buttons and voice logging to help care for {babyName} without complicated settings.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+              <button
+                onClick={() => setIsGrandmaModeActive(!isGrandmaModeActive)}
+                className="px-3.5 py-2 rounded-xl bg-white hover:bg-amber-100/70 border border-amber-300 text-gray-700 text-xs font-bold transition-all cursor-pointer"
+              >
+                {isGrandmaModeActive ? 'Toggle Standard View' : 'Open Grandma Mode 👵'}
+              </button>
+            </div>
+          </div>
+
+          {grandmaToast && (
+            <div className="p-3.5 rounded-2xl bg-emerald-600 text-white text-xs font-black flex items-center gap-2 shadow-md animate-fade-in">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{grandmaToast}</span>
+            </div>
+          )}
+
+          {/* 4 Large One-Touch Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* Feed Button */}
+            <button
+              onClick={handleGrandmaQuickFeed}
+              className="p-5 rounded-3xl bg-white hover:bg-emerald-50/50 border-2 border-emerald-200 hover:border-emerald-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-3xl">🍼</span>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  One Touch
+                </span>
+              </div>
+              <div>
+                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-emerald-700">
+                  Log Feed (Bottle / Nursing)
+                </p>
+                <p className="text-xs text-gray-500 font-medium mt-0.5">
+                  Tap when {babyName} finishes drinking
+                </p>
+              </div>
+            </button>
+
+            {/* Nap Button */}
+            <button
+              onClick={handleGrandmaQuickNap}
+              className="p-5 rounded-3xl bg-white hover:bg-indigo-50/50 border-2 border-indigo-200 hover:border-indigo-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-3xl">😴</span>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                  One Touch
+                </span>
+              </div>
+              <div>
+                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-indigo-700">
+                  {babyName} is Asleep
+                </p>
+                <p className="text-xs text-gray-500 font-medium mt-0.5">
+                  Tap to start nap recording
+                </p>
+              </div>
+            </button>
+
+            {/* Diaper Button */}
+            <button
+              onClick={handleGrandmaQuickDiaper}
+              className="p-5 rounded-3xl bg-white hover:bg-amber-50/50 border-2 border-amber-200 hover:border-amber-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-3xl">🚼</span>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                  One Touch
+                </span>
+              </div>
+              <div>
+                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-amber-700">
+                  Diaper Changed
+                </p>
+                <p className="text-xs text-gray-500 font-medium mt-0.5">
+                  Tap to record fresh diaper change
+                </p>
+              </div>
+            </button>
+
+            {/* Voice-Activated Quick Log */}
+            <button
+              onClick={handleGrandmaVoiceLog}
+              className={`p-5 rounded-3xl text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 border-2 ${
+                grandmaVoiceListening
+                  ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                  : 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-3xl">🎙️</span>
+                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                  grandmaVoiceListening ? 'bg-white text-rose-600' : 'bg-amber-400 text-slate-950'
+                }`}>
+                  {grandmaVoiceListening ? 'Listening...' : 'Voice Log'}
+                </span>
+              </div>
+              <div>
+                <p className="text-base sm:text-lg font-black">
+                  {grandmaVoiceListening ? 'Speak Now...' : 'Tap to Speak Log'}
+                </p>
+                <p className={`text-xs ${grandmaVoiceListening ? 'text-white/90' : 'text-gray-300'} font-medium mt-0.5`}>
+                  Say: "baby just slept" or "baby drank 3 oz"
+                </p>
+              </div>
+            </button>
+          </div>
+
+          {/* Secondary Quick Action Row: Monitor (Settings Locked) + Record Blessing */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <button
+              onClick={() => onNavigate('sleep')}
+              className="p-4 rounded-2xl bg-white hover:bg-gray-50 border border-amber-200 text-gray-900 text-xs font-bold flex items-center justify-between cursor-pointer shadow-2xs"
+            >
+              <div className="flex items-center gap-2.5">
+                <Video className="w-5 h-5 text-indigo-600" />
+                <div className="text-left">
+                  <p className="font-black text-gray-900">Smart Video Monitor (Settings Locked)</p>
+                  <p className="text-[10px] text-gray-500">Safely watch {babyName} without changing camera settings</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+
+            <button
+              onClick={() => onNavigate('journal')}
+              className="p-4 rounded-2xl bg-white hover:bg-gray-50 border border-amber-200 text-gray-900 text-xs font-bold flex items-center justify-between cursor-pointer shadow-2xs"
+            >
+              <div className="flex items-center gap-2.5">
+                <Volume2 className="w-5 h-5 text-amber-700" />
+                <div className="text-left">
+                  <p className="font-black text-gray-900">Record Voice Blessing or Lullaby</p>
+                  <p className="text-[10px] text-gray-500">Record traditional prayers or songs for {babyName}</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Fluid Intake Overview Card */}
       <motion.div 
@@ -522,6 +805,116 @@ export const Dashboard = ({
     </div>
       </section>
 
+      {/* Community Support, Local Directories & Global Baby Name Database */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-xl font-serif font-black text-gray-800">Community, Local Care & Baby Names</h2>
+              <p className="text-xs text-gray-400 font-medium">Parent & expert forum, map-grounded care directories, and global baby name encyclopedia</p>
+            </div>
+          </div>
+          <span className="text-[9px] font-black text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-widest border border-primary/20">
+            Live Network
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Community Support Card */}
+          <motion.div
+            whileHover={{ y: -3 }}
+            onClick={() => onNavigate('community')}
+            className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                  💬
+                </div>
+                <span className="text-[8px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider border border-primary/20">
+                  Forum & Live Chat
+                </span>
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-serif font-black text-gray-800">Community Support</h3>
+                <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                  Connect, chat, ask, and get answers from other parents, pediatricians, lactation consultants, and care experts across all fields.
+                </p>
+              </div>
+            </div>
+            <div className="pt-2 flex items-center justify-between text-xs font-bold text-primary">
+              <span className="flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" /> Join Parent & Expert Forum
+              </span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </motion.div>
+
+          {/* Local Directories Card */}
+          <motion.div
+            whileHover={{ y: -3 }}
+            onClick={() => onNavigate('local-directories')}
+            className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                  🏥
+                </div>
+                <span className="text-[8px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider border border-primary/20">
+                  Map Grounded AI
+                </span>
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-serif font-black text-gray-800">Local Directories</h3>
+                <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                  Map-grounded AI searchable database for local healthcare providers, hospitals, lactation experts, and baby name directory.
+                </p>
+              </div>
+            </div>
+            <div className="pt-2 flex items-center justify-between text-xs font-bold text-primary">
+              <span className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5" /> Search Local Care Map
+              </span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </motion.div>
+
+          {/* Global Baby Name Database Card */}
+          <motion.div
+            whileHover={{ y: -3 }}
+            onClick={() => onNavigate('baby-names')}
+            className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                  🌍
+                </div>
+                <span className="text-[8px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider border border-primary/20">
+                  A–Z & Multi-Filter
+                </span>
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-serif font-black text-gray-800">Global Baby Name Database</h3>
+                <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                  Search names by meaning or significance, contribute a name, or filter by Gender, Origin, Language, Starting/Ending letter, and A–Z.
+                </p>
+              </div>
+            </div>
+            <div className="pt-2 flex items-center justify-between text-xs font-bold text-primary">
+              <span className="flex items-center gap-1.5">
+                <Search className="w-3.5 h-3.5" /> Explore Baby Names
+              </span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       <section className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 px-2">
           <div>
@@ -698,8 +1091,7 @@ export const Dashboard = ({
     </div>
             <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary transition-colors shrink-0" />
           </motion.div>
-          
-    </div>
+        </div>
       </section>
 
       <section className="space-y-6">
@@ -707,12 +1099,11 @@ export const Dashboard = ({
           <h2 className="text-xl font-serif font-black text-gray-800">Growth Activities (Daily Quests)</h2>
           <button 
             onClick={() => onNavigate('activities')}
-            className="text-[10px] text-primary font-black uppercase tracking-widest hover:underline"
+            className="text-[10px] text-primary font-black uppercase tracking-widest hover:underline cursor-pointer bg-transparent border-none"
           >
             View Quests
           </button>
-          
-    </div>
+        </div>
 
         <div className="bg-card p-8 rounded-[56px] border border-white shadow-xl shadow-card/20 space-y-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full -mr-16 -mt-16 blur-3xl" />
@@ -724,10 +1115,8 @@ export const Dashboard = ({
                 <p className="text-[10px] text-muted font-black uppercase tracking-widest">
                   {completedCount} of {totalCount} Quests completed
                 </p>
-                
-    </div>
-              
-    </div>
+              </div>
+            </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <span className="text-xl font-serif font-black text-primary">{Math.round(questProgress)}%</span>
               {dailyStreak > 0 && (
@@ -737,8 +1126,7 @@ export const Dashboard = ({
                 </div>
               )}
             </div>
-            
-    </div>
+          </div>
 
           <div className="w-full bg-gray-100 rounded-full h-3 p-0.5 shadow-inner">
             <motion.div 
@@ -746,10 +1134,50 @@ export const Dashboard = ({
               animate={{ width: `${questProgress}%` }}
               className="bg-accent h-full rounded-full shadow-sm" 
             />
-            
-    </div>
-          
-    </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Mother Postpartum Care Section */}
+      <section className="space-y-4">
+        <div className="flex justify-between items-end px-2">
+          <div>
+            <h2 className="text-xl font-serif font-black text-gray-800">Mother Postpartum Care</h2>
+            <p className="text-xs text-gray-400 font-medium">Fourth trimester clinical healing, rest windows, nutrition & mental wellness</p>
+          </div>
+          <button 
+            onClick={() => onNavigate('mother-care')}
+            className="text-[10px] text-primary font-black uppercase tracking-widest hover:underline cursor-pointer bg-transparent border-none"
+          >
+            Open Suite →
+          </button>
+        </div>
+
+        <motion.div 
+          whileHover={{ y: -2 }}
+          onClick={() => onNavigate('mother-care')}
+          className="bg-card p-6 sm:p-8 rounded-[40px] shadow-xl shadow-card/20 border border-white flex flex-col sm:flex-row items-center justify-between gap-6 cursor-pointer group relative overflow-hidden text-left"
+        >
+          <div className="space-y-3 relative z-10 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/80 backdrop-blur-md rounded-full text-[9px] font-black text-primary uppercase tracking-widest border border-white">
+              <span>🩺</span>
+              <span>Clinical Recovery & Fourth Trimester Care</span>
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-serif font-black text-gray-800">Nurturing You, {parentName}.</h3>
+            <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium">
+              Evidence-based maternal recovery for the fourth trimester. Track pelvic floor rehabilitation, surgical incision healing, lochia milestones, postpartum mental wellness (EPDS guidance), 4-hour consolidated REM sleep windows, and clinical nutrition for restorative healing.
+            </p>
+            <div className="pt-1">
+              <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-wider shadow-sm group-hover:bg-primary/90 transition-all">
+                <span>Explore Mother Postpartum Care</span>
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </div>
+          </div>
+          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/80 rounded-3xl flex items-center justify-center text-4xl sm:text-5xl shadow-sm shrink-0 group-hover:scale-105 transition-transform">
+            🤱
+          </div>
+        </motion.div>
       </section>
 
       {/* Interactive Calendar Scheduling & Checklist Bottom-Sheet Modal */}

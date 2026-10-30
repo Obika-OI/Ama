@@ -260,73 +260,79 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
           </div>
         </div>
 
-        {/* Guide Sections Accordion */}
-        <div className="space-y-4">
-          {filteredSections.map(section => {
-            const isExpanded = expandedSectionId === section.id;
-            return (
-              <div 
-                key={section.id} 
-                className="bg-white rounded-[2rem] border border-gray-100 shadow-xs overflow-hidden transition-all"
-              >
-                <button
-                  onClick={() => setExpandedSectionId(isExpanded ? null : section.id)}
-                  className="w-full px-6 sm:px-8 py-5 flex items-center justify-between text-left bg-transparent border-none cursor-pointer hover:bg-slate-50/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl shrink-0">{section.icon}</span>
-                    <span className="font-serif font-black text-slate-900 text-sm sm:text-base">{section.title}</span>
-                  </div>
-                  {isExpanded ? <ChevronDown className="w-5 h-5 text-slate-400 shrink-0" /> : <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />}
-                </button>
-
-                <AnimatePresence initial={false}>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="border-t border-gray-50"
-                    >
-                      <div className="p-6 sm:p-8 space-y-6 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                        
-                        {/* Summary / 300+ Word Segment */}
-                        <div className="space-y-2">
-                          <span className="text-[10px] font-black text-primary uppercase tracking-widest block">Detailed Usage & Context</span>
-                          <p className="bg-slate-50 p-5 rounded-2xl border border-gray-50 text-slate-700 italic">
-                            {section.summary}
-                          </p>
-                        </div>
-
-                        {/* Steps */}
-                        <div className="space-y-3">
-                          <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest block">Step-By-Step Workflow</span>
-                          <ol className="list-decimal list-inside space-y-2">
-                            {section.steps.map((step, idx) => (
-                              <li key={idx} className="pl-1">
-                                <span className="font-medium text-slate-700">{step}</span>
-                              </li>
-                            ))}
-                          </ol>
-                        </div>
-
-                        {/* Tips */}
-                        <div className="space-y-3">
-                          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest block">Resourceful & Cautious Tips</span>
-                          <ul className="list-disc list-inside space-y-1.5 text-slate-500">
-                            {section.tips.map((tip, idx) => (
-                              <li key={idx} className="pl-1">{tip}</li>
-                            ))}
-                          </ul>
-                        </div>
-
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+        {/* Comprehensive Guide Sections (Directly Visible for High-Value AdSense Indexing) */}
+        <div className="space-y-6">
+          {filteredSections.map(section => (
+            <article 
+              key={section.id} 
+              className="bg-white rounded-[2rem] border border-gray-100 shadow-xs p-6 sm:p-8 space-y-6 text-left"
+            >
+              <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                <span className="text-3xl shrink-0">{section.icon}</span>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                    {section.category} Guide
+                  </span>
+                  <h2 className="font-serif font-black text-slate-900 text-lg sm:text-xl">
+                    {section.title}
+                  </h2>
+                </div>
               </div>
-            );
-          })}
+
+              {/* Summary / Detailed Context */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-primary uppercase tracking-widest block">
+                  Detailed Usage & Context
+                </span>
+                <p className="bg-slate-50 p-5 rounded-2xl border border-gray-50 text-slate-700 leading-relaxed text-xs sm:text-sm">
+                  {section.summary}
+                </p>
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest block">
+                  Step-By-Step Workflow
+                </span>
+                <ol className="list-decimal list-inside space-y-2 text-xs sm:text-sm">
+                  {section.steps.map((step, idx) => (
+                    <li key={idx} className="pl-1 text-slate-700 font-medium">
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              {/* Tips */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest block">
+                  Resourceful & Cautious Tips
+                </span>
+                <ul className="list-disc list-inside space-y-1.5 text-slate-600 text-xs sm:text-sm">
+                  {section.tips.map((tip, idx) => (
+                    <li key={idx} className="pl-1">{tip}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* FAQs if present */}
+              {section.faqs && section.faqs.length > 0 && (
+                <div className="space-y-3 pt-3 border-t border-gray-100">
+                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">
+                    Frequently Asked Questions
+                  </span>
+                  <div className="space-y-2">
+                    {section.faqs.map((f, i) => (
+                      <div key={i} className="bg-gray-50/70 p-4 rounded-xl border border-gray-100 space-y-1">
+                        <p className="font-bold text-slate-900 text-xs">Q: {f.question}</p>
+                        <p className="text-slate-600 text-xs leading-relaxed">A: {f.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </article>
+          ))}
         </div>
       </main>
 

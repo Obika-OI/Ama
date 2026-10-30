@@ -38,6 +38,11 @@ import { BlogScreen } from './components/BlogScreen';
 import { BlogArticleDetail } from './components/BlogArticleDetail';
 import { AboutScreen } from './components/AboutScreen';
 import { ContactScreen } from './components/ContactScreen';
+import { CommunitySupportScreen } from './components/CommunitySupportScreen';
+import { LocalDirectoriesScreen } from './components/LocalDirectoriesScreen';
+import { BabyNameDatabaseScreen } from './components/BabyNameDatabaseScreen';
+import { SafetyGuideScreen } from './components/SafetyGuideScreen';
+import { MotherCareScreen } from './components/MotherCareScreen';
 import { BLOG_ARTICLES, BlogArticle } from './constants/blogArticles';
 import { BabyProfile } from './types';
 import confetti from 'canvas-confetti';
@@ -209,6 +214,19 @@ export default function App() {
     if (hash === '#contact' || screenParam === 'contact' || pathname === '/contact') {
       return 'contact';
     }
+    if (hash === '#community' || screenParam === 'community' || pathname === '/community') {
+      return 'community';
+    }
+    if (hash === '#local-directories' || hash === '#directories' || screenParam === 'local-directories' || pathname === '/directories') {
+      return 'local-directories';
+    }
+    if (hash === '#baby-names' || screenParam === 'baby-names' || pathname === '/baby-names') {
+      return 'baby-names';
+    }
+    if (hash === '#grandma-mode' || screenParam === 'grandma-mode' || pathname === '/grandma-mode') {
+      localStorage.setItem('ama_user_role', 'family');
+      return 'home';
+    }
     if (hash === '#landing' || screenParam === 'landing' || pathname === '/landing') {
       return 'landing';
     }
@@ -279,6 +297,23 @@ export default function App() {
       ) {
         setFeedingTrackerTab('guide');
         setActiveScreen('feeding');
+        return;
+      }
+      if (hash === '#community' || searchParams.get('screen') === 'community' || pathname === '/community') {
+        setActiveScreen('community');
+        return;
+      }
+      if (hash === '#local-directories' || hash === '#directories' || searchParams.get('screen') === 'local-directories' || pathname === '/directories') {
+        setActiveScreen('local-directories');
+        return;
+      }
+      if (hash === '#baby-names' || searchParams.get('screen') === 'baby-names' || pathname === '/baby-names') {
+        setActiveScreen('baby-names');
+        return;
+      }
+      if (hash === '#grandma-mode' || searchParams.get('screen') === 'grandma-mode' || pathname === '/grandma-mode') {
+        setUserRole('family');
+        setActiveScreen('home');
         return;
       }
       if (hash === '#landing' || searchParams.get('screen') === 'landing' || pathname === '/landing') {
@@ -1083,6 +1118,38 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
+  // Automatically derive active on-duty caregiver from authenticated account session & role
+  const resolvedCaregiverName = useMemo(() => {
+    if (currentUser && !currentUser.isAnonymous) {
+      if (currentUser.displayName) return currentUser.displayName;
+      if (currentUser.email) {
+        const handle = currentUser.email.split('@')[0];
+        return handle.charAt(0).toUpperCase() + handle.slice(1);
+      }
+    }
+    if (userRole === 'nanny') return 'Nanny / Caregiver';
+    if (userRole === 'family') return 'Family Member';
+    return parentName ? `${parentName} (Primary)` : 'Primary Parent';
+  }, [currentUser, parentName, userRole]);
+
+  const resolvedCaregiverRole = useMemo(() => {
+    if (userRole === 'nanny') return 'Nanny';
+    if (userRole === 'family') return 'Grandma';
+    return 'Mom';
+  }, [userRole]);
+
+  useEffect(() => {
+    fetch('/api/omugwo/shift', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        caregiverName: resolvedCaregiverName,
+        caregiverRole: resolvedCaregiverRole,
+        focusNote: `Active monitoring by signed-in account (${resolvedCaregiverName})`
+      })
+    }).catch(() => {});
+  }, [resolvedCaregiverName, resolvedCaregiverRole]);
+
   const [lastLocalUpdate, setLastLocalUpdate] = useState<number>(() => {
     return parseInt(localStorage.getItem('lastLocalUpdate') || '0', 10);
   });
@@ -1329,8 +1396,7 @@ export default function App() {
               // Local changes are newer: push to cloud to resolve conflict
               const statePayload = {
                 isPremium,
-  setIsSubscriptionModalOpen,
-  babyName,
+                babyName,
                 parentName,
                 parentDob,
                 allergenMatrix,
@@ -1372,8 +1438,7 @@ export default function App() {
             const localTime = localSaved ? parseInt(localSaved, 10) : Date.now();
             const statePayload = {
               isPremium,
-  setIsSubscriptionModalOpen,
-  babyName,
+              babyName,
               parentName,
               parentDob,
               allergenMatrix,
@@ -1889,6 +1954,15 @@ export default function App() {
               onAddBaby={handleAddBaby}
               onUpdateBaby={handleUpdateBaby}
               onDeleteBaby={handleDeleteBaby}
+              loggedMeals={loggedMeals}
+              setLoggedMeals={setLoggedMeals}
+              diaperLogs={diaperLogs}
+              setDiaperLogs={setDiaperLogs}
+              setFluidMl={setFluidMl}
+              observationLogs={observationLogs}
+              setObservationLogs={setObservationLogs}
+              memories={memories}
+              setMemories={setMemories}
             />
           </motion.div>
         )}
@@ -1966,6 +2040,7 @@ export default function App() {
               setReminders={setReminders}
               userRole={userRole}
               setUserRole={setUserRole}
+              currentUser={currentUser}
             />
           </motion.div>
         )}
@@ -1980,12 +2055,18 @@ export default function App() {
               setVaccineSchedule={setVaccineSchedule}
               babyName={babyName}
               babyAge={babyAge}
+              parentName={parentName}
+              currentUser={currentUser}
               loggedMeals={loggedMeals}
               diaperLogs={diaperLogs}
               onNavigate={handleNavigate}
               initialTab="sleep"
               isPremium={isPremium}
               setIsSubscriptionModalOpen={setIsSubscriptionModalOpen}
+              memories={memories}
+              setMemories={setMemories}
+              observationLogs={observationLogs}
+              userRole={userRole}
             />
           </motion.div>
         )}
@@ -2246,12 +2327,52 @@ export default function App() {
             />
           </motion.div>
         )}
+
+        {/* Community Support: Online Forum, Parent & Care Provider Network, Live Chat & Specialist Q&A */}
+        {activeScreen === 'community' && (
+          <motion.div key="community" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="min-h-screen">
+            <CommunitySupportScreen
+              onBack={() => setActiveScreen('home')}
+              parentName={parentName}
+              babyName={babyName}
+              babyAge={babyAge}
+              userId={currentUser?.uid}
+              onNavigate={(screen) => setActiveScreen(screen)}
+            />
+          </motion.div>
+        )}
+
+        {/* Unified Care & Baby Name Directories */}
+        {(activeScreen === 'local-directories' || activeScreen === 'baby-names') && (
+          <motion.div key="local-directories" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="min-h-screen">
+            <LocalDirectoriesScreen
+              onBack={() => setActiveScreen('home')}
+              onNavigate={handleNavigate}
+              parentName={parentName}
+              initialTab={activeScreen === 'baby-names' ? 'baby-names' : 'hospitals'}
+              scheduledActivities={scheduledActivities}
+              setScheduledActivities={setScheduledActivities}
+            />
+          </motion.div>
+        )}
+
+        {activeScreen === 'safety-guide' && (
+          <motion.div key="safety-guide" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="min-h-screen">
+            <SafetyGuideScreen onBack={() => setActiveScreen('home')} />
+          </motion.div>
+        )}
+
+        {activeScreen === 'mother-care' && (
+          <motion.div key="mother-care" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="min-h-screen">
+            <MotherCareScreen onBack={() => setActiveScreen('home')} parentName={parentName} />
+          </motion.div>
+        )}
         
       </AnimatePresence>
 
-      {/* Bottom Navigation (Hidden on Landing and Blog for clean reading immersion) */}
+      {/* Bottom Navigation: Clean 5 Core Baby Care Tabs (Community accessible via Dashboard) */}
       {activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && activeScreen !== 'about' && activeScreen !== 'contact' && (
-        <nav className="fixed bottom-0 sm:bottom-4 left-0 right-0 w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto bg-white/95 backdrop-blur-xl border border-gray-200/80 rounded-t-3xl sm:rounded-full px-2 sm:px-4 md:px-6 py-2 sm:py-2.5 flex justify-between sm:justify-around items-center z-40 shadow-xl shadow-gray-900/10 transition-all">
+        <nav className="fixed bottom-0 sm:bottom-4 left-0 right-0 w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto bg-white/95 backdrop-blur-xl border border-gray-200/80 rounded-t-3xl sm:rounded-full px-3 sm:px-6 py-2 sm:py-2.5 flex justify-around items-center z-40 shadow-xl shadow-gray-900/10 transition-all">
           <NavButton active={activeScreen === 'home'} icon={<Home />} label="Dashboard" onClick={() => setActiveScreen('home')} />
           <NavButton active={activeScreen === 'feeding'} icon={<Utensils />} label="Meal Log" onClick={() => setActiveScreen('feeding')} />
           <NavButton active={activeScreen === 'sleep' || activeScreen === 'activity'} icon={<ActivityIcon />} label="Activity" onClick={() => setActiveScreen('sleep')} />

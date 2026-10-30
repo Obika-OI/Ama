@@ -10,6 +10,7 @@ interface SEOTagsOptions {
   ogDescription?: string;
   publishedTime?: string;
   author?: string;
+  jsonLd?: Record<string, any>;
 }
 
 export function useSEO({
@@ -21,7 +22,8 @@ export function useSEO({
   ogTitle,
   ogDescription,
   publishedTime,
-  author = 'Ama Baby Care'
+  author = 'Ama Baby Care',
+  jsonLd
 }: SEOTagsOptions) {
   useEffect(() => {
     // 1. Update Title
@@ -57,6 +59,9 @@ export function useSEO({
     canonicalLink.setAttribute('href', currentUrl);
 
     // 5. Open Graph - Specific Article Type Support
+    const ogSiteNameMeta = getOrCreateMeta('property', 'og:site_name');
+    ogSiteNameMeta.setAttribute('content', 'Ama Baby Care');
+
     const ogTypeMeta = getOrCreateMeta('property', 'og:type');
     ogTypeMeta.setAttribute('content', ogType);
 
@@ -88,5 +93,17 @@ export function useSEO({
     const twitterDescMeta = getOrCreateMeta('name', 'twitter:description');
     twitterDescMeta.setAttribute('content', ogDescription || description);
 
-  }, [title, description, robots, canonicalUrl, ogType, ogTitle, ogDescription, publishedTime, author]);
+    // 7. Dynamic Route JSON-LD Schema (supplements the primary index.html JSON-LD schema)
+    if (jsonLd) {
+      let scriptEl = document.getElementById('dynamic-route-jsonld') as HTMLScriptElement | null;
+      if (!scriptEl) {
+        scriptEl = document.createElement('script');
+        scriptEl.id = 'dynamic-route-jsonld';
+        scriptEl.type = 'application/ld+json';
+        document.head.appendChild(scriptEl);
+      }
+      scriptEl.textContent = JSON.stringify(jsonLd);
+    }
+
+  }, [title, description, robots, canonicalUrl, ogType, ogTitle, ogDescription, publishedTime, author, jsonLd]);
 }

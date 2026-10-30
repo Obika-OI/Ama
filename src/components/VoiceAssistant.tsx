@@ -558,7 +558,13 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       lower.includes("changed diaper") ||
       lower.includes("poop") ||
       lower.includes("pee") ||
-      lower.includes("nap");
+      lower.includes("nap") ||
+      lower.includes("slept") ||
+      lower.includes("asleep") ||
+      lower.includes("drank") ||
+      lower.includes(" oz") ||
+      lower.includes(" ml") ||
+      lower.includes("fed ");
 
     // Check Free Trial Query Limit
     if (!isPremium && !isDirectLoggingIntent && aiQueryCount >= FREE_AI_QUERY_LIMIT) {

@@ -5,6 +5,7 @@ import { MOCK_MEALS, THEME } from '../constants';
 import { Meal } from '../types';
 import { formatCost } from '../utils/helpers';
 import { GlobalLocation, GlobalLocationPickerModal, POPULAR_GLOBAL_LOCATIONS } from './GlobalLocationPickerModal';
+import { TRADITIONAL_POSTPARTUM_RECIPES } from '../constants/omugwoData';
 
 interface LocalSuggestedRecipe {
   id: string;

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Ama Baby Care Logo">
+  <defs>
+    <linearGradient id="amaBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#0d9488" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#amaBg)" />
+  <circle cx="256" cy="256" r="176" fill="#ffffff" fill-opacity="0.14" />
+  <rect x="206" y="132" width="100" height="36" rx="16" fill="#fde047" />
+  <path d="M236 96 C236 78, 276 78, 276 96 L284 132 L228 132 Z" fill="#fef08a" />
+  <rect x="186" y="168" width="140" height="236" rx="44" fill="#ffffff" />
+  <rect x="202" y="248" width="108" height="140" rx="30" fill="#e0e7ff" />
+  <line x1="216" y1="220" x2="248" y2="220" stroke="#4f46e5" stroke-width="10" stroke-linecap="round" />
+  <line x1="216" y1="264" x2="264" y2="264" stroke="#4f46e5" stroke-width="10" stroke-linecap="round" />
+  <line x1="216" y1="308" x2="248" y2="308" stroke="#4f46e5" stroke-width="10" stroke-linecap="round" />
+  <line x1="216" y1="352" x2="264" y2="352" stroke="#4f46e5" stroke-width="10" stroke-linecap="round" />
+</svg>

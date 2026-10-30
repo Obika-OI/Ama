@@ -445,33 +445,18 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
               </h2>
             </div>
 
-            <div className="space-y-3">
-              {article.faq.map((item, index) => {
-                const isOpen = expandedFaq === index;
-                return (
-                  <div key={index} className="rounded-2xl border border-gray-200 bg-white overflow-hidden transition-colors">
-                    <button
-                      onClick={() => setExpandedFaq(isOpen ? null : index)}
-                      className="w-full p-4 text-left flex items-center justify-between gap-4 font-bold text-sm text-gray-900 hover:text-primary transition-colors cursor-pointer border-none bg-transparent"
-                    >
-                      <span>{item.question}</span>
-                      {isOpen ? <ChevronUp className="w-4 h-4 text-primary shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />}
-                    </button>
-                    <AnimatePresence>
-                      {isOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="px-4 pb-4 pt-1 text-xs sm:text-sm text-gray-600 leading-relaxed font-normal border-t border-gray-50"
-                        >
-                          {item.answer}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+            <div className="space-y-4">
+              {article.faq.map((item, index) => (
+                <article key={index} className="rounded-2xl border border-gray-200 bg-white p-5 space-y-2.5 shadow-2xs text-left">
+                  <h3 className="font-serif font-black text-sm sm:text-base text-gray-900 flex items-start gap-2">
+                    <span className="text-primary font-bold text-xs uppercase px-2 py-0.5 rounded-md bg-primary/10 shrink-0 mt-0.5">Q</span>
+                    <span>{item.question}</span>
+                  </h3>
+                  <div className="pl-6 text-xs sm:text-sm text-gray-600 leading-relaxed font-normal border-l-2 border-primary/20 ml-1">
+                    {item.answer}
                   </div>
-                );
-              })}
+                </article>
+              ))}
             </div>
           </section>
         )}

@@ -999,13 +999,13 @@ export const SettingsScreen = ({
           <div className="flex items-center gap-1.5 self-start sm:self-auto bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-[10px] font-black uppercase tracking-wider text-primary">
-              Active: {userRole === 'admin' ? 'Parent (Admin)' : userRole === 'family' ? 'Family Circle' : 'Caregiver / Nanny'}
+              Active: {userRole === 'admin' ? 'Parent (Admin)' : userRole === 'family' ? 'Family Member' : 'Caregiver / Nanny'}
             </span>
           </div>
         </div>
 
         <p className="text-xs text-gray-500 leading-relaxed">
-          "It takes a village to raise a child." Assign distinct security roles to grandparents, babysitters, and au pairs to keep private diaries and administrative security strictly shielded while enabling rapid care tracking.
+          "It takes a village to raise a child." Assign distinct security roles to grandparents, family members, babysitters, and au pairs to keep private diaries and administrative settings shielded while enabling coordinated care.
         </p>
 
         {/* 3 Interactive Role Selection Cards */}
@@ -1013,12 +1013,8 @@ export const SettingsScreen = ({
           {/* Admin Role */}
           <div
             onClick={() => {
-              if (userRole !== 'admin') {
-                setSuccessMsg('🔒 Permission Denied: Only Primary Parent (Admin) can switch village roles.');
-                setTimeout(() => setSuccessMsg(''), 3500);
-                return;
-              }
               setUserRole('admin');
+              localStorage.setItem('ama_user_role', 'admin');
               setSuccessMsg('Active role switched to 👑 Parent (Admin)');
               addAuditLog('Village Role Switched', 'User switched role to Admin (Primary Parent)', 'SECURITY');
               setTimeout(() => setSuccessMsg(''), 3500);
@@ -1042,7 +1038,7 @@ export const SettingsScreen = ({
             <div>
               <h3 className="text-xs font-black text-gray-800">Parent (Admin)</h3>
               <p className="text-[11px] text-gray-500 leading-normal mt-1">
-                Full authority. Private diary, AI storybook, encryption sandbox, zero-tracking, and account purge.
+                Full authority. Private diary, AI storybook, encryption sandbox, and account settings.
               </p>
             </div>
             <div className="text-[9px] font-bold text-primary flex items-center gap-1 pt-1 border-t border-primary/10">
@@ -1054,20 +1050,10 @@ export const SettingsScreen = ({
           {/* Family Circle Role */}
           <div
             onClick={() => {
-              if (!isPremium) {
-                setIsSubscriptionModalOpen(true);
-                setSuccessMsg('🔒 Single User Mode Active: Multi-Caregiver Village Roles require Ama Premium. Upgrade via Paystack.');
-                setTimeout(() => setSuccessMsg(''), 4500);
-                return;
-              }
-              if (userRole !== 'admin') {
-                setSuccessMsg('🔒 Permission Denied: Only Primary Parent (Admin) can switch village roles.');
-                setTimeout(() => setSuccessMsg(''), 3500);
-                return;
-              }
               setUserRole('family');
-              setSuccessMsg('Active role switched to 🏡 Family Member');
-              addAuditLog('Village Role Switched', 'User switched role to Family Member', 'SECURITY');
+              localStorage.setItem('ama_user_role', 'family');
+              setSuccessMsg('Active role switched to 👵 Family Member (Grandma Mode Auto-Activated)');
+              addAuditLog('Village Role Switched', 'User switched role to Family Member (Grandma Mode)', 'SECURITY');
               setTimeout(() => setSuccessMsg(''), 3500);
             }}
             className={`p-4 rounded-3xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-left space-y-3 ${
@@ -1078,42 +1064,32 @@ export const SettingsScreen = ({
           >
             <div className="flex items-start justify-between">
               <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-lg">
-                🏡
+                👵
               </div>
               <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
                 userRole === 'family' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
               }`}>
-                {userRole === 'family' ? 'Selected' : 'Family View'}
+                {userRole === 'family' ? 'Grandma Mode Active' : 'Grandma / Elder'}
               </span>
             </div>
             <div>
-              <h3 className="text-xs font-black text-gray-800">Family Member</h3>
+              <h3 className="text-xs font-black text-gray-800">Family Member (Grandma / Elder)</h3>
               <p className="text-[11px] text-gray-500 leading-normal mt-1">
-                For grandparents and partners. View milestones, photos, stories, and feed logs with read-only admin security.
+                Visiting grandparents, aunts, or elders. Automatically activates Grandma Mode: simplified high-contrast view, one-touch care buttons, voice-activated logging, locked video monitor, and voice blessings.
               </p>
             </div>
             <div className="text-[9px] font-bold text-primary flex items-center gap-1 pt-1 border-t border-primary/10">
               <CheckCircle2 className="w-3 h-3 text-primary" />
-              <span>Memories & Timeline</span>
+              <span>Grandma Mode Auto-Enabled</span>
             </div>
           </div>
 
           {/* Nanny / Caregiver Role */}
           <div
             onClick={() => {
-              if (!isPremium) {
-                setIsSubscriptionModalOpen(true);
-                setSuccessMsg('🔒 Single User Mode Active: Multi-Caregiver Village Roles require Ama Premium. Upgrade via Paystack.');
-                setTimeout(() => setSuccessMsg(''), 4500);
-                return;
-              }
-              if (userRole !== 'admin') {
-                setSuccessMsg('🔒 Permission Denied: Only Primary Parent (Admin) can switch village roles.');
-                setTimeout(() => setSuccessMsg(''), 3500);
-                return;
-              }
               setUserRole('nanny');
-              setSuccessMsg('Active role switched to 🧸 Caregiver / Nanny');
+              localStorage.setItem('ama_user_role', 'nanny');
+              setSuccessMsg('Active role switched to 🧸 Caregiver / Nanny (Write & Record Enabled)');
               addAuditLog('Village Role Switched', 'User switched role to Nanny / Caregiver', 'SECURITY');
               setTimeout(() => setSuccessMsg(''), 3500);
             }}
@@ -1136,12 +1112,12 @@ export const SettingsScreen = ({
             <div>
               <h3 className="text-xs font-black text-gray-800">Caregiver / Nanny</h3>
               <p className="text-[11px] text-gray-500 leading-normal mt-1">
-                Fast daily logging (bottles, solid foods, diapers, meds, naps). Personal family diary and admin keys locked.
+                Fast daily logging (bottles, diapers, meds, naps). Can write and record in the diary and voice blessings, while private family reflections and storybook creation remain shielded.
               </p>
             </div>
             <div className="text-[9px] font-bold text-primary flex items-center gap-1 pt-1 border-t border-primary/10">
               <Lock className="w-3 h-3 text-primary" />
-              <span>Privacy Shield Active</span>
+              <span>Diary Write & Record Active • Family Shield</span>
             </div>
           </div>
         </div>

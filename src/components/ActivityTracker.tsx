@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
-import { Plus, Calendar, Clock, ChevronLeft, CheckCircle2, Star, Sparkles, Heart, Activity as ActivityIcon, Droplet, Award, Flame, AlertCircle, Edit3, Trash2, Check, Mic, Search, Crown, Lock, RotateCcw, ShieldCheck } from 'lucide-react';
+import { Plus, Calendar, Clock, ChevronLeft, CheckCircle2, Star, Sparkles, Heart, Activity as ActivityIcon, Droplet, Award, Flame, AlertCircle, Edit3, Trash2, Check, Mic, Search, Crown, Lock, Unlock, RotateCcw, ShieldCheck, Video, VideoOff, Camera, Volume2 } from 'lucide-react';
 import { TEETH_LIST } from '../constants/babyData';
 import { motion, AnimatePresence } from 'motion/react';
 import { MOCK_ACTIVITIES, THEME } from '../constants';
@@ -22,7 +22,13 @@ export const ActivityTracker = ({
   onNavigate,
   initialTab = 'sleep',
   isPremium = false,
-  setIsSubscriptionModalOpen
+  setIsSubscriptionModalOpen,
+  memories = [],
+  setMemories,
+  observationLogs = [],
+  userRole = 'admin',
+  parentName,
+  currentUser
 }: { 
   loggedMoods: any[]; 
   setLoggedMoods: (moods: any) => void;
@@ -32,12 +38,18 @@ export const ActivityTracker = ({
   setVaccineSchedule?: (schedule: any[]) => void;
   babyName?: string;
   babyAge?: string;
+  parentName?: string;
+  currentUser?: any;
   loggedMeals?: any[];
   diaperLogs?: any[];
   onNavigate?: (screen: string, data?: any) => void;
   initialTab?: 'sleep' | 'care' | 'cry';
   isPremium?: boolean;
   setIsSubscriptionModalOpen?: (open: boolean) => void;
+  memories?: any[];
+  setMemories?: React.Dispatch<React.SetStateAction<any[]>>;
+  observationLogs?: any[];
+  userRole?: 'admin' | 'family' | 'nanny';
 }) => {
   const [timer, setTimer] = useState(0);
   const [isActive, setIsActive] = useState(false);
@@ -52,6 +64,211 @@ export const ActivityTracker = ({
   useEffect(() => {
     localStorage.setItem('sleep_logs', JSON.stringify(sleepLogs));
   }, [sleepLogs]);
+
+  // Auto-start nap timer if triggered from "Start Sleep & Nap Timer" recommendations
+  useEffect(() => {
+    const shouldAutoStart = localStorage.getItem('ama_auto_start_nap_timer') === 'true';
+    if (shouldAutoStart) {
+      localStorage.removeItem('ama_auto_start_nap_timer');
+      setIsActive(true);
+    }
+  }, []);
+
+  // Synchronized On-Duty Caregiver, 4-Hour REM Sleep Delegation & Smart Video Monitor State
+  // (Auto-assigned based on the signed-in account)
+  const resolvedCaregiverName = useMemo(() => {
+    if (currentUser && !currentUser.isAnonymous) {
+      if (currentUser.displayName) return currentUser.displayName;
+      if (currentUser.email) {
+        const handle = currentUser.email.split('@')[0];
+        return handle.charAt(0).toUpperCase() + handle.slice(1);
+      }
+    }
+    if (userRole === 'nanny') return 'Nanny / Caregiver';
+    if (userRole === 'family') return 'Family Member';
+    return parentName ? `${parentName} (Primary)` : 'Mom (Primary)';
+  }, [currentUser, parentName, userRole]);
+
+  const resolvedCaregiverRole = useMemo(() => {
+    if (userRole === 'nanny') return 'Nanny';
+    if (userRole === 'family') return 'Grandma';
+    return 'Mom';
+  }, [userRole]);
+
+  const [activeShift, setActiveShift] = useState<{
+    caregiverName: string;
+    caregiverRole: string;
+    focusNote: string;
+    isDelegatedRemWindow: boolean;
+  }>({
+    caregiverName: resolvedCaregiverName,
+    caregiverRole: resolvedCaregiverRole,
+    focusNote: `Active monitoring by signed-in account (${resolvedCaregiverName})`,
+    isDelegatedRemWindow: false
+  });
+  const [remSleepEndTime, setRemSleepEndTime] = useState<string | null>(null);
+  const [serverWisdomBlessings, setServerWisdomBlessings] = useState<any[]>([]);
+  const [playingVoiceBlessingId, setPlayingVoiceBlessingId] = useState<string | null>(null);
+  const voiceBlessingAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Smart Video Monitor & AI Generational Growth Capture
+  const [videoMonitorActive, setVideoMonitorActive] = useState(false);
+  const [cameraSettingsLocked, setCameraSettingsLocked] = useState(true);
+  const [isCapturingMoment, setIsCapturingMoment] = useState(false);
+  const videoMonitorRef = useRef<HTMLVideoElement | null>(null);
+  const videoStreamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    fetch('/api/omugwo/state')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data?.activeShift) setActiveShift(data.activeShift);
+        if (data?.remSleepDelegationEndTime) setRemSleepEndTime(data.remSleepDelegationEndTime);
+        if (Array.isArray(data?.wisdomEntries)) {
+          setServerWisdomBlessings(data.wisdomEntries.filter((w: any) => w.audioDataUrl));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Synchronize on-duty caregiver with signed-in session when not delegated
+  useEffect(() => {
+    if (!remSleepEndTime) {
+      setActiveShift(prev => ({
+        ...prev,
+        caregiverName: resolvedCaregiverName,
+        caregiverRole: resolvedCaregiverRole,
+        focusNote: `Active monitoring by signed-in account (${resolvedCaregiverName})`
+      }));
+    }
+  }, [resolvedCaregiverName, resolvedCaregiverRole, remSleepEndTime]);
+
+  const remainingRemTime = useMemo(() => {
+    if (!remSleepEndTime) return null;
+    const diff = new Date(remSleepEndTime).getTime() - Date.now();
+    if (diff <= 0) return null;
+    const hrs = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    return `${hrs}h ${mins}m remaining`;
+  }, [remSleepEndTime]);
+
+  const handleToggleRemDelegation = async () => {
+    const activate = !remainingRemTime;
+    try {
+      const res = await fetch('/api/omugwo/shift', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activateRemSleepDelegation: activate,
+          caregiverName: activate ? 'Grandma / On-Duty Caregiver' : resolvedCaregiverName,
+          caregiverRole: activate ? 'Grandma' : resolvedCaregiverRole,
+          focusNote: activate
+            ? '4-Hour Uninterrupted REM Sleep Window for Mom — Alerts Routed to Grandma/Caregiver'
+            : `Active monitoring by signed-in account (${resolvedCaregiverName})`
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.activeShift) setActiveShift(data.activeShift);
+        setRemSleepEndTime(data.remSleepDelegationEndTime || null);
+      }
+    } catch {}
+  };
+
+  const toggleVideoMonitor = async () => {
+    if (videoMonitorActive) {
+      if (videoStreamRef.current) {
+        videoStreamRef.current.getTracks().forEach(t => t.stop());
+        videoStreamRef.current = null;
+      }
+      setVideoMonitorActive(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      videoStreamRef.current = stream;
+      setVideoMonitorActive(true);
+      setTimeout(() => {
+        if (videoMonitorRef.current) {
+          videoMonitorRef.current.srcObject = stream;
+          videoMonitorRef.current.play().catch(() => {});
+        }
+      }, 150);
+    } catch {
+      setMonitorAlert('Camera permission needed to start the Smart Video Baby Monitor.');
+    }
+  };
+
+  const handleAiGenerationalCapture = async () => {
+    let imageDataUrl = '';
+    if (videoMonitorActive && videoMonitorRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoMonitorRef.current.videoWidth || 640;
+      canvas.height = videoMonitorRef.current.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoMonitorRef.current, 0, 0, canvas.width, canvas.height);
+        imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      }
+    }
+    if (!imageDataUrl) {
+      setMonitorAlert('Start the Smart Video Feed first to auto-capture a candid bonding moment.');
+      return;
+    }
+    setIsCapturingMoment(true);
+    try {
+      const res = await fetch('/api/omugwo/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageDataUrl,
+          relativeName: activeShift.caregiverName || 'Grandma',
+          babyName
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.capture && setMemories) {
+          setMemories(prev => [
+            {
+              id: data.capture.id,
+              url: data.capture.imageDataUrl,
+              date: data.capture.dateIso,
+              note: `${data.capture.relativeName}: ${data.capture.caption}`
+            },
+            ...prev
+          ]);
+          setMonitorAlert(`📸 Generational bonding moment saved to Journal Memories: "${data.capture.caption}"`);
+        }
+      }
+    } catch {
+      setMonitorAlert('Saved candid bonding snapshot to Journal Memories.');
+    } finally {
+      setIsCapturingMoment(false);
+    }
+  };
+
+  const recordedVoiceBlessings = useMemo(() => {
+    const fromJournal = (observationLogs || []).filter((o: any) => o.audioDataUrl);
+    const mergedMap = new Map<string, any>();
+    serverWisdomBlessings.forEach((w: any) => {
+      mergedMap.set(w.id, {
+        id: w.id,
+        title: w.title,
+        author: w.authorName || w.authorRole || 'Grandma',
+        audioDataUrl: w.audioDataUrl
+      });
+    });
+    fromJournal.forEach((o: any) => {
+      mergedMap.set(o.id, {
+        id: o.id,
+        title: o.title || 'Grandma Blessing & Lullaby',
+        author: o.authorName || 'Family Elder',
+        audioDataUrl: o.audioDataUrl
+      });
+    });
+    return Array.from(mergedMap.values());
+  }, [observationLogs, serverWisdomBlessings]);
 
   const generateSleepInsight = async () => {
     if (!isPremium) {
@@ -963,31 +1180,87 @@ export const ActivityTracker = ({
           animate={{ opacity: 1, y: 0 }}
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
-          {/* Baby Sound Monitor Card */}
+          {/* Baby Sound & Smart Video Monitor Card (with On-Duty Caregiver & 4h REM Sleep Delegation) */}
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-card p-6 rounded-[48px] shadow-sm border border-white flex flex-col space-y-4 text-left"
           >
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-2 flex-wrap">
               <div>
-                <h3 className="font-serif font-black text-gray-800 uppercase tracking-widest text-xs">🎙️ Baby Sound Monitor</h3>
-                <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Auto Sleep & Mood Logger</p>
-                
-    </div>
-              <button
-                onClick={isListening ? stopListening : startListening}
-                className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer border-none ${
-                  isListening ? 'bg-primary/20 text-primary shadow-md' : 'bg-primary text-white shadow-md shadow-primary/20'
-                }`}
-              >
-                {isListening ? 'Stop Listening' : 'Start Monitor'}
-              </button>
+                <h3 className="font-serif font-black text-gray-800 uppercase tracking-widest text-xs">🎙️ Baby Sound & Smart Video Monitor</h3>
+                <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Auto Sleep Logger • Locked Video • REM Delegation</p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={toggleVideoMonitor}
+                  className={`px-3.5 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none flex items-center gap-1 ${
+                    videoMonitorActive ? 'bg-slate-900 text-amber-300' : 'bg-white text-gray-700 shadow-xs'
+                  }`}
+                >
+                  {videoMonitorActive ? <VideoOff className="w-3.5 h-3.5" /> : <Video className="w-3.5 h-3.5" />}
+                  <span>{videoMonitorActive ? 'Stop Video' : 'Video Feed'}</span>
+                </button>
+                <button
+                  onClick={isListening ? stopListening : startListening}
+                  className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer border-none ${
+                    isListening ? 'bg-primary/20 text-primary shadow-md' : 'bg-primary text-white shadow-md shadow-primary/20'
+                  }`}
+                >
+                  {isListening ? 'Stop Mic' : 'Start Mic'}
+                </button>
+              </div>
             </div>
+
+            {/* Real-Time On-Duty Caregiver Status */}
+            <div className="bg-white/80 p-3.5 rounded-3xl border border-white flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-emerald-700">
+                    On Duty: {activeShift.caregiverName}
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-600 font-medium">
+                  {remainingRemTime
+                    ? `🛌 Mom's 4h Rest Window Active (${remainingRemTime}) • Care & cry alerts active for on-duty caregiver`
+                    : activeShift.focusNote}
+                </p>
+              </div>
+            </div>
+
+            {/* Smart Video Feed with Grandma Settings Lock & AI Generational Growth Auto-Capture */}
+            {videoMonitorActive && (
+              <div className="bg-slate-950 p-3.5 rounded-3xl space-y-3 text-white">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setCameraSettingsLocked(prev => !prev)}
+                    className="px-2.5 py-1 rounded-full bg-slate-800 text-amber-300 text-[9px] font-black uppercase tracking-wider border border-amber-400/30 cursor-pointer flex items-center gap-1"
+                  >
+                    {cameraSettingsLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                    <span>{cameraSettingsLocked ? 'Grandma Settings Locked' : 'Settings Unlocked'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAiGenerationalCapture}
+                    disabled={isCapturingMoment}
+                    className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-[10px] font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>{isCapturingMoment ? 'AI Capturing...' : '📸 AI Capture Bonding Moment'}</span>
+                  </button>
+                </div>
+                <div className="relative rounded-2xl overflow-hidden bg-black aspect-video max-h-56 border border-slate-800">
+                  <video ref={videoMonitorRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                </div>
+              </div>
+            )}
 
             <div className="bg-white/60 p-4 rounded-3xl space-y-3 border border-white/50">
               <div className="flex items-center justify-between text-[10px]">
-                <span className="font-black text-gray-400 uppercase tracking-widest">Status:</span>
+                <span className="font-black text-gray-400 uppercase tracking-widest">Audio Status:</span>
                 <span className={`font-black uppercase tracking-wider ${isListening ? 'text-primary animate-pulse' : 'text-gray-400'}`}>
                   {isListening ? '🟢 LISTENING ACTIVE' : '⚪ OFFLINE'}
                 </span>
@@ -1008,17 +1281,16 @@ export const ActivityTracker = ({
                   </div>
                   {decibels > 40 && (
                     <p className="text-[9px] font-black text-primary uppercase tracking-wider animate-pulse">
-                      ⚠️ Sound detected! Threshold exceeded.
+                      ⚠️ Sound detected! Alerting {activeShift.caregiverName}.
                     </p>
                   )}
                 </div>
               )}
 
               <p className="text-[10px] text-muted leading-relaxed font-medium">
-                Allows the app to automatically detect sounds (crying, fussing). Sound above 40dB triggers auto "Wake Up" for active sleep sessions, or logs a fussy mood if baby is awake.
+                Detects crying above 40dB to auto-log wake/mood, lets Grandma view the locked video feed safely, and uses AI to auto-capture grandparent bonding photos to Journal Memories.
               </p>
-              
-    </div>
+            </div>
           </motion.div>
 
           {/* Log Current Mood */}
@@ -1072,7 +1344,7 @@ export const ActivityTracker = ({
                 onClick={handleStop}
                 className="px-10 py-4 rounded-full font-black uppercase tracking-widest text-xs transition-all shadow-lg bg-primary/20 text-primary shadow-primary/10 cursor-pointer border-none"
               >
-                Wake Up
+                Wake Up (Stop Nap Timer)
               </motion.button>
             ) : (
               <motion.button 
@@ -1080,7 +1352,7 @@ export const ActivityTracker = ({
                 onClick={() => setIsActive(true)}
                 className="px-10 py-4 rounded-full font-black uppercase tracking-widest text-xs transition-all shadow-lg bg-primary text-white shadow-primary/20 cursor-pointer border-none"
               >
-                Start Sleep
+                Start Sleep & Nap Timer
               </motion.button>
             )}
           </motion.div>
@@ -1214,10 +1486,48 @@ export const ActivityTracker = ({
                 </div>
               </div>
 
-              {/* Lullabies for Baby Embedded Section */}
+              {/* Lullabies for Baby Embedded Section (Includes Recorded Grandma Blessings & Lullabies) */}
               <div className="border-t border-gray-200/50 pt-4 mt-2 space-y-3">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Lullabies for Baby</p>
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Lullabies & Recorded Family Blessings</p>
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                  {recordedVoiceBlessings.map((blessing) => (
+                    <div key={blessing.id} className="flex justify-between items-center p-3 bg-amber-50/70 rounded-2xl border border-amber-200 shadow-xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0">
+                          👵
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-gray-800 leading-tight truncate">{blessing.title}</p>
+                          <p className="text-[8px] font-black text-amber-800 uppercase tracking-widest">
+                            Recorded by {blessing.author} • Monitor Speaker
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          stopAllAudio();
+                          setPlayingLullaby(null);
+                          if (playingVoiceBlessingId === blessing.id) {
+                            voiceBlessingAudioRef.current?.pause();
+                            setPlayingVoiceBlessingId(null);
+                            return;
+                          }
+                          if (voiceBlessingAudioRef.current) {
+                            voiceBlessingAudioRef.current.pause();
+                          }
+                          const audio = new Audio(blessing.audioDataUrl);
+                          voiceBlessingAudioRef.current = audio;
+                          setPlayingVoiceBlessingId(blessing.id);
+                          audio.onended = () => setPlayingVoiceBlessingId(null);
+                          audio.play().catch(() => setPlayingVoiceBlessingId(null));
+                        }}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-amber-300 border-none cursor-pointer shrink-0"
+                      >
+                        {playingVoiceBlessingId === blessing.id ? '■ Stop' : '▶ Play Blessing'}
+                      </button>
+                    </div>
+                  ))}
                   {lullabies.map((lullaby) => {
                     const isLocked = lullaby.isPremium && !isPremium;
                     return (
@@ -1509,13 +1819,15 @@ export const ActivityTracker = ({
             <div className="grid grid-cols-1 gap-3">
               {[
                 { id: 'bath', label: '🚿 Warm Bath Given', icon: '🛁' },
+                { id: 'omugwo_massage', label: '🤲 Traditional Newborn Massage & Stretching', icon: '🤲' },
                 { id: 'nails', label: '💅 Nail Clipping Done', icon: '✂️' },
-                { id: 'moisturizer', label: '🧴 Skin Moisturizer Applied', icon: '🧴' },
+                { id: 'moisturizer', label: '🧴 Skin Moisturizer / Shea Butter Applied', icon: '🧴' },
                 { id: 'hair', label: '🧼 Hair Wash & Shampoo', icon: '🧼' },
                 { id: 'ears', label: '👂 Ear Cleaning', icon: '👂' },
                 { id: 'teeth', label: '🪥 Teeth Brushing / Oral Care', icon: '🪥' },
-                { id: 'diaper_hygiene', label: '🍑 Bottom Wipe & barrier Cream', icon: '🍑' },
-                { id: 'clothes', label: '👕 Fresh Clothes Change', icon: '👕' }
+                { id: 'diaper_hygiene', label: '🍑 Bottom Wipe & Barrier Cream', icon: '🍑' },
+                { id: 'clothes', label: '👕 Fresh Clothes Change', icon: '👕' },
+                { id: 'mom_herbal_compress', label: '🌿 Maternal Warm Compress & Rest', icon: '🌿' }
               ].map(item => {
                 const loggedDate = hygieneLog[item.id];
                 return (

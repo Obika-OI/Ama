@@ -820,8 +820,11 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
           {analysisResult.recommendedAction && (
             <button
               onClick={() => {
-                if (onNavigate) {
-                  onNavigate(analysisResult.recommendedAction.actionType === 'sleep' ? 'activity-tracker' : 'feeding-tracker');
+                if (analysisResult.recommendedAction.actionType === 'sleep') {
+                  localStorage.setItem('ama_auto_start_nap_timer', 'true');
+                  if (onNavigate) onNavigate('sleep');
+                } else {
+                  if (onNavigate) onNavigate('feeding');
                 }
               }}
               className="w-full py-3.5 bg-primary hover:bg-primary/90 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer border-none"

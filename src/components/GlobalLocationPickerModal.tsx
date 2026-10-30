@@ -115,7 +115,7 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
       setSelectedLoc(currentLocation);
       fetchRealities(currentLocation);
       // Friendly audio prompt
-      speakText(`Location map open. Tap interactive map or use the green GPS button to select your town.`);
+      speakText(`Location map open. Tap interactive map or use the GPS locator button to select your town.`);
     } else {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -396,19 +396,19 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
           className="bg-white w-full max-w-4xl max-h-[94vh] rounded-[36px] overflow-hidden flex flex-col shadow-2xl border border-gray-100"
         >
           {/* Header */}
-          <div className="p-4 sm:p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between shrink-0">
+          <div className="p-4 sm:p-6 bg-[#D2E9F9] text-gray-800 flex items-center justify-between shrink-0 border-b border-sky-100 shadow-xs">
             <div className="flex items-center gap-3 text-left">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md text-white flex items-center justify-center text-2xl shadow-md border border-white/30">
+              <div className="w-12 h-12 rounded-2xl bg-white text-primary flex items-center justify-center text-2xl shadow-sm border border-sky-100">
                 🗺️
               </div>
               <div className="text-left">
-                <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">
+                <span className="text-[10px] font-black uppercase tracking-widest bg-white text-primary px-2.5 py-0.5 rounded-full border border-sky-200 shadow-2xs">
                   Easy Location Picker
                 </span>
-                <h2 className="text-lg sm:text-2xl font-serif font-black text-white mt-0.5">
+                <h2 className="text-lg sm:text-2xl font-serif font-black text-gray-900 mt-0.5">
                   Where Are You Located?
                 </h2>
-                <p className="text-[11px] text-emerald-100 text-left">
+                <p className="text-[11px] text-gray-600 text-left">
                   Pin your town directly on the map, use 1-Tap GPS, or speak your city name
                 </p>
               </div>
@@ -416,7 +416,7 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
 
             <button
               onClick={onClose}
-              className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center border-none cursor-pointer transition-colors"
+              className="w-10 h-10 rounded-full bg-white hover:bg-sky-50 text-gray-700 flex items-center justify-center border border-sky-100 cursor-pointer transition-colors shadow-2xs"
             >
               <X className="w-5 h-5" />
             </button>
@@ -426,12 +426,12 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
           <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
             
             {/* Selected Location Banner & Confirm Button - always visible for immediate confirmation */}
-            <div className="bg-gradient-to-r from-emerald-50 to-teal-50/70 border-2 border-emerald-300 rounded-3xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-2xs">
+            <div className="bg-[#D2E9F9]/40 border border-sky-200/80 rounded-3xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-sm">
               <div className="space-y-1 text-left">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">{selectedLoc.flag || '📍'}</span>
                   <div className="text-left">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-200/80 px-2 py-0.5 rounded-md">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-white px-2 py-0.5 rounded-md border border-sky-100 shadow-2xs">
                       Selected Town / City
                     </span>
                     <h3 className="text-base sm:text-lg font-serif font-black text-gray-900">
@@ -439,14 +439,14 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
                     </h3>
                   </div>
                 </div>
-                <p className="text-xs text-emerald-800 font-bold pl-1 text-left">
+                <p className="text-xs text-gray-700 font-bold pl-1 text-left">
                   Local Currency: {selectedLoc.currency} ({selectedLoc.currencyCode || 'Local'})
                 </p>
               </div>
 
               <button
                 onClick={handleApply}
-                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 border-none cursor-pointer active:scale-95 transition-all shrink-0"
+                className="px-6 py-3 bg-primary hover:bg-primary/90 text-white text-xs font-black uppercase tracking-wider rounded-2xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 border-none cursor-pointer active:scale-95 transition-all shrink-0"
               >
                 <Check className="w-5 h-5" />
                 <span>Confirm & Set Location</span>
@@ -460,16 +460,16 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
                 <button
                   onClick={handleDeviceGPS}
                   disabled={isLocating}
-                  className="p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100/85 border-2 border-emerald-300 text-emerald-950 flex items-center gap-3 shadow-2xs cursor-pointer transition-all active:scale-98 text-left"
+                  className="p-3.5 rounded-2xl bg-white hover:bg-[#D2E9F9]/30 border border-sky-100 text-gray-900 flex items-center gap-3 shadow-xs cursor-pointer transition-all active:scale-98 text-left"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
+                  <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
                     {isLocating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Crosshair className="w-5 h-5" />}
                   </div>
                   <div>
-                    <h3 className="text-xs font-black text-emerald-900">
+                    <h3 className="text-xs font-black text-gray-900">
                       {isLocating ? "Locating GPS..." : "🎯 1-Tap GPS Locator"}
                     </h3>
-                    <p className="text-[10px] text-emerald-700 font-medium mt-0.5">
+                    <p className="text-[10px] text-gray-500 font-medium mt-0.5">
                       Detect your town with zero typing
                     </p>
                   </div>
@@ -479,14 +479,14 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
                 <button
                   onClick={handleVoiceSearch}
                   disabled={isListeningVoice}
-                  className={`p-3.5 rounded-2xl border-2 flex items-center gap-3 shadow-2xs cursor-pointer transition-all active:scale-98 text-left ${
+                  className={`p-3.5 rounded-2xl border flex items-center gap-3 shadow-xs cursor-pointer transition-all active:scale-98 text-left ${
                     isListeningVoice 
-                      ? 'bg-rose-50 border-rose-400 text-rose-950 animate-pulse'
-                      : 'bg-teal-50 hover:bg-teal-100/85 border-teal-300 text-teal-950'
+                      ? 'bg-rose-50 border-rose-300 text-rose-950 animate-pulse'
+                      : 'bg-white hover:bg-[#D2E9F9]/30 border-sky-100 text-gray-900'
                   }`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-xs ${
-                    isListeningVoice ? 'bg-rose-600 text-white' : 'bg-teal-600 text-white'
+                    isListeningVoice ? 'bg-rose-500 text-white' : 'bg-primary text-white'
                   }`}>
                     {isListeningVoice ? <MicOff className="w-5 h-5 animate-bounce" /> : <Mic className="w-5 h-5" />}
                   </div>
@@ -494,7 +494,7 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
                     <h3 className="text-xs font-black">
                       {isListeningVoice ? "Listening Now..." : "🎙️ Speak City Name"}
                     </h3>
-                    <p className="text-[10px] opacity-85 font-medium mt-0.5">
+                    <p className="text-[10px] text-gray-500 font-medium mt-0.5">
                       Say e.g. "Port Harcourt" or "Nairobi"
                     </p>
                   </div>
@@ -502,8 +502,8 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
               </div>
 
               {voiceNotice && (
-                <div className="p-3 bg-teal-50 border border-teal-200 rounded-2xl flex items-center gap-2 text-xs text-teal-900 font-bold text-left animate-pulse">
-                  <Volume2 className="w-4 h-4 text-teal-600 shrink-0" />
+                <div className="p-3 bg-primary/10 border border-primary/20 rounded-2xl flex items-center gap-2 text-xs text-primary font-bold text-left animate-pulse">
+                  <Volume2 className="w-4 h-4 text-primary shrink-0" />
                   <span>{voiceNotice}</span>
                 </div>
               )}
@@ -520,7 +520,7 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
                 <p className="text-[10px] font-black uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
                   <span>🗺️</span> <span>Tap anywhere on map to select place</span>
                 </p>
-                <div className="h-80 sm:h-[400px] rounded-3xl overflow-hidden border border-gray-250 relative shadow-inner">
+                <div className="h-80 sm:h-[400px] rounded-3xl overflow-hidden border border-gray-200 relative shadow-inner">
                   <APIProvider apiKey={apiKey}>
                     <Map
                       mapId="DEMO_MAP_ID"
@@ -533,13 +533,13 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
                       className="w-full h-full"
                     >
                       <AdvancedMarker position={{ lat: selectedLoc.lat, lng: selectedLoc.lng }}>
-                        <Pin background="#059669" borderColor="#ffffff" glyphColor="#ffffff" scale={1.2} />
+                        <Pin background="#37b1f5" borderColor="#ffffff" glyphColor="#ffffff" scale={1.2} />
                       </AdvancedMarker>
                     </Map>
                   </APIProvider>
 
-                  <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-gray-250 shadow-md text-[10px] font-bold text-gray-700 flex items-center gap-1.5 pointer-events-none">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-600 animate-bounce" />
+                  <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-white shadow-md text-[10px] font-bold text-gray-700 flex items-center gap-1.5 pointer-events-none">
+                    <MapPin className="w-3.5 h-3.5 text-primary animate-bounce" />
                     <span>Tap world map to place a custom marker pin</span>
                   </div>
                 </div>

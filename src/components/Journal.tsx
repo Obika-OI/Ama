@@ -3,7 +3,7 @@ import { DiaperAnalyzer } from './DiaperAnalyzer';
 import { StorybookGenerator } from './StorybookGenerator';
 import { MemorySlideshow } from './MemorySlideshow';
 import { FlexibleScheduleBuilder } from './FlexibleScheduleBuilder';
-import { Plus, Calendar, Search, Star, Heart, FileText, Printer, Trash2, Edit3, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Sparkles, Award, Shield, Info, Copy, Share2, Crown, ChevronDown, ShoppingBag } from 'lucide-react';
+import { Plus, Calendar, Search, Star, Heart, FileText, Printer, Trash2, Edit3, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Sparkles, Award, Shield, Info, Copy, Share2, Crown, ChevronDown, ShoppingBag, Mic, MicOff, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { MOCK_MEALS, THEME } from '../constants';
@@ -59,8 +59,10 @@ export const Journal = ({  isPremium,
   vaccineSchedule = [],
   setVaccineSchedule,
   userRole = 'admin',
-  setUserRole
+  setUserRole,
+  currentUser
 }: { 
+  currentUser?: any,
   isPremium: boolean,
   setIsSubscriptionModalOpen: (open: boolean) => void,
   onNavigate: (screen: string, data?: any, autoOpenLog?: boolean) => void,
@@ -177,11 +179,126 @@ export const Journal = ({  isPremium,
     'Baby Memory',
     'Personal Reflection',
     'Milestone',
-    'Daily Note'
+    'Daily Note',
+    '👵 Song, Blessing & Memory'
   ];
 
+  // Voice Blessing / Lullaby Recorder State
+  const [diaryAudioDataUrl, setDiaryAudioDataUrl] = useState<string>('');
+  const [isRecordingBlessing, setIsRecordingBlessing] = useState(false);
+  const [isPublicDiaryEntry, setIsPublicDiaryEntry] = useState(false);
+  const [playingEntryAudioId, setPlayingEntryAudioId] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const diaryAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  // Shift Handover & On-Duty Caregiver Coordination State (Auto-resolved from signed-in account)
+  const resolvedAccountCaregiver = useMemo(() => {
+    if (currentUser && !currentUser.isAnonymous) {
+      if (currentUser.displayName) return currentUser.displayName;
+      if (currentUser.email) {
+        const handle = currentUser.email.split('@')[0];
+        return handle.charAt(0).toUpperCase() + handle.slice(1);
+      }
+    }
+    if (userRole === 'nanny') return 'Nanny / Caregiver';
+    if (userRole === 'family') return 'Family Member';
+    return parentName ? `${parentName} (Primary)` : 'Mom (Primary)';
+  }, [currentUser, parentName, userRole]);
+
+  const resolvedAccountRole = useMemo(() => {
+    if (userRole === 'nanny') return 'Caregiver';
+    if (userRole === 'family') return 'Grandma';
+    return 'Mom';
+  }, [userRole]);
+
+  const [onDutyCaregiver, setOnDutyCaregiver] = useState<{
+    caregiverName: string;
+    caregiverRole: string;
+    focusNote: string;
+  }>({
+    caregiverName: resolvedAccountCaregiver,
+    caregiverRole: resolvedAccountRole,
+    focusNote: `Active monitoring by signed-in account (${resolvedAccountCaregiver})`
+  });
+  const [handoverHistory, setHandoverHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/omugwo/state')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data?.activeShift) {
+          setOnDutyCaregiver(data.activeShift);
+        } else {
+          setOnDutyCaregiver({
+            caregiverName: resolvedAccountCaregiver,
+            caregiverRole: resolvedAccountRole,
+            focusNote: `Active monitoring by signed-in account (${resolvedAccountCaregiver})`
+          });
+        }
+        if (Array.isArray(data?.handoverNotes)) setHandoverHistory(data.handoverNotes);
+      })
+      .catch(() => {});
+  }, [resolvedAccountCaregiver, resolvedAccountRole]);
+
+  const handleSetOnDutyRole = async (role: string, name: string) => {
+    setOnDutyCaregiver(prev => ({ ...prev, caregiverRole: role, caregiverName: name }));
+    try {
+      const res = await fetch('/api/omugwo/shift', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caregiverRole: role,
+          caregiverName: name,
+          focusNote: `On duty monitoring ${babyName}'s active feeds & comfort`
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.activeShift) setOnDutyCaregiver(data.activeShift);
+      }
+    } catch {}
+  };
+
+  const toggleRecordBlessing = async () => {
+    if (isRecordingBlessing) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecordingBlessing(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            setDiaryAudioDataUrl(reader.result);
+            setToastMsg('🎙️ Voice blessing / lullaby recorded! Save entry to store.');
+            setTimeout(() => setToastMsg(''), 3000);
+          }
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach(t => t.stop());
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecordingBlessing(true);
+    } catch {
+      setToastMsg('Microphone permission required to record a voice blessing or lullaby.');
+      setTimeout(() => setToastMsg(''), 3000);
+    }
+  };
+
   const handleSaveDiaryEntry = () => {
-    if (!diaryNotes.trim() && !diaryReflection.trim()) return;
+    if (!diaryNotes.trim() && !diaryReflection.trim() && !diaryAudioDataUrl) return;
 
     if (editingDiaryId) {
       setObservationLogs(observationLogs.map(o => o.id === editingDiaryId ? {
@@ -191,6 +308,8 @@ export const Journal = ({  isPremium,
         notes: diaryNotes.trim(),
         reflection: diaryReflection.trim(),
         category: diaryCategory,
+        audioDataUrl: diaryAudioDataUrl || o.audioDataUrl,
+        isPublic: userRole === 'nanny' ? true : isPublicDiaryEntry,
         type: 'diary'
       } : o));
       setEditingDiaryId(null);
@@ -199,21 +318,43 @@ export const Journal = ({  isPremium,
       const newEntry = {
         id: Date.now().toString(),
         date: selectedDate.toISOString(),
-        title: diaryTitle.trim() || 'Daily Journal',
+        title: diaryTitle.trim() || (diaryAudioDataUrl ? 'Recorded Blessing & Lullaby' : 'Daily Journal Entry'),
         mood: diaryMood,
         notes: diaryNotes.trim(),
         reflection: diaryReflection.trim(),
         category: diaryCategory,
+        audioDataUrl: diaryAudioDataUrl || undefined,
+        authorName: userRole === 'family' ? 'Grandma / Elder' : userRole === 'nanny' ? 'Caregiver / Nanny' : parentName || 'Mom',
+        authorRole: userRole,
+        isPublic: userRole === 'nanny' ? true : isPublicDiaryEntry,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         type: 'diary'
       };
+      // Prepend to allow multiple entries per day without limit
       setObservationLogs([newEntry, ...observationLogs]);
-      setToastMsg('Journal entry saved! 📖');
+
+      if (diaryAudioDataUrl || diaryCategory.includes('Song') || diaryCategory.includes('Blessing') || diaryCategory.includes('Wisdom')) {
+        fetch('/api/omugwo/wisdom', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: newEntry.title,
+            category: 'Blessing & Prayer',
+            authorName: newEntry.authorName,
+            authorRole: userRole === 'family' ? 'Grandma' : userRole === 'nanny' ? 'Caregiver' : 'Mom',
+            storyText: newEntry.notes || newEntry.reflection || newEntry.title,
+            audioDataUrl: diaryAudioDataUrl || undefined
+          })
+        }).catch(() => {});
+      }
+      setToastMsg('Diary entry saved! 📖');
     }
 
     setDiaryTitle('');
     setDiaryNotes('');
     setDiaryReflection('');
+    setDiaryAudioDataUrl('');
+    setIsPublicDiaryEntry(false);
     setDiaryMood('✨ Grateful');
     setTimeout(() => setToastMsg(''), 3000);
   };
@@ -225,6 +366,8 @@ export const Journal = ({  isPremium,
       setDiaryTitle('');
       setDiaryNotes('');
       setDiaryReflection('');
+      setDiaryAudioDataUrl('');
+      setIsPublicDiaryEntry(false);
     }
     setToastMsg('Entry removed');
     setTimeout(() => setToastMsg(''), 2500);
@@ -237,6 +380,8 @@ export const Journal = ({  isPremium,
     setDiaryReflection(entry.reflection || '');
     setDiaryMood(entry.mood || '✨ Grateful');
     setDiaryCategory(entry.category || 'Parenting Thought');
+    setDiaryAudioDataUrl(entry.audioDataUrl || '');
+    setIsPublicDiaryEntry(Boolean(entry.isPublic));
     if (entry.date) {
       setSelectedDate(new Date(entry.date));
     }
@@ -529,8 +674,26 @@ export const Journal = ({  isPremium,
       date: selectedDate.toISOString(),
       symptoms: obsSymptoms,
       notes: obsNotes,
+      caregiverName: onDutyCaregiver.caregiverName
     };
     setObservationLogs([...observationLogs, newObs]);
+    if (obsNotes.trim() || obsSymptoms.trim()) {
+      fetch('/api/omugwo/handover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caregiverName: onDutyCaregiver.caregiverName,
+          caregiverRole: onDutyCaregiver.caregiverRole,
+          recipientName: onDutyCaregiver.caregiverRole === 'Mom' ? 'Grandma / Dad' : 'Mom & Dad',
+          summary: `${obsSymptoms ? `[${obsSymptoms}] ` : ''}${obsNotes}`.trim()
+        })
+      })
+        .then(res => (res.ok ? res.json() : null))
+        .then(data => {
+          if (data?.note) setHandoverHistory(prev => [data.note, ...prev]);
+        })
+        .catch(() => {});
+    }
     setObsSymptoms('');
     setObsNotes('');
   };
@@ -570,8 +733,29 @@ export const Journal = ({  isPremium,
   
   const todayMeals = useMemo(() => {
     const meals = (loggedMeals || [])
-      .filter(m => m && m.timestamp && isSameDay(new Date(m.timestamp), selectedDate))
-      .map(m => ({ ...m, isMilkFeed: false }));
+      .filter(m => {
+        if (!m) return false;
+        const rawTs = m.timestamp || m.date;
+        if (!rawTs) return false;
+        const d = new Date(rawTs);
+        return !isNaN(d.getTime()) && isSameDay(d, selectedDate);
+      })
+      .map(m => {
+        const isoTs = m.timestamp || m.date || new Date(selectedDate).toISOString();
+        const isBottleOrBreast = m.type === 'bottle' || m.type === 'breast' || m.type === 'Bottle Feed' || m.type === 'Nursing Session';
+        return {
+          ...m,
+          title: m.title || (m.type === 'bottle' ? `Bottle Feed (${m.amount || 4} ${m.unit || 'oz'})` : m.type === 'breast' ? 'Breastfeeding Session' : 'Logged Meal'),
+          logType: m.logType || (m.type ? String(m.type).charAt(0).toUpperCase() + String(m.type).slice(1) : 'Meal'),
+          logTime: m.logTime || m.time || new Date(isoTs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          newFood: m.newFood || (m.type === 'bottle' ? '🍼' : m.type === 'breast' ? '🤱' : '🥣'),
+          appetising: m.appetising ?? 5,
+          acceptance: m.acceptance ?? 5,
+          satisfaction: m.satisfaction ?? 5,
+          timestamp: new Date(isoTs).toISOString(),
+          isMilkFeed: Boolean(m.isMilkFeed || isBottleOrBreast)
+        };
+      });
 
     const milkFeeds = (localFeedingLogs || [])
       .filter(f => {
@@ -587,20 +771,29 @@ export const Journal = ({  isPremium,
           } catch (e) {}
         }
 
-        // 2. Fallback: Check if f.date parses safely
+        // 2. Check exact locale date string match FIRST before Date(f.date) to avoid DD/MM/YYYY vs MM/DD/YYYY inversion
         if (f.date) {
           try {
-            const d = new Date(f.date);
-            if (!isNaN(d.getTime())) {
-              return isSameDay(d, selectedDate);
+            if (f.date === selectedDate.toLocaleDateString() || f.date === selectedDate.toISOString().split('T')[0]) {
+              return true;
             }
           } catch (e) {}
 
-          // 3. Robust Locale String Match fallback (handles locale-dependent string comparison)
+          // 3. Fallback: Check if f.date parses as ISO or standard date
           try {
-            const currentSelectedLocalStr = selectedDate.toLocaleDateString();
-            if (f.date === currentSelectedLocalStr) {
+            const d = new Date(f.date);
+            if (!isNaN(d.getTime()) && isSameDay(d, selectedDate)) {
               return true;
+            }
+          } catch (e) {}
+        }
+
+        // 4. Fallback: Check if f.timestamp is a numeric epoch or ISO date string (e.g. migrated records)
+        if (typeof f.timestamp === 'number' || (typeof f.timestamp === 'string' && f.timestamp.includes('T'))) {
+          try {
+            const d = new Date(f.timestamp);
+            if (!isNaN(d.getTime())) {
+              return isSameDay(d, selectedDate);
             }
           } catch (e) {}
         }
@@ -608,26 +801,35 @@ export const Journal = ({  isPremium,
         return false;
       })
       .map(f => {
-        const isBottle = f.type === 'Bottle Feed';
+        const isBottle = f.type === 'Bottle Feed' || f.type === 'Bottle' || f.type === 'bottle';
         const leftM = Math.round((f.leftDuration || 0) / 60);
         const rightM = Math.round((f.rightDuration || 0) / 60);
         const totalM = leftM + rightM;
 
         // Ensure we always have a standardized ISO 8601 timestamp string for accurate aggregation and sorting
         let isoTimestamp = f.exactTime;
+        if (!isoTimestamp && (typeof f.timestamp === 'number' || (typeof f.timestamp === 'string' && f.timestamp.includes('T')))) {
+          try {
+            const d = new Date(f.timestamp);
+            if (!isNaN(d.getTime())) isoTimestamp = d.toISOString();
+          } catch (e) {}
+        }
         if (!isoTimestamp && f.date) {
           try {
-            const dateObj = new Date(f.date);
-            if (f.timestamp && !isNaN(dateObj.getTime())) {
+            const baseDate = (f.date === selectedDate.toLocaleDateString() || f.date === selectedDate.toISOString().split('T')[0])
+              ? new Date(selectedDate)
+              : new Date(f.date);
+            const dateObj = !isNaN(baseDate.getTime()) ? baseDate : new Date(selectedDate);
+            if (typeof f.timestamp === 'string' && f.timestamp.includes(':')) {
               const timeParts = f.timestamp.split(':');
               let hour = 12;
               let minute = 0;
               let second = 0;
               if (timeParts.length >= 2) {
-                hour = parseInt(timeParts[0]);
-                minute = parseInt(timeParts[1]);
+                hour = parseInt(timeParts[0]) || 0;
+                minute = parseInt(timeParts[1]) || 0;
                 if (timeParts.length >= 3) {
-                  second = parseInt(timeParts[2]);
+                  second = parseInt(timeParts[2]) || 0;
                 }
                 const tStr = f.timestamp.toLowerCase();
                 if (tStr.includes('pm') && hour < 12) hour += 12;
@@ -920,8 +1122,8 @@ export const Journal = ({  isPremium,
             activeTab === 'diary' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'
           }`}
         >
-          <span>{userRole === 'nanny' ? '🔒 Diary (Family)' : !isPremium ? '🔒 Daily Diary' : 'Daily Diary ✍️'}</span>
-          {isPremium && userRole !== 'nanny' && todayDiaryEntries.length > 0 && (
+          <span>{!isPremium ? '🔒 Daily Diary' : 'Daily Diary ✍️'}</span>
+          {isPremium && todayDiaryEntries.length > 0 && (
             <span className={`w-2 h-2 rounded-full ${activeTab === 'diary' ? 'bg-white' : 'bg-primary'}`} />
           )}
         </button>
@@ -1894,109 +2096,99 @@ export const Journal = ({  isPremium,
         )}
       </AnimatePresence>
 
-      {/* Observation Notes (Caregiver Observations & Notes) */}
+      {/* Observation Notes & Shift Handover Coordination */}
       <div className="space-y-6">
-        <h2 className="text-xl font-serif font-black text-gray-800 px-2 text-left">Care Notes & Observations</h2>
-        <div className="bg-card rounded-[48px] shadow-xl shadow-card/20 border border-white p-8 text-left">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-2">
+          <h2 className="text-xl font-serif font-black text-gray-800 text-left">Care Notes & Shift Handover</h2>
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+            🟢 On Duty: {onDutyCaregiver.caregiverName}
+          </span>
+        </div>
+        <div className="bg-card rounded-[48px] shadow-xl shadow-card/20 border border-white p-8 text-left space-y-5">
+          {/* Quick On-Duty Caregiver Selector */}
+          <div className="bg-white/70 p-4 rounded-3xl border border-gray-100 space-y-2.5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                Active On-Duty Caregiver (Auto-Assigned from Signed-in Account)
+              </p>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Signed In: {resolvedAccountCaregiver}</span>
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { role: resolvedAccountRole, name: `${resolvedAccountCaregiver} (Active Account)` },
+                { role: 'Grandma', name: 'Grandma (Elder)' },
+                { role: 'Dad', name: 'Dad / Partner' },
+                { role: 'Caregiver', name: 'Caregiver / Nanny' }
+              ].map(cg => (
+                <button
+                  key={cg.name}
+                  type="button"
+                  onClick={() => handleSetOnDutyRole(cg.role, cg.name)}
+                  className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer border transition-all ${
+                    onDutyCaregiver.caregiverName === cg.name || (cg.role === resolvedAccountRole && onDutyCaregiver.caregiverName === resolvedAccountCaregiver)
+                      ? 'bg-primary text-white border-primary shadow-xs'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  {cg.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {currentObs ? (
             <div className="space-y-4">
               {currentObs.symptoms && (
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Care Observations</p>
                   <p className="font-medium text-gray-800 text-xs">{currentObs.symptoms}</p>
-                  
-    </div>
+                </div>
               )}
               {currentObs.notes && (
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Caregiver Notes</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Shift Handover & Caregiver Notes</p>
                   <p className="font-medium text-gray-800 text-xs leading-relaxed">{currentObs.notes}</p>
-                  
-    </div>
+                </div>
               )}
               {!currentObs.symptoms && !currentObs.notes && (
-                <p className="text-xs text-gray-400 italic px-2">No care observations or notes logged for this date.</p>
+                <p className="text-xs text-gray-400 italic px-2">No care observations or handover notes logged for this date.</p>
               )}
-              
-    </div>
+            </div>
           ) : (
             <div className="space-y-4">
               <div>
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Observations (If Any)</label>
                 <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-xs font-medium outline-none text-gray-700" placeholder="Fussiness, teething drool, mood changes..." value={obsSymptoms} onChange={e => setObsSymptoms(e.target.value)} />
-                
-    </div>
+              </div>
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Caregiver Notes</label>
-                <textarea className="w-full bg-gray-50 border-none rounded-xl p-3 text-xs font-medium outline-none text-gray-700 h-20 resize-none" placeholder="Write any extra care details or meal reaction notes here..." value={obsNotes} onChange={e => setObsNotes(e.target.value)} />
-                
-    </div>
-              <button onClick={saveObservation} className="w-full py-4 rounded-full bg-primary text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 cursor-pointer border-none">Save Care Notes</button>
-              
-    </div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">End-of-Shift Handover & Caregiver Notes</label>
+                <textarea className="w-full bg-gray-50 border-none rounded-xl p-3 text-xs font-medium outline-none text-gray-700 h-20 resize-none" placeholder="e.g. Baby was fussy at 3 PM, loved the white blanket today..." value={obsNotes} onChange={e => setObsNotes(e.target.value)} />
+              </div>
+              <button onClick={saveObservation} className="w-full py-4 rounded-full bg-primary text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 cursor-pointer border-none">Save Care & Handover Notes</button>
+            </div>
           )}
-          
-    </div>
-        
-    </div>
+
+          {handoverHistory.length > 0 && (
+            <div className="pt-3 border-t border-gray-100 space-y-2">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent Shift Handovers</p>
+              {handoverHistory.slice(0, 2).map((h: any) => (
+                <div key={h.id} className="bg-white/80 p-3 rounded-2xl border border-gray-100 text-xs text-gray-700">
+                  <span className="font-black text-primary">{h.caregiverName} → {h.recipientName}: </span>
+                  <span>{h.summary}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
           </motion.div>
         )}
 
         {/* --- PERSONAL DIARY & THOUGHTS TAB --- */}
-        {activeTab === 'diary' && userRole === 'nanny' ? (
-          <motion.div
-            key="diary-nanny-restricted"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-card p-8 sm:p-10 rounded-[40px] border border-white shadow-xl shadow-card/20 text-center max-w-xl mx-auto space-y-6"
-          >
-            <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary flex items-center justify-center text-3xl mx-auto shadow-inner">
-              🔒
-            </div>
-            <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-                Village Privacy Protection
-              </span>
-              <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-800">
-                Family Diary & Biographer Restricted
-              </h2>
-              <p className="text-xs text-gray-500 leading-relaxed">
-                Personal family reflections, emotional notes, and AI Keepsake Storybooks are protected and reserved for the primary family circle.
-              </p>
-            </div>
-
-            <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100 text-left space-y-2.5 text-xs text-gray-600">
-              <p className="font-bold text-gray-800 flex items-center gap-1.5">
-                <span>🧸</span>
-                <span>Active Caregiver Privileges:</span>
-              </p>
-              <ul className="space-y-1.5 pl-4 text-[11px] list-disc list-outside text-gray-600">
-                <li>Log bottle feeds, breast pumps, and solid meals in <strong>Daily Logs</strong></li>
-                <li>Record diaper changes, wetness checks, and diaper photo AI analysis</li>
-                <li>Track daily fluid & hydration milestones in real time</li>
-                <li>Set alarms and track scheduled medications and nap timers</li>
-              </ul>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <button
-                onClick={() => setActiveTab('daily')}
-                className="px-6 py-3.5 bg-primary text-white rounded-full text-xs font-black uppercase tracking-wider shadow-md hover:bg-primary/90 transition-all cursor-pointer border-none"
-              >
-                Open Daily Logs 🍼
-              </button>
-              {setUserRole && (
-                <button
-                  onClick={() => setUserRole('admin')}
-                  className="px-5 py-3.5 bg-white border border-gray-200 text-gray-600 hover:text-gray-900 rounded-full text-xs font-bold transition-all cursor-pointer"
-                >
-                  Switch to Admin (Parent) 👑
-                </button>
-              )}
-            </div>
-          </motion.div>
-        ) : activeTab === 'diary' && (
+        {activeTab === 'diary' && (
           <motion.div
             key="diary-view"
             initial={{ opacity: 0, y: 10 }}
@@ -2005,7 +2197,28 @@ export const Journal = ({  isPremium,
             className="flex flex-col gap-6"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {isPremium ? (
+              {userRole === 'nanny' ? (
+                <div className="bg-card p-6 sm:p-7 rounded-[36px] border border-white shadow-xl shadow-card/15 space-y-3 text-left flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-3xl">🧸</span>
+                      <div>
+                        <h3 className="font-serif font-black text-gray-800 text-base">Caregiver Diary & Voice Blessings</h3>
+                        <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                          Village Contributor Active
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      As a caregiver or nanny, you can write care notes and record voice blessings or lullabies for the baby. Illustrated AI Keepsake Storybook creation is reserved for primary family members.
+                    </p>
+                  </div>
+                  <div className="p-3 bg-primary/5 rounded-2xl border border-primary/10 text-[11px] text-gray-700 font-medium flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span>Diary Writing & Audio Recording Enabled • Family Reflections Shielded</span>
+                  </div>
+                </div>
+              ) : isPremium ? (
                 <StorybookGenerator 
                   diaryEntries={observationLogs.filter(o => o.type === 'diary' || o.mood || o.notes || o.reflection)} 
                   babyName={babyName}
@@ -2120,23 +2333,46 @@ export const Journal = ({  isPremium,
                   </h3>
                   <p className="text-xs text-gray-400 font-medium">
                     Saving for {selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                    {todayDiaryEntries.length > 0 && ` • (${todayDiaryEntries.length} ${todayDiaryEntries.length === 1 ? 'entry' : 'entries'} logged today)`}
                   </p>
-                  
-    </div>
-                {editingDiaryId && (
-                  <button 
-                    onClick={() => {
-                      setEditingDiaryId(null);
-                      setDiaryTitle('');
-                      setDiaryNotes('');
-                    }}
-                    className="text-xs text-gray-400 hover:text-gray-600 font-bold underline cursor-pointer border-none bg-transparent"
-                  >
-                    Cancel Edit
-                  </button>
-                )}
-                
-    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {todayDiaryEntries.length > 0 && !editingDiaryId && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setEditingDiaryId(null);
+                        setDiaryTitle('');
+                        setDiaryNotes('');
+                        setDiaryReflection('');
+                        setDiaryAudioDataUrl('');
+                        setIsPublicDiaryEntry(false);
+                        setToastMsg('Ready for new entry! ✍️');
+                        setTimeout(() => setToastMsg(''), 2000);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-black uppercase tracking-wider border border-primary/20 cursor-pointer flex items-center gap-1 shrink-0"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>+ Write Another Entry</span>
+                    </button>
+                  )}
+                  {editingDiaryId && (
+                    <button 
+                      onClick={() => {
+                        setEditingDiaryId(null);
+                        setDiaryTitle('');
+                        setDiaryNotes('');
+                        setDiaryReflection('');
+                        setDiaryAudioDataUrl('');
+                        setIsPublicDiaryEntry(false);
+                      }}
+                      className="text-xs text-gray-400 hover:text-gray-600 font-bold underline cursor-pointer border-none bg-transparent"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+              </div>
 
               {/* Mood Selector Pills */}
               <div className="space-y-2">
@@ -2242,18 +2478,74 @@ export const Journal = ({  isPremium,
                 </p>
               </div>
 
+              {/* 3. Voice Blessing or Lullaby Recorder (Open to Anybody: Mom, Dad, Grandma, Caregiver, Nanny) */}
+              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-900 block flex items-center gap-1.5">
+                    <Mic className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Record Voice Blessing or Lullaby</span>
+                  </span>
+                  <p className="text-[11px] text-amber-800">
+                    {diaryAudioDataUrl
+                      ? '✓ Voice blessing attached! Ready to save to baby’s diary and play via Activity Monitor speaker.'
+                      : 'Anyone (Mom, Dad, Grandma, Caregiver, or Nanny) can record a blessing, song, or comforting lullaby.'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {diaryAudioDataUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setDiaryAudioDataUrl('')}
+                      className="px-3 py-2 rounded-xl bg-white text-gray-600 text-[10px] font-bold border border-gray-200 cursor-pointer hover:bg-gray-50"
+                    >
+                      Clear Audio
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={toggleRecordBlessing}
+                    className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 cursor-pointer border-none transition-all ${
+                      isRecordingBlessing
+                        ? 'bg-rose-600 text-white animate-pulse'
+                        : 'bg-slate-900 text-amber-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    {isRecordingBlessing ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                    <span>{isRecordingBlessing ? 'Stop Recording' : diaryAudioDataUrl ? 'Re-Record Blessing' : 'Record Voice Blessing'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Village Caregiver Sharing Toggle (For Parents/Family) */}
+              {userRole !== 'nanny' && (
+                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200/70 flex items-center justify-between gap-2">
+                  <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isPublicDiaryEntry}
+                      onChange={e => setIsPublicDiaryEntry(e.target.checked)}
+                      className="w-4 h-4 rounded text-primary focus:ring-primary border-gray-300 cursor-pointer"
+                    />
+                    <span className="font-bold">Share with Nannies & Caregivers (Public to Village)</span>
+                  </label>
+                  <span className="text-[10px] text-gray-500 italic">
+                    {isPublicDiaryEntry ? 'Visible to helpers' : 'Private to family'}
+                  </span>
+                </div>
+              )}
+
               {/* Save Button */}
               <button
                 onClick={handleSaveDiaryEntry}
-                disabled={!diaryNotes.trim() && !diaryReflection.trim()}
+                disabled={!diaryNotes.trim() && !diaryReflection.trim() && !diaryAudioDataUrl}
                 className={`w-full py-4 rounded-full text-white font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer border-none ${
-                  (diaryNotes.trim() || diaryReflection.trim())
+                  (diaryNotes.trim() || diaryReflection.trim() || diaryAudioDataUrl)
                     ? 'bg-primary hover:bg-primary/90 shadow-primary/25 active:scale-98'
                     : 'bg-gray-300 cursor-not-allowed shadow-none'
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
-                <span>{editingDiaryId ? 'Update Journal Entry' : `Save Entry for ${selectedDateLabel}`}</span>
+                <span>{editingDiaryId ? 'Update Diary Entry' : `Save Entry for ${selectedDateLabel}`}</span>
               </button>
               
     </div>
@@ -2338,13 +2630,25 @@ export const Journal = ({  isPremium,
                             <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-lg bg-white text-gray-600 uppercase tracking-wider border border-gray-100">
                               {entry.category || 'Thought'}
                             </span>
-                            
-    </div>
+                            {userRole !== 'nanny' && (
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                                entry.isPublic
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-gray-100 text-gray-500'
+                              }`}>
+                                {entry.isPublic ? '🌐 Shared with Caregivers' : '🔒 Private to Family'}
+                              </span>
+                            )}
+                            {entry.authorName && (
+                              <span className="text-[9px] font-medium text-gray-400">
+                                by {entry.authorName}
+                              </span>
+                            )}
+                          </div>
                           <h4 className="text-base font-serif font-black text-gray-800 pt-1">
                             {entry.title || 'Daily Reflection'}
                           </h4>
-                          
-    </div>
+                        </div>
                         <div className="text-right">
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                             {new Date(entry.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -2352,39 +2656,87 @@ export const Journal = ({  isPremium,
                           {entry.timestamp && (
                             <p className="text-[10px] font-bold text-gray-400">{entry.timestamp}</p>
                           )}
-                          
-    </div>
-                        
-    </div>
-
-                      {/* Separate Notes & Care Observations vs Diary Reflection */}
-                      <div className="space-y-3">
-                        {entry.notes && (
-                          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 block mb-1">
-                              📝 Notes & Care Observations
-                            </span>
-                            <p className="text-xs font-sans text-slate-800 leading-relaxed whitespace-pre-wrap">
-                              {entry.notes}
-                            </p>
-                          </div>
-                        )}
-
-                        {entry.reflection && (
-                          <div className="bg-rose-50/70 p-4 rounded-2xl border border-rose-100/80">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-rose-600 block mb-1">
-                              💖 Parent Diary Reflection
-                            </span>
-                            <p className="text-xs font-serif italic text-gray-800 leading-relaxed whitespace-pre-wrap">
-                              "{entry.reflection}"
-                            </p>
-                          </div>
-                        )}
+                        </div>
                       </div>
+
+                      {/* Nanny Access Control: Nannies can only read entries/audio if made public or authored by themselves */}
+                      {userRole === 'nanny' && !entry.isPublic && entry.authorRole !== 'nanny' ? (
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/70 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-slate-200 text-slate-600 flex items-center justify-center text-sm shrink-0">
+                            🔒
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-700">Private Family Note</p>
+                            <p className="text-[10px] text-slate-500 leading-normal">
+                              This reflection was recorded by the primary family circle. Personal notes and voice audio are confidential and shielded unless made public to caregivers.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {entry.notes && (
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 block mb-1">
+                                📝 Notes & Care Observations
+                              </span>
+                              <p className="text-xs font-sans text-slate-800 leading-relaxed whitespace-pre-wrap">
+                                {entry.notes}
+                              </p>
+                            </div>
+                          )}
+
+                          {entry.reflection && (
+                            <div className="bg-rose-50/70 p-4 rounded-2xl border border-rose-100/80">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-rose-600 block mb-1">
+                                💖 Parent Diary Reflection
+                              </span>
+                              <p className="text-xs font-serif italic text-gray-800 leading-relaxed whitespace-pre-wrap">
+                                "{entry.reflection}"
+                              </p>
+                            </div>
+                          )}
+
+                          {entry.audioDataUrl && (
+                            <div className="bg-amber-50 p-3.5 rounded-2xl border border-amber-200 flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">🎙️</span>
+                                <div>
+                                  <p className="text-xs font-bold text-gray-900">Recorded Voice Blessing / Lullaby</p>
+                                  <p className="text-[10px] text-amber-800">
+                                    {entry.authorName ? `Recorded by ${entry.authorName}` : 'Available in Activity Monitor Speaker'}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (playingEntryAudioId === entry.id) {
+                                    diaryAudioPlayerRef.current?.pause();
+                                    setPlayingEntryAudioId(null);
+                                    return;
+                                  }
+                                  if (diaryAudioPlayerRef.current) {
+                                    diaryAudioPlayerRef.current.pause();
+                                  }
+                                  const audio = new Audio(entry.audioDataUrl);
+                                  diaryAudioPlayerRef.current = audio;
+                                  setPlayingEntryAudioId(entry.id);
+                                  audio.onended = () => setPlayingEntryAudioId(null);
+                                  audio.play().catch(() => setPlayingEntryAudioId(null));
+                                }}
+                                className="px-3.5 py-2 rounded-xl bg-slate-900 text-amber-300 text-xs font-bold border-none cursor-pointer flex items-center gap-1.5"
+                              >
+                                <Volume2 className="w-3.5 h-3.5" />
+                                <span>{playingEntryAudioId === entry.id ? 'Stop' : 'Play Blessing'}</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <div className="flex justify-between items-center pt-1 border-t border-gray-100">
                         <button
-                          onClick={() => copyToClipboard(`"${entry.title || 'Daily Reflection'}" - ${entry.notes}`)}
+                          onClick={() => copyToClipboard(`"${entry.title || 'Daily Reflection'}" - ${entry.notes || ''}`)}
                           className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors cursor-pointer border-none bg-transparent"
                         >
                           <Copy className="w-3.5 h-3.5" />

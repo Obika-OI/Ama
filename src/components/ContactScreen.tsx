@@ -332,21 +332,16 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({ onBack, onNavigate
             </p>
           </div>
 
-          <div className="divide-y divide-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
             {faqs.map((faq, idx) => (
-              <div key={idx} className="py-4 space-y-2 text-left">
-                <button
-                  onClick={() => toggleFaq(idx)}
-                  className="w-full flex items-center justify-between text-left font-bold text-slate-800 text-sm hover:text-slate-900 bg-transparent border-none cursor-pointer py-1"
-                >
+              <div key={idx} className="p-5 rounded-2xl bg-white border border-gray-100 shadow-2xs space-y-2">
+                <h3 className="font-serif font-black text-slate-900 text-sm flex items-start gap-2">
+                  <span className="text-primary font-bold text-xs uppercase px-2 py-0.5 rounded-md bg-primary/10 shrink-0 mt-0.5">Q</span>
                   <span>{faq.q}</span>
-                  {openFaq === idx ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                </button>
-                {openFaq === idx && (
-                  <p className="text-slate-600 text-xs sm:text-sm leading-relaxed bg-slate-50 p-4 rounded-2xl border border-gray-50 mt-1">
-                    {faq.a}
-                  </p>
-                )}
+                </h3>
+                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed pl-6 border-l-2 border-primary/20 ml-1">
+                  {faq.a}
+                </p>
               </div>
             ))}
           </div>
