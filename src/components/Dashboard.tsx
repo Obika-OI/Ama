@@ -920,13 +920,13 @@ export const Dashboard = ({
                   🌍
                 </div>
                 <span className="text-[8px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider border border-primary/20">
-                  A–Z & Multi-Filter
+                  A-Z & Multi-Filter
                 </span>
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-serif font-black text-gray-800">Global Baby Name Database</h3>
                 <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                  Search names by meaning or significance, contribute a name, or filter by Gender, Origin, Language, Starting/Ending letter, and A–Z.
+                  Search names by meaning or significance, contribute a name, or filter by Gender, Origin, Language, Starting/Ending letter, and A-Z.
                 </p>
               </div>
             </div>

@@ -1561,7 +1561,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 Care & Family Service Marketplace
               </h2>
               <p className="text-xs sm:text-sm text-sky-100/90 leading-relaxed font-normal">
-                An open peer-to-peer and professional network connecting families with help across all childcare phases — from daily caregivers, night sitters, and doulas to financial planners, trust & estate advisors, career coaches, and postpartum mental health specialists. Anybody can register as a provider or post a care request!
+                An open peer-to-peer and professional network connecting families with help across all childcare phases (from daily caregivers, night sitters, and doulas to financial planners, trust & estate advisors, career coaches, and postpartum mental health specialists). Anybody can register as a provider or post a care request!
               </p>
             </div>
             <div className="absolute right-4 bottom-2 text-7xl opacity-10 select-none pointer-events-none">

@@ -142,7 +142,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
           <div className="space-y-4">
             <h2 className="text-2xl sm:text-3xl font-serif font-black text-gray-900">Why Ama Baby is the Logical Choice for Modern Families</h2>
             <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
-              In a digital world crowded with applications designed to harvest user data and promote consumerism, Ama Baby stands as a fortress of privacy and resourcefulness. We believe that parenting is a fundamental human experience that shouldn't be gated by expensive subscriptions or exploited by advertising networks. Our philosophy is rooted in three core pillars: **Sovereignty, Simplicity, and Safety.**
+              In a digital world crowded with applications designed to harvest user data and promote consumerism, Ama Baby stands as a fortress of privacy and resourcefulness. We believe that parenting is a fundamental human experience that shouldn't be gated by expensive subscriptions or exploited by advertising networks. Our philosophy is rooted in three core pillars: <span className="font-bold text-gray-900">Sovereignty, Simplicity, and Safety.</span>
             </p>
           </div>
 
@@ -156,7 +156,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
             <div className="space-y-3">
               <h3 className="font-black text-primary uppercase tracking-wider text-xs">Local Resourcefulness</h3>
               <p className="text-xs text-gray-600 leading-relaxed">
-                We celebrate the wisdom of local communities. Our guides focus on using available resources—like roasted grains for Tom Brown cereal or traditional cloth for safe swaddling—rather than pushing imported products. This makes high-quality baby care accessible to everyone, regardless of their budget.
+                We celebrate the wisdom of local communities. Our guides focus on using available resources, like roasted grains for Tom Brown cereal or traditional cloth for safe swaddling, rather than pushing imported products. This makes high-quality baby care accessible to everyone, regardless of their budget.
               </p>
             </div>
           </div>
@@ -180,7 +180,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
               Innovative Features For Real-World Parenting
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              We have structured our tracking utilities into four massive, highly comprehensive resource blocks. Each card outlines a core, logical dimension of Ama Baby, designed to empower sleep-deprived mothers with actionable, offline information.
+              We have structured our tracking utilities into four massive, highly comprehensive resource blocks. Each card outlines a core, logical dimension of Ama Baby, designed to support sleep-deprived mothers with actionable, offline information.
             </p>
           </div>
 
@@ -251,7 +251,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
                 </div>
                 <h3 className="font-serif font-black text-lg text-gray-900">Private Device-Only Sandbox Protection</h3>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Your family's privacy and data sovereignty are our absolute priority. Unlike commercial tracking applications that exploit your child's milestones, weight charts, and diaper logs for behavioral ad targeting, Ama is engineered around a strict local-first architecture. All records:including names, feeding times, growth percentiles, and diaper consistency notes:are saved exclusively in your browser's secure local sandbox.
+                  Your family's privacy and data sovereignty are our absolute priority. Unlike commercial tracking applications that exploit your child's milestones, weight charts, and diaper logs for behavioral ad targeting, Ama is engineered around a strict local-first architecture. All records (including names, feeding times, growth percentiles, and diaper consistency notes) are saved exclusively in your browser's secure local sandbox.
                 </p>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                   You do not need to register an account, sign up with an email, or connect social media profiles to start logging your baby's day. If you choose to coordinate care with your husband, relative, or nanny, our secure sync feature generates encrypted tokens that let you merge logs safely across shared family devices. Nanny profiles can be set with restricted permissions, protecting your private diary entries and settings from secondary users.
@@ -295,13 +295,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
               </div>
               <h3 className="font-serif font-black text-lg text-gray-900">Daily Parenting Quests</h3>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Ama turns daily developmental stimulation into a simple, logical game for parents. We provide three easy play quests every single day, specifically curated for your baby's age group. These activities do not require any fancy plastic toys, premium playkits, or paid nursery setups. Instead, they encourage you to explore your environment and use ordinary, safe household resources:like clean wooden spoons, soft cloth scraps, clean water cups, and plastic bowls:to stimulate your child's senses.
+                Ama turns daily developmental stimulation into a simple, logical activity for parents. We provide three easy play quests every single day, specifically curated for your baby's age group. These activities do not require any fancy plastic toys, premium playkits, or paid nursery setups. Instead, they encourage you to explore your environment and use ordinary, safe household resources (such as clean wooden spoons, soft cloth scraps, clean water cups, and plastic bowls) to stimulate your child's senses.
               </p>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                These five-minute brain games are engineered to build muscle strength, encourage early communication, and train visual coordination. For instance, during morning tummy time, placing a safe, unbreakable mirror or a bowl of cool water just out of baby's reach motivates them to lift their chest, building crucial back and neck strength. Copying your baby's coos and babbles during diaper changes acts as a vocal echo game, training their developing brain to process conversational turn-taking and build language skills. 
+                These five-minute brain games are engineered to build muscle strength, encourage early communication, and train visual coordination. For instance, during morning tummy time, placing a safe, unbreakable mirror or a bowl of cool water just out of baby's reach motivates them to lift their chest, building essential back and neck strength. Copying your baby's coos and babbles during diaper changes acts as a vocal echo game, training their developing brain to process conversational turn-taking and build language skills. 
               </p>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                As you play these simple games with your child, you can tap the quest complete button inside your tracker. This adds points to your parenting journal, helping you form a consistent, loving habit of interactive play. By showing you how to turn daily household items into powerful developmental tools, Ama makes nurturing early intelligence completely accessible, fun, and affordable.
+                As you play these simple games with your child, you can tap the quest complete button inside your tracker. This adds points to your parenting journal, helping you form a consistent, loving habit of interactive play. By showing you how to turn daily household items into practical developmental tools, Ama makes nurturing early intelligence completely accessible, fun, and affordable.
               </p>
             </div>
 
@@ -339,7 +339,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
               </div>
               <h3 className="font-serif font-black text-lg text-gray-900">Storytime Reader Log</h3>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Reading to your infant is the single most powerful way to build their early vocabulary, train their attention, and foster strong bonding within the family. Many parents believe they need to purchase expensive, imported illustrated storybooks or nursery rhyme packages to stimulate their baby's mind. Ama encourages resourcefulness and creativity. You do not need a massive library to start reading to your child; you can read simple public pamphlets, local story sheets, or even describe the objects in your natural environment.
+                Reading to your infant is the single most effective way to build their early vocabulary, train their attention, and create strong bonding within the family. Many parents believe they need to purchase expensive, imported illustrated storybooks or nursery rhyme packages to stimulate their baby's mind. Ama encourages resourcefulness and creativity. You do not need a massive library to start reading to your child; you can read simple public pamphlets, local story sheets, or even describe the objects in your natural environment.
               </p>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                 Our storytime reader log helps you record each session with a simple, friendly tap. You can write down the simple stories you read, specify how many minutes you spent reading, and note down your baby’s reactions. Did they stare with curiosity, laugh at the funny voices, or gently drift off to sleep? Documenting these moments helps sleep-deprived mothers build a logical, consistent daily reading habit that accelerates language development.
@@ -361,13 +361,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
               </div>
               <h3 className="font-serif font-black text-lg text-gray-900">Daily Streak Habit Flame</h3>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                When you are raising an infant under demanding economic conditions, maintaining a structured schedule is crucial to reducing stress and ensuring the baby's health markers are checked consistently. However, exhaustion can easily cause parents to forget daily checks. Ama solves this by building consistency into your routine with our intuitive, helpful, and logical daily streak habit flame.
+                When you are raising an infant under demanding economic conditions, maintaining a structured schedule is key for reducing stress and ensuring the baby's health markers are checked consistently. However, exhaustion can easily cause parents to forget daily checks. Ama solves this by building consistency into your routine with our intuitive, helpful, and logical daily streak habit flame.
               </p>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                By logging at least one event every single day:whether it's starting a quick nursing timer, writing down a diaper change, checking off a daily play quest, or adding a weight number:you keep your habit flame active on your dashboard. This visual habit flame acts as a gentle, non-stressful prompt that encourages mothers to stay engaged with their infant's daily care patterns. 
+                By logging at least one event every single day, whether it's starting a quick nursing timer, writing down a diaper change, checking off a daily play quest, or adding a weight number, you keep your habit flame active on your dashboard. This visual habit flame acts as a gentle, non-stressful prompt that encourages mothers to stay engaged with their infant's daily care patterns. 
               </p>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Keeping your daily streak active rewards you with free quest rerolls and unlocks special custom milestones in your progress center. Over time, this consistent logging helps sleep-deprived mothers spot positive changes in their baby's routines:such as more predictable sleeping windows or fewer diaper rashes. This visual feedback reinforces parenting confidence, helping you manage infant wellness logically, resourcefully, and with absolute peace of mind.
+                Keeping your daily streak active rewards you with free quest rerolls and reveals special custom milestones in your progress center. Over time, this consistent logging helps sleep-deprived mothers spot positive changes in their baby's routines, such as more predictable sleeping windows or fewer diaper rashes. This visual feedback reinforces parenting confidence, helping you manage infant wellness logically, resourcefully, and with absolute peace of mind.
               </p>
             </div>
 

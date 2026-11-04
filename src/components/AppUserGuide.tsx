@@ -175,7 +175,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       tips: [
         'Frequency Matching: The software measures the pitch, rhythm, and intensity of the sound.',
         'Need Prediction: It compares audio data against common infant sound reflexes (such as hunger or burping cues).',
-        'Important Notice: Educational Support Only — This tool is not a medical device and provides supportive parenting guidance.',
+        'Important Notice: Educational Support Only: This tool is not a medical device and provides supportive parenting guidance.',
         'Intuition First: Environmental noise may affect acoustic readings; always prioritize parental instincts and consult healthcare providers for illness.'
       ],
       faqs: [

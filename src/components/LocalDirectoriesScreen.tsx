@@ -971,7 +971,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
                     {isOfflineDirectoryActive ? 'Verified Maternal & Infant Care Directory' : 'Gemini Google Maps Grounding'}
                   </span>
                   <h2 className="text-lg font-serif font-black text-gray-900">
-                    Local {currentCatMeta.label} Guide — {currentLoc.name}
+                    Local {currentCatMeta.label} Guide - {currentLoc.name}
                   </h2>
                 </div>
               </div>

@@ -7,6 +7,7 @@ import {
   ChevronRight, Compass, Heart, Paperclip, FileText, Video
 } from 'lucide-react';
 import { OgooAvatar } from './OgooAvatar';
+import ReactMarkdown from 'react-markdown';
 
 interface VoiceAssistantProps {
   babyName?: string;
@@ -957,7 +958,13 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                       ) : null}
 
                       {/* Message Text */}
-                      <p className="whitespace-pre-line leading-relaxed">{msg.text}</p>
+                      {msg.sender === 'assistant' ? (
+                        <div className="prose prose-xs text-gray-800 leading-relaxed break-words [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-0.5 [&_strong]:font-bold [&_h3]:font-bold [&_h3]:text-xs">
+                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-line leading-relaxed">{msg.text}</p>
+                      )}
 
                       {/* Speak Message Button for Assistant Messages */}
                       {msg.sender === 'assistant' && (

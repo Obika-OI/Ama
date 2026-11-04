@@ -245,7 +245,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
           caregiverName: activate ? (activeShift?.caregiverName || 'On-Duty Caregiver') : (parentName || 'Mom'),
           caregiverRole: activate ? 'Grandma' : 'Mom',
           focusNote: activate
-            ? '4-Hour Uninterrupted REM Sleep Window for Mom — Baby cry & care alerts routed to On-Duty Caregiver'
+            ? '4-Hour Uninterrupted REM Sleep Window for Mom - Baby cry & care alerts routed to On-Duty Caregiver'
             : 'Maternal rest window concluded • Returned to active monitoring'
         })
       });
@@ -363,7 +363,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
           <div className="flex items-center gap-2 text-sky-700">
             <AlertTriangle className="w-5 h-5 shrink-0" />
             <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider">
-              Postpartum Wellness Red Flags – Contact Your Care Provider
+              Postpartum Wellness Red Flags: Contact Your Care Provider
             </h3>
           </div>
           <p className="text-xs text-gray-600 leading-relaxed">
@@ -639,7 +639,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
                     Nourishment for Tissue Repair & Milk Synthesis
                   </h3>
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    Postpartum dietary needs include approximately 450–500 additional daily calories for lactation, coupled with elevated micronutrients (iron, zinc, choline, iodine, and omega-3 DHA). Select any recipe below for step-by-step preparation.
+                    Postpartum dietary needs include approximately 450 to 500 additional daily calories for lactation, coupled with elevated micronutrients (iron, zinc, choline, iodine, and omega-3 DHA). Select any recipe below for step-by-step preparation.
                   </p>
                 </div>
 

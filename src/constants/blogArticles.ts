@@ -1340,7 +1340,7 @@ Simply open the Ama portal and set up your baby\'s profile with their name and b
 
 To keep your family synchronized, you do not need to purchase expensive multi-user plans. Ama offers a secure, free partner sync feature. 
 
-Simply open the Village menu in settings, generate an encrypted sync link, and share it with your husband, nanny, or relative. When they open the link on their device, their local sandbox will logically merge with yours, allowing your household to coordinate diaper updates, paracetamol fever doses, and Tom Brown feeding logs seamlessly, without spending money on premium subscriptions or data bundles.
+Simply open the Village menu in settings, generate an encrypted sync link, and share it with your husband, nanny, or relative. When they open the link on their device, their local sandbox will logically merge with yours, allowing your household to coordinate diaper updates, paracetamol fever doses, and Tom Brown feeding logs without friction, without spending money on premium subscriptions or data bundles.
     `,
     faq: [
       {
@@ -1383,7 +1383,7 @@ Ama Baby stands out as the most innovative and cautious solution for shared hous
 
 All baby logs, feeding histories, diaper updates, and medication schedules are saved directly inside the device\'s local browser sandbox. This means the app works fully offline without using a single kilobyte of mobile data. 
 
-For families sharing a phone, Ama lets you sync logs seamlessly via offline-compatible encrypted QR codes or simple links, allowing parents and caregivers to stay coordinated without paying premium fees or register personal email accounts.
+For families sharing a phone, Ama lets you sync logs smoothly via offline-compatible encrypted QR codes or simple links, allowing parents and caregivers to stay coordinated without paying premium fees or register personal email accounts.
 
 ## 2. Paper Diaries and Clinic Cards: The Traditional Standard
 

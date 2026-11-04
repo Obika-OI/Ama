@@ -163,7 +163,7 @@ export const ActivityTracker = ({
           caregiverName: activate ? 'Grandma / On-Duty Caregiver' : resolvedCaregiverName,
           caregiverRole: activate ? 'Grandma' : resolvedCaregiverRole,
           focusNote: activate
-            ? '4-Hour Uninterrupted REM Sleep Window for Mom — Alerts Routed to Grandma/Caregiver'
+            ? '4-Hour Uninterrupted REM Sleep Window for Mom - Alerts Routed to Grandma/Caregiver'
             : `Active monitoring by signed-in account (${resolvedCaregiverName})`
         })
       });
@@ -286,11 +286,11 @@ export const ActivityTracker = ({
       if (data && data.insight) {
         setSleepInsight(data.insight);
       } else {
-        setSleepInsight("• **Nap Duration**: Regular nap tracking helps pinpoint wake windows.\n• **Sweet Spot**: Schedule naps 1.5-2 hours post-wake.\n• **Soothing Tip**: Maintain quiet, dim lighting before naps.");
+        setSleepInsight("• Nap Duration: Regular nap tracking helps pinpoint wake windows.\n• Sweet Spot: Schedule naps 1.5-2 hours post-wake.\n• Soothing Tip: Maintain quiet, dim lighting before naps.");
       }
     } catch (e) {
       console.error("AI Insight Error:", e);
-      setSleepInsight("• **Nap Duration**: Regular nap tracking helps pinpoint wake windows.\n• **Sweet Spot**: Schedule naps 1.5-2 hours post-wake.\n• **Soothing Tip**: Maintain quiet, dim lighting before naps.");
+      setSleepInsight("• Nap Duration: Regular nap tracking helps pinpoint wake windows.\n• Sweet Spot: Schedule naps 1.5-2 hours post-wake.\n• Soothing Tip: Maintain quiet, dim lighting before naps.");
     } finally {
       setIsGeneratingInsight(false);
     }

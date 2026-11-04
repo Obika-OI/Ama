@@ -437,7 +437,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
               { 
                 key: 'back', 
                 title: 'Always on Back', 
-                desc: 'Place your baby on their back for every sleep period—both naps and nighttime. Healthy babies who sleep on their backs are not at increased risk of choking. Once your baby can roll from back to stomach and stomach to back on their own, you can leave them in the position they choose.' 
+                desc: 'Place your baby on their back for every sleep period (both naps and nighttime). Healthy babies who sleep on their backs are not at increased risk of choking. Once your baby can roll from back to stomach and stomach to back on their own, you can leave them in the position they choose.' 
               },
               { 
                 key: 'alone', 
@@ -511,7 +511,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
 
           <div className="space-y-4 text-sm text-gray-600 leading-relaxed font-medium">
             <p>
-              As your baby reaches new milestones like rolling, sitting up, and crawling, the home environment needs to evolve immediately. Perform a "crawl-level" audit of your home periodically—get down on your hands and knees to spot hazards you might miss from a standing height.
+              As your baby reaches new milestones like rolling, sitting up, and crawling, the home environment needs to evolve immediately. Perform a "crawl-level" audit of your home periodically: get down on your hands and knees to spot hazards you might miss from a standing height.
             </p>
           </div>
 
@@ -535,7 +535,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
               { 
                 key: 'waterSupervised', 
                 title: 'Water & Bath Vigilance', 
-                desc: 'Infants can drown in as little as 2 inches of water. Never leave a baby unattended in a bath, near buckets of water, toilets, or pools, even for a few seconds. Always keep "touch supervision"—meaning you are within arm\'s reach with a hand on the baby during bath time.' 
+                desc: 'Infants can drown in as little as 2 inches of water. Never leave a baby unattended in a bath, near buckets of water, toilets, or pools, even for a few seconds. Always keep "touch supervision," meaning you are within arm\'s reach with a hand on the baby during bath time.' 
               },
               { 
                 key: 'medsLocked', 

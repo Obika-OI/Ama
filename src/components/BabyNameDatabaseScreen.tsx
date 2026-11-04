@@ -43,7 +43,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
   initialSearchQuery = ''
 }) => {
   useSEO({
-    title: 'Global Baby Name Database – Search & Filter Names by Meaning, Origin & Language | Ama Baby',
+    title: 'Global Baby Name Database - Search & Filter Names by Meaning, Origin & Language | Ama Baby',
     description: 'Explore our global baby name database. Search baby names by name, meaning, or cultural significance, contribute names, or filter by Gender, Origin, Language, Starting With, Ending With, and A-Z.',
     canonicalUrl: 'https://amababycare.com/#baby-names'
   });
@@ -454,14 +454,14 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                   Global Baby Name Encyclopedia
                 </span>
                 <span className="text-[10px] font-bold text-gray-500 bg-white px-2.5 py-0.5 rounded-full border border-gray-100">
-                  {namesList.length} Verified Names • A–Z
+                  {namesList.length} Verified Names • A-Z
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-serif font-black text-gray-900 mt-1">
                 Global Baby Name Database
               </h1>
               <p className="text-xs text-gray-600 font-medium mt-0.5">
-                Search names by meaning or significance, contribute a cultural name, or filter by Gender, Origin, Language, Starting/Ending letters & A–Z.
+                Search names by meaning or significance, contribute a cultural name, or filter by Gender, Origin, Language, Starting/Ending letters & A-Z.
               </p>
             </div>
           </div>
@@ -699,7 +699,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
               {/* 7. A-Z Sort Order */}
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1">
-                  Order (A–Z)
+                  Order (A-Z)
                 </label>
                 <select
                   value={sortOrder}
@@ -720,7 +720,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
         <div className="pt-2 border-t border-gray-100 space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-              Browse Alphabetically (A–Z)
+              Browse Alphabetically (A-Z)
             </span>
             <span className="text-[11px] font-bold text-gray-600">
               Showing <strong className="text-primary">{filteredNames.length}</strong> {filteredNames.length === 1 ? 'name' : 'names'}
@@ -735,7 +735,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                   : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
               }`}
             >
-              All A–Z
+              All A-Z
             </button>
             {ALPHABET.map(letter => {
               const isSelected = activeLetter === letter;
