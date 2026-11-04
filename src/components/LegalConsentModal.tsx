@@ -207,7 +207,7 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                     <section className="space-y-2">
                       <h4 className="font-bold text-gray-900 text-sm">1. Commitment to Privacy</h4>
                       <p>
-                        Ama Baby Care ("Ama", "we", "us") is dedicated to protecting the sensitive personal information of infants, parents, and caregivers. We operate under strict data minimization principles.
+                        Ama Baby ("Ama", "we", "us") is dedicated to protecting the sensitive personal information of infants, parents, and caregivers. We operate under strict data minimization principles.
                       </p>
                     </section>
 
@@ -248,7 +248,7 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                     <section className="space-y-2">
                       <h4 className="font-bold text-gray-900 text-sm">1. Acceptance of Terms</h4>
                       <p>
-                        By creating an account, accessing, or using the Ama Baby Care application, you agree to be bound by these Terms of Use.
+                        By creating an account, accessing, or using the Ama Baby application, you agree to be bound by these Terms of Use.
                       </p>
                     </section>
 
@@ -262,7 +262,7 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                     <section className="space-y-2">
                       <h4 className="font-bold text-gray-900 text-sm">3. Clinical Medical Disclaimer : AI Does Not Diagnose</h4>
                       <p>
-                        Ama Baby Care, including the <strong>Ogoo AI Care Assistant</strong>, Baby Cry Acoustic Analyzer, and meal planning tools, is designed solely for educational, organizational, comforting, and routine care tracking purposes.
+                        Ama Baby, including the <strong>Ogoo AI Care Assistant</strong>, Baby Cry Acoustic Analyzer, and meal planning tools, is designed solely for educational, organizational, comforting, and routine care tracking purposes.
                       </p>
                       <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 text-gray-800 font-medium">
                         <strong>Important:</strong> Ogoo AI and Ama tools are <strong>NOT medical devices and DO NOT diagnose any illness, medical condition, or health condition. No baby is diagnosed by the AI.</strong> Never disregard professional medical advice or delay seeking care because of information provided by this application.

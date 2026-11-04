@@ -22,7 +22,7 @@ export function useSEO({
   ogTitle,
   ogDescription,
   publishedTime,
-  author = 'Ama Baby Care',
+  author = 'Ama Baby',
   jsonLd
 }: SEOTagsOptions) {
   useEffect(() => {
@@ -60,7 +60,7 @@ export function useSEO({
 
     // 5. Open Graph - Specific Article Type Support
     const ogSiteNameMeta = getOrCreateMeta('property', 'og:site_name');
-    ogSiteNameMeta.setAttribute('content', 'Ama Baby Care');
+    ogSiteNameMeta.setAttribute('content', 'Ama Baby');
 
     const ogTypeMeta = getOrCreateMeta('property', 'og:type');
     ogTypeMeta.setAttribute('content', ogType);

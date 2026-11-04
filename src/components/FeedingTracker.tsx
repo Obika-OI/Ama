@@ -396,7 +396,7 @@ export const FeedingTracker = ({
               {/* Exclusive Nursing Timers Card */}
               <div className="bg-card p-6 rounded-[40px] shadow-sm border border-white space-y-6 text-left">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center text-2xl">🤱</div>
+                  <div className="w-12 h-12 bg-sky-100 rounded-2xl flex items-center justify-center text-2xl">🤱</div>
                   <div>
                     <h3 className="text-sm font-serif font-black text-gray-800">Breastfeeding Timers</h3>
                     <p className="text-[11px] text-gray-400 font-medium">Exclusive Left & Right session timers</p>
@@ -731,7 +731,7 @@ export const FeedingTracker = ({
                     timestamp: f.timestamp || 'Recorded',
                     date: f.date || 'Today',
                     icon: f.type === 'Bottle Feed' ? '🍼' : '🤱',
-                    iconBg: f.type === 'Bottle Feed' ? 'bg-primary/10 text-primary' : 'bg-pink-50 text-gray-700',
+                    iconBg: f.type === 'Bottle Feed' ? 'bg-primary/10 text-primary' : 'bg-sky-50 text-gray-700',
                     isDeletable: true
                   });
                 });
@@ -789,7 +789,7 @@ export const FeedingTracker = ({
                         {item.isDeletable && (
                           <button
                             onClick={() => handleDeleteFeedingLog(item.id)}
-                            className="w-7 h-7 rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-gray-700 flex items-center justify-center border-none cursor-pointer transition-colors"
+                            className="w-7 h-7 rounded-full bg-gray-50 hover:bg-sky-50 text-gray-400 hover:text-gray-700 flex items-center justify-center border-none cursor-pointer transition-colors"
                             title="Delete log"
                           >
                             ✕
@@ -846,7 +846,7 @@ export const FeedingTracker = ({
                   'Not Introduced': 'bg-white text-gray-500 border-gray-100',
                   'In Progress': 'bg-primary/5 text-primary border-primary/20',
                   'Cleared': 'bg-primary/10 text-primary border-primary/30',
-                  'Suspected Reaction': 'bg-pink-50 text-gray-800 border-pink-200'
+                  'Suspected Reaction': 'bg-sky-50 text-gray-800 border-sky-200'
                 }[allergen.status as string] || 'bg-white';
 
                 return (
@@ -860,7 +860,7 @@ export const FeedingTracker = ({
                       <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full ${
                         allergen.status === 'Cleared' ? 'bg-primary/10 text-primary' :
                         allergen.status === 'In Progress' ? 'bg-primary/15 text-primary' :
-                        allergen.status === 'Suspected Reaction' ? 'bg-pink-100 text-gray-800' : 'bg-gray-100 text-gray-500'
+                        allergen.status === 'Suspected Reaction' ? 'bg-sky-100 text-gray-800' : 'bg-gray-100 text-gray-500'
                       }`}>
                         {allergen.status === 'In Progress' ? `Day ${allergen.day}/3` : allergen.status}
                       </span>
@@ -922,7 +922,7 @@ export const FeedingTracker = ({
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                         selectedFood.color === 'green' ? 'bg-primary/10 text-primary border-primary/20' :
-                        selectedFood.color === 'amber' ? 'bg-gray-100 text-gray-700 border-gray-200' : 'bg-pink-100 text-gray-800 border-pink-200'
+                        selectedFood.color === 'amber' ? 'bg-gray-100 text-gray-700 border-gray-200' : 'bg-sky-100 text-gray-800 border-sky-200'
                       }`}>
                         {selectedFood.color === 'green' ? 'Safe to Serve' :
                          selectedFood.color === 'amber' ? 'Prepare with Caution' : 'Avoid Under 12m'}
@@ -939,7 +939,7 @@ export const FeedingTracker = ({
 
                   {/* Warning Callout block */}
                   <div className={`p-5 rounded-2xl text-xs font-semibold leading-relaxed border ${
-                    selectedFood.color === 'red' ? 'bg-pink-50 text-gray-800 border-pink-100' :
+                    selectedFood.color === 'red' ? 'bg-sky-50 text-gray-800 border-sky-100' :
                     selectedFood.color === 'amber' ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-primary/5 text-primary border-primary/10'
                   }`}>
                     {selectedFood.warning}
@@ -999,7 +999,7 @@ export const FeedingTracker = ({
                   {/* Safety Checklist section */}
                   <div className="bg-white p-6 rounded-3xl border border-gray-100 space-y-4">
                     <h3 className="text-md font-serif font-black text-gray-900 flex items-center gap-2">
-                      <Heart className="w-5 h-5 text-pink-500 fill-pink-500" />
+                      <Heart className="w-5 h-5 text-sky-500 fill-sky-500" />
                       <span>Important Loving Safety Checklist for Mothers</span>
                     </h3>
                     <ul className="space-y-2.5 text-xs text-gray-600 leading-relaxed">
@@ -1403,11 +1403,11 @@ export const FeedingTracker = ({
 
                 {/* Display linked allergic reaction meals */}
                 {loggedMeals.filter(m => m.allergyReaction).length > 0 && (
-                  <div className="bg-pink-50 p-3 rounded-2xl border border-pink-100 space-y-2">
+                  <div className="bg-sky-50 p-3 rounded-2xl border border-sky-100 space-y-2">
                     <p className="text-[9px] font-black text-gray-800 uppercase tracking-widest">Suspected Reaction Log History</p>
                     <div className="space-y-1.5 max-h-20 overflow-y-auto">
                       {loggedMeals.filter(m => m.allergyReaction).map((m, idx) => (
-                        <div key={idx} className="text-[10px] font-bold text-gray-700 bg-white/50 p-1.5 rounded border border-pink-100 flex justify-between">
+                        <div key={idx} className="text-[10px] font-bold text-gray-700 bg-white/50 p-1.5 rounded border border-sky-100 flex justify-between">
                           <span>{m.title}</span>
                           <span>{m.logTime || m.time}</span>
                         </div>

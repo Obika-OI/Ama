@@ -318,7 +318,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
   initialTab = 'hospitals'
 }) => {
   useSEO({
-    title: 'Local Healthcare, Hospital, Lactation & Baby Name Directories | Ama Baby Care',
+    title: 'Local Healthcare, Hospital, Lactation & Baby Name Directories | Ama Baby',
     description: 'Map-grounded AI searchable directory for local healthcare providers, maternity hospitals, lactation consultants, pediatric clinics, and our global baby name directory.',
     canonicalUrl: 'https://amababycare.com/#directories'
   });

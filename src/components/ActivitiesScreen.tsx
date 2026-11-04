@@ -307,7 +307,7 @@ export const ActivitiesScreen = ({
     </div>
               <div className="space-y-2 relative z-10">
                 <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden shadow-inner border border-solid border-white/10">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className="bg-[#ffd700] h-full rounded-full shadow-sm" />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className="bg-emerald-400 h-full rounded-full shadow-sm" />
                   
     </div>
                 <p className="text-[8px] font-black uppercase tracking-widest opacity-80 text-right">Next Lvl: {pointsToNextLevel} pts</p>
@@ -679,7 +679,7 @@ export const ActivitiesScreen = ({
                   <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#9ca3af' }} />
                   <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#9ca3af' }} />
                   <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }} />
-                  <Line yAxisId="left" type="monotone" dataKey="weight" stroke="#FFD6E8" strokeWidth={4} dot={{ r: 5, fill: '#FFD6E8', strokeWidth: 2, stroke: '#fff' }} name="Weight (kg)" />
+                  <Line yAxisId="left" type="monotone" dataKey="weight" stroke="#0ea5e9" strokeWidth={4} dot={{ r: 5, fill: '#0ea5e9', strokeWidth: 2, stroke: '#fff' }} name="Weight (kg)" />
                   <Line yAxisId="right" type="monotone" dataKey="height" stroke="#37b1f5" strokeWidth={3} dot={{ r: 4, fill: '#37b1f5', strokeWidth: 2, stroke: '#fff' }} name="Height (cm)" />
                   <Line yAxisId="right" type="monotone" dataKey="head" stroke="#64748b" strokeWidth={2.5} strokeDasharray="4 4" dot={{ r: 3, fill: '#64748b' }} name="Head (cm)" />
                 </LineChart>
@@ -725,14 +725,14 @@ export const ActivitiesScreen = ({
                   key={reward.id} 
                   className={`p-4 rounded-[28px] flex flex-col items-center text-center space-y-2.5 border border-solid transition-all ${
                     reward.unlocked 
-                      ? 'bg-[#FFD6E8] border-pink-200 shadow-md transform -translate-y-1' 
+                      ? 'bg-sky-100 border-sky-200 shadow-md transform -translate-y-1' 
                       : 'bg-gray-50 border-gray-100 opacity-50 grayscale'
                   }`}
                 >
                   <div className={`text-3xl ${reward.unlocked ? 'animate-bounce' : ''}`}>{reward.icon}</div>
                   <p className="text-[8px] font-black uppercase tracking-wider text-gray-800 leading-tight line-clamp-2">{reward.title}</p>
                   {reward.unlocked ? (
-                    <span className="bg-white text-pink-500 text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest shadow-xs">Unlocked</span>
+                    <span className="bg-white text-sky-500 text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest shadow-xs">Unlocked</span>
                   ) : (
                     <span className="text-[7px] text-gray-400 font-bold uppercase tracking-widest">Locked</span>
                   )}
@@ -790,7 +790,7 @@ export const ActivitiesScreen = ({
                   </p>
                 </div>
                 
-                <div className="bg-[#FFD6E8]/30 p-4 rounded-3xl border border-solid border-pink-100 space-y-2">
+                <div className="bg-sky-50 p-4 rounded-3xl border border-solid border-sky-100 space-y-2">
                   <h3 className="text-xs font-bold text-gray-800">How to perform</h3>
                   <p className="text-[11px] text-gray-600 leading-relaxed font-medium">
                     Ensure baby is fed and rested. Start in a quiet environment. Perform the activity for 5-10 minutes. If baby gets fuzzy, pause and try again later. Focus on eye contact and gentle communication throughout.

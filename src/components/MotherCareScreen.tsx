@@ -262,7 +262,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
   };
 
   useSEO({
-    title: 'Mother Postpartum Care & Fourth Trimester Recovery | Ama Baby Care',
+    title: 'Mother Postpartum Care & Fourth Trimester Recovery | Ama Baby',
     description: 'Evidence-based maternal recovery guides, postpartum wound and pelvic floor healing, maternal wellness nutrition, and postpartum mental health resources.',
     canonicalUrl: 'https://amababycare.com/#mother-care'
   });

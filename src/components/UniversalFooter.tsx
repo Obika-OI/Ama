@@ -16,16 +16,16 @@ export const UniversalFooter: React.FC<UniversalFooterProps> = ({
       <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-xs">
         {/* Column 1: Brand & Bio */}
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-white font-serif font-black text-base">
+          <div className="flex items-center gap-0 text-white font-serif font-black text-base">
             <img 
               src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
-              alt="Logo" 
-              className="w-6 h-6 object-contain"
+              alt="Ama Baby Logo" 
+              className="w-20 h-auto object-contain shrink-0 bg-transparent shadow-none"
             />
-            <span>Ama Baby Care</span>
+            <span>Ama Baby</span>
           </div>
           <p className="text-slate-400 leading-relaxed text-[11px]">
-            Easy baby care tracking, feeding timers, growth charts, and diaper health notes. Built for family privacy and resourceful childcare worldwide.
+            Easy all-in-one baby care tracking, feeding timers, growth charts, and diaper health notes. Built for family privacy and resourceful childcare worldwide.
           </p>
         </div>
 
@@ -149,7 +149,7 @@ export const UniversalFooter: React.FC<UniversalFooterProps> = ({
       </div>
 
       <div className="max-w-5xl mx-auto border-t border-slate-800 mt-8 pt-6 text-center text-[11px] text-slate-500">
-        <p>© 2026 Ama Baby Care. All rights reserved. Built for baby care & family privacy.</p>
+        <p>© 2026 Ama Baby. All rights reserved. All-in-one baby care app built for family privacy.</p>
       </div>
     </footer>
   );

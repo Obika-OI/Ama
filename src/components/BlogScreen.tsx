@@ -70,20 +70,18 @@ export const BlogScreen: React.FC<BlogScreenProps> = ({
               <ArrowLeft className="w-4 h-4 text-gray-600" />
               <span>Back</span>
             </button>
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-2xl bg-primary/5 flex items-center justify-center shrink-0 overflow-hidden">
-                <img 
-                  src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
-                  alt="Ama Baby Care Logo" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
+            <div className="flex items-center gap-0">
+              <img 
+                src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
+                alt="Ama Baby Logo" 
+                className="w-24 h-auto object-contain shrink-0 bg-transparent shadow-none"
+              />
               <div>
                 <h1 className="font-serif font-black text-lg text-gray-900 leading-tight">
-                  Blog
+                  Ama Baby Blog
                 </h1>
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">
-                  Baby Care & Parenting Guides
+                  All-in-One Baby Care & Parenting Guides
                 </span>
               </div>
             </div>

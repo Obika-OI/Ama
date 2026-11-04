@@ -167,9 +167,9 @@ export const Journal = ({  isPremium,
   const DIARY_MOODS = [
     { label: '✨ Grateful', color: 'bg-primary/10 text-primary border-primary/20' },
     { label: '😊 Happy & Calm', color: 'bg-primary/10 text-primary border-primary/20' },
-    { label: '💖 Loving Moment', color: 'bg-[#FFD6E8] text-gray-800 border-pink-200' },
+    { label: '💖 Loving Moment', color: 'bg-sky-100 text-gray-800 border-sky-200' },
     { label: '☕ Peaceful', color: 'bg-primary/10 text-primary border-primary/20' },
-    { label: '🎉 Milestone', color: 'bg-[#FFD6E8] text-gray-800 border-pink-200' },
+    { label: '🎉 Milestone', color: 'bg-sky-100 text-gray-800 border-sky-200' },
     { label: '😴 Exhausted', color: 'bg-slate-100 text-slate-700 border-slate-200' },
     { label: '🌱 Growing Together', color: 'bg-primary/10 text-primary border-primary/20' }
   ];
@@ -1876,18 +1876,17 @@ export const Journal = ({  isPremium,
                               className="w-2.5 h-2.5 rounded-full inline-block border border-slate-200/50" 
                               style={{ 
                                 backgroundColor: (() => {
-                                  const c = (diaper.poopColor || 'theme purple').toLowerCase();
-                                  if (c.includes('purple') || c.includes('sky')) return '#8b5cf6';
+                                  const c = (diaper.poopColor || 'theme sky').toLowerCase();
+                                  if (c.includes('sky') || c.includes('deep')) return '#0ea5e9';
                                   if (c.includes('slate') || c.includes('grey')) return '#64748b';
                                   if (c.includes('green') || c.includes('emerald')) return '#10b981';
                                   if (c.includes('white') || c.includes('cloud')) return '#f8fafc';
-                                  if (c.includes('sky') || c.includes('deep')) return '#0ea5e9';
                                   if (c.includes('black') || c.includes('midnight')) return '#0f172a';
-                                  return '#8b5cf6';
+                                  return '#0ea5e9';
                                 })() 
                               }} 
                             />
-                            {diaper.poopColor || 'Theme Purple'}
+                            {diaper.poopColor || 'Theme Sky Blue'}
                           </span>
                           
     </div>
@@ -2028,7 +2027,7 @@ export const Journal = ({  isPremium,
                                 {v.date ? ` (${v.date})` : ''}
                               </p>
                               {v.sideEffects && v.sideEffects !== 'None' && (
-                                <p className="text-[9px] text-gray-700 font-bold bg-[#FFD6E8] px-2 py-0.5 rounded mt-0.5 inline-block border border-pink-200">
+                                <p className="text-[9px] text-gray-700 font-bold bg-sky-100 px-2 py-0.5 rounded mt-0.5 inline-block border border-sky-200">
                                   🩺 Side effects: {v.sideEffects}
                                 </p>
                               )}
@@ -3150,7 +3149,7 @@ export const Journal = ({  isPremium,
                     {suspectedAllergensList.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {suspectedAllergensList.map((a, i) => (
-                          <span key={i} className="text-[10px] font-bold bg-[#FFD6E8] text-gray-800 px-2 py-0.5 rounded-full border border-pink-200">
+                          <span key={i} className="text-[10px] font-bold bg-sky-100 text-gray-800 px-2 py-0.5 rounded-full border border-sky-200">
                             ⚠️ {a.name}
                           </span>
                         ))}

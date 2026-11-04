@@ -1163,9 +1163,9 @@ export const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = fa
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between bg-pink-50/80 p-5 rounded-[28px] border border-pink-200">
+                <div className="flex items-center justify-between bg-sky-50/80 p-5 rounded-[28px] border border-sky-200">
                   <div className="flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 text-pink-500" />
+                    <AlertCircle className="w-5 h-5 text-sky-500" />
                     <span className="text-xs font-bold text-gray-800">Allergy Reaction?</span>
                   </div>
                   <button 
@@ -1180,7 +1180,7 @@ export const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = fa
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-2 bg-pink-50/50 p-4 rounded-[24px] border border-pink-200"
+                    className="space-y-2 bg-sky-50/50 p-4 rounded-[24px] border border-sky-200"
                   >
                     <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block">Describe Reaction (Allergy Log)</label>
                     <input 
@@ -1188,7 +1188,7 @@ export const RecipeDetail = ({ meal, onBack, onLog, onSchedule, autoOpenLog = fa
                       value={allergyNotes}
                       onChange={(e) => setAllergyNotes(e.target.value)}
                       placeholder="e.g. Skin rash, mild hives, spit up..."
-                      className="w-full bg-white border border-pink-200 rounded-xl p-3 text-xs font-bold text-gray-800 focus:outline-none"
+                      className="w-full bg-white border border-sky-200 rounded-xl p-3 text-xs font-bold text-gray-800 focus:outline-none"
                     />
                   </motion.div>
                 )}

@@ -127,7 +127,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
   // Log to console for developer visibility
   if (errInfo.error.includes('auth/admin-restricted-operation')) {
-    console.error('CRITICAL: Anonymous Authentication is DISABLED in Firebase Console. Please enable it in the Firebase Auth > Sign-in method tab.');
+    console.warn('Anonymous Authentication is disabled in Firebase Console; operating in local storage mode.');
   }
 
   console.error('Firestore Error: ', JSON.stringify(errInfo));

@@ -1,4 +1,4 @@
-# Ama Baby Care Companion
+# Ama Baby – All-in-One Baby Care App
 
 Ama is a comprehensive and secure baby care companion application designed to empower parents and members of their care circle. It provides intuitive tracking, smart recommendations, acoustic analysis, and role-based village coordination to ensure your baby receives the highest standard of care.
 

@@ -47,11 +47,11 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
 
   // SEO mapping to dynamic article page
   useSEO({
-    title: 'User Manual & Safety Guide | Ama Baby Care',
-    description: 'Learn how to use Ama Baby Care tracking tools, prepare cheap local weaning cereals, and manage infant food allergies offline.',
+    title: 'User Manual & Safety Guide | Ama Baby',
+    description: 'Learn how to use Ama Baby all-in-one baby care tracking tools, prepare cheap local weaning cereals, and manage infant food allergies offline.',
     robots: 'index, follow',
     ogType: 'article',
-    ogTitle: 'User Manual & Safety Guide | Ama Baby Care',
+    ogTitle: 'User Manual & Safety Guide | Ama Baby',
     ogDescription: 'Step-by-step instructions on breastfeeding timers, immunization checklists, and offline data sandboxing for resourceful mothers.',
     publishedTime: '2026-10-03T12:00:00Z',
     author: 'Ama Care Team'
@@ -201,7 +201,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-4 sm:px-8">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-2 sm:px-8">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <button
             onClick={onClose}
@@ -210,13 +210,13 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Dashboard</span>
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0">
             <img 
               src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
-              alt="Ama Baby Care Logo" 
-              className="w-8 h-8 object-contain"
+              alt="Ama Baby Logo" 
+              className="w-24 h-auto object-contain shrink-0 bg-transparent shadow-none"
             />
-            <span className="font-serif font-black text-gray-900 text-sm tracking-tight">Ama User Manual</span>
+            <span className="font-serif font-black text-gray-900 text-base tracking-tight">Ama Baby User Manual</span>
           </div>
           <div className="w-12"></div>
         </div>

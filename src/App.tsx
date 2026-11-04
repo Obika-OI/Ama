@@ -2604,7 +2604,7 @@ export default function App() {
                 👶✨
               </div>
               <div>
-                <h2 className="text-2xl font-serif font-black text-gray-800 leading-tight">Welcome to Ama</h2>
+                <h2 className="text-2xl font-serif font-black text-gray-800 leading-tight">Welcome to Ama Baby</h2>
                 <p className="text-[11px] text-gray-400 mt-1 font-medium leading-relaxed">Let's set up your baby's weaning, care, and milestoning journey</p>
                 
     </div>
@@ -2644,7 +2644,7 @@ export default function App() {
                   className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
                 />
                 <p className="text-[9px] text-gray-400 pl-1 leading-normal">
-                  Guardian Verification Notice: Ama is designed for adult parent or guardian tracking only.
+                  Guardian Verification Notice: Ama Baby is designed for adult parent or guardian tracking only.
                 </p>
                 
     </div>

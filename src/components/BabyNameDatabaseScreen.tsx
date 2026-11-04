@@ -43,7 +43,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
   initialSearchQuery = ''
 }) => {
   useSEO({
-    title: 'Global Baby Name Database – Search & Filter Names by Meaning, Origin & Language | Ama Baby Care',
+    title: 'Global Baby Name Database – Search & Filter Names by Meaning, Origin & Language | Ama Baby',
     description: 'Explore our global baby name database. Search baby names by name, meaning, or cultural significance, contribute names, or filter by Gender, Origin, Language, Starting With, Ending With, and A-Z.',
     canonicalUrl: 'https://amababycare.com/#baby-names'
   });

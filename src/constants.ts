@@ -4,10 +4,10 @@ export const STANDARD_RECIPES: Meal[] = [];
 
 export const THEME = {
   primary: '#37b1f5', // Sky blue (water)
-  secondary: '#FFD6E8', // Pastel Pink (card)
-  accent: '#0ea5e9', // Sky Blue (accent)
-  background: '#D2E9F9', // Light Blue
-  card: '#FFD6E8', // Pastel Pink
+  secondary: '#FFD6E8', // Soft Pastel Pink
+  accent: '#0ea5e9', // Accent Blue
+  background: '#D2E9F9', // Light Blue background
+  card: '#FFD6E8', // Soft Pastel Pink Cards
   text: '#2D3436',
   muted: '#636E72',
   fontSerif: '"Playfair Display", serif',

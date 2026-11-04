@@ -34,7 +34,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
   onConnectMealSafety 
 }) => {
   useSEO({
-    title: 'Infant Safety Hub & Emergency Guide | Ama Baby Care',
+    title: 'Infant Safety Hub & Emergency Guide | Ama Baby',
     description: 'Practical first aid guidelines for infant airway choking, Heimlich maneuver, fever observations, safe sleep, and household babyproofing.',
     canonicalUrl: 'https://amababycare.com/#safety-guide'
   });

@@ -858,7 +858,7 @@ export const SettingsScreen = ({
         </div>
 
         <p className="text-xs text-gray-500 leading-relaxed">
-          Switching to Ama Baby Care from Huckleberry, Baby Tracker, Sprout, or other trackers is completely seamless. Download your data exports (using "Export Data", "Download Data Ledger", or "Request JSON/CSV Export" in your previous app) and upload the file below. 
+          Switching to Ama Baby from Huckleberry, Baby Tracker, Sprout, or other trackers is completely seamless. Download your data exports (using "Export Data", "Download Data Ledger", or "Request JSON/CSV Export" in your previous app) and upload the file below. 
         </p>
         
         <p className="text-[10px] text-gray-400 leading-relaxed bg-slate-50 p-3 rounded-xl border border-gray-100 italic">

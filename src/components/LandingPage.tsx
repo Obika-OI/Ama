@@ -15,11 +15,11 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNavigate }) => {
   // SEO Optimization for the Landing Page
   useSEO({
-    title: 'Ama Baby Care: Smart Feeding, Weaning, Sleep & Cry Tracker',
+    title: 'Ama Baby: All-in-One Baby Care App | Feeding, Weaning, Sleep & Cry Tracker',
     description: 'Track breastfeeding, bottle feeds, and solid baby meals in one place. Prepare affordable local weaning foods like Tom Brown without a fridge, decode baby cries, and track sleep wake windows, diapers, and wellness records offline.',
     robots: 'index, follow',
     ogType: 'website',
-    ogTitle: 'Ama Baby Care: Smart Baby Care & Local Weaning Companion',
+    ogTitle: 'Ama Baby: All-in-One Baby Care & Local Weaning Companion',
     ogDescription: 'Built for real families everywhere. Track breastfeeding, bottle feeds, and solid weaning meals, prepare protein-rich Tom Brown cereal without refrigeration, decode baby cries, and log sleep and immunizations privately offline.',
     canonicalUrl: window.location.origin
   });
@@ -28,22 +28,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
     <div className="min-h-screen bg-background text-gray-800 text-left font-sans">
       
       {/* Top Header / Navigation Bar */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-white/60 px-4 sm:px-8 py-4 shadow-xs">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-white/60 px-4 sm:px-8 py-3 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={onGetStarted}>
-            <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center overflow-hidden">
-              <img 
-                src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
-                alt="Ama Baby Care Logo" 
-                className="w-full h-full object-cover"
-              />
-            </div>
+          <div className="flex items-center gap-0 cursor-pointer" onClick={onGetStarted}>
+            <img 
+              src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
+              alt="Ama Baby Logo" 
+              className="w-30 h-auto object-contain shrink-0 bg-transparent shadow-none"
+            />
             <div>
               <span className="font-serif font-black text-xl text-gray-900 tracking-tight block">
-                Ama Baby Care
+                Ama Baby
               </span>
               <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest block">
-                All-In-One Baby App
+                All-In-One Baby Care App
               </span>
             </div>
           </div>
@@ -56,22 +54,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
               About Us
             </button>
             <button 
-              onClick={() => onNavigate('contact')} 
-              className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-bold text-xs"
-            >
-              Contact Us & Help Desk
-            </button>
-            <button 
               onClick={() => onNavigate('blog')} 
               className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-bold text-xs flex items-center gap-1 text-primary"
             >
               <span>Blog</span>
-            </button>
-            <button 
-              onClick={() => onNavigate('mother-care')} 
-              className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-bold text-xs"
-            >
-              Mother Postpartum Care
             </button>
             <button 
               onClick={() => onNavigate('user-guide')} 
@@ -84,30 +70,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
               className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-bold text-xs"
             >
               Food & Safety Guide
-            </button>
-            <button 
-              onClick={() => onNavigate('community')} 
-              className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-bold text-xs"
-            >
-              Community Forum
-            </button>
-            <button 
-              onClick={() => onNavigate('local-directories')} 
-              className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-bold text-xs"
-            >
-              Local Care Map
-            </button>
-            <button 
-              onClick={() => onNavigate('baby-names')} 
-              className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-bold text-xs"
-            >
-              Baby Names
-            </button>
-            <button 
-              onClick={() => onNavigate('legal-terms')} 
-              className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-bold text-xs"
-            >
-              Privacy & Terms
             </button>
           </nav>
 
@@ -137,7 +99,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
             Welcome to a parenting companion built on logic, practical wisdom, and respect for household budgets. While many baby apps assume uninterrupted internet access, continuous electricity to freeze purees, and disposable budgets for premium imported cereals, real families often operate under very different conditions.
           </p>
           <p>
-            Ama Baby Care is a free, lightweight, offline-first web companion designed to run smoothly on any device. Whether tracking breastfeeds, bottle amounts, and first solid meals, understanding infant cry cues, or preparing protein-dense weaning blends without refrigeration, Ama delivers clear and trustworthy guidance. Learn how to combine affordable yellow corn, sorghum, millet, and roasted soybeans into shelf-stable Tom Brown flour, log wake windows, follow standard vaccination milestones, and monitor food sensitivities privately.
+            Ama Baby is a free, lightweight, offline-first all-in-one baby care app designed to run smoothly on any device. Whether tracking breastfeeds, bottle amounts, and first solid meals, understanding infant cry cues, or preparing protein-dense weaning blends without refrigeration, Ama delivers clear and trustworthy guidance. Learn how to combine affordable yellow corn, sorghum, millet, and roasted soybeans into shelf-stable Tom Brown flour, log wake windows, follow standard vaccination milestones, and monitor food sensitivities privately.
           </p>
         </div>
 
@@ -178,9 +140,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
         {/* AdSense High-Value Content Section: The Ama Philosophy */}
         <div className="max-w-4xl mx-auto bg-card rounded-[40px] border border-white p-8 sm:p-12 shadow-xl shadow-card/20 text-left space-y-8">
           <div className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-serif font-black text-gray-900">Why Ama is the Logical Choice for Modern Families</h2>
+            <h2 className="text-2xl sm:text-3xl font-serif font-black text-gray-900">Why Ama Baby is the Logical Choice for Modern Families</h2>
             <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
-              In a digital world crowded with applications designed to harvest user data and promote consumerism, Ama Baby Care stands as a fortress of privacy and resourcefulness. We believe that parenting is a fundamental human experience that shouldn't be gated by expensive subscriptions or exploited by advertising networks. Our philosophy is rooted in three core pillars: **Sovereignty, Simplicity, and Safety.**
+              In a digital world crowded with applications designed to harvest user data and promote consumerism, Ama Baby stands as a fortress of privacy and resourcefulness. We believe that parenting is a fundamental human experience that shouldn't be gated by expensive subscriptions or exploited by advertising networks. Our philosophy is rooted in three core pillars: **Sovereignty, Simplicity, and Safety.**
             </p>
           </div>
 
@@ -218,7 +180,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
               Innovative Features For Real-World Parenting
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              We have structured our tracking utilities into four massive, highly comprehensive resource blocks. Each card outlines a core, logical dimension of Ama Baby Care, designed to empower sleep-deprived mothers with actionable, offline information.
+              We have structured our tracking utilities into four massive, highly comprehensive resource blocks. Each card outlines a core, logical dimension of Ama Baby, designed to empower sleep-deprived mothers with actionable, offline information.
             </p>
           </div>
 

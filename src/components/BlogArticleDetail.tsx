@@ -30,7 +30,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
 
   // SEO & Social OpenGraph Tags for the specific article
   useSEO({
-    title: `${article.seoTitle} | Ama Baby Care`,
+    title: `${article.seoTitle} | Ama Baby`,
     description: article.metaDescription,
     robots: 'index, follow',
     ogType: 'article',
@@ -76,12 +76,12 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
           'dateModified': new Date(article.updatedDate).toISOString(),
           'author': {
             '@type': 'Organization',
-            'name': 'Ama Baby Care',
+            'name': 'Ama Baby',
             'url': window.location.origin
           },
           'publisher': {
             '@type': 'Organization',
-            'name': 'Ama Baby Care',
+            'name': 'Ama Baby',
             'url': window.location.origin,
             'logo': {
               '@type': 'ImageObject',
@@ -369,7 +369,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-gray-900">Ama Baby Care Reference</span>
+                  <span className="text-sm font-bold text-gray-900">Ama Baby Reference</span>
                   <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                 </div>
                 <p className="text-xs text-gray-500 font-medium">Standard Parenting Reference & Household Guidance</p>
@@ -519,12 +519,16 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
         <footer className="bg-slate-900 text-slate-400 border-t border-slate-800 text-left py-12 px-6 sm:px-10 rounded-t-[36px] w-full mt-16 -mx-4 sm:-mx-6">
           <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-xs">
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-white font-serif font-black text-base">
-                <span>🍼</span>
-                <span>Ama Baby Care</span>
+              <div className="flex items-center gap-0 text-white font-serif font-black text-base">
+                <img 
+                  src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
+                  alt="Ama Baby Logo" 
+                  className="w-20 h-auto object-contain shrink-0 bg-transparent shadow-none"
+                />
+                <span>Ama Baby</span>
               </div>
               <p className="text-slate-400 leading-relaxed text-[11px]">
-                Easy baby care tracking, feeding timers, growth charts, and diaper health notes.
+                Easy all-in-one baby care tracking, feeding timers, growth charts, and diaper health notes.
               </p>
             </div>
             <div className="space-y-2">
@@ -585,7 +589,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
             </div>
           </div>
           <div className="max-w-5xl mx-auto border-t border-slate-800 mt-6 pt-6 text-center text-[11px] text-slate-500">
-            <p>© {new Date().getFullYear()} Ama Baby Care. All rights reserved. Built for baby care & family privacy.</p>
+            <p>© {new Date().getFullYear()} Ama Baby. All rights reserved. All-in-one baby care app built for family privacy.</p>
           </div>
         </footer>
       </main>

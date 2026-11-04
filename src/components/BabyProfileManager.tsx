@@ -237,7 +237,7 @@ export const BabyProfileManager: React.FC<BabyProfileManagerProps> = ({
                                       onDeleteBaby(baby.id);
                                     }
                                   }}
-                                  className="w-8 h-8 rounded-xl bg-white hover:bg-pink-50 border border-gray-200 text-gray-400 hover:text-gray-700 flex items-center justify-center cursor-pointer shadow-2xs"
+                                  className="w-8 h-8 rounded-xl bg-white hover:bg-sky-50 border border-gray-200 text-gray-400 hover:text-gray-700 flex items-center justify-center cursor-pointer shadow-2xs"
                                   title="Delete profile"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -265,7 +265,7 @@ export const BabyProfileManager: React.FC<BabyProfileManagerProps> = ({
               {(modalMode === 'add' || modalMode === 'edit') && (
                 <form onSubmit={handleSave} className="space-y-4">
                   {formError && (
-                    <div className="p-3 bg-pink-50 rounded-xl text-gray-800 text-xs font-bold border border-pink-200">
+                    <div className="p-3 bg-sky-50 rounded-xl text-gray-800 text-xs font-bold border border-sky-200">
                       {formError}
                     </div>
                   )}

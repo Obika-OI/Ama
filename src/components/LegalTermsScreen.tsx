@@ -17,12 +17,12 @@ export const LegalTermsScreen = ({
 
   // Dynamic SEO article metadata mapping for Google AdSense compliance
   useSEO({
-    title: 'Privacy Policy & Terms of Service - Ama Baby Care',
-    description: 'Read the privacy policy, user agreements, and legal compliance standards of Ama Baby Care app. We prioritize family safety and child data privacy.',
+    title: 'Privacy Policy & Terms of Service - Ama Baby',
+    description: 'Read the privacy policy, user agreements, and legal compliance standards of Ama Baby, an all-in-one baby care app. We prioritize family safety and child data privacy.',
     robots: 'index, follow',
     ogType: 'article',
-    ogTitle: 'Privacy Policy & Terms of Service - Ama Baby Care Companion',
-    ogDescription: 'COPPA-compliant, GDPR-friendly privacy policies and safety disclaimers for Ama Baby Care App. Built to protect baby tracking logs.',
+    ogTitle: 'Privacy Policy & Terms of Service - Ama Baby',
+    ogDescription: 'COPPA-compliant, GDPR-friendly privacy policies and safety disclaimers for Ama Baby app. Built to protect baby tracking logs.',
     publishedTime: '2026-09-19T12:00:00Z',
     author: 'Ama Legal Department'
   });
@@ -106,7 +106,7 @@ export const LegalTermsScreen = ({
               <h2 className="text-xl font-serif font-black text-gray-900 mb-2">1. Privacy Policy & Secure Sandbox Protocol</h2>
               <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-4">Last Updated: October 2026</p>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Ama Baby Care operates under a strict, non-negotiable family-first privacy protocol. We believe that your baby’s developmental details, feeding logs, diaper photos, and physical growth histories belong entirely to your household. Traditional infant tracking applications are often built as corporate marketing funnels, quietly gathering your baby's records, milestones, and medical notes in order to package and sell them to third-party ad brokers. This data is then utilized to target you with emotionally manipulative advertising for infant formula, toys, and private health schemes. We reject this commercial exploitation completely. Our software employs a local-first, zero-telemetry database sandbox that ensures all records stay safely on your own device.
+                Ama Baby operates under a strict, non-negotiable family-first privacy protocol. We believe that your baby’s developmental details, feeding logs, diaper photos, and physical growth histories belong entirely to your household. Traditional infant tracking applications are often built as corporate marketing funnels, quietly gathering your baby's records, milestones, and medical notes in order to package and sell them to third-party ad brokers. This data is then utilized to target you with emotionally manipulative advertising for infant formula, toys, and private health schemes. We reject this commercial exploitation completely. Our software employs a local-first, zero-telemetry database sandbox that ensures all records stay safely on your own device.
               </p>
             </div>
 
@@ -137,7 +137,7 @@ export const LegalTermsScreen = ({
             <div>
               <h2 className="text-xl font-serif font-black text-gray-900 mb-2">2. Terms of Use & User Agreement</h2>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                By accessing and utilizing Ama Baby Care, you enter into a voluntary, polite agreement with our team. This companion is designed as a digital logging space and educational utility to help you organize baby feeding timers, vaccine dates, and local weaning recipes. You agree to use our platform responsibly and in accordance with your local regulations. If you share access to your baby's logs with family members, nannies, or caregivers, you represent that you have parental authority and take full responsibility for authorizing their digital interactions with your device’s database sandbox.
+                By accessing and utilizing Ama Baby, you enter into a voluntary, polite agreement with our team. This companion is designed as a digital logging space and educational utility to help you organize baby feeding timers, vaccine dates, and local weaning recipes. You agree to use our platform responsibly and in accordance with your local regulations. If you share access to your baby's logs with family members, nannies, or caregivers, you represent that you have parental authority and take full responsibility for authorizing their digital interactions with your device’s database sandbox.
               </p>
             </div>
 
@@ -162,7 +162,7 @@ export const LegalTermsScreen = ({
             <div>
               <h2 className="text-xl font-serif font-black text-gray-900 mb-2">3. Educational & Safety Disclaimer</h2>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Ama Baby Care is an interactive record-keeping utility and educational guide designed to help parents stay organized. We approach infant care with a helpful and highly logical mindset, but we must emphasize that our app does not provide professional medical advice, wellness assessments, or prescriptive healthcare treatment. The information provided on our landing pages, blog articles, safety guides, and user manuals is curated from public health standards, but it should never replace the direct guidance of a qualified human healthcare professional.
+                Ama Baby is an interactive record-keeping utility and educational guide designed to help parents stay organized. We approach infant care with a helpful and highly logical mindset, but we must emphasize that our app does not provide professional medical advice, wellness assessments, or prescriptive healthcare treatment. The information provided on our landing pages, blog articles, safety guides, and user manuals is curated from public health standards, but it should never replace the direct guidance of a qualified human healthcare professional.
               </p>
             </div>
 
@@ -192,7 +192,7 @@ export const LegalTermsScreen = ({
             <div className="space-y-3 bg-white p-5 rounded-2xl border border-gray-100 text-xs text-gray-600 leading-relaxed">
               <p className="font-bold text-gray-900 text-sm">Right to Absolute Erasure</p>
               <p>
-                We believe in absolute data sovereignty, meaning you have complete ownership and control over your family's records. If you decide that you no longer wish to use Ama Baby Care, we make it incredibly easy to reclaim your digital privacy. You do not need to submit complicated request tickets or wait for administrator approval. Simply open the app's settings screen and tap the database purge button. This will immediately and permanently erase all infant logs, feeding histories, diaper details, and profile data from both your local browser cache and any optional cloud sync buckets, leaving zero digital footprints behind.
+                We believe in absolute data sovereignty, meaning you have complete ownership and control over your family's records. If you decide that you no longer wish to use Ama Baby, we make it incredibly easy to reclaim your digital privacy. You do not need to submit complicated request tickets or wait for administrator approval. Simply open the app's settings screen and tap the database purge button. This will immediately and permanently erase all infant logs, feeding histories, diaper details, and profile data from both your local browser cache and any optional cloud sync buckets, leaving zero digital footprints behind.
               </p>
             </div>
 
@@ -207,21 +207,19 @@ export const LegalTermsScreen = ({
       </div>
       
       {/* Comprehensive Public Footer */}
-      
-      {/* Comprehensive Public Footer */}
       <footer className="bg-slate-900 text-slate-400 border-t border-slate-800 text-left py-12 px-6 sm:px-10 rounded-t-[36px] w-full mt-16">
         <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-xs">
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-white font-serif font-black text-base">
+            <div className="flex items-center gap-0 text-white font-serif font-black text-base">
               <img 
                 src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
-                alt="Logo" 
-                className="w-6 h-6 object-contain"
+                alt="Ama Baby Logo" 
+                className="w-20 h-auto object-contain shrink-0 bg-transparent shadow-none"
               />
-              <span>Ama Baby Care</span>
+              <span>Ama Baby</span>
             </div>
             <p className="text-slate-400 leading-relaxed text-[11px]">
-              Easy baby care tracking, feeding timers, growth charts, and diaper health notes.
+              Easy all-in-one baby care tracking, feeding timers, growth charts, and diaper health notes.
             </p>
           </div>
           <div className="space-y-2">
@@ -282,7 +280,7 @@ export const LegalTermsScreen = ({
           </div>
         </div>
         <div className="max-w-5xl mx-auto border-t border-slate-800 mt-6 pt-6 text-center text-[11px] text-slate-500">
-          <p>© 2026 Ama Baby Care. All rights reserved. Built for baby care & family privacy.</p>
+          <p>© 2026 Ama Baby. All rights reserved. All-in-one baby care app built for family privacy.</p>
         </div>
       </footer>
 

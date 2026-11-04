@@ -765,11 +765,9 @@ export const Dashboard = ({
                 Listens to your baby's cry and correlates audio with time since last feeding & nap to analyze comfort needs.
               </p>
             </div>
-            <div className="pt-1 flex items-center justify-between text-xs font-bold text-primary group-hover:text-primary/80">
-              <span className="flex items-center gap-1.5">
-                <Mic className="w-3.5 h-3.5" /> Start Cry Analysis
-              </span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <div className="pt-1 flex items-center gap-1.5 text-xs font-bold text-primary">
+              <Mic className="w-3.5 h-3.5" /> 
+              <span>Audio Analysis Active</span>
             </div>
           </motion.div>
 

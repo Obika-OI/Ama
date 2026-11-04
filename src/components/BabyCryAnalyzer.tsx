@@ -245,7 +245,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
         const barHeight = (dataArray[i] / 255) * canvas.height;
         const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
         gradient.addColorStop(0, '#37b1f5'); // Baby blue
-        gradient.addColorStop(1, '#fda4af'); // Soft pink
+        gradient.addColorStop(1, '#bae6fd'); // Light sky blue
 
         ctx.fillStyle = gradient;
         ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);

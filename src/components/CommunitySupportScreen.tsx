@@ -220,7 +220,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   onNavigate
 }) => {
   useSEO({
-    title: 'Community Support Forum & Peer Network | Ama Baby Care',
+    title: 'Community Support Forum & Peer Network | Ama Baby',
     description: 'Connect with fellow parents, peer networks, independent specialists, caregivers, and family service providers across all childcare phases.',
     canonicalUrl: 'https://amababycare.com/#community'
   });

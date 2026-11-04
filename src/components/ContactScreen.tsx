@@ -22,11 +22,11 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({ onBack, onNavigate
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useSEO({
-    title: 'Contact Us & Help Desk | Ama Baby Care',
-    description: 'Get in touch with the Ama Baby Care team through our secure digital support desk. Browse our offline parenting FAQs, recipe feedback, and help portal.',
+    title: 'Contact Us & Help Desk | Ama Baby',
+    description: 'Get in touch with the Ama Baby team through our secure digital support desk. Browse our offline parenting FAQs, recipe feedback, and help portal.',
     robots: 'index, follow',
     ogType: 'website',
-    ogTitle: 'Contact Us & Help Desk | Ama Baby Care',
+    ogTitle: 'Contact Us & Help Desk | Ama Baby',
     ogDescription: 'Have a question about tracking local recipes, managing allergies, or using our secure offline sandbox? Send our support team a message.',
     canonicalUrl: `${window.location.origin}${window.location.pathname}#contact`
   });
@@ -115,7 +115,7 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({ onBack, onNavigate
   return (
     <div className="min-h-screen bg-slate-50 text-gray-800 flex flex-col font-sans text-left">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-4 sm:px-8">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-2 sm:px-8">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <button
             onClick={onBack}
@@ -124,13 +124,13 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({ onBack, onNavigate
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0">
             <img 
               src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
-              alt="Ama Baby Care Logo" 
-              className="w-8 h-8 object-contain"
+              alt="Ama Baby Logo" 
+              className="w-24 h-auto object-contain shrink-0 bg-transparent shadow-none"
             />
-            <span className="font-serif font-black text-gray-900 text-sm tracking-tight">Ama Baby Care</span>
+            <span className="font-serif font-black text-gray-900 text-base tracking-tight">Ama Baby</span>
           </div>
           <div className="w-12"></div>
         </div>

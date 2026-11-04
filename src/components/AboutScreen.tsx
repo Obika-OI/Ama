@@ -10,19 +10,19 @@ interface AboutScreenProps {
 
 export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp }) => {
   useSEO({
-    title: 'About Ama Baby Care | Everyday Parenting & Nutrition Platform',
-    description: 'Learn about Ama Baby Care: an offline-first companion helping parents everywhere raise thriving babies using accessible local nutrition, gentle sleep rhythms, and private family journals.',
+    title: 'About Ama Baby | All-in-One Baby Care & Nutrition Platform',
+    description: 'Learn about Ama Baby: an offline-first all-in-one baby care app helping parents everywhere raise thriving babies using accessible local nutrition, gentle sleep rhythms, and private family journals.',
     robots: 'index, follow',
     ogType: 'website',
-    ogTitle: 'About Ama Baby Care | Built for Real Families Everywhere',
-    ogDescription: 'Lightweight, offline-capable baby tracking with zero invasive ads, practical weaning guidance, and private family village sync.',
+    ogTitle: 'About Ama Baby | Built for Real Families Everywhere',
+    ogDescription: 'Lightweight, offline-capable all-in-one baby care tracking with zero invasive ads, practical weaning guidance, and private family village sync.',
     canonicalUrl: `${window.location.origin}${window.location.pathname}#about`
   });
 
   return (
     <div className="min-h-screen bg-slate-50 text-gray-800 flex flex-col font-sans text-left">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-4 sm:px-8">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-2 sm:px-8">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <button
             onClick={onBack}
@@ -31,13 +31,13 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0">
             <img 
               src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
-              alt="Ama Baby Care Logo" 
-              className="w-8 h-8 object-contain"
+              alt="Ama Baby Logo" 
+              className="w-24 h-auto object-contain shrink-0 bg-transparent shadow-none"
             />
-            <span className="font-serif font-black text-gray-900 text-sm tracking-tight">Ama Baby Care</span>
+            <span className="font-serif font-black text-gray-900 text-base tracking-tight">Ama Baby</span>
           </div>
           <div className="w-12"></div>
         </div>
@@ -61,7 +61,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
 
       {/* Main Content Details */}
       <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-8 py-12 space-y-12">
-        {/* Why Ama Baby Care Was Built */}
+        {/* Why Ama Baby Was Built */}
         <section className="bg-white rounded-[2.5rem] p-6 sm:p-10 border border-gray-100 shadow-xs space-y-5">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -70,7 +70,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest text-primary">Foundational Story</span>
               <h2 className="text-xl sm:text-2xl font-serif font-black text-slate-900">
-                Why We Built Ama Baby Care
+                Why We Built Ama Baby
               </h2>
             </div>
           </div>
@@ -83,7 +83,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
               When babies transition from breast milk to solid foods around six months, parents frequently face anxiety. Commercial baby food cereals can be prohibitively expensive, yet plain refined starches like white corn pap lack the proteins, iron, and minerals needed for robust physical and cognitive growth. At the same time, parents must navigate sudden food reactions, sleep deprivation, immunization dates, and fever worries with limited access to immediate guidance.
             </p>
             <p>
-              Ama Baby Care was created to bridge this gap. We designed a fast, lightweight, and offline-ready web application that loads smoothly on any smartphone or browser. Instead of promoting expensive canned purees, Ama highlights the power of dry, shelf-stable whole grains. We teach parents how to prepare balanced, nutrient-dense weaning flours like Tom Brown using accessible yellow corn, sorghum, millet, and roasted soybeans that safely store in airtight glass jars for weeks without refrigeration.
+              Ama Baby was created to bridge this gap. We designed a fast, lightweight, and offline-ready all-in-one baby care app that loads smoothly on any smartphone or browser. Instead of promoting expensive canned purees, Ama highlights the power of dry, shelf-stable whole grains. We teach parents how to prepare balanced, nutrient-dense weaning flours like Tom Brown using accessible yellow corn, sorghum, millet, and roasted soybeans that safely store in airtight glass jars for weeks without refrigeration.
             </p>
             <p>
               We believe in meeting families where they are: respecting cultural heritage, promoting affordable wholesome nutrition, protecting family privacy, and supporting mothers through maternal recovery and mental well-being.

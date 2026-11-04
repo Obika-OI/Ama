@@ -78,7 +78,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'water',
     name: 'Water (for Babies)',
-    color: 'red',
+    color: 'slate',
     icon: '💧',
     category: 'Strict Moderation',
     warning: '⚠️ WATER INTOXICATION RISK: Babies under 6 months must not be given water as it can dilute their tiny bodies\' electrolytes, leading to seizures or brain swelling. They get all necessary hydration from breast milk or formula.',
@@ -89,7 +89,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'honey',
     name: 'Honey (Raw or Processed)',
-    color: 'red',
+    color: 'slate',
     icon: '🍯',
     category: 'Strict Avoidance',
     warning: '⚠️ INFANT BOTULISM RISK: Never give honey to infants under 12 months. Clostridium botulinum spores can produce fatal neurotoxins in immature digestive tracts.',
@@ -100,7 +100,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'whole_nuts',
     name: 'Whole Tree Nuts & Peanuts',
-    color: 'red',
+    color: 'slate',
     icon: '🥜',
     category: 'Choking Hazard',
     warning: '⚠️ ASPIRATION & CHOKING HAZARD: Whole or chopped nuts are rigid, round, and can easily lodge in a child\'s airway.',
@@ -111,7 +111,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'popcorn',
     name: 'Popcorn & Hard Kernels',
-    color: 'red',
+    color: 'slate',
     icon: '🍿',
     category: 'Choking Hazard',
     warning: '⚠️ SEVERE CHOKING HAZARD: Unpopped kernels and dry husks easily obstruct bronchial tubes.',
@@ -122,7 +122,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'hot_dogs',
     name: 'Hot Dogs & Sausage Coins',
-    color: 'red',
+    color: 'slate',
     icon: '🌭',
     category: 'Choking Hazard & High Sodium',
     warning: '⚠️ MAJOR CHOKING SHAPE: Round cylindrical coins match airway diameter and can form an airtight seal.',
@@ -133,7 +133,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'cows_milk',
     name: 'Cow\'s Milk (As Main Beverage)',
-    color: 'red',
+    color: 'slate',
     icon: '🥛',
     category: 'Nutritional Imbalance',
     warning: '⚠️ INTESTINAL & RENAL STRAIN: Large amounts of cow\'s milk under 12m can cause microscopic intestinal bleeding and displace iron-rich breast milk/formula.',
@@ -144,7 +144,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'salt_sugar',
     name: 'Added Salt & Refined Sugar',
-    color: 'red',
+    color: 'slate',
     icon: '🧂',
     category: 'Renal & Metabolic',
     warning: '⚠️ IMMATURE KIDNEYS: Baby kidneys cannot process added sodium (<1g salt/day recommended). Refined sugars promote tooth decay and alter taste preferences.',
@@ -155,7 +155,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'grapes',
     name: 'Whole Grapes & Cherry Tomatoes',
-    color: 'amber',
+    color: 'sky',
     icon: '🍇',
     category: 'Shape Modification Required',
     warning: '⚠️ CHOKING HAZARD: Smooth round shape matches trachea diameter. Must always be sliced correctly.',
@@ -166,7 +166,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'hard_raw_apples',
     name: 'Raw Hard Apples & Carrots',
-    color: 'amber',
+    color: 'sky',
     icon: '🍎',
     category: 'Texture Modification Required',
     warning: '⚠️ HARD TEXTURE HAZARD: Hard raw chunks snap off and can block the windpipe.',
@@ -177,7 +177,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'peanut_butter',
     name: 'Thick Peanut Butter & Nut Pastes',
-    color: 'amber',
+    color: 'sky',
     icon: '🥜',
     category: 'Sticky Texture Hazard',
     warning: '⚠️ ASPIRATION HAZARD: Thick sticky spoonfuls of peanut butter can stick to the roof of the mouth and larynx.',
@@ -188,7 +188,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'avocado',
     name: 'Fresh Avocado',
-    color: 'green',
+    color: 'emerald',
     icon: '🥑',
     category: 'Nutrient-Dense First Food',
     warning: '✅ SAFE & HIGHLY BENEFICIAL: Packed with brain-boosting DHA healthy fats, folate, and potassium.',
@@ -199,7 +199,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'banana',
     name: 'Ripe Banana',
-    color: 'green',
+    color: 'emerald',
     icon: '🍌',
     category: 'Gentle Digestion',
     warning: '✅ SAFE & EASY TO DIGEST: Rich in potassium, Vitamin B6, and prebiotics for gut health.',
@@ -210,7 +210,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'sweet_potato',
     name: 'Steamed Sweet Potato',
-    color: 'green',
+    color: 'emerald',
     icon: '🍠',
     category: 'Immune & Vision Health',
     warning: '✅ SAFE & NUTRIENT-PACKED: High in Beta-Carotene (Vitamin A precursor), fiber, and complex carbs.',
@@ -221,7 +221,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'eggs',
     name: 'Cooked Eggs (Allergen cleared)',
-    color: 'green',
+    color: 'emerald',
     icon: '🥚',
     category: 'Top Allergen & Choline Powerhouse',
     warning: '✅ SAFE WHEN FULLY COOKED: Rich in Choline and iron. Early introduction helps prevent egg allergy.',
@@ -232,7 +232,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'salmon',
     name: 'Wild Salmon (Deboned & Cooked)',
-    color: 'green',
+    color: 'emerald',
     icon: '🐟',
     category: 'Omega-3 Brain Development',
     warning: '✅ SAFE & OMEGA-RICH: Incredible source of Omega-3 EPA/DHA fatty acids and heme iron. Check meticulously for bones.',
@@ -243,7 +243,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'spinach_greens',
     name: 'Spinach & Dark Leafy Greens',
-    color: 'green',
+    color: 'emerald',
     icon: '🥬',
     category: 'Iron & Micronutrients',
     warning: '✅ SAFE WHEN COOKED: Excellent source of folate, iron, and carotenoids. Raw whole leaves can stick to palate.',
@@ -254,7 +254,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'yogurt_greek',
     name: 'Plain Whole-Milk Greek Yogurt',
-    color: 'green',
+    color: 'emerald',
     icon: '🥣',
     category: 'Probiotics & Calcium',
     warning: '✅ SAFE (UNSWEETENED): Loaded with calcium, gut-friendly active cultures, and protein. Choose pasteurized whole milk.',
@@ -265,7 +265,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'broccoli',
     name: 'Steamed Broccoli Florets',
-    color: 'green',
+    color: 'emerald',
     icon: '🥦',
     category: 'Fiber & Vitamin C',
     warning: '✅ SAFE BLW FAVORITE: The natural floret stalk serves as an intuitive baby handle for self-feeding.',
@@ -276,7 +276,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'lentils_beans',
     name: 'Lentils & Soft Legumes',
-    color: 'green',
+    color: 'emerald',
     icon: '🫘',
     category: 'Plant Protein & Iron',
     warning: '✅ SAFE WHEN THOROUGHLY COOKED: Great source of zinc, dietary fiber, and plant-based protein.',
@@ -287,7 +287,7 @@ export const COMMON_INGREDIENTS = [
   {
     id: 'mango',
     name: 'Ripe Juicy Mango',
-    color: 'green',
+    color: 'emerald',
     icon: '🥭',
     category: 'Vitamins A & C',
     warning: '✅ SAFE & REFRESHING: Naturally sweet and soothing for teething gums. Slippery texture needs grip aid.',
