@@ -584,12 +584,12 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
                   disabled={isListeningVoice}
                   className={`p-3.5 rounded-2xl border flex items-center gap-3 shadow-xs cursor-pointer transition-all active:scale-98 text-left ${
                     isListeningVoice 
-                      ? 'bg-rose-50 border-rose-300 text-rose-950 animate-pulse'
+                      ? 'bg-sky-50 border-sky-300 text-sky-950 animate-pulse'
                       : 'bg-white hover:bg-[#D2E9F9]/30 border-sky-100 text-gray-900'
                   }`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-xs ${
-                    isListeningVoice ? 'bg-rose-500 text-white' : 'bg-primary text-white'
+                    isListeningVoice ? 'bg-sky-500 text-white' : 'bg-primary text-white'
                   }`}>
                     {isListeningVoice ? <MicOff className="w-5 h-5 animate-bounce" /> : <Mic className="w-5 h-5" />}
                   </div>
@@ -612,8 +612,8 @@ export const GlobalLocationPickerModal: React.FC<GlobalLocationPickerModalProps>
               )}
 
               {geoError && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-2 text-xs text-amber-900 font-medium text-left">
-                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <div className="p-3 bg-sky-50 border border-sky-200 rounded-2xl flex items-center gap-2 text-xs text-sky-900 font-medium text-left">
+                  <AlertCircle className="w-4 h-4 text-sky-600 shrink-0" />
                   <span>{geoError}</span>
                 </div>
               )}

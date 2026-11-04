@@ -151,7 +151,7 @@ export const EPDSTool: React.FC<{ parentName?: string }> = ({ parentName = 'Mom'
     } else if (totalScore <= 12) {
       return {
         level: 'Borderline / Moderate Distress Symptoms',
-        color: 'text-amber-800 bg-amber-50 border-amber-200',
+        color: 'text-sky-800 bg-sky-50 border-sky-200',
         badge: 'Score 10-12',
         summary: 'Your score indicates presence of noticeable emotional strain, anxiety, or low mood. These symptoms are very common and highly treatable.',
         recommendation: 'We recommend discussing these feelings with your obstetrician, midwife, or primary healthcare provider. Consider screening again in 1 to 2 weeks.'
@@ -159,7 +159,7 @@ export const EPDSTool: React.FC<{ parentName?: string }> = ({ parentName = 'Mom'
     } else {
       return {
         level: 'Elevated Postpartum Depression Symptoms',
-        color: 'text-rose-800 bg-rose-50 border-rose-200',
+        color: 'text-sky-800 bg-sky-50 border-sky-200',
         badge: 'Score 13-30',
         summary: 'Your score suggests significant perinatal emotional distress or postpartum depression. Please remember: this is a neurochemical medical condition, NOT a personal flaw or weakness.',
         recommendation: 'Please schedule a compassionate consultation with your doctor, obstetrician, or a mental health professional specializing in maternal health.'
@@ -226,41 +226,41 @@ export const EPDSTool: React.FC<{ parentName?: string }> = ({ parentName = 'Mom'
 
       {/* Immediate Critical Safety Alert if Question 10 is Flagged */}
       {hasSelfHarmFlag && (
-        <div className="p-5 bg-rose-600 text-white rounded-3xl shadow-lg shadow-rose-600/20 space-y-3">
+        <div className="p-5 bg-sky-600 text-white rounded-3xl shadow-lg shadow-sky-600/20 space-y-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-6 h-6 text-white shrink-0" />
             <h4 className="text-sm font-black uppercase tracking-wider">
               Immediate Compassionate Support is Available
             </h4>
           </div>
-          <p className="text-xs text-rose-100 leading-relaxed">
+          <p className="text-xs text-sky-100 leading-relaxed">
             You indicated experiencing thoughts of harming yourself. You are not alone, and there is immediate, confidential, and judgment-free support available right now. Please reach out to someone who can help:
           </p>
           <div className="flex flex-wrap gap-2.5 pt-1">
             <a 
               href="tel:988" 
-              className="px-4 py-2 bg-white text-rose-700 font-black rounded-xl text-xs uppercase tracking-wider no-underline shadow-sm flex items-center gap-1.5 hover:scale-105 transition-transform"
+              className="px-4 py-2 bg-white text-sky-700 font-black rounded-xl text-xs uppercase tracking-wider no-underline shadow-sm flex items-center gap-1.5 hover:scale-105 transition-transform"
             >
               <PhoneCall className="w-3.5 h-3.5" />
               <span>Call / Text 988 (USA & Canada)</span>
             </a>
             <a 
               href="tel:18338526262" 
-              className="px-4 py-2 bg-rose-700 text-white border border-rose-400 font-black rounded-xl text-xs uppercase tracking-wider no-underline flex items-center gap-1.5 hover:bg-rose-800 transition-colors"
+              className="px-4 py-2 bg-sky-700 text-white border border-sky-400 font-black rounded-xl text-xs uppercase tracking-wider no-underline flex items-center gap-1.5 hover:bg-sky-800 transition-colors"
             >
               <PhoneCall className="w-3.5 h-3.5" />
               <span>Maternal Mental Health (1-833-852-6262)</span>
             </a>
             <a 
               href="tel:18009444773" 
-              className="px-4 py-2 bg-rose-700 text-white border border-rose-400 font-black rounded-xl text-xs uppercase tracking-wider no-underline flex items-center gap-1.5 hover:bg-rose-800 transition-colors"
+              className="px-4 py-2 bg-sky-700 text-white border border-sky-400 font-black rounded-xl text-xs uppercase tracking-wider no-underline flex items-center gap-1.5 hover:bg-sky-800 transition-colors"
             >
               <PhoneCall className="w-3.5 h-3.5" />
               <span>PSI Warmline (1-800-944-4773)</span>
             </a>
             <a 
               href="tel:111" 
-              className="px-4 py-2 bg-rose-700 text-white border border-rose-400 font-black rounded-xl text-xs uppercase tracking-wider no-underline flex items-center gap-1.5 hover:bg-rose-800 transition-colors"
+              className="px-4 py-2 bg-sky-700 text-white border border-sky-400 font-black rounded-xl text-xs uppercase tracking-wider no-underline flex items-center gap-1.5 hover:bg-sky-800 transition-colors"
             >
               <PhoneCall className="w-3.5 h-3.5" />
               <span>NHS 111 (UK) / 999 Emergency</span>

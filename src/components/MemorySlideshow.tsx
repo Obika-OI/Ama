@@ -51,7 +51,7 @@ export const MemorySlideshow = ({ memories, babyName, onAddMemory }: { memories:
         {memories.length > 0 && (
           <button 
             onClick={() => { setIsOpen(true); setIsPlaying(true); }}
-            className="flex-1 bg-gradient-to-br from-pink-400 to-pink-500 text-white p-4 rounded-3xl font-black shadow-lg shadow-pink-400/20 flex items-center justify-between group active:scale-95 transition-all"
+            className="flex-1 bg-gradient-to-br from-sky-500 to-sky-600 text-white p-4 rounded-3xl font-black shadow-lg shadow-sky-400/20 flex items-center justify-between group active:scale-95 transition-all"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -66,7 +66,7 @@ export const MemorySlideshow = ({ memories, babyName, onAddMemory }: { memories:
         )}
         
         {onAddMemory && (
-          <label className="flex-1 bg-white border-2 border-dashed border-pink-200 text-pink-500 p-4 rounded-3xl font-black flex items-center justify-center cursor-pointer hover:bg-pink-50 transition-all">
+          <label className="flex-1 bg-white border-2 border-dashed border-sky-200 text-sky-500 p-4 rounded-3xl font-black flex items-center justify-center cursor-pointer hover:bg-sky-50 transition-all">
             <div className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5" />
               <span className="text-sm">Add Memory</span>
@@ -105,7 +105,7 @@ export const MemorySlideshow = ({ memories, babyName, onAddMemory }: { memories:
                     className="w-full h-full object-cover sm:object-contain"
                   />
                   <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white text-center">
-                    <p className="text-sm font-black tracking-widest uppercase mb-2 text-pink-300">{new Date(memories[currentIndex]?.date).toLocaleDateString()}</p>
+                    <p className="text-sm font-black tracking-widest uppercase mb-2 text-sky-300">{new Date(memories[currentIndex]?.date).toLocaleDateString()}</p>
                     <p className="text-lg font-medium">{memories[currentIndex]?.note}</p>
                   </div>
                 </motion.div>

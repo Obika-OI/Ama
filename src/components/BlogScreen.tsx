@@ -71,8 +71,12 @@ export const BlogScreen: React.FC<BlogScreenProps> = ({
               <span>Back</span>
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-lg font-black shrink-0">
-                📚
+              <div className="w-9 h-9 rounded-2xl bg-primary/5 flex items-center justify-center shrink-0 overflow-hidden">
+                <img 
+                  src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
+                  alt="Ama Baby Care Logo" 
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <h1 className="font-serif font-black text-lg text-gray-900 leading-tight">

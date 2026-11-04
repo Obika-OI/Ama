@@ -211,7 +211,11 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
             <span>Back to Dashboard</span>
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-xl">🍼</span>
+            <img 
+              src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
+              alt="Ama Baby Care Logo" 
+              className="w-8 h-8 object-contain"
+            />
             <span className="font-serif font-black text-gray-900 text-sm tracking-tight">Ama User Manual</span>
           </div>
           <div className="w-12"></div>

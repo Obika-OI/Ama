@@ -527,7 +527,7 @@ export const ActivitiesScreen = ({
                 {LANGUAGE_QUESTS.map(quest => (
                   <div 
                     key={quest.id} 
-                    className="p-4 bg-blue-50/40 hover:bg-blue-50 rounded-3xl border border-solid border-blue-100/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 text-left shadow-2xs"
+                    className="p-4 bg-sky-50/40 hover:bg-sky-50 rounded-3xl border border-solid border-sky-100/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 text-left shadow-2xs"
                   >
                     <div className="flex gap-3 items-start">
                       <span className="text-2xl shrink-0 bg-white w-10 h-10 rounded-xl flex items-center justify-center shadow-3xs">{quest.icon}</span>
@@ -804,7 +804,7 @@ export const ActivitiesScreen = ({
                 className={`w-full mt-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-md transition-all border-none ${
                   selectedActivity.isCompleted
                     ? 'bg-primary/20 text-primary'
-                    : 'bg-[#37b1f5] text-white hover:bg-blue-500 cursor-pointer'
+                    : 'bg-[#37b1f5] text-white hover:bg-sky-500 cursor-pointer'
                 }`}
               >
                 {selectedActivity.isCompleted ? '✓ Quest Completed' : 'Complete Quest'}

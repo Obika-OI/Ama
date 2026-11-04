@@ -1,9 +1,12 @@
 {
-  "apiKey": "AIzaSyDDhSUsNIZLZEAJEZi5ZPeD_O-OGiNe86k",
-  "authDomain": "ama-babycare.firebaseapp.com",
-  "projectId": "ama-babycare",
-  "storageBucket": "ama-babycare.firebasestorage.app",
-  "messagingSenderId": "659272330070",
-  "appId": "1:659272330070:web:bf494e9fadf8c4c2c6c4f7",
-  "measurementId": "G-3VBX1QEMMD"
+  "projectId": "responsible-drive-flcf1",
+  "appId": "1:176906675862:web:a528f6e581f2e4259fc4b7",
+  "apiKey": "AIzaSyA7WCiVSUqrPlmgCSRgAFv2rFHqvCjfd4E",
+  "authDomain": "responsible-drive-flcf1.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-babymealjournal-2f3c4653-c142-4400-84ea-bd46426b6d84",
+  "storageBucket": "responsible-drive-flcf1.firebasestorage.app",
+  "messagingSenderId": "176906675862",
+  "measurementId": "",
+  "oAuthClientId": "176906675862-1n7f4rfapq8h5qjj9e3f7qrfakucdptd.apps.googleusercontent.com",
+  "recaptchaSiteKey": ""
 }

@@ -581,13 +581,13 @@ export const RecipeLibrary = ({ onNavigate, personalRecipes }: { onNavigate: (sc
                 disabled={isLocatingGps}
                 className={`px-3 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1 cursor-pointer shadow-2xs border transition-all shrink-0 active:scale-95 ${
                   isLocatingGps 
-                    ? 'bg-amber-50 border-amber-300 text-amber-800 animate-pulse'
+                    ? 'bg-sky-50 border-sky-300 text-sky-800 animate-pulse'
                     : 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-800'
                 }`}
                 title="Find My Location Automatically (GPS)"
               >
                 {isLocatingGps ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-600" />
                 ) : (
                   <span>🎯</span>
                 )}
@@ -608,8 +608,8 @@ export const RecipeLibrary = ({ onNavigate, personalRecipes }: { onNavigate: (sc
         </div>
 
         {gpsError && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-2 text-xs text-amber-950 font-medium">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+          <div className="p-3 bg-sky-50 border border-sky-200 rounded-2xl flex items-center gap-2 text-xs text-sky-950 font-medium">
+            <AlertCircle className="w-4 h-4 text-sky-600 shrink-0" />
             <span>{gpsError}</span>
           </div>
         )}
@@ -721,7 +721,7 @@ export const RecipeLibrary = ({ onNavigate, personalRecipes }: { onNavigate: (sc
                     onClick={() => speakRecipe(recipe)}
                     className={`p-2.5 rounded-xl border flex items-center justify-center gap-1 cursor-pointer transition-colors ${
                       speakingRecipeId === recipe.id
-                        ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse'
+                        ? 'bg-sky-50 text-sky-700 border-sky-200 animate-pulse'
                         : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
                     }`}
                     title={speakingRecipeId === recipe.id ? "Stop reading" : "Listen to recipe aloud"}

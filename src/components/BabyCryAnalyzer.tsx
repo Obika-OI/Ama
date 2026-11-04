@@ -549,7 +549,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
           {/* Frequency Matching */}
           <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-100 space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shrink-0">
+              <span className="w-6 h-6 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold shrink-0">
                 📊
               </span>
               <h5 className="text-xs font-black text-slate-900">Frequency Matching</h5>
@@ -574,21 +574,21 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
         </div>
 
         {/* Essential Warnings Banner */}
-        <div className="p-4 bg-amber-50/80 border-2 border-amber-200/80 rounded-2xl space-y-2.5">
-          <div className="flex items-center gap-2 text-amber-900">
-            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+        <div className="p-4 bg-sky-50/80 border-2 border-sky-200/80 rounded-2xl space-y-2.5">
+          <div className="flex items-center gap-2 text-sky-900">
+            <ShieldAlert className="w-4 h-4 text-sky-600 shrink-0" />
             <h5 className="text-xs font-black uppercase tracking-wider">Important Warnings & Guidance</h5>
           </div>
 
-          <ul className="space-y-2 text-xs text-amber-950 font-medium">
+          <ul className="space-y-2 text-xs text-sky-950 font-medium">
             <li className="flex items-start gap-2">
-              <span className="text-amber-600 font-black">•</span>
+              <span className="text-sky-600 font-black">•</span>
               <span>
                 <strong>Not a Medical Device:</strong> These tools offer general parenting support rather than precise medical diagnoses.
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-amber-600 font-black">•</span>
+              <span className="text-sky-600 font-black">•</span>
               <span>
                 <strong>Variable Accuracy:</strong> Background noise can interfere with readings, and parental intuition remains essential.
               </span>
@@ -816,23 +816,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
             </div>
           )}
 
-          {/* Action Button */}
-          {analysisResult.recommendedAction && (
-            <button
-              onClick={() => {
-                if (analysisResult.recommendedAction.actionType === 'sleep') {
-                  localStorage.setItem('ama_auto_start_nap_timer', 'true');
-                  if (onNavigate) onNavigate('sleep');
-                } else {
-                  if (onNavigate) onNavigate('feeding');
-                }
-              }}
-              className="w-full py-3.5 bg-primary hover:bg-primary/90 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer border-none"
-            >
-              <span>{analysisResult.recommendedAction.buttonLabel || 'Apply Recommendation'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          )}
+
         </motion.div>
       )}
     </div>

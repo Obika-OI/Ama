@@ -95,17 +95,17 @@ async function generateContentWithFallback(
     config?: any;
   }
 ) {
-  // Model Cascade using the undeprecated Gemini models
+  // Model Cascade using the undeprecated Gemini models (prioritizing ultra-stable flash-lite & 3.5-flash first)
   const UNDEPRECATED_10_MODEL_CASCADE = [
-    "gemini-3.8-flash",          // 1. Primary flagship flash model
-    "gemini-flash-latest",       // 2. Latest flash alias
-    "gemini-3.1-pro-preview",    // 3. Complex reasoning & pro model
-    "gemini-3.1-flash-lite",     // 4. Lightweight fast model
-    "gemini-flash-lite-latest",  // 5. Latest flash-lite alias
-    "gemini-3.5-flash",          // 6. Fast search grounding & multimodal
-    "gemini-3.7-flash",          // 7. Enhanced 3.7 flash variant
-    "gemini-3.6-flash",          // 8. Stable 3.6 flash variant
-    "gemini-3.5-flash-lite",     // 9. Fast 3.5 flash lite
+    "gemini-3.5-flash-lite",     // 1. Ultra stable fast lite model
+    "gemini-3.5-flash",          // 2. Ultra stable standard flash model
+    "gemini-3.1-flash-lite",     // 3. Stable flash lite variant
+    "gemini-3.7-flash",          // 4. Enhanced 3.7 flash variant
+    "gemini-3.6-flash",          // 5. Stable 3.6 flash variant
+    "gemini-3.8-flash",          // 6. Flagship flash model
+    "gemini-flash-latest",       // 7. Latest flash alias
+    "gemini-3.1-pro-preview",    // 8. Complex reasoning & pro model
+    "gemini-flash-lite-latest",  // 9. Latest flash-lite alias
     "gemini-3-flash-preview",    // 10. Gemini 3 flash preview
     "gemini-pro-latest"          // 11. Pro latest alias
   ];
@@ -2398,56 +2398,7 @@ function savePersistentStore(store: PersistentAppStore) {
 
 const liveStore = loadPersistentStore();
 
-async function generateGroundedSpecialistAnswer(params: {
-  title: string;
-  content: string;
-  category: string;
-  babyAgeContext?: string;
-  location?: string;
-}): Promise<{ text: string; sources: { title: string; uri: string }[] } | null> {
-  const ai = getGenAI();
-  if (!ai) return null;
-
-  const prompt = `You are a dedicated parenting support advisor on the Ama Baby Care Community Support network, specializing in "${params.category}".
-A parent/caregiver${params.location ? ` in ${params.location}` : ""}${params.babyAgeContext ? ` (Baby age: ${params.babyAgeContext})` : ""} asked:
-
-Title: ${params.title}
-Question: ${params.content}
-
-Provide a clear, compassionate, evidence-based supportive answer grounded in WHO, UNICEF, AAP, and wellness lactation/parenting guidelines.
-Structure your response with:
-1. Direct practical guidance the parent can apply immediately.
-2. What signs to watch for (and when to consult a local clinic/hospital in person).
-Keep it warm, structured, and easy to read.`;
-
-  try {
-    const response = await generateContentWithFallback(ai, {
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-      }
-    });
-
-    const text = response?.text?.trim();
-    if (!text) return null;
-
-    const chunks = response?.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    const sources: { title: string; uri: string }[] = [];
-    for (const chunk of chunks) {
-      if (chunk.web?.uri) {
-        sources.push({
-          title: chunk.web.title || chunk.web.uri,
-          uri: chunk.web.uri
-        });
-      }
-    }
-
-    return { text, sources };
-  } catch (err) {
-    console.warn("[Community Specialist Grounding] Error:", err);
-    return null;
-  }
-}
+// AI Specialist Synthesis feature removed.
 
 // --- 5A. COMMUNITY SUPPORT ENDPOINTS ---
 app.get("/api/community/state", (req: Request, res: Response) => {
@@ -2499,30 +2450,7 @@ app.post("/api/community/posts", async (req: Request, res: Response) => {
       updatedAt: now
     };
 
-    if (requestExpertAnswer) {
-      const specialist = await generateGroundedSpecialistAnswer({
-        title: newPost.title,
-        content: newPost.content,
-        category: newPost.category,
-        babyAgeContext: newPost.babyAgeContext,
-        location: newPost.authorLocation
-      });
-      if (specialist) {
-        newPost.replies.push({
-          id: `reply-exp-${Date.now()}`,
-          postId: newPost.id,
-          authorId: "specialist-evidence-engine",
-          authorName: `${newPost.category} Clinical Reference`,
-          authorRole: "Evidence-Based Specialist Synthesis",
-          authorLocation: "Global Clinical Guidelines (WHO / AAP)",
-          content: specialist.text,
-          isExpertResponse: true,
-          upvotes: [],
-          sources: specialist.sources,
-          createdAt: new Date().toISOString()
-        });
-      }
-    }
+    // AI Specialist Auto-Reply removed.
 
     liveStore.communityPosts.unshift(newPost);
     savePersistentStore(liveStore);
@@ -2572,49 +2500,7 @@ app.post("/api/community/posts/:postId/reply", (req: Request, res: Response) => 
   }
 });
 
-app.post("/api/community/posts/:postId/specialist-answer", async (req: Request, res: Response) => {
-  try {
-    const { postId } = req.params;
-    const post = liveStore.communityPosts.find(p => p.id === postId);
-    if (!post) {
-      return res.status(404).json({ error: "Discussion thread not found." });
-    }
 
-    const specialist = await generateGroundedSpecialistAnswer({
-      title: post.title,
-      content: post.content,
-      category: post.category,
-      babyAgeContext: post.babyAgeContext,
-      location: post.authorLocation
-    });
-
-    if (!specialist) {
-      return res.status(503).json({ error: "Specialist synthesis service is temporarily unavailable." });
-    }
-
-    const reply: CommunityReply = {
-      id: `reply-exp-${Date.now()}`,
-      postId: post.id,
-      authorId: "specialist-evidence-engine",
-      authorName: `${post.category} Clinical Reference`,
-      authorRole: "Evidence-Based Specialist Synthesis",
-      authorLocation: "Global Clinical Guidelines (WHO / AAP)",
-      content: specialist.text,
-      isExpertResponse: true,
-      upvotes: [],
-      sources: specialist.sources,
-      createdAt: new Date().toISOString()
-    };
-
-    post.replies.push(reply);
-    post.updatedAt = reply.createdAt;
-    savePersistentStore(liveStore);
-
-    return res.json({ post, reply });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || "Failed to generate specialist answer." });
-  }
-});
 
 app.post("/api/community/posts/:postId/upvote", (req: Request, res: Response) => {
   try {
@@ -2762,81 +2648,7 @@ app.post("/api/community/chat", (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/community/ask-specialist", async (req: Request, res: Response) => {
-  try {
-    const {
-      field = "Lactation & Breastfeeding",
-      question,
-      babyAge = "",
-      location = "",
-      publishToForum = false,
-      authorId = "anon",
-      authorName = "Parent",
-      authorRole = "Parent"
-    } = req.body;
-
-    if (!question || !String(question).trim()) {
-      return res.status(400).json({ error: "Please enter a question for the specialist." });
-    }
-
-    const result = await generateGroundedSpecialistAnswer({
-      title: `${field} Inquiry`,
-      content: String(question),
-      category: String(field),
-      babyAgeContext: String(babyAge),
-      location: String(location)
-    });
-
-    if (!result) {
-      return res.status(503).json({ error: "Unable to reach the specialist grounding engine right now." });
-    }
-
-    let publishedPost: CommunityPost | null = null;
-    if (publishToForum) {
-      const now = new Date().toISOString();
-      publishedPost = {
-        id: `post-${Date.now()}`,
-        authorId: String(authorId),
-        authorName: String(authorName),
-        authorRole: String(authorRole),
-        authorLocation: String(location),
-        babyAgeContext: String(babyAge),
-        category: String(field),
-        title: String(question).slice(0, 160),
-        content: String(question),
-        tags: [String(field)],
-        upvotes: [],
-        replies: [
-          {
-            id: `reply-exp-${Date.now()}`,
-            postId: `post-${Date.now()}`,
-            authorId: "specialist-evidence-engine",
-            authorName: `${field} Clinical Reference`,
-            authorRole: "Evidence-Based Specialist Synthesis",
-            authorLocation: "Global Clinical Guidelines (WHO / AAP)",
-            content: result.text,
-            isExpertResponse: true,
-            upvotes: [],
-            sources: result.sources,
-            createdAt: now
-          }
-        ],
-        createdAt: now,
-        updatedAt: now
-      };
-      liveStore.communityPosts.unshift(publishedPost);
-      savePersistentStore(liveStore);
-    }
-
-    return res.json({
-      answer: result.text,
-      sources: result.sources,
-      publishedPost
-    });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-});
+// Route removed.
 
 app.post("/api/community/specialists/register", (req: Request, res: Response) => {
   try {

@@ -95,7 +95,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
             <span>Back</span>
           </button>
           <div className="flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-rose-600" />
+            <ShieldAlert className="w-5 h-5 text-sky-600" />
             <h1 className="font-serif font-black text-gray-900 text-lg sm:text-xl tracking-tight">
               Infant Safety Hub
             </h1>
@@ -108,7 +108,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
       <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-10 w-full text-left">
         
         {/* Emergency Alert Banner with Real-Time Location Awareness */}
-        <section className="bg-rose-600 text-white rounded-[2.5rem] p-6 sm:p-8 shadow-xl shadow-rose-900/10 relative overflow-hidden">
+        <section className="bg-sky-600 text-white rounded-[2.5rem] p-6 sm:p-8 shadow-xl shadow-sky-900/10 relative overflow-hidden">
           <div className="relative z-10 space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
@@ -131,14 +131,14 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
             <div className="pt-2 flex flex-wrap items-center gap-3">
               <a 
                 href={`tel:${emergencyInfo.number}`}
-                className="bg-white text-rose-700 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 no-underline shadow-md hover:bg-rose-50 transition-colors"
+                className="bg-white text-sky-700 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 no-underline shadow-md hover:bg-sky-50 transition-colors"
               >
-                <Phone className="w-4 h-4 text-rose-600" />
+                <Phone className="w-4 h-4 text-sky-600" />
                 <span>Call Emergency ({emergencyInfo.number})</span>
               </a>
               <button 
                 onClick={() => onNavigateApp('local-directories')}
-                className="bg-rose-700 hover:bg-rose-800 text-white border border-rose-400 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2 shadow-xs"
+                className="bg-sky-700 hover:bg-sky-800 text-white border border-sky-400 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2 shadow-xs"
               >
                 <MapPin className="w-4 h-4" />
                 <span>Find Pediatric Care in {emergencyInfo.city}</span>
@@ -146,7 +146,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
             </div>
 
             {emergencyInfo.notes && (
-              <p className="text-[11px] text-rose-100 opacity-90">
+              <p className="text-[11px] text-sky-100 opacity-90">
                 Local dispatch service: {emergencyInfo.notes}
               </p>
             )}
@@ -178,14 +178,14 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
         </section>
 
         {/* SECTION 1: Learn the Heimlich Maneuver for Infants (Displayed Directly on Page) */}
-        <section id="heimlich-guide" className="bg-white rounded-[2.5rem] border border-rose-100 p-6 sm:p-10 space-y-8 shadow-sm">
+        <section id="heimlich-guide" className="bg-white rounded-[2.5rem] border border-sky-100 p-6 sm:p-10 space-y-8 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shadow-xs shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shadow-xs shrink-0">
                 <Wind className="w-7 h-7" />
               </div>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-rose-600">
+                <span className="text-[10px] font-black uppercase tracking-wider text-sky-600">
                   Critical Response (For Babies Under 1 Year)
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-serif font-black text-gray-900">
@@ -193,12 +193,12 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
                 </h3>
               </div>
             </div>
-            <span className="px-4 py-1.5 rounded-full bg-rose-50 text-rose-700 text-[11px] font-bold border border-rose-100 w-fit">
+            <span className="px-4 py-1.5 rounded-full bg-sky-50 text-sky-700 text-[11px] font-bold border border-sky-100 w-fit">
               Essential Action Guide
             </span>
           </div>
 
-          <div className="p-5 bg-amber-50 rounded-2xl border border-amber-200 text-amber-950 text-sm leading-relaxed font-medium">
+          <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-slate-950 text-sm leading-relaxed font-medium">
             <strong>Check the response first:</strong> If your baby is coughing loudly, crying, or making sounds, their airway is not fully blocked. Stay calm and allow them to cough up the food on their own. Only perform the steps below if your baby is <strong>silent, cannot cry or breathe, or turns blue</strong>.
           </div>
 
@@ -206,7 +206,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-6 bg-slate-50 rounded-3xl border border-gray-100 space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-xl bg-rose-600 text-white font-black text-xs flex items-center justify-center shrink-0">1</span>
+                  <span className="w-8 h-8 rounded-xl bg-sky-600 text-white font-black text-xs flex items-center justify-center shrink-0">1</span>
                   <h4 className="font-black text-gray-900 text-base">Face-Down Forearm Support</h4>
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed pl-11">
@@ -216,7 +216,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
 
               <div className="p-6 bg-slate-50 rounded-3xl border border-gray-100 space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-xl bg-rose-600 text-white font-black text-xs flex items-center justify-center shrink-0">2</span>
+                  <span className="w-8 h-8 rounded-xl bg-sky-600 text-white font-black text-xs flex items-center justify-center shrink-0">2</span>
                   <h4 className="font-black text-gray-900 text-base">5 Firm Back Blows</h4>
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed pl-11">
@@ -226,7 +226,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
 
               <div className="p-6 bg-slate-50 rounded-3xl border border-gray-100 space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-xl bg-rose-600 text-white font-black text-xs flex items-center justify-center shrink-0">3</span>
+                  <span className="w-8 h-8 rounded-xl bg-sky-600 text-white font-black text-xs flex items-center justify-center shrink-0">3</span>
                   <h4 className="font-black text-gray-900 text-base">5 Chest Thrusts</h4>
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed pl-11">
@@ -236,7 +236,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
 
               <div className="p-6 bg-slate-50 rounded-3xl border border-gray-100 space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-xl bg-rose-600 text-white font-black text-xs flex items-center justify-center shrink-0">4</span>
+                  <span className="w-8 h-8 rounded-xl bg-sky-600 text-white font-black text-xs flex items-center justify-center shrink-0">4</span>
                   <h4 className="font-black text-gray-900 text-base">Call & Repeat</h4>
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed pl-11">
@@ -246,12 +246,12 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
             </div>
           </div>
 
-          <div className="bg-rose-50 rounded-3xl p-6 border border-rose-100 space-y-4">
-            <h4 className="font-black text-rose-900 text-base flex items-center gap-2">
+          <div className="bg-sky-50 rounded-3xl p-6 border border-sky-100 space-y-4">
+            <h4 className="font-black text-sky-900 text-base flex items-center gap-2">
               <AlertCircle className="w-5 h-5" />
               High-Risk Choking Hazards for Infants
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm text-rose-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm text-sky-800">
               <div className="space-y-2">
                 <p className="font-bold">Dangerous Food Textures:</p>
                 <ul className="list-disc pl-5 space-y-1">
@@ -277,14 +277,14 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
         </section>
 
         {/* SECTION 2: Infection Control & Illness Monitoring */}
-        <section id="fever-guide" className="bg-white rounded-[2.5rem] border border-amber-100 p-6 sm:p-10 space-y-8 shadow-sm">
+        <section id="fever-guide" className="bg-white rounded-[2.5rem] border border-sky-100 p-6 sm:p-10 space-y-8 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-xs shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shadow-xs shrink-0">
                 <Thermometer className="w-7 h-7" />
               </div>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-600">
+                <span className="text-[10px] font-black uppercase tracking-wider text-sky-600">
                   Illness Management & Hygiene
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-serif font-black text-gray-900">
@@ -292,7 +292,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
                 </h3>
               </div>
             </div>
-            <span className="px-4 py-1.5 rounded-full bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200 w-fit">
+            <span className="px-4 py-1.5 rounded-full bg-sky-50 text-sky-800 text-[11px] font-bold border border-sky-200 w-fit">
               Prevention & Monitoring
             </span>
           </div>
@@ -341,12 +341,12 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
               </div>
             </div>
 
-            <div className="p-8 bg-rose-50 border border-rose-200 rounded-[2.5rem] space-y-4 shadow-sm">
-              <h4 className="font-black text-rose-950 text-lg flex items-center gap-2">
+            <div className="p-8 bg-sky-50 border border-sky-200 rounded-[2.5rem] space-y-4 shadow-sm">
+              <h4 className="font-black text-sky-950 text-lg flex items-center gap-2">
                 <AlertCircle className="w-6 h-6" />
                 The Newborn Fever Protocol (Birth to 3 Months)
               </h4>
-              <p className="text-sm text-rose-900 leading-relaxed font-medium">
+              <p className="text-sm text-sky-900 leading-relaxed font-medium">
                 In infants under 90 days old, a rectal temperature of <strong>38.0°C (100.4°F)</strong> or higher is considered a medical priority. Because newborns have limited ability to fight serious infections, a fever may be the only sign of a significant underlying illness. Do not give fever-reducing medication before calling your care provider, as it can hide symptoms that the provider needs to see.
               </p>
             </div>
@@ -385,13 +385,13 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
                   </p>
                 </div>
 
-                <div className="p-8 bg-rose-50 rounded-[2.5rem] border border-rose-100 space-y-4 shadow-md">
-                  <h4 className="font-black text-rose-950 flex items-center gap-3 text-lg">
+                <div className="p-8 bg-sky-50 rounded-[2.5rem] border border-sky-100 space-y-4 shadow-md">
+                  <h4 className="font-black text-sky-950 flex items-center gap-3 text-lg">
                     <span className="text-2xl">🚨</span>
                     Critical Warning Signs
                   </h4>
-                  <p className="text-[11px] text-rose-900 font-black uppercase tracking-[0.15em]">Seek Immediate Emergency Care If:</p>
-                  <ul className="text-xs text-rose-800 list-disc pl-5 space-y-2 font-medium">
+                  <p className="text-[11px] text-sky-900 font-black uppercase tracking-[0.15em]">Seek Immediate Emergency Care If:</p>
+                  <ul className="text-xs text-sky-800 list-disc pl-5 space-y-2 font-medium">
                     <li>The baby is difficult to wake or is unusually lethargic/limp</li>
                     <li>Breathing is labored (ribs sucking in, rapid panting, or grunting)</li>
                     <li>Signs of dehydration: No wet diaper in 8+ hours, or dry mouth/no tears</li>
@@ -406,14 +406,14 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
         </section>
 
         {/* SECTION 3: Safe Sleep Standards */}
-        <section id="sleep-checklist" className="bg-white rounded-[2.5rem] border border-indigo-100 p-6 sm:p-10 space-y-8 shadow-sm">
+        <section id="sleep-checklist" className="bg-white rounded-[2.5rem] border border-sky-100 p-6 sm:p-10 space-y-8 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-xs shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shadow-xs shrink-0">
                 <Moon className="w-7 h-7" />
               </div>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600">
+                <span className="text-[10px] font-black uppercase tracking-wider text-sky-600">
                   Every Sleep Session, Day & Night
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-serif font-black text-gray-900">
@@ -421,7 +421,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
                 </h3>
               </div>
             </div>
-            <span className="px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold border border-indigo-100 w-fit">
+            <span className="px-4 py-1.5 rounded-full bg-sky-50 text-sky-700 text-[11px] font-bold border border-sky-100 w-fit">
               SIDS Risk Reduction Guide
             </span>
           </div>
@@ -470,12 +470,12 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
                 onClick={() => toggleSleepCheck(item.key)}
                 className={`p-6 rounded-[2rem] border transition-all cursor-pointer flex items-start gap-4 select-none ${
                   sleepChecks[item.key]
-                    ? 'bg-indigo-50/70 border-indigo-200 shadow-sm'
+                    ? 'bg-sky-50/70 border-sky-200 shadow-sm'
                     : 'bg-white border-gray-200 opacity-60'
                 }`}
               >
                 <div className={`w-6 h-6 rounded-lg flex items-center justify-center mt-0.5 shrink-0 ${
-                  sleepChecks[item.key] ? 'bg-indigo-600 text-white shadow-sm' : 'border border-gray-300 bg-white'
+                  sleepChecks[item.key] ? 'bg-sky-600 text-white shadow-sm' : 'border border-gray-300 bg-white'
                 }`}>
                   {sleepChecks[item.key] && <Check className="w-4 h-4 stroke-[3]" />}
                 </div>
@@ -574,7 +574,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
         {/* Health Information Notice */}
         <section className="bg-white rounded-[2rem] border border-slate-100 p-6 sm:p-8 space-y-3 text-left">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-sky-50 text-sky-600 rounded-xl flex items-center justify-center">
               <Info className="w-5 h-5" />
             </div>
             <h3 className="text-base font-serif font-black text-slate-900">Important Health Information Notice</h3>

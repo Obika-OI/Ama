@@ -166,8 +166,8 @@ export const LegalTermsScreen = ({
               </p>
             </div>
 
-            <div className="bg-rose-50 border border-rose-100 p-6 rounded-2xl text-rose-900 space-y-3 text-xs">
-              <p className="font-bold flex items-center gap-2 text-rose-700">
+            <div className="bg-sky-50 border border-sky-100 p-6 rounded-2xl text-sky-900 space-y-3 text-xs">
+              <p className="font-bold flex items-center gap-2 text-sky-700">
                 <span>⚠️</span> Urgent Infant Safety Protocol
               </p>
               <p className="leading-relaxed">
@@ -213,7 +213,11 @@ export const LegalTermsScreen = ({
         <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 text-xs">
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-white font-serif font-black text-base">
-              <span>🍼</span>
+              <img 
+                src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
+                alt="Logo" 
+                className="w-6 h-6 object-contain"
+              />
               <span>Ama Baby Care</span>
             </div>
             <p className="text-slate-400 leading-relaxed text-[11px]">

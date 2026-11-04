@@ -31,8 +31,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-white/60 px-4 sm:px-8 py-4 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 cursor-pointer" onClick={onGetStarted}>
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl font-black">
-              🍼
+            <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center overflow-hidden">
+              <img 
+                src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
+                alt="Ama Baby Care Logo" 
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <span className="font-serif font-black text-xl text-gray-900 tracking-tight block">
@@ -261,7 +265,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
             {/* High-Fidelity Content Card 3: Immunization Calendars, Reminders & Paracetamol Dosing */}
             <div className="bg-white/90 backdrop-blur-xs p-8 rounded-[36px] border border-white shadow-xl shadow-card/10 space-y-4 flex flex-col justify-between">
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl font-bold">
+                <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-bold">
                   💊
                 </div>
                 <h3 className="font-serif font-black text-lg text-gray-900">Immunization Calendars & Offline Alarms</h3>
@@ -280,7 +284,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
             {/* High-Fidelity Content Card 4: Private Device-Only Sandboxing & Sibling Profiles */}
             <div className="bg-white/90 backdrop-blur-xs p-8 rounded-[36px] border border-white shadow-xl shadow-card/10 space-y-4 flex flex-col justify-between">
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-bold">
+                <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-bold">
                   🔒
                 </div>
                 <h3 className="font-serif font-black text-lg text-gray-900">Private Device-Only Sandbox Protection</h3>
@@ -304,7 +308,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
       <section id="gamified-growth" className="px-4 sm:px-8 py-16 text-left">
         <div className="max-w-5xl mx-auto space-y-12">
           <div className="text-center space-y-4">
-            <span className="text-xs font-black uppercase text-indigo-600 tracking-widest block">
+            <span className="text-xs font-black uppercase text-sky-600 tracking-widest block">
               Play, Learn & Grow Together
             </span>
             <h2 className="text-2xl sm:text-4xl font-serif font-black text-gray-900">
@@ -320,10 +324,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
             {/* Gamified Card 1: Daily Parenting Quests (300+ Words) */}
             <div className="bg-white/90 backdrop-blur-xs p-8 rounded-[36px] border border-white shadow-xl shadow-card/10 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl font-bold">
+                <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-bold">
                   🎯
                 </div>
-                <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-full bg-sky-100 text-sky-700 text-[10px] font-black uppercase tracking-wider">
                   +30 XP Points
                 </span>
               </div>
@@ -364,10 +368,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
             {/* Gamified Card 3: Storytime Reader Log (300+ Words) */}
             <div className="bg-white/90 backdrop-blur-xs p-8 rounded-[36px] border border-white shadow-xl shadow-card/10 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-bold">
+                <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-bold">
                   📚
                 </div>
-                <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-full bg-sky-100 text-sky-700 text-[10px] font-black uppercase tracking-wider">
                   Language Booster
                 </span>
               </div>
@@ -386,10 +390,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
             {/* Gamified Card 4: Daily Streak Habit Flame (300+ Words) */}
             <div className="bg-white/90 backdrop-blur-xs p-8 rounded-[36px] border border-white shadow-xl shadow-card/10 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl font-bold">
+                <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-bold">
                   🔥
                 </div>
-                <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-[10px] font-black uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-full bg-sky-100 text-sky-700 text-[10px] font-black uppercase tracking-wider">
                   Habit Builder
                 </span>
               </div>

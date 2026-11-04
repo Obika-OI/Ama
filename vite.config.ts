@@ -14,23 +14,25 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
-          name: 'BabyCare Tracking App',
-          short_name: 'BabyCare',
-          description: 'Parenting and weaning tracking application',
-          theme_color: '#ffffff',
+          name: 'Ama Baby Care',
+          short_name: 'Ama',
+          description: 'A comprehensive baby care companion with AI acoustic cry analyzer, local weaning recipes, and private tracking.',
+          theme_color: '#37b1f5',
+          background_color: '#ffffff',
+          display: 'standalone',
           icons: [
             {
-              src: 'pwa-192x192.png',
+              src: '/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'pwa-512x512.png',
+              src: '/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: 'pwa-512x512.png',
+              src: '/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'

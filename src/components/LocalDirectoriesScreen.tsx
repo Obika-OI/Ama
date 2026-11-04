@@ -65,7 +65,7 @@ const DIRECTORY_CATEGORIES = [
     icon: Building2,
     emoji: '🏥',
     defaultSearchText: 'Maternity hospital children hospital pediatric emergency',
-    pinColor: '#e11d48'
+    pinColor: '#37b1f5'
   },
   {
     id: 'healthcare' as const,
@@ -73,7 +73,7 @@ const DIRECTORY_CATEGORIES = [
     icon: Stethoscope,
     emoji: '🩺',
     defaultSearchText: 'Pediatrician child health clinic family healthcare provider immunization clinic',
-    pinColor: '#0284c7'
+    pinColor: '#0ea5e9'
   },
   {
     id: 'lactation' as const,
@@ -81,7 +81,7 @@ const DIRECTORY_CATEGORIES = [
     icon: HeartHandshake,
     emoji: '🤱',
     defaultSearchText: 'Lactation consultant breastfeeding clinic postnatal maternal support center',
-    pinColor: '#7c3aed'
+    pinColor: '#f472b6'
   },
   {
     id: 'caregivers' as const,
@@ -89,7 +89,7 @@ const DIRECTORY_CATEGORIES = [
     icon: Users,
     emoji: '🤱',
     defaultSearchText: 'Postpartum care center maternity nurse doula newborn home care agency',
-    pinColor: '#37b1f5'
+    pinColor: '#60a5fa'
   },
   {
     id: 'pharmacies' as const,
@@ -97,7 +97,7 @@ const DIRECTORY_CATEGORIES = [
     icon: Pill,
     emoji: '💊',
     defaultSearchText: 'Pharmacy pediatric pharmacy maternal healthcare dispensary',
-    pinColor: '#059669'
+    pinColor: '#0284c7'
   },
   {
     id: 'baby-names' as const,
@@ -105,7 +105,7 @@ const DIRECTORY_CATEGORIES = [
     icon: BookOpen,
     emoji: '📖',
     defaultSearchText: '',
-    pinColor: '#d97706'
+    pinColor: '#fb7185'
   }
 ];
 
@@ -706,7 +706,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
                           <p className="text-[11px] text-gray-500 font-semibold">{cg.location} • {cg.languages.join(', ')}</p>
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                          <span className="text-xs font-black text-sky-700 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-200">
                             ⭐ {cg.rating.toFixed(2)} ({cg.reviewCount})
                           </span>
                           <p className="text-[10px] font-black text-gray-700 mt-1">₦{cg.dailyRateNGN.toLocaleString()}/day</p>
@@ -847,13 +847,13 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
                       </p>
                     </div>
                     {selectedPlace.rating && (
-                      <div className="bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl text-right shrink-0">
-                        <div className="flex items-center gap-1 text-xs font-black text-amber-800">
-                          <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                      <div className="bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-xl text-right shrink-0">
+                        <div className="flex items-center gap-1 text-xs font-black text-sky-800">
+                          <Star className="w-3.5 h-3.5 fill-sky-500 text-sky-500" />
                           <span>{selectedPlace.rating.toFixed(1)}</span>
                         </div>
                         {selectedPlace.userRatingCount && (
-                          <p className="text-[9px] text-amber-700 font-bold">
+                          <p className="text-[9px] text-sky-700 font-bold">
                             ({selectedPlace.userRatingCount})
                           </p>
                         )}
@@ -941,7 +941,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
                       </div>
                       {place.rating && (
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0 ${
-                          selectedPlace?.id === place.id ? 'bg-white/20 text-white' : 'bg-white text-amber-700'
+                          selectedPlace?.id === place.id ? 'bg-white/20 text-white' : 'bg-white text-sky-700'
                         }`}>
                           ⭐ {place.rating.toFixed(1)}
                         </span>

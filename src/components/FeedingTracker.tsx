@@ -149,7 +149,7 @@ export const FeedingTracker = ({
 
   // Search in safety guide
   const [searchQuery, setSearchQuery] = useState('');
-  const [guideFilter, setGuideFilter] = useState<'all' | 'green' | 'amber' | 'red'>('all');
+  const [guideFilter, setGuideFilter] = useState<'all' | 'green' | 'caution' | 'avoid'>('all');
   const [selectedFood, setSelectedFood] = useState<any | null>(null);
   const [expandedAlertId, setExpandedAlertId] = useState<string | null>(null);
 
@@ -751,7 +751,7 @@ export const FeedingTracker = ({
                     timestamp: m.time || m.timestamp || 'Recorded',
                     date: m.date || 'Today',
                     icon: '🥣',
-                    iconBg: 'bg-amber-50 text-amber-700',
+                    iconBg: 'bg-sky-50 text-sky-700',
                     mealData: m,
                     isDeletable: false
                   });
@@ -796,7 +796,7 @@ export const FeedingTracker = ({
                           </button>
                         )}
                         {item.kind === 'solid' && (
-                          <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
                             Solid
                           </span>
                         )}
@@ -1057,23 +1057,23 @@ export const FeedingTracker = ({
               /* Ingredient Index List & Filter View */
               <>
                 {/* Safety Hub Banner Link */}
-                <div className="bg-gradient-to-r from-rose-600 to-rose-700 text-white rounded-[2rem] p-6 sm:p-7 shadow-lg shadow-rose-900/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left">
+                <div className="bg-gradient-to-r from-sky-600 to-sky-700 text-white rounded-[2rem] p-6 sm:p-7 shadow-lg shadow-sky-900/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left">
                   <div className="space-y-1 max-w-xl">
                     <div className="flex items-center gap-2">
-                      <Shield className="w-5 h-5 text-rose-200" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-rose-200">Emergency & Prevention</span>
+                      <Shield className="w-5 h-5 text-sky-200" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-sky-200">Emergency & Prevention</span>
                     </div>
                     <h3 className="text-lg sm:text-xl font-serif font-black">
                       Infant Safety Hub: First Aid & Emergency Guidelines
                     </h3>
-                    <p className="text-xs text-rose-100 opacity-95 leading-relaxed">
+                    <p className="text-xs text-sky-100 opacity-95 leading-relaxed">
                       Instant location-aware emergency numbers, pediatric hospital navigation, 4-step Heimlich maneuver for infants, safe sleep checklist, and home babyproofing.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => onNavigate('safety-guide')}
-                    className="px-5 py-3 bg-white text-rose-700 rounded-2xl font-black text-xs uppercase tracking-wider hover:bg-rose-50 transition-all shadow-sm flex items-center gap-2 shrink-0 cursor-pointer border-none"
+                    className="px-5 py-3 bg-white text-sky-700 rounded-2xl font-black text-xs uppercase tracking-wider hover:bg-sky-50 transition-all shadow-sm flex items-center gap-2 shrink-0 cursor-pointer border-none"
                   >
                     <span>Open Safety Hub</span>
                     <ChevronRight className="w-4 h-4" />
@@ -1099,7 +1099,7 @@ export const FeedingTracker = ({
                       id: 'alert-choking',
                       title: 'Choking Prevention & Food Texture Rules',
                       badge: 'High Importance',
-                      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+                      badgeColor: 'bg-sky-50 text-sky-700 border-sky-200',
                       summary: 'Whole round foods, hard vegetables, and slippery solids can block infant airways. Proper cutting and softening prevent choking.',
                       inDepth: [
                         'Always slice round foods (grapes, cherry tomatoes, large berries) lengthwise into quarters before offering.',
@@ -1113,7 +1113,7 @@ export const FeedingTracker = ({
                       id: 'alert-botulism',
                       title: 'Honey & Infant Botulism Warning (Never Under 12 Months)',
                       badge: 'Strict Avoidance',
-                      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+                      badgeColor: 'bg-sky-50 text-sky-700 border-sky-200',
                       summary: 'Raw honey, baked honey, and unpasteurized syrups contain bacterial spores that can cause severe infant botulism before 12 months.',
                       inDepth: [
                         'Honey may harbor dormant spores of Clostridium botulinum. While older digestive tracts neutralize these spores harmlessly, infant gut flora allows them to germinate and release dangerous toxins.',
@@ -1126,7 +1126,7 @@ export const FeedingTracker = ({
                       id: 'alert-dairy',
                       title: 'Whole Cow’s Milk & Kidney Solute Load',
                       badge: 'Age-Appropriate Caution',
-                      badgeColor: 'bg-amber-50 text-amber-800 border-amber-200',
+                      badgeColor: 'bg-sky-50 text-sky-800 border-sky-200',
                       summary: 'Whole cow’s milk should not replace breast milk or formula before age one because its mineral concentration strains infant kidneys.',
                       inDepth: [
                         'Whole cow’s milk contains high concentrations of protein and minerals that place an unnecessary filtering load on developing infant kidneys.',
@@ -1153,7 +1153,7 @@ export const FeedingTracker = ({
                       id: 'alert-storage',
                       title: 'Safe Storage of Local Dry Grains & Tom Brown Weaning Flours',
                       badge: 'Resourceful Kitchen Safety',
-                      badgeColor: 'bg-blue-50 text-blue-800 border-blue-200',
+                      badgeColor: 'bg-sky-50 text-sky-800 border-sky-200',
                       summary: 'Dry roasting grains halts spoilage and eliminates moisture, allowing dry weaning flour to be safely stored without refrigeration.',
                       inDepth: [
                         'Roasting local grains (millet, sorghum, yellow corn, and soybeans) prior to milling drives off residual moisture and naturally deters weevils and molds.',
@@ -1212,13 +1212,13 @@ export const FeedingTracker = ({
                 {/* Section Header for Single-Ingredient Safety Index */}
                 <div className="pt-4 border-t border-gray-100 space-y-1 text-left">
                   <span className="text-[10px] font-black uppercase tracking-wider text-primary">
-                    Single-Ingredient Traffic-Light Index
+                    Safety-Aware Ingredient Index
                   </span>
                   <h3 className="text-base font-serif font-black text-gray-900">
                     Food Safety & Preparation Directory
                   </h3>
                   <p className="text-xs text-gray-500 font-medium">
-                    Filter by traffic-light safety rating or search any ingredient for step-by-step preparation, texture rules, and nutrition facts.
+                    Filter by safety rating or search any ingredient for step-by-step preparation, texture rules, and nutrition facts.
                   </p>
                 </div>
 
@@ -1254,17 +1254,17 @@ export const FeedingTracker = ({
                       Safe
                     </button>
                     <button 
-                      onClick={() => setGuideFilter('amber')}
+                      onClick={() => setGuideFilter('caution')}
                       className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
-                        guideFilter === 'amber' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 border border-gray-200'
+                        guideFilter === 'caution' ? 'bg-primary text-white shadow-md' : 'bg-slate-100 text-slate-700 border border-slate-200'
                       }`}
                     >
                       Caution
                     </button>
                     <button 
-                      onClick={() => setGuideFilter('red')}
+                      onClick={() => setGuideFilter('avoid')}
                       className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
-                        guideFilter === 'red' ? 'bg-pink-500 text-white' : 'bg-pink-50 text-gray-700 border border-pink-100'
+                        guideFilter === 'avoid' ? 'bg-sky-600 text-white shadow-md' : 'bg-sky-50 text-sky-700 border border-sky-100'
                       }`}
                     >
                       Avoid &lt; 12m
@@ -1288,7 +1288,7 @@ export const FeedingTracker = ({
                           <div className="flex items-center gap-2">
                             <span className={`w-3 h-3 rounded-full ${
                               food.color === 'green' ? 'bg-primary' :
-                              food.color === 'amber' ? 'bg-amber-400' : 'bg-rose-500'
+                              food.color === 'amber' ? 'bg-sky-400' : 'bg-sky-500'
                             }`} />
                             <h4 className="font-serif font-black text-gray-900 text-base">{food.name}</h4>
                           </div>
@@ -1309,7 +1309,7 @@ export const FeedingTracker = ({
                         <div className="flex items-start gap-2">
                           <AlertCircle className={`w-4 h-4 shrink-0 mt-0.5 ${
                             food.color === 'green' ? 'text-emerald-500' :
-                            food.color === 'amber' ? 'text-amber-500' : 'text-rose-500'
+                            food.color === 'amber' ? 'text-sky-500' : 'text-sky-500'
                           }`} />
                           <div>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Key Safety Alert</p>
@@ -1318,7 +1318,7 @@ export const FeedingTracker = ({
                         </div>
 
                         <div className="flex items-start gap-2">
-                          <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                          <Info className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
                           <div>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Preparation Summary</p>
                             <p className="text-xs text-gray-600 font-medium leading-relaxed">

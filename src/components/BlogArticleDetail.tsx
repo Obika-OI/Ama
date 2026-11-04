@@ -85,7 +85,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
             'url': window.location.origin,
             'logo': {
               '@type': 'ImageObject',
-              'url': `${window.location.origin}/logo.png`
+              'url': `${window.location.origin}/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png`
             }
           },
           'mainEntityOfPage': {
@@ -176,7 +176,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
         title: 'Track Sleep & Predict Optimal Nap Windows',
         desc: 'Log wake times with 1-tap and let Ama calculate exact subsequent wake windows automatically.',
         actionLabel: 'Open Sleep & Nap Tracker',
-        icon: <Moon className="w-5 h-5 text-indigo-500" />,
+        icon: <Moon className="w-5 h-5 text-sky-500" />,
         screen: 'sleep'
       };
     }
@@ -194,7 +194,7 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
         title: 'Check CDC/WHO Vaccine Schedules & Diaper Health',
         desc: 'Log immunizations, check normal stool color milestones, and keep a clean pediatric health record.',
         actionLabel: 'Open Health & Journal Hub',
-        icon: <ShieldCheck className="w-5 h-5 text-blue-500" />,
+        icon: <ShieldCheck className="w-5 h-5 text-sky-500" />,
         screen: 'journal'
       };
     }
@@ -389,15 +389,15 @@ export const BlogArticleDetail: React.FC<BlogArticleDetailProps> = ({
         </div>
 
         {/* Key Takeaways Callout Box */}
-        <section aria-labelledby="key-takeaways" className="p-6 rounded-3xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 space-y-3">
-          <div className="flex items-center gap-2 text-amber-900 font-serif font-black text-sm uppercase tracking-wider">
-            <ShieldCheck className="w-4 h-4 text-amber-600" />
+        <section aria-labelledby="key-takeaways" className="p-6 rounded-3xl bg-gradient-to-br from-sky-500/10 via-sky-500/5 to-transparent border border-sky-500/20 space-y-3">
+          <div className="flex items-center gap-2 text-sky-900 font-serif font-black text-sm uppercase tracking-wider">
+            <ShieldCheck className="w-4 h-4 text-sky-600" />
             <span id="key-takeaways">Executive Takeaways for Parents</span>
           </div>
           <ul className="space-y-2">
             {article.keyTakeaways.map((point, index) => (
               <li key={index} className="flex items-start gap-2.5 text-xs sm:text-sm text-gray-800 font-medium leading-relaxed">
-                <Check className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <Check className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
                 <span>{point}</span>
               </li>
             ))}

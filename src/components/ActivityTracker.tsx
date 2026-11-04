@@ -1196,7 +1196,7 @@ export const ActivityTracker = ({
                   type="button"
                   onClick={toggleVideoMonitor}
                   className={`px-3.5 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none flex items-center gap-1 ${
-                    videoMonitorActive ? 'bg-slate-900 text-amber-300' : 'bg-white text-gray-700 shadow-xs'
+                    videoMonitorActive ? 'bg-slate-900 text-sky-300' : 'bg-white text-gray-700 shadow-xs'
                   }`}
                 >
                   {videoMonitorActive ? <VideoOff className="w-3.5 h-3.5" /> : <Video className="w-3.5 h-3.5" />}
@@ -1237,7 +1237,7 @@ export const ActivityTracker = ({
                   <button
                     type="button"
                     onClick={() => setCameraSettingsLocked(prev => !prev)}
-                    className="px-2.5 py-1 rounded-full bg-slate-800 text-amber-300 text-[9px] font-black uppercase tracking-wider border border-amber-400/30 cursor-pointer flex items-center gap-1"
+                    className="px-2.5 py-1 rounded-full bg-slate-800 text-sky-300 text-[9px] font-black uppercase tracking-wider border border-sky-400/30 cursor-pointer flex items-center gap-1"
                   >
                     {cameraSettingsLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
                     <span>{cameraSettingsLocked ? 'Grandma Settings Locked' : 'Settings Unlocked'}</span>
@@ -1246,7 +1246,7 @@ export const ActivityTracker = ({
                     type="button"
                     onClick={handleAiGenerationalCapture}
                     disabled={isCapturingMoment}
-                    className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-[10px] font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1"
                   >
                     <Camera className="w-3.5 h-3.5" />
                     <span>{isCapturingMoment ? 'AI Capturing...' : '📸 AI Capture Bonding Moment'}</span>
@@ -1418,7 +1418,7 @@ export const ActivityTracker = ({
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: 'white', label: '🌬️ White', desc: 'Rushing' },
-                  { id: 'brown', label: '🌊 Brown', desc: 'Deep ocean' },
+                  { id: 'brown', label: '🌊 Deep Flow', desc: 'Deep ocean' },
                   { id: 'celestial', label: '🎵 Bells', desc: 'Celestial' },
                 ].map(snd => (
                   <button
@@ -1491,14 +1491,14 @@ export const ActivityTracker = ({
                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Lullabies & Recorded Family Blessings</p>
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
                   {recordedVoiceBlessings.map((blessing) => (
-                    <div key={blessing.id} className="flex justify-between items-center p-3 bg-amber-50/70 rounded-2xl border border-amber-200 shadow-xs">
+                    <div key={blessing.id} className="flex justify-between items-center p-3 bg-sky-50/70 rounded-2xl border border-sky-200 shadow-xs">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0">
+                        <div className="w-9 h-9 rounded-xl bg-sky-400 text-white flex items-center justify-center shrink-0">
                           👵
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-gray-800 leading-tight truncate">{blessing.title}</p>
-                          <p className="text-[8px] font-black text-amber-800 uppercase tracking-widest">
+                          <p className="text-[8px] font-black text-sky-800 uppercase tracking-widest">
                             Recorded by {blessing.author} • Monitor Speaker
                           </p>
                         </div>
@@ -1522,7 +1522,7 @@ export const ActivityTracker = ({
                           audio.onended = () => setPlayingVoiceBlessingId(null);
                           audio.play().catch(() => setPlayingVoiceBlessingId(null));
                         }}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-amber-300 border-none cursor-pointer shrink-0"
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-sky-300 border-none cursor-pointer shrink-0"
                       >
                         {playingVoiceBlessingId === blessing.id ? '■ Stop' : '▶ Play Blessing'}
                       </button>
@@ -1533,14 +1533,14 @@ export const ActivityTracker = ({
                     return (
                       <div key={lullaby.id} className="flex justify-between items-center p-3 bg-white rounded-2xl border border-solid border-gray-100/50 shadow-xs hover:border-primary/20 transition-all">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${playingLullaby === lullaby.id ? 'bg-primary text-white' : isLocked ? 'bg-amber-100 text-amber-600 font-bold' : 'bg-primary/10 text-primary'}`}>
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${playingLullaby === lullaby.id ? 'bg-primary text-white' : isLocked ? 'bg-sky-100 text-sky-600 font-bold' : 'bg-primary/10 text-primary'}`}>
                             {isLocked ? '🔒' : '🎵'}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <p className="text-xs font-bold text-gray-800 leading-tight truncate">{lullaby.name}</p>
                               {lullaby.isPremium && (
-                                <span className="text-[8px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full shrink-0">
+                                <span className="text-[8px] font-black uppercase tracking-wider text-sky-600 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-full shrink-0">
                                   PRO
                                 </span>
                               )}
@@ -1564,7 +1564,7 @@ export const ActivityTracker = ({
                           }}
                           className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all border-none cursor-pointer flex items-center gap-1 shrink-0 ${
                             isLocked
-                              ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs'
+                              ? 'bg-primary hover:bg-primary/90 text-white shadow-xs'
                               : playingLullaby === lullaby.id 
                               ? 'bg-primary/20 text-primary font-bold' 
                               : 'bg-primary/10 hover:bg-primary text-primary hover:text-white'

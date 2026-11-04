@@ -20,19 +20,15 @@ import {
   getDoc, 
   setDoc, 
   updateDoc, 
-  onSnapshot 
+  onSnapshot,
+  deleteDoc,
+  collection,
+  addDoc,
+  query,
+  getDocs
 } from 'firebase/firestore';
 
-// User's manual Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDDhSUsNIZLZEAJEZi5ZPeD_O-OGiNe86k",
-  authDomain: "ama-babycare.firebaseapp.com",
-  projectId: "ama-babycare",
-  storageBucket: "ama-babycare.firebasestorage.app",
-  messagingSenderId: "659272330070",
-  appId: "1:659272330070:web:bf494e9fadf8c4c2c6c4f7",
-  measurementId: "G-3VBX1QEMMD"
-};
+import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -50,10 +46,10 @@ try {
     localCache: persistentLocalCache({
       tabManager: persistentMultipleTabManager()
     })
-  });
+  }, (firebaseConfig as any).firestoreDatabaseId);
 } catch (err) {
   console.warn("Firestore already initialized or custom settings unsupported, using standard instance:", err);
-  dbInstance = getFirestore(app);
+  dbInstance = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 }
 
 export const db = dbInstance;
@@ -75,7 +71,12 @@ export {
   getDoc, 
   setDoc, 
   updateDoc, 
-  onSnapshot 
+  onSnapshot,
+  deleteDoc,
+  collection,
+  addDoc,
+  query,
+  getDocs
 };
 export type { FirebaseUser };
 
@@ -123,6 +124,12 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
+
+  // Log to console for developer visibility
+  if (errInfo.error.includes('auth/admin-restricted-operation')) {
+    console.error('CRITICAL: Anonymous Authentication is DISABLED in Firebase Console. Please enable it in the Firebase Auth > Sign-in method tab.');
+  }
+
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }

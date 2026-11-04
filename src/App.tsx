@@ -25,6 +25,7 @@ import { LandingPage } from './components/LandingPage';
 import { AiMealPlanner } from './components/AiMealPlanner';
 import { BabyCryAnalyzer } from './components/BabyCryAnalyzer';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { BabyMonitor } from './components/BabyMonitor';
 import { Dashboard } from './components/Dashboard';
 import { RecipeLibrary, RecipeDetail, AddRecipeScreen } from './components/RecipeLibrary';
 import { FeedingTracker } from './components/FeedingTracker';
@@ -50,7 +51,8 @@ import { deleteUser } from 'firebase/auth';
 import { deleteDoc } from 'firebase/firestore';
 import {
   auth, db, googleProvider, signInWithPopup, signOut, onAuthStateChanged,
-  signInAnonymously, linkWithPopup, doc, setDoc, getDoc, onSnapshot, FirebaseUser, model
+  signInAnonymously, linkWithPopup, doc, setDoc, getDoc, onSnapshot, FirebaseUser, model,
+  handleFirestoreError, OperationType
 } from './firebase';
 
 export default function App() {
@@ -1266,9 +1268,12 @@ export default function App() {
     const currentUser = auth.currentUser;
     if (currentUser) {
       try {
-        // Delete user document in Firestore
         const userDocRef = doc(db, 'users', currentUser.uid);
-        await deleteDoc(userDocRef);
+        try {
+          await deleteDoc(userDocRef);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.DELETE, `users/${currentUser.uid}`);
+        }
         
         // Delete user account in Firebase Auth
         if (!currentUser.isAnonymous) {
@@ -1336,7 +1341,13 @@ export default function App() {
         setIsInitialLoadComplete(false);
         try {
           const userDocRef = doc(db, 'users', user.uid);
-          const docSnap = await getDoc(userDocRef);
+          let docSnap;
+          try {
+            docSnap = await getDoc(userDocRef);
+          } catch (err) {
+            handleFirestoreError(err, OperationType.GET, `users/${user.uid}`);
+            return;
+          }
           if (docSnap.exists()) {
             const rawData = docSnap.data();
             const data = processCloudData(rawData);
@@ -1425,11 +1436,15 @@ export default function App() {
                 memories
               };
               const encryptedPayload = encryptString(JSON.stringify(statePayload));
-              await setDoc(userDocRef, {
-                userId: user.uid,
-                encryptedPayload,
-                updatedAt: new Date(localTime).toISOString()
-              });
+              try {
+                await setDoc(userDocRef, {
+                  userId: user.uid,
+                  encryptedPayload,
+                  updatedAt: new Date(localTime).toISOString()
+                });
+              } catch (err) {
+                handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
+              }
               addAuditLog('Database Synced', 'Local newer changes encrypted and synchronized to cloud.', 'DATA_ACCESS');
             }
           } else {
@@ -1467,11 +1482,15 @@ export default function App() {
               memories
             };
             const encryptedPayload = encryptString(JSON.stringify(statePayload));
-            await setDoc(userDocRef, {
-              userId: user.uid,
-              encryptedPayload,
-              updatedAt: new Date(localTime).toISOString()
-            });
+            try {
+              await setDoc(userDocRef, {
+                userId: user.uid,
+                encryptedPayload,
+                updatedAt: new Date(localTime).toISOString()
+              });
+            } catch (err) {
+              handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
+            }
             addAuditLog('Account Initialized', 'Secure end-to-end cloud workspace initialized for user.', 'ACCOUNT');
           }
         } catch (err) {
@@ -1483,8 +1502,13 @@ export default function App() {
         // Sign the user in silently with an Anonymous Account tied to their device
         try {
           await signInAnonymously(auth);
-        } catch (anonymousErr) {
-          console.error("Silent anonymous sign-in failed:", anonymousErr);
+        } catch (anonymousErr: any) {
+          if (anonymousErr.code === 'auth/admin-restricted-operation') {
+            console.error("CRITICAL: Silent anonymous sign-in failed. Anonymous Authentication is likely DISABLED in the Firebase Console.");
+            console.warn("Please go to Firebase Console -> Authentication -> Sign-in method -> Enable 'Anonymous'.");
+          } else {
+            console.error("Silent anonymous sign-in failed:", anonymousErr);
+          }
         }
       }
     });
@@ -1546,8 +1570,7 @@ export default function App() {
         }
       },
       (error) => {
-        // Graceful offline fallback logging
-        console.warn("Firestore listener operates in offline/local cache mode:", error?.message || error);
+        handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
       }
     );
 
@@ -1565,9 +1588,14 @@ export default function App() {
 
     syncTimeoutRef.current = setTimeout(async () => {
       try {
-        setIsSyncing(true);
         const userDocRef = doc(db, 'users', currentUser.uid);
-        const docSnap = await getDoc(userDocRef);
+        let docSnap;
+        try {
+          docSnap = await getDoc(userDocRef);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.GET, `users/${currentUser.uid}`);
+          return;
+        }
         
         let proceedWithWrite = true;
         if (docSnap.exists()) {
@@ -1646,11 +1674,15 @@ export default function App() {
             memories
           };
           const encryptedPayload = encryptString(JSON.stringify(statePayload));
-          await setDoc(userDocRef, {
-            userId: currentUser.uid,
-            encryptedPayload,
-            updatedAt: new Date(lastLocalUpdate).toISOString()
-          });
+          try {
+            await setDoc(userDocRef, {
+              userId: currentUser.uid,
+              encryptedPayload,
+              updatedAt: new Date(lastLocalUpdate).toISOString()
+            });
+          } catch (err) {
+            handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}`);
+          }
           addAuditLog('Database Auto-Sync', 'Encrypted local telemetry backup uploaded to cloud.', 'DATA_ACCESS');
         }
       } catch (err) {
@@ -1897,14 +1929,14 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background font-sans text-gray-900 w-full max-w-7xl mx-auto relative overflow-x-clip transition-all duration-300 pb-28 md:pb-32">
       {hasQuotaExceeded && (
-        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-[200] shadow-sm flex items-center justify-center gap-2">
+        <div className="bg-sky-50 border-b border-sky-200 text-sky-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-[200] shadow-sm flex items-center justify-center gap-2">
           <span>
             Google Maps Platform quota reached. If you are the app owner, visit{' '}
             <a
               href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline font-semibold text-amber-950 hover:text-amber-800"
+              className="underline font-semibold text-sky-950 hover:text-sky-800"
             >
               maps developer site
             </a>{' '}
@@ -1912,7 +1944,7 @@ export default function App() {
           </span>
           <button 
             onClick={() => setHasQuotaExceeded(false)}
-            className="text-amber-800 hover:text-amber-950 text-xs font-bold border-none bg-transparent cursor-pointer ml-2"
+            className="text-sky-800 hover:text-sky-950 text-xs font-bold border-none bg-transparent cursor-pointer ml-2"
           >
             ✕
           </button>
@@ -2071,6 +2103,15 @@ export default function App() {
               setMemories={setMemories}
               observationLogs={observationLogs}
               userRole={userRole}
+            />
+          </motion.div>
+        )}
+        {activeScreen === 'monitor' && (
+          <motion.div key="monitor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <BabyMonitor 
+              onBack={() => setActiveScreen('home')} 
+              villageToken={localStorage.getItem('ama_village_sync_token') || undefined}
+              babyName={babyName}
             />
           </motion.div>
         )}

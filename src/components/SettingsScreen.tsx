@@ -866,8 +866,8 @@ export const SettingsScreen = ({
         </p>
 
         {migrationError && (
-          <div className="p-3.5 bg-red-50 text-red-700 text-xs font-semibold rounded-2xl border border-solid border-red-100 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+          <div className="p-3.5 bg-sky-50 text-sky-700 text-xs font-semibold rounded-2xl border border-solid border-sky-100 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-sky-500 shrink-0" />
             <span>{migrationError}</span>
           </div>
         )}

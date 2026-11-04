@@ -359,8 +359,8 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
         </section>
 
         {/* Clinical Red Flags Warning Banner */}
-        <div className="bg-white/95 backdrop-blur-xs p-5 sm:p-6 rounded-[32px] border border-rose-200 shadow-xl shadow-card/10 space-y-3">
-          <div className="flex items-center gap-2 text-rose-700">
+        <div className="bg-white/95 backdrop-blur-xs p-5 sm:p-6 rounded-[32px] border border-sky-200 shadow-xl shadow-card/10 space-y-3">
+          <div className="flex items-center gap-2 text-sky-700">
             <AlertTriangle className="w-5 h-5 shrink-0" />
             <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider">
               Postpartum Wellness Red Flags – Contact Your Care Provider
@@ -371,8 +371,8 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
           </p>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-700 list-none p-0 m-0">
             {redFlags.map((flag, idx) => (
-              <li key={idx} className="flex items-start gap-2 bg-rose-50/60 p-2.5 rounded-2xl border border-rose-100">
-                <span className="text-rose-600 font-bold shrink-0">•</span>
+              <li key={idx} className="flex items-start gap-2 bg-sky-50/60 p-2.5 rounded-2xl border border-sky-100">
+                <span className="text-sky-600 font-bold shrink-0">•</span>
                 <span className="leading-snug">{flag}</span>
               </li>
             ))}
@@ -392,7 +392,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
                     Maternal Rest Recovery
                   </span>
                   {remainingRemTime && (
-                    <span className="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 animate-pulse">
+                    <span className="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 animate-pulse">
                       Rest Window Active
                     </span>
                   )}
@@ -409,7 +409,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
               disabled={isDelegationLoading}
               className={`px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider cursor-pointer border-none transition-all flex items-center justify-center gap-2 shadow-md shrink-0 active:scale-95 ${
                 remainingRemTime
-                  ? 'bg-indigo-100 hover:bg-indigo-200 text-indigo-900 border border-indigo-200'
+                  ? 'bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-200'
                   : 'bg-primary hover:bg-primary/90 text-white shadow-primary/20'
               }`}
             >
@@ -447,7 +447,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
         </div>
 
         {/* Maternal Relaxation Resources & Guided 4-7-8 Breathing Visualizer */}
-        <div className="bg-gradient-to-br from-sky-50 via-white to-blue-50/60 p-6 sm:p-7 rounded-[36px] border border-sky-100 shadow-xl shadow-card/10 space-y-4 text-left">
+        <div className="bg-gradient-to-br from-sky-50 via-white to-sky-50/60 p-6 sm:p-7 rounded-[36px] border border-sky-100 shadow-xl shadow-card/10 space-y-4 text-left">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-100/80 pb-4">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-primary/20">
@@ -468,7 +468,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
               onClick={toggleBreathing}
               className={`px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider cursor-pointer border-none transition-all flex items-center justify-center gap-2 shadow-md shrink-0 active:scale-95 ${
                 breathingActive
-                  ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20'
+                  ? 'bg-sky-600 hover:bg-sky-700 text-white shadow-sky-500/20'
                   : 'bg-primary hover:bg-primary/90 text-white shadow-primary/20'
               }`}
             >
@@ -493,7 +493,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
                 breathingPhase.startsWith('Inhale')
                   ? 'border-primary bg-sky-50 scale-110 shadow-lg shadow-sky-200'
                   : breathingPhase.startsWith('Hold')
-                  ? 'border-amber-400 bg-amber-50 scale-105'
+                  ? 'border-sky-400 bg-sky-50 scale-105'
                   : 'border-emerald-500 bg-emerald-50 scale-95'
               }`}>
                 <span className="text-2xl font-black text-gray-900">{breathTimer}s</span>
@@ -515,7 +515,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
                 </div>
               </div>
               <div className="p-3 bg-white rounded-2xl border border-sky-100 flex items-start gap-2.5">
-                <span className="w-6 h-6 rounded-xl bg-amber-500/10 text-amber-700 font-black text-xs flex items-center justify-center shrink-0">2</span>
+                <span className="w-6 h-6 rounded-xl bg-sky-500/10 text-sky-700 font-black text-xs flex items-center justify-center shrink-0">2</span>
                 <div>
                   <strong className="text-gray-900">Hold breath comfortably for 7 seconds:</strong> Oxygenates maternal bloodstream and lowers circulating adrenalin and cortisol.
                 </div>
@@ -594,7 +594,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2">
                   <div className="p-4 rounded-2xl bg-card/40 border border-white space-y-1">
-                    <span className="text-[10px] font-black uppercase text-rose-700 tracking-wider">Days 1 to 4</span>
+                    <span className="text-[10px] font-black uppercase text-primary tracking-wider">Days 1 to 4</span>
                     <h5 className="font-bold text-gray-900">Lochia Rubra</h5>
                     <p className="text-[11px] text-gray-600 leading-snug">
                       Bright or dark red blood with occasional small clots. Moderate to heavy flow similar to a heavy menstrual cycle.
@@ -602,7 +602,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
                   </div>
 
                   <div className="p-4 rounded-2xl bg-card/40 border border-white space-y-1">
-                    <span className="text-[10px] font-black uppercase text-amber-700 tracking-wider">Days 4 to 10</span>
+                    <span className="text-[10px] font-black uppercase text-sky-700 tracking-wider">Days 4 to 10</span>
                     <h5 className="font-bold text-gray-900">Lochia Serosa</h5>
                     <p className="text-[11px] text-gray-600 leading-snug">
                       Color lightens to pinkish-brown or watery discharge. Flow significantly reduces as placental detachment site epithelializes.

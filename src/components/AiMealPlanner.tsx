@@ -290,13 +290,13 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
             <button
               type="button"
               onClick={() => setIsLocationPickerOpen(true)}
-              className="w-full bg-white hover:bg-emerald-50/50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800 flex items-center justify-between shadow-2xs cursor-pointer transition-all text-left"
+              className="w-full bg-white hover:bg-sky-50/50 border border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800 flex items-center justify-between shadow-2xs cursor-pointer transition-all text-left"
             >
               <div className="truncate pr-2">
                 <span className="block truncate">{selectedRegion.name}</span>
-                <span className="text-[10px] text-emerald-700 font-bold block">{selectedRegion.currency} {selectedRegion.currencyCode || ''}</span>
+                <span className="text-[10px] text-sky-700 font-bold block">{selectedRegion.currency} {selectedRegion.currencyCode || ''}</span>
               </div>
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-black uppercase shrink-0">
+              <span className="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-black uppercase shrink-0">
                 Change 🗺️
               </span>
             </button>
@@ -420,7 +420,7 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
             <button
               onClick={() => setActiveTab('markets')}
               className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${
-                activeTab === 'markets' ? 'bg-emerald-600 text-white shadow-xs font-black' : 'text-gray-500 hover:text-gray-800'
+                activeTab === 'markets' ? 'bg-sky-600 text-white shadow-xs font-black' : 'text-gray-500 hover:text-gray-800'
               }`}
             >
               <MapPin className="w-3.5 h-3.5" />

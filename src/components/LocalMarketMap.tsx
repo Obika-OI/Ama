@@ -123,7 +123,7 @@ const MarketPlacesGoogleMap: React.FC<{
 
     places.forEach(place => {
       try {
-        const pinColor = place.category === 'market' ? '#37b1f5' : place.category === 'supermarket' ? '#4f46e5' : '#e11d48';
+        const pinColor = place.category === 'market' ? '#37b1f5' : place.category === 'supermarket' ? '#60a5fa' : '#f472b6';
         const marker = new google.maps.Marker({
           position: { lat: place.lat, lng: place.lng },
           map: mapInstanceRef.current,
@@ -391,7 +391,7 @@ export const LocalMarketMap: React.FC<LocalMarketMapProps> = ({
                 <div>
                   <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
                     selectedPlace.category === 'market' ? 'bg-primary/10 text-primary border border-primary/20' :
-                    selectedPlace.category === 'supermarket' ? 'bg-indigo-100 text-indigo-800' : 'bg-rose-100 text-rose-800'
+                    selectedPlace.category === 'supermarket' ? 'bg-sky-100 text-sky-800' : 'bg-sky-100 text-sky-800'
                   }`}>
                     {selectedPlace.category === 'market' ? '🥬 Open-Air Fresh Market' :
                      selectedPlace.category === 'supermarket' ? '🛒 Modern Supermarket' : '💊 Certified Pharmacy'}

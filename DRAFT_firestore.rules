@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 3. Validation Blueprints
+    function isValidUser(data) {
+      return data.keys().hasAll(['userId', 'encryptedPayload', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'encryptedPayload', 'updatedAt'])
+        && data.userId == request.auth.uid
+        && data.userId is string
+        && data.encryptedPayload is string
+        && data.encryptedPayload.size() < 1048576 // 1MB limit
+        && data.updatedAt is string; // ISO format
+    }
+
+    function isValidMonitor(data) {
+      return data.keys().hasAll(['updatedAt'])
+        && data.keys().hasOnly(['updatedAt', 'offer', 'answer'])
+        && data.updatedAt is number
+        // Offer/Answer validation if present
+        && (!('offer' in data) || (data.offer.type is string && data.offer.sdp is string))
+        && (!('answer' in data) || (data.answer.type is string && data.answer.sdp is string));
+    }
+
+    function isValidCandidate(data) {
+      return data.keys().hasAll(['candidate', 'from', 'timestamp'])
+        && data.keys().hasOnly(['candidate', 'from', 'timestamp', 'sdpMid', 'sdpMLineIndex', 'usernameFragment'])
+        && data.candidate is string
+        && data.from in ['viewer', 'camera']
+        && data.timestamp is number;
+    }
+
+    // 4. Collection Rules
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isOwner(userId) && isValidId(userId);
+      allow create, update: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidUser(incoming());
+      allow delete: if isSignedIn() && isOwner(userId) && isValidId(userId);
+    }
+
+    match /monitors/{villageToken} {
+      allow get: if isSignedIn() && isValidId(villageToken);
+      allow create, update: if isSignedIn() && isValidId(villageToken) && isValidMonitor(incoming());
+      allow delete: if isSignedIn() && isValidId(villageToken);
+
+      match /candidates/{candidateId} {
+        // Master Gate: Parent session must exist
+        allow create: if isSignedIn() && exists(/databases/$(database)/documents/monitors/$(villageToken)) && isValidCandidate(incoming());
+        allow list: if isSignedIn() && exists(/databases/$(database)/documents/monitors/$(villageToken));
+        allow delete: if isSignedIn(); // For cleanup
+      }
+    }
+  }
+}

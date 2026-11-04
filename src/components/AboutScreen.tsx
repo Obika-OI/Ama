@@ -32,7 +32,11 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
             <span>Back</span>
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-xl">🍼</span>
+            <img 
+              src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
+              alt="Ama Baby Care Logo" 
+              className="w-8 h-8 object-contain"
+            />
             <span className="font-serif font-black text-gray-900 text-sm tracking-tight">Ama Baby Care</span>
           </div>
           <div className="w-12"></div>
@@ -42,7 +46,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-white to-slate-50 border-b border-gray-100 py-16 px-4 text-center">
         <div className="max-w-3xl mx-auto space-y-4">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-black uppercase tracking-wider">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-black uppercase tracking-wider">
             <Heart className="w-3.5 h-3.5" />
             Our Core Mission
           </span>
@@ -115,7 +119,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
             {/* Pillar 2 */}
             <div className="p-7 bg-white rounded-3xl border border-gray-100 shadow-xs space-y-3.5 flex flex-col justify-between">
               <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center">
                   <Shield className="w-5 h-5" />
                 </div>
                 <h3 className="text-base font-bold text-slate-900">2. Allergen Observation & Food Tracking</h3>
@@ -123,7 +127,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
                   When introducing new solid foods, parents need clarity rather than guesswork. Ama includes a 3-day food introduction matrix that lets you log each single ingredient alongside digestive observations and skin changes. Isolating triggers like eggs, soy, or dairy becomes straightforward and calm.
                 </p>
               </div>
-              <div className="pt-2 border-t border-gray-100 text-[11px] font-bold text-amber-800">
+              <div className="pt-2 border-t border-gray-100 text-[11px] font-bold text-sky-800">
                 Symptom logging • 3-day rule • Calm tracking
               </div>
             </div>
@@ -131,7 +135,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
             {/* Pillar 3 */}
             <div className="p-7 bg-white rounded-3xl border border-gray-100 shadow-xs space-y-3.5 flex flex-col justify-between">
               <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center">
                   <Award className="w-5 h-5" />
                 </div>
                 <h3 className="text-base font-bold text-slate-900">3. Routine Immunizations & Health Milestones</h3>
@@ -139,7 +143,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
                   Keeping up with essential infant immunizations should never depend on mobile reception. Ama provides pre-configured public health vaccination checklists and gentle offline reminders, helping parents stay on schedule with health checkups, vitamin schedules, and developmental milestones.
                 </p>
               </div>
-              <div className="pt-2 border-t border-gray-100 text-[11px] font-bold text-blue-800">
+              <div className="pt-2 border-t border-gray-100 text-[11px] font-bold text-sky-800">
                 Offline reminders • Milestone timelines • Clean records
               </div>
             </div>
@@ -147,7 +151,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
             {/* Pillar 4 */}
             <div className="p-7 bg-white rounded-3xl border border-gray-100 shadow-xs space-y-3.5 flex flex-col justify-between">
               <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center">
                   <Lock className="w-5 h-5" />
                 </div>
                 <h3 className="text-base font-bold text-slate-900">4. Absolute Dignity in Data Privacy</h3>
@@ -155,7 +159,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
                   We believe personal baby journals must never be monetized. Free commercial tracking apps routinely sell infant milestones, weight trends, and feeding histories to advertising brokers. Ama operates with an isolated local-first sandbox: your records stay on your device and are never sold or shared with third-party marketers.
                 </p>
               </div>
-              <div className="pt-2 border-t border-gray-100 text-[11px] font-bold text-rose-800">
+              <div className="pt-2 border-t border-gray-100 text-[11px] font-bold text-sky-800">
                 Local-first • Zero ad telemetry • Private journal
               </div>
             </div>

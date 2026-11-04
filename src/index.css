@@ -4,7 +4,7 @@
 @theme {
   --color-primary: #37b1f5;
   --color-secondary: #FFD6E8;
-  --color-accent: #ffd700;
+  --color-accent: #0ea5e9;
   --color-background: #D2E9F9;
   --color-card: #FFD6E8;
   --font-serif: "Playfair Display", serif;
@@ -14,6 +14,24 @@
 body {
   background-color: var(--color-background);
   color: #37474F;
+}
+
+/* Maintain signature app color across all cards and modals */
+.card,
+div[class*="rounded-3xl"]:not(form):not(input):not(button),
+div[class*="rounded-[24px]"]:not(form):not(input):not(button),
+div[class*="rounded-[28px]"],
+div[class*="rounded-[32px]"],
+div[class*="rounded-[36px]"],
+div[class*="rounded-[40px]"],
+div[class*="rounded-[48px]"],
+div[class*="modal"] {
+  background-color: var(--color-card) !important;
+  border-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+input, select, textarea {
+  background-color: #FFFFFF !important;
 }
 
 /* Custom time & date picker theme styling */

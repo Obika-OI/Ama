@@ -40,8 +40,6 @@ export const Journal = ({  isPremium,
   setBabyName,
   parentName,
   setParentName,
-  growthLogs,
-  setGrowthLogs,
   setFluidMl,
   loggedMoods = [],
   setLoggedMoods,
@@ -58,6 +56,8 @@ export const Journal = ({  isPremium,
   dailyStreak = 0,
   vaccineSchedule = [],
   setVaccineSchedule,
+  growthLogs = [],
+  setGrowthLogs,
   userRole = 'admin',
   setUserRole,
   currentUser
@@ -170,7 +170,7 @@ export const Journal = ({  isPremium,
     { label: '💖 Loving Moment', color: 'bg-[#FFD6E8] text-gray-800 border-pink-200' },
     { label: '☕ Peaceful', color: 'bg-primary/10 text-primary border-primary/20' },
     { label: '🎉 Milestone', color: 'bg-[#FFD6E8] text-gray-800 border-pink-200' },
-    { label: '😴 Exhausted', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+    { label: '😴 Exhausted', color: 'bg-slate-100 text-slate-700 border-slate-200' },
     { label: '🌱 Growing Together', color: 'bg-primary/10 text-primary border-primary/20' }
   ];
 
@@ -493,7 +493,7 @@ export const Journal = ({  isPremium,
   const [wetWeight, setWetWeight] = useState('');
   const [wetIntensity, setWetIntensity] = useState<'Light' | 'Medium' | 'Heavy'>('Medium');
   const [stoolType, setStoolType] = useState<number>(4); // Bristol Stool Type (1-7)
-  const [poopColor, setPoopColor] = useState('Yellow');
+  const [poopColor, setPoopColor] = useState('Theme Purple');
   const [diaperSymptoms, setDiaperSymptoms] = useState('');
   const [diaperNotes, setDiaperNotes] = useState('');
   const [diaperConsistency, setDiaperConsistency] = useState('Normal');
@@ -523,6 +523,34 @@ export const Journal = ({  isPremium,
 
   // Expandable log card state
   const [expandedLogIndex, setExpandedLogIndex] = useState<number | null>(null);
+
+  // Growth Logger State
+  const [showGrowthLogger, setShowGrowthLogger] = useState(false);
+  const [growthWeight, setGrowthWeight] = useState('');
+  const [growthHeight, setGrowthHeight] = useState('');
+  const [growthHeadCirc, setGrowthHeadCirc] = useState('');
+  const [growthNotes, setGrowthNotes] = useState('');
+
+  const handleSaveGrowth = () => {
+    if (!growthWeight && !growthHeight) return;
+    const newLog = {
+      id: `growth-${Date.now()}`,
+      date: selectedDate.toISOString(),
+      weight: parseFloat(growthWeight) || 0,
+      height: parseFloat(growthHeight) || 0,
+      headCircumference: parseFloat(growthHeadCirc) || 0,
+      notes: growthNotes,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setGrowthLogs([...(growthLogs || []), newLog]);
+    setGrowthWeight('');
+    setGrowthHeight('');
+    setGrowthHeadCirc('');
+    setGrowthNotes('');
+    setShowGrowthLogger(false);
+    setToastMsg('Growth metrics saved! 📈');
+    setTimeout(() => setToastMsg(''), 3000);
+  };
   
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
@@ -1043,6 +1071,13 @@ export const Journal = ({  isPremium,
         <h1 className="text-2xl font-serif font-black text-gray-800">Journal</h1>
         <div className="flex gap-2">
           <button 
+            onClick={() => setShowGrowthLogger(true)}
+            className="flex items-center gap-1.5 bg-sky-600 text-white border-none px-4 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-md shadow-sky-200 hover:scale-105 active:scale-95"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Log Growth</span>
+          </button>
+          <button 
             onClick={() => setShowReport(true)}
             className="flex items-center gap-1.5 bg-primary text-white border-none px-4 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-md shadow-primary/25 hover:scale-105 active:scale-95"
           >
@@ -1052,6 +1087,100 @@ export const Journal = ({  isPremium,
           
     </div>
       </header>
+
+      {/* Growth Logger Modal */}
+      <AnimatePresence>
+        {showGrowthLogger && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[40px] p-6 max-w-sm w-full border border-solid border-gray-100 shadow-2xl space-y-6 relative text-left"
+            >
+              <div className="flex justify-between items-start">
+                <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-2xl shadow-xs">
+                  📈
+                </div>
+                <button 
+                  onClick={() => setShowGrowthLogger(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-400 flex items-center justify-center border-none cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-serif font-black text-gray-800">Log Growth</h3>
+                <p className="text-xs text-gray-400 font-medium leading-relaxed">
+                  Track {babyName}'s physical development and percentiles.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Weight (kg)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      placeholder="8.2"
+                      value={growthWeight}
+                      onChange={e => setGrowthWeight(e.target.value)}
+                      className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Height (cm)</label>
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      placeholder="67.5"
+                      value={growthHeight}
+                      onChange={e => setGrowthHeight(e.target.value)}
+                      className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Head Circumference (cm)</label>
+                  <input 
+                    type="number" 
+                    step="0.1"
+                    placeholder="42.5"
+                    value={growthHeadCirc}
+                    onChange={e => setGrowthHeadCirc(e.target.value)}
+                    className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Observations / Notes</label>
+                  <textarea 
+                    placeholder="Steady growth, healthy appetite..."
+                    value={growthNotes}
+                    onChange={e => setGrowthNotes(e.target.value)}
+                    className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold focus:outline-none focus:border-sky-500 min-h-[80px] resize-none"
+                  />
+                </div>
+              </div>
+
+              <button 
+                onClick={handleSaveGrowth}
+                disabled={!growthWeight && !growthHeight}
+                className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg border-none cursor-pointer ${
+                  !growthWeight && !growthHeight 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : 'bg-sky-600 hover:bg-sky-700 text-white shadow-sky-200'
+                }`}
+              >
+                Save Growth Record
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Clean Slate Confirmation Modal */}
       <AnimatePresence>
@@ -1640,16 +1769,16 @@ export const Journal = ({  isPremium,
     </div>
 
                       <div>
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Stool Color</label>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Stool Color</label>
                         <select 
                           value={poopColor}
                           onChange={e => setPoopColor(e.target.value)}
-                          className="w-full bg-gray-50 border border-solid border-gray-100 rounded-xl p-3 text-xs font-bold outline-none text-gray-700 cursor-pointer"
+                          className="w-full bg-slate-50 border border-solid border-slate-100 rounded-xl p-3 text-xs font-bold outline-none text-slate-700 cursor-pointer"
                         >
-                          <option value="Yellow">🟡 Yellow</option>
-                          <option value="Brown">🟤 Brown</option>
-                          <option value="Green">🟢 Green</option>
-                          <option value="Red/Black">🔴 Alert (Red/Black)</option>
+                          <option value="Theme Purple">🟣 Theme Purple</option>
+                          <option value="Slate Grey">🔘 Slate Grey</option>
+                          <option value="Deep Sky">🔵 Deep Sky</option>
+                          <option value="Emerald Green">🟢 Emerald Green</option>
                         </select>
                         
     </div>
@@ -1741,24 +1870,24 @@ export const Journal = ({  isPremium,
                     {diaper.type !== 'Wet' && (
                       <div className="grid grid-cols-2 gap-3 bg-gray-50/50 p-3 rounded-2xl border border-solid border-gray-100/50">
                         <div>
-                          <span className="font-black text-gray-400 uppercase tracking-wider text-[8px] block mb-0.5">Stool Colour</span>
+                          <span className="font-black text-slate-400 uppercase tracking-wider text-[8px] block mb-0.5">Stool Colour</span>
                           <span className="text-gray-800 font-bold text-[10px] flex items-center gap-1.5">
                             <span 
-                              className="w-2.5 h-2.5 rounded-full inline-block border border-gray-200/50" 
+                              className="w-2.5 h-2.5 rounded-full inline-block border border-slate-200/50" 
                               style={{ 
                                 backgroundColor: (() => {
-                                  const c = (diaper.poopColor || 'yellow').toLowerCase();
-                                  if (c.includes('yellow') || c.includes('mustard')) return '#ffd166';
-                                  if (c.includes('brown')) return '#a06a42';
-                                  if (c.includes('green')) return '#52b788';
-                                  if (c.includes('clay') || c.includes('white')) return '#e5e5e5';
-                                  if (c.includes('red')) return '#ef476f';
-                                  if (c.includes('black')) return '#212529';
-                                  return '#ffd166';
+                                  const c = (diaper.poopColor || 'theme purple').toLowerCase();
+                                  if (c.includes('purple') || c.includes('sky')) return '#8b5cf6';
+                                  if (c.includes('slate') || c.includes('grey')) return '#64748b';
+                                  if (c.includes('green') || c.includes('emerald')) return '#10b981';
+                                  if (c.includes('white') || c.includes('cloud')) return '#f8fafc';
+                                  if (c.includes('sky') || c.includes('deep')) return '#0ea5e9';
+                                  if (c.includes('black') || c.includes('midnight')) return '#0f172a';
+                                  return '#8b5cf6';
                                 })() 
                               }} 
                             />
-                            {diaper.poopColor || 'Yellow'}
+                            {diaper.poopColor || 'Theme Purple'}
                           </span>
                           
     </div>
@@ -2372,10 +2501,10 @@ export const Journal = ({  isPremium,
               {/* 2. Diary Reflection Textarea (Emotional & Parent Thoughts) */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-rose-500 uppercase tracking-widest block">
+                  <label className="text-[10px] font-black text-primary uppercase tracking-widest block">
                     💖 Diary Reflection & Parent Thoughts (Emotional)
                   </label>
-                  <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full">
+                  <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                     Parent Feelings & Bonding Memories
                   </span>
                 </div>
@@ -2384,7 +2513,7 @@ export const Journal = ({  isPremium,
                   placeholder={`Write your emotional reflection, gratitude, or parenting feelings about ${isToday ? 'today' : selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}...`}
                   value={diaryReflection}
                   onChange={e => setDiaryReflection(e.target.value)}
-                  className="w-full bg-rose-50/30 border border-rose-100 rounded-2xl p-3.5 text-xs font-serif italic text-gray-800 focus:border-rose-300 outline-none transition-all resize-y leading-relaxed shadow-xs"
+                  className="w-full bg-primary/5 border border-primary/10 rounded-2xl p-3.5 text-xs font-serif italic text-gray-800 focus:border-primary outline-none transition-all resize-y leading-relaxed shadow-xs"
                 />
                 <p className="text-[10px] text-gray-400 italic">
                   💡 Reflection Prompt: {isToday ? "What brought you emotional warmth or peace today? What did you discover about your baby or yourself?" : `What feelings or bonding moments stood out on ${selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}?`}
@@ -2392,13 +2521,13 @@ export const Journal = ({  isPremium,
               </div>
 
               {/* 3. Voice Blessing or Lullaby Recorder (Open to Anybody: Mom, Dad, Grandma, Caregiver, Nanny) */}
-              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="bg-sky-50/70 p-4 rounded-2xl border border-sky-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-0.5">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-900 block flex items-center gap-1.5">
-                    <Mic className="w-3.5 h-3.5 text-amber-700" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-sky-900 block flex items-center gap-1.5">
+                    <Mic className="w-3.5 h-3.5 text-sky-700" />
                     <span>Record Voice Blessing or Lullaby</span>
                   </span>
-                  <p className="text-[11px] text-amber-800">
+                  <p className="text-[11px] text-sky-800">
                     {diaryAudioDataUrl
                       ? '✓ Voice blessing attached! Ready to save to baby’s diary and play via Activity Monitor speaker.'
                       : 'Anyone (Mom, Dad, Grandma, Caregiver, or Nanny) can record a blessing, song, or comforting lullaby.'}
@@ -2419,8 +2548,8 @@ export const Journal = ({  isPremium,
                     onClick={toggleRecordBlessing}
                     className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 cursor-pointer border-none transition-all ${
                       isRecordingBlessing
-                        ? 'bg-rose-600 text-white animate-pulse'
-                        : 'bg-slate-900 text-amber-300 hover:bg-slate-800'
+                        ? 'bg-sky-600 text-white animate-pulse'
+                        : 'bg-slate-900 text-sky-300 hover:bg-slate-800'
                     }`}
                   >
                     {isRecordingBlessing ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
@@ -2599,8 +2728,8 @@ export const Journal = ({  isPremium,
                           )}
 
                           {entry.reflection && (
-                            <div className="bg-rose-50/70 p-4 rounded-2xl border border-rose-100/80">
-                              <span className="text-[9px] font-black uppercase tracking-wider text-rose-600 block mb-1">
+                            <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-primary block mb-1">
                                 💖 Parent Diary Reflection
                               </span>
                               <p className="text-xs font-serif italic text-gray-800 leading-relaxed whitespace-pre-wrap">
@@ -2610,12 +2739,12 @@ export const Journal = ({  isPremium,
                           )}
 
                           {entry.audioDataUrl && (
-                            <div className="bg-amber-50 p-3.5 rounded-2xl border border-amber-200 flex items-center justify-between gap-3">
+                            <div className="bg-sky-50 p-3.5 rounded-2xl border border-sky-200 flex items-center justify-between gap-3">
                               <div className="flex items-center gap-2">
                                 <span className="text-lg">🎙️</span>
                                 <div>
                                   <p className="text-xs font-bold text-gray-900">Recorded Voice Blessing / Lullaby</p>
-                                  <p className="text-[10px] text-amber-800">
+                                  <p className="text-[10px] text-sky-800">
                                     {entry.authorName ? `Recorded by ${entry.authorName}` : 'Available in Activity Monitor Speaker'}
                                   </p>
                                 </div>
@@ -2637,7 +2766,7 @@ export const Journal = ({  isPremium,
                                   audio.onended = () => setPlayingEntryAudioId(null);
                                   audio.play().catch(() => setPlayingEntryAudioId(null));
                                 }}
-                                className="px-3.5 py-2 rounded-xl bg-slate-900 text-amber-300 text-xs font-bold border-none cursor-pointer flex items-center gap-1.5"
+                                className="px-3.5 py-2 rounded-xl bg-slate-900 text-sky-300 text-xs font-bold border-none cursor-pointer flex items-center gap-1.5"
                               >
                                 <Volume2 className="w-3.5 h-3.5" />
                                 <span>{playingEntryAudioId === entry.id ? 'Stop' : 'Play Blessing'}</span>

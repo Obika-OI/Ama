@@ -471,11 +471,11 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
               onClick={() => setSortOrder(sortOrder === 'favorites' ? 'az' : 'favorites')}
               className={`px-3.5 py-2.5 rounded-2xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${
                 sortOrder === 'favorites'
-                  ? 'bg-rose-500 text-white border-rose-500 shadow-md'
+                  ? 'bg-sky-600 text-white border-sky-600 shadow-md'
                   : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
               }`}
             >
-              <Heart className={`w-4 h-4 ${sortOrder === 'favorites' ? 'fill-white text-white' : 'text-rose-500'}`} />
+              <Heart className={`w-4 h-4 ${sortOrder === 'favorites' ? 'fill-white text-white' : 'text-sky-600'}`} />
               <span>Saved ({favorites.length})</span>
             </button>
 
@@ -776,7 +776,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
             const isFav = favorites.includes(entry.id);
             const genderBadgeStyle =
               entry.gender === 'Female'
-                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                ? 'bg-sky-50 text-sky-700 border-sky-200'
                 : entry.gender === 'Male'
                 ? 'bg-sky-50 text-sky-700 border-sky-200'
                 : 'bg-purple-50 text-purple-700 border-purple-200';
@@ -828,10 +828,10 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                           e.stopPropagation();
                           toggleFavorite(entry.id);
                         }}
-                        className="w-8 h-8 rounded-full bg-gray-50 hover:bg-rose-50 flex items-center justify-center border border-gray-100 cursor-pointer transition-all"
+                        className="w-8 h-8 rounded-full bg-gray-50 hover:bg-sky-50 flex items-center justify-center border border-gray-100 cursor-pointer transition-all"
                         title={isFav ? 'Remove from Saved Names' : 'Save Name'}
                       >
-                        <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-500 text-rose-500' : 'text-gray-400'}`} />
+                        <Heart className={`w-4 h-4 ${isFav ? 'fill-sky-600 text-sky-600' : 'text-gray-400'}`} />
                       </button>
                     </div>
                   </div>
@@ -858,7 +858,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                     <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60">
                       🌍 {entry.origin}
                     </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-800 border border-indigo-200/60">
+                    <span className="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 border border-sky-200/60">
                       🗣️ {entry.language}
                     </span>
                   </div>
@@ -959,7 +959,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                 <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                   🌍 Origin: {selectedNameDetail.origin}
                 </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-800 border border-sky-200">
                   🗣️ Language: {selectedNameDetail.language}
                 </span>
               </div>
@@ -987,8 +987,8 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                   onClick={() => toggleFavorite(selectedNameDetail.id)}
                   className={`flex-1 py-3 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 border cursor-pointer transition-all ${
                     favorites.includes(selectedNameDetail.id)
-                      ? 'bg-rose-500 text-white border-rose-500'
-                      : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                      ? 'bg-sky-600 text-white border-sky-600'
+                      : 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100'
                   }`}
                 >
                   <Heart className={`w-4 h-4 ${favorites.includes(selectedNameDetail.id) ? 'fill-white' : ''}`} />
@@ -1158,7 +1158,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                 </div>
 
                 {addError && (
-                  <p className="text-xs font-bold text-rose-600 bg-rose-50 px-3.5 py-2 rounded-xl border border-rose-200">
+                  <p className="text-xs font-bold text-sky-600 bg-sky-50 px-3.5 py-2 rounded-xl border border-sky-200">
                     {addError}
                   </p>
                 )}

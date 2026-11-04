@@ -363,9 +363,9 @@ export const Dashboard = ({
             {/* Global Location Pill */}
             <button
               onClick={() => setIsLocationPickerOpen(true)}
-              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100 transition-all cursor-pointer"
             >
-              <MapPin className="w-2.5 h-2.5 text-emerald-600" />
+              <MapPin className="w-2.5 h-2.5 text-sky-600" />
               <span className="truncate max-w-[120px]">{currentLocation.name.split(',')[0]}</span>
             </button>
           </div>
@@ -455,19 +455,19 @@ export const Dashboard = ({
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-amber-50/80 p-6 sm:p-8 rounded-[36px] border-2 border-amber-300 shadow-lg shadow-amber-900/5 space-y-5 text-left"
+          className="bg-sky-50/80 p-6 sm:p-8 rounded-[36px] border-2 border-sky-300 shadow-lg shadow-sky-900/5 space-y-5 text-left"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-200/80 pb-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-200/80 text-amber-900 flex items-center justify-center text-2xl shadow-inner shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-sky-200/80 text-sky-900 flex items-center justify-center text-2xl shadow-inner shrink-0">
                 👵
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950 font-sans">
+                  <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-sky-200 text-sky-950 font-sans">
                     Grandma Mode • Village Access
                   </span>
-                  <span className="text-[10px] font-bold text-amber-800">
+                  <span className="text-[10px] font-bold text-sky-800">
                     High-Contrast One-Touch View
                   </span>
                 </div>
@@ -483,7 +483,7 @@ export const Dashboard = ({
             <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
               <button
                 onClick={() => setIsGrandmaModeActive(!isGrandmaModeActive)}
-                className="px-3.5 py-2 rounded-xl bg-white hover:bg-amber-100/70 border border-amber-300 text-gray-700 text-xs font-bold transition-all cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-white hover:bg-sky-100/70 border border-sky-300 text-gray-700 text-xs font-bold transition-all cursor-pointer"
               >
                 {isGrandmaModeActive ? 'Toggle Standard View' : 'Open Grandma Mode 👵'}
               </button>
@@ -491,7 +491,7 @@ export const Dashboard = ({
           </div>
 
           {grandmaToast && (
-            <div className="p-3.5 rounded-2xl bg-emerald-600 text-white text-xs font-black flex items-center gap-2 shadow-md animate-fade-in">
+            <div className="p-3.5 rounded-2xl bg-sky-600 text-white text-xs font-black flex items-center gap-2 shadow-md animate-fade-in">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{grandmaToast}</span>
             </div>
@@ -502,16 +502,16 @@ export const Dashboard = ({
             {/* Feed Button */}
             <button
               onClick={handleGrandmaQuickFeed}
-              className="p-5 rounded-3xl bg-white hover:bg-emerald-50/50 border-2 border-emerald-200 hover:border-emerald-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
+              className="p-5 rounded-3xl bg-white hover:bg-sky-50/50 border-2 border-sky-200 hover:border-sky-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
             >
               <div className="flex items-center justify-between">
                 <span className="text-3xl">🍼</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
                   One Touch
                 </span>
               </div>
               <div>
-                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-emerald-700">
+                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-sky-700">
                   Log Feed (Bottle / Nursing)
                 </p>
                 <p className="text-xs text-gray-500 font-medium mt-0.5">
@@ -523,16 +523,16 @@ export const Dashboard = ({
             {/* Nap Button */}
             <button
               onClick={handleGrandmaQuickNap}
-              className="p-5 rounded-3xl bg-white hover:bg-indigo-50/50 border-2 border-indigo-200 hover:border-indigo-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
+              className="p-5 rounded-3xl bg-white hover:bg-sky-50/50 border-2 border-sky-200 hover:border-sky-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
             >
               <div className="flex items-center justify-between">
                 <span className="text-3xl">😴</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
                   One Touch
                 </span>
               </div>
               <div>
-                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-indigo-700">
+                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-sky-700">
                   {babyName} is Asleep
                 </p>
                 <p className="text-xs text-gray-500 font-medium mt-0.5">
@@ -544,16 +544,16 @@ export const Dashboard = ({
             {/* Diaper Button */}
             <button
               onClick={handleGrandmaQuickDiaper}
-              className="p-5 rounded-3xl bg-white hover:bg-amber-50/50 border-2 border-amber-200 hover:border-amber-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
+              className="p-5 rounded-3xl bg-white hover:bg-sky-50/50 border-2 border-sky-200 hover:border-sky-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
             >
               <div className="flex items-center justify-between">
                 <span className="text-3xl">🚼</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
                   One Touch
                 </span>
               </div>
               <div>
-                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-amber-700">
+                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-sky-700">
                   Diaper Changed
                 </p>
                 <p className="text-xs text-gray-500 font-medium mt-0.5">
@@ -567,14 +567,14 @@ export const Dashboard = ({
               onClick={handleGrandmaVoiceLog}
               className={`p-5 rounded-3xl text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 border-2 ${
                 grandmaVoiceListening
-                  ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                  ? 'bg-sky-600 text-white border-sky-600 animate-pulse'
                   : 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
               }`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-3xl">🎙️</span>
                 <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                  grandmaVoiceListening ? 'bg-white text-rose-600' : 'bg-amber-400 text-slate-950'
+                  grandmaVoiceListening ? 'bg-white text-sky-600' : 'bg-sky-400 text-slate-950'
                 }`}>
                   {grandmaVoiceListening ? 'Listening...' : 'Voice Log'}
                 </span>
@@ -593,11 +593,11 @@ export const Dashboard = ({
           {/* Secondary Quick Action Row: Monitor (Settings Locked) + Record Blessing */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <button
-              onClick={() => onNavigate('sleep')}
-              className="p-4 rounded-2xl bg-white hover:bg-gray-50 border border-amber-200 text-gray-900 text-xs font-bold flex items-center justify-between cursor-pointer shadow-2xs"
+              onClick={() => onNavigate('monitor')}
+              className="p-4 rounded-2xl bg-white hover:bg-gray-50 border border-sky-200 text-gray-900 text-xs font-bold flex items-center justify-between cursor-pointer shadow-2xs"
             >
               <div className="flex items-center gap-2.5">
-                <Video className="w-5 h-5 text-indigo-600" />
+                <Video className="w-5 h-5 text-sky-600" />
                 <div className="text-left">
                   <p className="font-black text-gray-900">Smart Video Monitor (Settings Locked)</p>
                   <p className="text-[10px] text-gray-500">Safely watch {babyName} without changing camera settings</p>
@@ -608,10 +608,10 @@ export const Dashboard = ({
 
             <button
               onClick={() => onNavigate('journal')}
-              className="p-4 rounded-2xl bg-white hover:bg-gray-50 border border-amber-200 text-gray-900 text-xs font-bold flex items-center justify-between cursor-pointer shadow-2xs"
+              className="p-4 rounded-2xl bg-white hover:bg-gray-50 border border-sky-200 text-gray-900 text-xs font-bold flex items-center justify-between cursor-pointer shadow-2xs"
             >
               <div className="flex items-center gap-2.5">
-                <Volume2 className="w-5 h-5 text-amber-700" />
+                <Volume2 className="w-5 h-5 text-sky-700" />
                 <div className="text-left">
                   <p className="font-black text-gray-900">Record Voice Blessing or Lullaby</p>
                   <p className="text-[10px] text-gray-500">Record traditional prayers or songs for {babyName}</p>
@@ -796,6 +796,34 @@ export const Dashboard = ({
             <div className="pt-1 flex items-center justify-between text-xs font-bold text-primary group-hover:text-primary">
               <span className="flex items-center gap-1.5">
                 <Utensils className="w-3.5 h-3.5" /> Build 7-Day Plan
+              </span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </motion.div>
+
+          {/* Smart Baby Video Monitor Card */}
+          <motion.div
+            whileHover={{ y: -3 }}
+            onClick={() => isPremium ? onNavigate('monitor') : setIsSubscriptionModalOpen(true)}
+            className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden"
+          >
+            <div className="flex items-start justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                📹
+              </div>
+              <span className="text-[8px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider border border-primary/20">
+                P2P Village Stream
+              </span>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-serif font-black text-gray-800">Smart Baby Video Monitor</h3>
+              <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                Securely stream video and audio directly between village devices over local network or cloud. 100% private direct link.
+              </p>
+            </div>
+            <div className="pt-1 flex items-center justify-between text-xs font-bold text-primary group-hover:text-primary">
+              <span className="flex items-center gap-1.5">
+                <Video className="w-3.5 h-3.5" /> Launch Village Monitor
               </span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>

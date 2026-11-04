@@ -125,7 +125,11 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({ onBack, onNavigate
             <span>Back</span>
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-xl">🍼</span>
+            <img 
+              src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
+              alt="Ama Baby Care Logo" 
+              className="w-8 h-8 object-contain"
+            />
             <span className="font-serif font-black text-gray-900 text-sm tracking-tight">Ama Baby Care</span>
           </div>
           <div className="w-12"></div>
@@ -230,10 +234,10 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({ onBack, onNavigate
                       onChange={handleInputChange}
                       placeholder="e.g. Amara Obi"
                       className={`w-full bg-slate-50 border rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none transition-colors ${
-                        errors.name ? 'border-rose-400 focus:border-rose-500' : 'border-gray-200 focus:border-primary'
+                        errors.name ? 'border-sky-400 focus:border-sky-500' : 'border-gray-200 focus:border-primary'
                       }`}
                     />
-                    {errors.name && <p className="text-rose-500 text-[10px] mt-1 font-bold">{errors.name}</p>}
+                    {errors.name && <p className="text-sky-500 text-[10px] mt-1 font-bold">{errors.name}</p>}
                   </div>
 
                   <div>
@@ -245,10 +249,10 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({ onBack, onNavigate
                       onChange={handleInputChange}
                       placeholder="e.g. amara@example.com"
                       className={`w-full bg-slate-50 border rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none transition-colors ${
-                        errors.email ? 'border-rose-400 focus:border-rose-500' : 'border-gray-200 focus:border-primary'
+                        errors.email ? 'border-sky-400 focus:border-sky-500' : 'border-gray-200 focus:border-primary'
                       }`}
                     />
-                    {errors.email && <p className="text-rose-500 text-[10px] mt-1 font-bold">{errors.email}</p>}
+                    {errors.email && <p className="text-sky-500 text-[10px] mt-1 font-bold">{errors.email}</p>}
                   </div>
                 </div>
 
@@ -277,10 +281,10 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({ onBack, onNavigate
                     onChange={handleInputChange}
                     placeholder="Tell us what you need assistance with..."
                     className={`w-full bg-slate-50 border rounded-xl p-3.5 text-xs font-medium text-slate-800 outline-none transition-colors resize-none ${
-                      errors.message ? 'border-rose-400 focus:border-rose-500' : 'border-gray-200 focus:border-primary'
+                      errors.message ? 'border-sky-400 focus:border-sky-500' : 'border-gray-200 focus:border-primary'
                     }`}
                   />
-                  {errors.message && <p className="text-rose-500 text-[10px] mt-1 font-bold">{errors.message}</p>}
+                  {errors.message && <p className="text-sky-500 text-[10px] mt-1 font-bold">{errors.message}</p>}
                 </div>
 
                 <div className="space-y-1">
@@ -297,7 +301,7 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({ onBack, onNavigate
                     </span>
                   </label>
                   {errors.agreeToTerms && (
-                    <p className="text-rose-500 text-[10px] font-bold">{errors.agreeToTerms}</p>
+                    <p className="text-sky-500 text-[10px] font-bold">{errors.agreeToTerms}</p>
                   )}
                 </div>
 

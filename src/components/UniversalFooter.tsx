@@ -17,7 +17,11 @@ export const UniversalFooter: React.FC<UniversalFooterProps> = ({
         {/* Column 1: Brand & Bio */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-white font-serif font-black text-base">
-            <span>🍼</span>
+            <img 
+              src="/assets/aistudio/Untitled_design_20261103_062723_0000_e46b1476.png" 
+              alt="Logo" 
+              className="w-6 h-6 object-contain"
+            />
             <span>Ama Baby Care</span>
           </div>
           <p className="text-slate-400 leading-relaxed text-[11px]">

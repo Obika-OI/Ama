@@ -850,7 +850,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="bg-gradient-to-r from-sky-50 to-blue-50/50 border-b border-primary/15 p-2.5 overflow-hidden"
+                    className="bg-gradient-to-r from-sky-50 to-sky-50/50 border-b border-primary/15 p-2.5 overflow-hidden"
                   >
                     <div className="flex items-center justify-between mb-1.5 px-1">
                       <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
@@ -1008,8 +1008,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
                       {/* Proactive follow-up badge */}
                       {msg.proactiveInsight && (
-                        <div className="mt-2 text-[10px] text-gray-600 bg-amber-50 border border-amber-200/60 p-2 rounded-xl flex items-start gap-1.5">
-                          <ShieldCheck className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="mt-2 text-[10px] text-gray-600 bg-sky-50 border border-sky-200/60 p-2 rounded-xl flex items-start gap-1.5">
+                          <ShieldCheck className="w-3 h-3 text-sky-600 shrink-0 mt-0.5" />
                           <span><strong>Ogoo Tip:</strong> {msg.proactiveInsight}</span>
                         </div>
                       )}

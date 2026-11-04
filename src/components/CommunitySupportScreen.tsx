@@ -145,18 +145,21 @@ interface CommunitySupportScreenProps {
 
 const COMMUNITY_FIELDS = [
   'All Fields',
-  'Caregivers & Sitters',
+  'Special Needs & Developmental Therapy (Speech, OT, ABA)',
+  'Pediatric Physiotherapy & Motor Rehabilitation',
+  'Psychotherapy, Child Psychology & Mental Health',
+  'Family Planning & Fertility Counseling',
+  'Financial Planning & College Savings',
+  'Trusts, Estate Planning & Guardianship Legal',
+  'Family Law & Child Custody Advice',
+  'Career Coaching & Parental Transition',
+  'Life Coaching & Personal Growth',
+  'Caregivers, Nannies & Sitters',
   'Elder Sitters & Senior Care',
   'Doulas & Night Care',
-  'Family Financial & Trust Planning',
-  'Career Coaching & Work-Life Balance',
-  'Mental Health & Emotional Wellness',
-  'Family Law & Estate Legal',
-  'Home Organization & Meal Support',
-  'Feeding & Weaning',
-  'Lactation & Breastfeeding',
+  'Lactation & Feeding Support',
   'Sleep & Wake Windows',
-  'Wellness & Routine',
+  'Home Organization & Meal Support',
   'Developmental Milestones'
 ];
 
@@ -166,31 +169,44 @@ const MEMBER_ROLES = [
   'Caregiver / Nanny',
   'Elder Sitter / Companion',
   'Doula / Birth Worker',
-  'Financial & Trust Advisor',
+  'Special Needs & Developmental Therapist',
+  'Pediatric Physiotherapist',
+  'Psychotherapist / Child Psychologist',
+  'Family Planning Counselor',
+  'Financial & Wealth Advisor',
+  'Trust & Estate Legal Advisor',
+  'Family Lawyer',
   'Career & Family Coach',
-  'Mental Health Counselor',
-  'Family Law / Legal Advisor',
-  'Home Organizer',
+  'Life Coach',
+  'Home Organizer / Meal Prep Chef',
   'Lactation Specialist',
-  'Wellness Provider'
+  'Sleep Consultant'
 ];
 
 const CHAT_ROOMS = [
   { id: 'general-parenting', name: '# General Parenting Village', desc: 'Connect & chat with parents and families worldwide' },
+  { id: 'special-needs-therapy', name: '# Special Needs & Therapy Support', desc: 'Speech, OT, behavioral therapy, and developmental growth' },
+  { id: 'finance-legal-trusts', name: '# Financial, Legal & Trust Planning', desc: 'College savings, estate planning, wills, and legal protection' },
+  { id: 'career-life-coaching', name: '# Career Transition & Life Coaching', desc: 'Balancing career growth, return-to-work, and personal success' },
+  { id: 'mental-health-wellness', name: '# Mental Health & Psychotherapy Lounge', desc: 'Postpartum wellness, child psychology, and emotional support' },
   { id: 'lactation-nursing', name: '# Lactation & Nursing Support', desc: 'Breastfeeding, pumping, bottle feeds & latch guidance' },
   { id: 'weaning-nutrition', name: '# Weaning & Local Recipes', desc: 'First solids, Tom Brown, purees & food allergies' },
-  { id: 'sleep-wake-windows', name: '# Night Feeds & Sleep Lounge', desc: '2 AM check-ins, wake windows & gentle soothing' },
-  { id: 'pediatric-care', name: '# Care Providers & Health Q&A', desc: 'Teething, routines, immunizations & developmental care' }
+  { id: 'sleep-wake-windows', name: '# Night Feeds & Sleep Lounge', desc: '2 AM check-ins, wake windows & gentle soothing' }
 ];
 
 const MARKETPLACE_CATEGORIES = [
   'All Services',
+  'Special Needs & Therapy',
+  'Physiotherapy & Rehabilitation',
+  'Psychotherapy & Mental Health',
+  'Family Planning & Fertility',
+  'Financial & Wealth Advisory',
+  'Trusts, Estates & Legal Services',
+  'Career Coaching & Transition',
+  'Life Coaching',
   'Caregivers & Sitters',
   'Elder Sitters & Senior Care',
   'Doulas & Night Care',
-  'Financial & Trust Advisors',
-  'Career & Work-Life Coaches',
-  'Mental Health & Therapy',
   'Household & Meal Support'
 ];
 
@@ -220,7 +236,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   }, [userId]);
 
   // Main navigation tab order strictly enforced
-  const [activeTab, setActiveTab] = useState<'forum' | 'network' | 'chat' | 'omugwo' | 'specialist'>('forum');
+  const [activeTab, setActiveTab] = useState<'forum' | 'network' | 'chat' | 'omugwo'>('forum');
   const [isLoadingState, setIsLoadingState] = useState(false);
 
   // Profile onboarding status
@@ -267,7 +283,6 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   const [newPostCategory, setNewPostCategory] = useState('Feeding & Weaning');
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostTags, setNewPostTags] = useState('');
-  const [requestExpertOnCreate, setRequestExpertOnCreate] = useState(true);
   const [isSubmittingPost, setIsSubmittingPost] = useState(false);
   const [postError, setPostError] = useState('');
 
@@ -275,7 +290,6 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [submittingReplyId, setSubmittingReplyId] = useState<string | null>(null);
-  const [requestingSpecialistId, setRequestingSpecialistId] = useState<string | null>(null);
 
   // Network state
   const [networkSearch, setNetworkSearch] = useState('');
@@ -291,15 +305,6 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   const [isSendingChat, setIsSendingChat] = useState(false);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Specialist Direct Q&A state
-  const [specialistField, setSpecialistField] = useState('Lactation & Breastfeeding');
-  const [specialistQuestion, setSpecialistQuestion] = useState('');
-  const [publishToForum, setPublishToForum] = useState(true);
-  const [isAskingSpecialist, setIsAskingSpecialist] = useState(false);
-  const [specialistResult, setSpecialistResult] = useState<{
-    answer: string;
-    sources: { title: string; uri: string }[];
-  } | null>(null);
   const [specialistError, setSpecialistError] = useState('');
 
   // Modal open states for new registrations & requests
@@ -466,8 +471,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
           tags: newPostTags
             .split(',')
             .map(t => t.trim())
-            .filter(Boolean),
-          requestExpertAnswer: requestExpertOnCreate
+            .filter(Boolean)
         })
       });
       const data = await res.json();
@@ -517,24 +521,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     }
   };
 
-  const handleRequestSpecialistOnPost = async (postId: string) => {
-    setRequestingSpecialistId(postId);
-    try {
-      const res = await fetch(`/api/community/posts/${encodeURIComponent(postId)}/specialist-answer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const data = await res.json();
-      if (res.ok && data.post) {
-        setPosts(prev => prev.map(p => (p.id === postId ? data.post : p)));
-        setExpandedPostId(postId);
-      }
-    } catch (err) {
-      console.warn('Specialist synthesis error:', err);
-    } finally {
-      setRequestingSpecialistId(null);
-    }
-  };
+
 
   const handleToggleUpvote = async (postId: string, replyId?: string) => {
     try {
@@ -660,46 +647,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     }
   };
 
-  const handleAskSpecialistDirect = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!specialistQuestion.trim()) return;
-    setIsAskingSpecialist(true);
-    setSpecialistError('');
-    setSpecialistResult(null);
-
-    try {
-      const res = await fetch('/api/community/ask-specialist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          field: specialistField,
-          question: specialistQuestion.trim(),
-          babyAge,
-          location: userLocation,
-          publishToForum,
-          authorId: effectiveUserId,
-          authorName: myDisplayName.trim() || parentName || 'Parent',
-          authorRole: myRole
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setSpecialistError(data.error || 'Could not complete specialist consultation.');
-      } else {
-        setSpecialistResult({
-          answer: data.answer,
-          sources: Array.isArray(data.sources) ? data.sources : []
-        });
-        if (data.publishedPost) {
-          setPosts(prev => [data.publishedPost, ...prev]);
-        }
-      }
-    } catch {
-      setSpecialistError('Network error while contacting specialist service.');
-    } finally {
-      setIsAskingSpecialist(false);
-    }
-  };
+  // handleAskSpecialistDirect removed.
 
   const handleRegisterSpecialist = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -884,13 +832,13 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
       </header>
 
       {/* Community Social Platform Policy & Third-Party Notice */}
-      <div className="bg-amber-50/90 border border-amber-200/90 rounded-3xl p-4 sm:p-5 flex items-start gap-3 shadow-2xs">
-        <ShieldCheck className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+      <div className="bg-primary/5 border border-primary/20 rounded-3xl p-4 sm:p-5 flex items-start gap-3 shadow-2xs">
+        <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div className="space-y-1 text-xs">
-          <p className="font-black text-amber-950 uppercase tracking-wider text-[11px]">
+          <p className="font-black text-gray-900 uppercase tracking-wider text-[11px]">
             Community Platform Policy & Independence Notice
           </p>
-          <p className="text-amber-900 leading-relaxed">
+          <p className="text-gray-700 leading-relaxed">
             Ama Community is an open peer-to-peer parent, family, and caregiver support network. <strong>Please note that we currently have no medical, legal, or health experts directly associated or affiliated with the app yet.</strong> All specialists, advice providers, caregivers, and marketplace listings are independent third-party community members or practitioners. Content shared here is generated independently for peer support, education, and connection, and does not constitute formal medical or professional advice from the app company. Always consult your personal primary physician or emergency services for urgent health matters.
           </p>
         </div>
@@ -988,8 +936,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               { id: 'forum', label: 'Feed', count: posts.length, icon: MessageSquare },
               { id: 'network', label: 'Peer Network', count: members.length, icon: Users },
               { id: 'chat', label: 'Live Rooms', count: chatMessages.length, icon: MessageCircle },
-              { id: 'omugwo', label: 'Care Marketplace', count: null, icon: HeartHandshake },
-              { id: 'specialist', label: 'Ask Specialist', count: null, icon: Stethoscope }
+              { id: 'omugwo', label: 'Care Marketplace', count: null, icon: HeartHandshake }
             ].map(tab => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
@@ -1131,7 +1078,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                       {isMyPost && (
                         <button
                           onClick={() => handleDeletePost(post.id)}
-                          className="p-1.5 rounded-xl text-gray-400 hover:text-rose-600 hover:bg-rose-50 border-none cursor-pointer"
+                          className="p-1.5 rounded-xl text-gray-400 hover:text-sky-600 hover:bg-sky-50 border-none cursor-pointer"
                           title="Delete Post"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1167,20 +1114,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                         </button>
                       </div>
 
-                      {!hasExpertReply && (
-                        <button
-                          onClick={() => handleRequestSpecialistOnPost(post.id)}
-                          disabled={requestingSpecialistId === post.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-extrabold cursor-pointer text-[11px]"
-                        >
-                          {requestingSpecialistId === post.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
-                          ) : (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                          )}
-                          <span>Attach Evidence Synthesis</span>
-                        </button>
-                      )}
+
                     </div>
 
                     {/* Thread Replies Section */}
@@ -1618,15 +1552,15 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
       {activeTab === 'omugwo' && (
         <div className="space-y-6">
           {/* Header */}
-          <div className="bg-gradient-to-r from-amber-900 to-amber-800 text-white rounded-[32px] p-6 sm:p-8 shadow-md relative overflow-hidden">
+          <div className="bg-gradient-to-r from-sky-900 to-sky-800 text-white rounded-[32px] p-6 sm:p-8 shadow-md relative overflow-hidden">
             <div className="max-w-2xl space-y-2 relative z-10">
-              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-400/20 text-amber-200 border border-amber-300/30 inline-block">
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-sky-400/20 text-sky-200 border border-sky-300/30 inline-block">
                 Comprehensive Childcare & Family Support Network
               </span>
-              <h2 className="text-xl sm:text-2xl font-serif font-black text-amber-100">
+              <h2 className="text-xl sm:text-2xl font-serif font-black text-sky-100">
                 Care & Family Service Marketplace
               </h2>
-              <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed font-normal">
+              <p className="text-xs sm:text-sm text-sky-100/90 leading-relaxed font-normal">
                 An open peer-to-peer and professional network connecting families with help across all childcare phases — from daily caregivers, night sitters, and doulas to financial planners, trust & estate advisors, career coaches, and postpartum mental health specialists. Anybody can register as a provider or post a care request!
               </p>
             </div>
@@ -1648,7 +1582,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   onClick={() => setMarketplaceCategoryFilter(cat)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 cursor-pointer border transition-all ${
                     marketplaceCategoryFilter === cat
-                      ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                      ? 'bg-sky-600 text-white border-sky-600 shadow-2xs'
                       : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                   }`}
                 >
@@ -1660,7 +1594,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setIsProviderRegisterModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1"
+                className="px-4 py-2.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1"
               >
                 <Plus className="w-4 h-4" />
                 <span>Offer Services / Register</span>
@@ -1684,17 +1618,17 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
 
           {/* Active Family Care Requests */}
           {marketplaceRequests.length > 0 && (
-            <div className="bg-amber-50/70 border border-amber-200 rounded-[28px] p-5 space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-amber-700" />
+            <div className="bg-sky-50/70 border border-sky-200 rounded-[28px] p-5 space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-sky-900 flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-sky-700" />
                 Active Family Care Needs & Open Requests ({marketplaceRequests.length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {marketplaceRequests.map(req => (
-                  <div key={req.id} className="bg-white rounded-2xl p-4 border border-amber-200 shadow-xs space-y-2 text-xs">
+                  <div key={req.id} className="bg-white rounded-2xl p-4 border border-sky-200 shadow-xs space-y-2 text-xs">
                     <div className="flex justify-between items-start gap-2">
                       <span className="font-black text-gray-900">{req.title}</span>
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-100 text-amber-900 shrink-0">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-sky-100 text-sky-900 shrink-0">
                         {req.category}
                       </span>
                     </div>
@@ -1705,7 +1639,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     </div>
                     <button
                       onClick={() => handleOpenDirectChat({ id: `req-${req.id}`, name: `${req.familyName} (Care Request)` })}
-                      className="w-full py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] border-none cursor-pointer"
+                      className="w-full py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-[11px] border-none cursor-pointer"
                     >
                       Offer Help / Contact Family
                     </button>
@@ -1731,7 +1665,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                         <h3 className="text-base sm:text-lg font-black text-gray-900">
                           {prov.name}
                         </h3>
-                        <p className="text-xs font-bold text-amber-800">
+                        <p className="text-xs font-bold text-sky-800">
                           {prov.title} • {prov.category}
                         </p>
                       </div>
@@ -1756,7 +1690,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
                     <button
                       onClick={() => setSelectedCaregiverForBooking(prov)}
-                      className="flex-1 py-2.5 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer"
+                      className="flex-1 py-2.5 rounded-2xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer"
                     >
                       Book / Request Service
                     </button>
@@ -1791,14 +1725,14 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                           </h3>
                           <span className="text-xs text-gray-400 font-semibold">({caregiver.ageGroup})</span>
                         </div>
-                        <p className="text-xs font-bold text-amber-700 mt-0.5">
+                        <p className="text-xs font-bold text-sky-700 mt-0.5">
                           {caregiver.title}
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 shrink-0">
-                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                        <span className="text-xs font-black text-amber-900">{caregiver.rating}</span>
+                      <div className="flex items-center gap-1 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-200 shrink-0">
+                        <Star className="w-3.5 h-3.5 text-sky-500 fill-sky-500" />
+                        <span className="text-xs font-black text-sky-900">{caregiver.rating}</span>
                         <span className="text-[10px] font-medium text-gray-500">({caregiver.reviewCount})</span>
                       </div>
                     </div>
@@ -1811,8 +1745,8 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
                         <Check className="w-3 h-3 text-emerald-600" /> Verified
                       </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
-                        <Check className="w-3 h-3 text-blue-600" /> Background Checked
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-800 border border-sky-200 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-sky-600" /> Background Checked
                       </span>
                     </div>
                   </div>
@@ -1820,7 +1754,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
                     <button
                       onClick={() => setSelectedCaregiverForBooking(caregiver)}
-                      className="flex-1 py-2.5 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer"
+                      className="flex-1 py-2.5 rounded-2xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer"
                     >
                       Schedule Caregiver
                     </button>
@@ -1831,184 +1765,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         </div>
       )}
 
-      {/* TAB 5: ASK SPECIALIST */}
-      {activeTab === 'specialist' && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
-              <div className="space-y-1">
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">
-                  Independent Third-Party Specialist Directory
-                </span>
-                <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-900 pt-1">
-                  Ask or Connect with Independent Specialists
-                </h2>
-                <p className="text-xs text-gray-600">
-                  Select any family, caregiving, doula, financial, career, or mental health field to ask questions, or connect with independent third-party specialists. Please note we currently have no specialist associated with the app yet.
-                </p>
-              </div>
-
-              <button
-                onClick={() => setIsSpecialistRegisterModalOpen(true)}
-                className="px-4 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5 shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Register as Third-Party Specialist</span>
-              </button>
-            </div>
-
-            {/* Third-Party Independent Specialists Directory Grid */}
-            {specialists.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-gray-500">
-                  Registered Third-Party Independent Specialists ({specialists.length})
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {specialists.map(spec => (
-                    <div key={spec.id} className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-2 text-xs">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-black text-gray-900 text-sm">{spec.name}</h4>
-                          <p className="text-emerald-800 font-bold text-[11px]">{spec.title}</p>
-                        </div>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-white text-emerald-900 border border-emerald-200">
-                          {spec.field}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 font-semibold text-[11px]">Credentials: {spec.credentials}</p>
-                      <p className="text-gray-700 leading-relaxed font-medium">{spec.bio}</p>
-                      <div className="pt-2 border-t border-emerald-200 flex items-center justify-between text-[10px] text-gray-500 font-bold">
-                        <span>Fee: {spec.feeInfo}</span>
-                        <span>Location: {spec.location}</span>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setSpecialistField(spec.field);
-                          setSpecialistQuestion(`Question for ${spec.name} (${spec.title}): `);
-                        }}
-                        className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold border-none cursor-pointer mt-1"
-                      >
-                        Consult {spec.name}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Specialist Q&A Form */}
-            <form onSubmit={handleAskSpecialistDirect} className="space-y-4 pt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
-                    Select Specialist Field
-                  </label>
-                  <select
-                    value={specialistField}
-                    onChange={e => setSpecialistField(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold text-gray-800 outline-none focus:border-primary"
-                  >
-                    {COMMUNITY_FIELDS.filter(f => f !== 'All Fields').map(field => (
-                      <option key={field} value={field}>
-                        {field}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-end">
-                  <label className="flex items-center gap-2.5 p-3 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer w-full">
-                    <input
-                      type="checkbox"
-                      checked={publishToForum}
-                      onChange={e => setPublishToForum(e.target.checked)}
-                      className="w-4 h-4 accent-primary"
-                    />
-                    <span className="text-xs font-bold text-gray-700">
-                      Also publish question & answer to Feed so other parents can reply
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
-                  Your Question (Baby Age: {babyAge} • Location: {userLocation})
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  value={specialistQuestion}
-                  onChange={e => setSpecialistQuestion(e.target.value)}
-                  placeholder="Describe your question in detail (e.g. latch discomfort, introducing iron-rich local weaning foods, frequent night waking at 6 months, fever after pentavalent vaccine)..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-primary resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isAskingSpecialist}
-                className="px-6 py-3.5 rounded-2xl bg-primary hover:bg-primary/90 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md border-none cursor-pointer"
-              >
-                {isAskingSpecialist ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Stethoscope className="w-4 h-4" />
-                )}
-                <span>{isAskingSpecialist ? 'Consulting Specialist Engine...' : 'Get Evidence-Based Specialist Answer'}</span>
-              </button>
-            </form>
-
-            {specialistError && (
-              <p className="text-xs font-bold text-rose-600 bg-rose-50 p-3.5 rounded-2xl border border-rose-200">
-                {specialistError}
-              </p>
-            )}
-
-            {specialistResult && (
-              <div className="bg-emerald-50/60 border border-emerald-200 rounded-3xl p-5 sm:p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                    <span>{specialistField} Specialist Answer</span>
-                  </span>
-                  {publishToForum && (
-                    <span className="text-[10px] font-bold bg-white text-emerald-800 px-2.5 py-1 rounded-full border border-emerald-200">
-                      ✓ Shared to Feed
-                    </span>
-                  )}
-                </div>
-
-                <div className="text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap bg-white p-4 rounded-2xl border border-emerald-100 font-medium">
-                  {specialistResult.answer}
-                </div>
-
-                {specialistResult.sources.length > 0 && (
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
-                      Evidence Grounding Sources
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {specialistResult.sources.map((src, i) => (
-                        <a
-                          key={i}
-                          href={src.uri}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs font-bold text-emerald-800 hover:underline bg-white px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 no-underline"
-                        >
-                          <span>{src.title}</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* TAB 5 removed */}
       </>
       )}
 
@@ -2144,7 +1901,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
             >
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-sky-700">
                     Care Marketplace Provider
                   </span>
                   <h2 className="text-xl font-serif font-black text-gray-900">
@@ -2241,7 +1998,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmittingProvider}
-                    className="px-5 py-2 rounded-xl bg-amber-700 text-white font-black uppercase border-none cursor-pointer shadow-md"
+                    className="px-5 py-2 rounded-xl bg-sky-700 text-white font-black uppercase border-none cursor-pointer shadow-md"
                   >
                     {isSubmittingProvider ? 'Publishing...' : 'List Provider Service'}
                   </button>
@@ -2264,7 +2021,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
             >
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-sky-700">
                     Family Care Request
                   </span>
                   <h2 className="text-xl font-serif font-black text-gray-900">
@@ -2383,7 +2140,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-sky-700">
                     Care Request Form
                   </span>
                   <h3 className="text-xl font-serif font-black text-gray-900 mt-0.5">
@@ -2409,7 +2166,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   <select
                     value={bookingScheduleType}
                     onChange={e => setBookingScheduleType(e.target.value as any)}
-                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-amber-600"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-sky-600"
                   >
                     <option value="Daily">Daily Support</option>
                     <option value="Weekend">Weekend Support</option>
@@ -2426,7 +2183,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     type="date"
                     value={bookingDate}
                     onChange={e => setBookingDate(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-amber-600"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-sky-600"
                   />
                 </div>
 
@@ -2439,7 +2196,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     value={bookingDietNotes}
                     onChange={e => setBookingDietNotes(e.target.value)}
                     placeholder="Specific instructions or requirements for your family..."
-                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-amber-600 resize-none"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-sky-600 resize-none"
                   />
                 </div>
 
@@ -2453,7 +2210,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer shadow-md"
+                    className="flex-1 py-3 rounded-2xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer shadow-md"
                   >
                     Confirm Request
                   </button>
