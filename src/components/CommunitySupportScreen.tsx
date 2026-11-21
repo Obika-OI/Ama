@@ -38,6 +38,21 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useSEO } from '../utils/seo';
 import { INITIAL_VETTED_CAREGIVERS, VettedCaregiver } from '../constants/omugwoData';
+import {
+  auth,
+  db,
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  where,
+  limit,
+  handleFirestoreError,
+  OperationType
+} from '../firebase';
 
 export interface CommunityReplyItem {
   id: string;
@@ -226,6 +241,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   });
 
   const effectiveUserId = useMemo(() => {
+    if (auth.currentUser?.uid) return auth.currentUser.uid;
     if (userId) return userId;
     let stored = localStorage.getItem('ama_community_uid');
     if (!stored) {
@@ -233,7 +249,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
       localStorage.setItem('ama_community_uid', stored);
     }
     return stored;
-  }, [userId]);
+  }, [userId, auth.currentUser?.uid]);
 
   // Main navigation tab order strictly enforced
   const [activeTab, setActiveTab] = useState<'forum' | 'network' | 'chat' | 'omugwo'>('forum');
@@ -303,6 +319,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   const [customDmRoom, setCustomDmRoom] = useState<{ id: string; name: string } | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [isSendingChat, setIsSendingChat] = useState(false);
+  const [chatError, setChatError] = useState('');
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   const [specialistError, setSpecialistError] = useState('');
@@ -343,22 +360,59 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   const [reqContactInfo, setReqContactInfo] = useState('');
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
 
+  // Helper: Run server-side rate-limiting & Gemini automated text moderation before publishing
+  const runModerationCheck = async (payload: {
+    type: 'post' | 'reply' | 'chat' | 'profile' | 'marketplace';
+    title?: string;
+    text: string;
+  }): Promise<{ allowed: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/community/moderate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          userId: effectiveUserId,
+          senderId: effectiveUserId,
+          authorId: effectiveUserId
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || data.allowed === false) {
+        return { allowed: false, error: data.error || 'Content blocked by community safety moderation.' };
+      }
+      return { allowed: true };
+    } catch {
+      return { allowed: true };
+    }
+  };
+
   const fetchCommunityState = async () => {
     setIsLoadingState(true);
     try {
       const res = await fetch('/api/community/state');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.posts)) setPosts(data.posts);
-        if (Array.isArray(data.members)) setMembers(data.members);
+        if (Array.isArray(data.posts)) {
+          setPosts(prev => (prev.length > 0 ? prev : data.posts));
+        }
+        if (Array.isArray(data.members)) {
+          setMembers(prev => (prev.length > 0 ? prev : data.members));
+        }
         if (Array.isArray(data.connections)) setConnections(data.connections);
-        if (Array.isArray(data.messages)) setChatMessages(data.messages);
+        if (Array.isArray(data.messages)) {
+          setChatMessages(prev => (prev.length > 0 ? prev : data.messages));
+        }
         if (Array.isArray(data.specialists)) setSpecialists(data.specialists);
-        if (Array.isArray(data.marketplaceProviders)) setMarketplaceProviders(data.marketplaceProviders);
-        if (Array.isArray(data.marketplaceRequests)) setMarketplaceRequests(data.marketplaceRequests);
+        if (Array.isArray(data.marketplaceProviders)) {
+          setMarketplaceProviders(prev => (prev.length > 0 ? prev : data.marketplaceProviders));
+        }
+        if (Array.isArray(data.marketplaceRequests)) {
+          setMarketplaceRequests(prev => (prev.length > 0 ? prev : data.marketplaceRequests));
+        }
       }
     } catch (err) {
-      console.warn('Could not fetch community state:', err);
+      console.warn('Could not fetch community seed state:', err);
     } finally {
       setIsLoadingState(false);
     }
@@ -368,22 +422,117 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     fetchCommunityState();
   }, []);
 
-  // Poll chat messages when on Live Rooms tab
+  // Real-time Firestore bindings for community_posts, community_messages, community_members, marketplace_providers, marketplace_requests
   useEffect(() => {
-    if (activeTab !== 'chat') return;
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch('/api/community/chat');
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.messages)) {
-            setChatMessages(data.messages);
-          }
+    if (!auth.currentUser) return;
+
+    const unsubPosts = onSnapshot(
+      query(collection(db, 'community_posts'), where('isPublic', '==', true), limit(100)),
+      (snap) => {
+        const fsPosts: CommunityPostItem[] = snap.docs
+          .map(d => d.data() as CommunityPostItem)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        if (fsPosts.length > 0) {
+          setPosts(prev => {
+            const fsIds = new Set(fsPosts.map(p => p.id));
+            const remainingSeed = prev.filter(p => !fsIds.has(p.id) && p.id.startsWith('seed-'));
+            return [...fsPosts, ...remainingSeed];
+          });
         }
-      } catch {}
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [activeTab]);
+      },
+      (err) => {
+        try {
+          handleFirestoreError(err, OperationType.LIST, 'community_posts');
+        } catch {}
+      }
+    );
+
+    const unsubMessages = onSnapshot(
+      query(collection(db, 'community_messages'), where('isPublic', '==', true), limit(250)),
+      (snap) => {
+        const fsMsgs: CommunityChatMessageItem[] = snap.docs
+          .map(d => d.data() as CommunityChatMessageItem)
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        if (fsMsgs.length > 0) {
+          setChatMessages(fsMsgs);
+        }
+      },
+      (err) => {
+        try {
+          handleFirestoreError(err, OperationType.LIST, 'community_messages');
+        } catch {}
+      }
+    );
+
+    const unsubMembers = onSnapshot(
+      query(collection(db, 'community_members'), where('isPublic', '==', true), limit(100)),
+      (snap) => {
+        const fsMembers: CommunityMemberItem[] = snap.docs.map(d => d.data() as CommunityMemberItem);
+        if (fsMembers.length > 0) {
+          setMembers(prev => {
+            const fsIds = new Set(fsMembers.map(m => m.id));
+            const remainingSeed = prev.filter(m => !fsIds.has(m.id));
+            return [...fsMembers, ...remainingSeed];
+          });
+        }
+      },
+      (err) => {
+        try {
+          handleFirestoreError(err, OperationType.LIST, 'community_members');
+        } catch {}
+      }
+    );
+
+    const unsubProviders = onSnapshot(
+      query(collection(db, 'marketplace_providers'), where('isPublic', '==', true), limit(100)),
+      (snap) => {
+        const fsProviders: MarketplaceProvider[] = snap.docs
+          .map(d => d.data() as MarketplaceProvider)
+          .sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
+        if (fsProviders.length > 0) {
+          setMarketplaceProviders(prev => {
+            const fsIds = new Set(fsProviders.map(p => p.id));
+            const remainingSeed = prev.filter(p => !fsIds.has(p.id));
+            return [...fsProviders, ...remainingSeed];
+          });
+        }
+      },
+      (err) => {
+        try {
+          handleFirestoreError(err, OperationType.LIST, 'marketplace_providers');
+        } catch {}
+      }
+    );
+
+    const unsubRequests = onSnapshot(
+      query(collection(db, 'marketplace_requests'), where('isPublic', '==', true), limit(100)),
+      (snap) => {
+        const fsRequests: FamilyCareRequest[] = snap.docs
+          .map(d => d.data() as FamilyCareRequest)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        if (fsRequests.length > 0) {
+          setMarketplaceRequests(prev => {
+            const fsIds = new Set(fsRequests.map(r => r.id));
+            const remainingSeed = prev.filter(r => !fsIds.has(r.id));
+            return [...fsRequests, ...remainingSeed];
+          });
+        }
+      },
+      (err) => {
+        try {
+          handleFirestoreError(err, OperationType.LIST, 'marketplace_requests');
+        } catch {}
+      }
+    );
+
+    return () => {
+      unsubPosts();
+      unsubMessages();
+      unsubMembers();
+      unsubProviders();
+      unsubRequests();
+    };
+  }, [auth.currentUser?.uid]);
 
   // Filtered Forum Posts
   const filteredPosts = useMemo(() => {
@@ -456,37 +605,69 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
 
     setIsSubmittingPost(true);
     try {
-      const res = await fetch('/api/community/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          authorId: effectiveUserId,
-          authorName: myDisplayName.trim() || parentName || 'Parent',
-          authorRole: myRole,
-          authorLocation: userLocation,
-          babyAgeContext: babyAge,
-          category: newPostCategory,
-          title: newPostTitle.trim(),
-          content: newPostContent.trim(),
-          tags: newPostTags
-            .split(',')
-            .map(t => t.trim())
-            .filter(Boolean)
-        })
+      const mod = await runModerationCheck({
+        type: 'post',
+        title: newPostTitle.trim(),
+        text: newPostContent.trim()
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setPostError(data.error || 'Could not publish question.');
-      } else if (data.post) {
-        setPosts(prev => [data.post, ...prev]);
-        setExpandedPostId(data.post.id);
+      if (!mod.allowed) {
+        setPostError(mod.error || 'Post was blocked by automated safety moderation.');
+        return;
+      }
+
+      const now = new Date().toISOString();
+      const postId = `post-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const uid = auth.currentUser?.uid || effectiveUserId;
+      const newPost: CommunityPostItem & { isPublic: boolean } = {
+        id: postId,
+        authorId: uid.slice(0, 128),
+        authorName: (myDisplayName.trim() || parentName || 'Parent').slice(0, 80),
+        authorRole: myRole.slice(0, 80),
+        authorLocation: (userLocation || '').slice(0, 120),
+        babyAgeContext: (babyAge || '').slice(0, 60),
+        category: newPostCategory.slice(0, 100),
+        title: newPostTitle.trim().slice(0, 240),
+        content: newPostContent.trim().slice(0, 4000),
+        tags: newPostTags.split(',').map(t => t.trim()).filter(Boolean).slice(0, 10),
+        upvotes: [],
+        replies: [],
+        isPublic: true,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'community_posts', postId), newPost);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, `community_posts/${postId}`);
+        }
+        setPosts(prev => [newPost, ...prev.filter(p => p.id !== postId)]);
+        setExpandedPostId(postId);
         setNewPostTitle('');
         setNewPostContent('');
         setNewPostTags('');
         setIsAskModalOpen(false);
+      } else {
+        const res = await fetch('/api/community/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newPost)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setPostError(data.error || 'Could not publish question.');
+        } else if (data.post) {
+          setPosts(prev => [data.post, ...prev]);
+          setExpandedPostId(data.post.id);
+          setNewPostTitle('');
+          setNewPostContent('');
+          setNewPostTags('');
+          setIsAskModalOpen(false);
+        }
       }
     } catch {
-      setPostError('Network error while publishing post.');
+      setPostError('Could not publish post. Please sign in or check your connection.');
     } finally {
       setIsSubmittingPost(false);
     }
@@ -497,22 +678,61 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     if (!draft) return;
 
     setSubmittingReplyId(postId);
+    setPostError('');
     try {
-      const res = await fetch(`/api/community/posts/${encodeURIComponent(postId)}/reply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          authorId: effectiveUserId,
-          authorName: myDisplayName.trim() || parentName || 'Parent',
-          authorRole: myRole,
-          authorLocation: userLocation,
-          content: draft
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.post) {
-        setPosts(prev => prev.map(p => (p.id === postId ? data.post : p)));
+      const mod = await runModerationCheck({ type: 'reply', text: draft });
+      if (!mod.allowed) {
+        setPostError(mod.error || 'Reply was blocked by community moderation.');
+        return;
+      }
+
+      const targetPost = posts.find(p => p.id === postId);
+      const uid = auth.currentUser?.uid || effectiveUserId;
+      const specialistRoles = ['Lactation Specialist', 'Care Provider', 'Midwife / Doula', 'Nutritionist', 'Healthcare Provider'];
+      const newReply: CommunityReplyItem = {
+        id: `reply-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        postId,
+        authorId: uid.slice(0, 128),
+        authorName: (myDisplayName.trim() || parentName || 'Parent').slice(0, 80),
+        authorRole: myRole.slice(0, 80),
+        authorLocation: (userLocation || '').slice(0, 120),
+        content: draft.slice(0, 3000),
+        isExpertResponse: specialistRoles.includes(myRole),
+        upvotes: [],
+        createdAt: new Date().toISOString()
+      };
+
+      if (auth.currentUser && targetPost && !postId.startsWith('seed-')) {
+        const updatedReplies = [...targetPost.replies, newReply].slice(-100);
+        try {
+          await updateDoc(doc(db, 'community_posts', postId), {
+            replies: updatedReplies,
+            updatedAt: newReply.createdAt
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `community_posts/${postId}`);
+        }
+        setPosts(prev => prev.map(p => (p.id === postId ? { ...p, replies: updatedReplies, updatedAt: newReply.createdAt } : p)));
         setReplyDrafts(prev => ({ ...prev, [postId]: '' }));
+      } else {
+        const res = await fetch(`/api/community/posts/${encodeURIComponent(postId)}/reply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            authorId: uid,
+            authorName: newReply.authorName,
+            authorRole: newReply.authorRole,
+            authorLocation: newReply.authorLocation,
+            content: draft
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.post) {
+          setPosts(prev => prev.map(p => (p.id === postId ? data.post : p)));
+          setReplyDrafts(prev => ({ ...prev, [postId]: '' }));
+        } else if (data.error) {
+          setPostError(data.error);
+        }
       }
     } catch (err) {
       console.warn('Failed to post reply:', err);
@@ -521,29 +741,64 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     }
   };
 
-
-
   const handleToggleUpvote = async (postId: string, replyId?: string) => {
+    const uid = auth.currentUser?.uid || effectiveUserId;
+    const targetPost = posts.find(p => p.id === postId);
     try {
-      const res = await fetch(`/api/community/posts/${encodeURIComponent(postId)}/upvote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: effectiveUserId, replyId })
-      });
-      const data = await res.json();
-      if (res.ok && data.post) {
-        setPosts(prev => prev.map(p => (p.id === postId ? data.post : p)));
+      if (auth.currentUser && targetPost && !postId.startsWith('seed-')) {
+        let updatedUpvotes = targetPost.upvotes;
+        let updatedReplies = targetPost.replies;
+        if (replyId) {
+          updatedReplies = targetPost.replies.map(r => {
+            if (r.id !== replyId) return r;
+            const has = r.upvotes.includes(uid);
+            return { ...r, upvotes: has ? r.upvotes.filter(id => id !== uid) : [...r.upvotes, uid] };
+          });
+        } else {
+          const has = targetPost.upvotes.includes(uid);
+          updatedUpvotes = has ? targetPost.upvotes.filter(id => id !== uid) : [...targetPost.upvotes, uid].slice(0, 500);
+        }
+        const now = new Date().toISOString();
+        try {
+          await updateDoc(doc(db, 'community_posts', postId), {
+            upvotes: updatedUpvotes,
+            replies: updatedReplies,
+            updatedAt: now
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `community_posts/${postId}`);
+        }
+        setPosts(prev => prev.map(p => (p.id === postId ? { ...p, upvotes: updatedUpvotes, replies: updatedReplies, updatedAt: now } : p)));
+      } else {
+        const res = await fetch(`/api/community/posts/${encodeURIComponent(postId)}/upvote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: uid, replyId })
+        });
+        const data = await res.json();
+        if (res.ok && data.post) {
+          setPosts(prev => prev.map(p => (p.id === postId ? data.post : p)));
+        }
       }
     } catch {}
   };
 
   const handleDeletePost = async (postId: string) => {
     try {
-      const res = await fetch(`/api/community/posts/${encodeURIComponent(postId)}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
+      if (auth.currentUser && !postId.startsWith('seed-')) {
+        try {
+          await deleteDoc(doc(db, 'community_posts', postId));
+        } catch (err) {
+          handleFirestoreError(err, OperationType.DELETE, `community_posts/${postId}`);
+        }
         setPosts(prev => prev.filter(p => p.id !== postId));
+      } else {
+        const res = await fetch(`/api/community/posts/${encodeURIComponent(postId)}`, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          setPosts(prev => prev.filter(p => p.id !== postId));
+        }
       }
     } catch {}
   };
@@ -562,27 +817,49 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     setHasCompletedProfile(true);
 
     try {
-      const res = await fetch('/api/community/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: effectiveUserId,
-          name: myDisplayName.trim(),
-          role: myRole,
-          specialty: mySpecialty.trim() || (myRole === 'Parent' ? `Parent of ${babyName} (${babyAge})` : myRole),
-          location: userLocation,
-          bio: myBio.trim() || `Active ${myRole} in ${userLocation}.`,
-          topics: [selectedField !== 'All Fields' ? selectedField : 'Feeding & Weaning']
-        })
-      });
-      const data = await res.json();
-      if (res.ok && Array.isArray(data.members)) {
-        setMembers(data.members);
-        setProfileSavedNotice('Your Peer Network Profile is active!');
+      const uid = auth.currentUser?.uid || effectiveUserId;
+      const now = new Date().toISOString();
+      const existingMember = members.find(m => m.id === uid);
+      const memberRecord: CommunityMemberItem & { isPublic: boolean } = {
+        id: uid.slice(0, 128),
+        name: myDisplayName.trim().slice(0, 80),
+        role: myRole.slice(0, 80),
+        specialty: (mySpecialty.trim() || (myRole === 'Parent' ? `Parent of ${babyName} (${babyAge})` : myRole)).slice(0, 120),
+        location: (userLocation || '').slice(0, 120),
+        bio: (myBio.trim() || `Active ${myRole} in ${userLocation}.`).slice(0, 600),
+        topics: [selectedField !== 'All Fields' ? selectedField : 'Feeding & Weaning'],
+        isPublic: true,
+        joinedAt: existingMember?.joinedAt || now,
+        lastActiveAt: now
+      };
+
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'community_members', uid), memberRecord);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, `community_members/${uid}`);
+        }
+        setMembers(prev => [memberRecord, ...prev.filter(m => m.id !== uid)]);
+        setProfileSavedNotice('Your Peer Network Profile is synced to Firestore!');
         setTimeout(() => {
           setIsProfileModalOpen(false);
           setProfileSavedNotice('');
         }, 800);
+      } else {
+        const res = await fetch('/api/community/members', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(memberRecord)
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.members)) {
+          setMembers(data.members);
+          setProfileSavedNotice('Your Peer Network Profile is active!');
+          setTimeout(() => {
+            setIsProfileModalOpen(false);
+            setProfileSavedNotice('');
+          }, 800);
+        }
       }
     } catch {
       setIsProfileModalOpen(false);
@@ -620,29 +897,60 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     e.preventDefault();
     if (!chatInput.trim()) return;
 
+    setChatError('');
     setIsSendingChat(true);
     try {
-      const res = await fetch('/api/community/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomId: activeRoomId,
-          senderId: effectiveUserId,
-          senderName: myDisplayName.trim() || parentName || 'Parent',
-          senderRole: myRole,
-          senderLocation: userLocation,
-          text: chatInput.trim()
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.message) {
-        setChatMessages(prev => [...prev, data.message]);
+      const mod = await runModerationCheck({ type: 'chat', text: chatInput.trim() });
+      if (!mod.allowed) {
+        setChatError(mod.error || 'Message blocked by rate limit or community safety moderation.');
+        return;
+      }
+
+      const uid = auth.currentUser?.uid || effectiveUserId;
+      const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const newMsg: CommunityChatMessageItem & { isPublic: boolean } = {
+        id: msgId,
+        roomId: activeRoomId.slice(0, 128),
+        senderId: uid.slice(0, 128),
+        senderName: (myDisplayName.trim() || parentName || 'Parent').slice(0, 80),
+        senderRole: myRole.slice(0, 80),
+        senderLocation: (userLocation || '').slice(0, 120),
+        text: chatInput.trim().slice(0, 2000),
+        isPublic: true,
+        createdAt: new Date().toISOString()
+      };
+
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'community_messages', msgId), newMsg);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, `community_messages/${msgId}`);
+        }
+        setChatMessages(prev => (prev.some(m => m.id === msgId) ? prev : [...prev, newMsg]));
         setChatInput('');
         setTimeout(() => {
           chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
+      } else {
+        const res = await fetch('/api/community/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newMsg)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setChatError(data.error || 'Could not send message.');
+        } else if (data.message) {
+          setChatMessages(prev => [...prev, data.message]);
+          setChatInput('');
+          setTimeout(() => {
+            chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }
       }
-    } catch {} finally {
+    } catch {
+      setChatError('Could not send message. Please check your connection or sign in.');
+    } finally {
       setIsSendingChat(false);
     }
   };
@@ -690,27 +998,59 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     if (!provName.trim() || !provTitle.trim()) return;
     setIsSubmittingProvider(true);
     try {
-      const res = await fetch('/api/community/marketplace/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: provName.trim(),
-          title: provTitle.trim(),
-          category: provCategory,
-          experienceYears: Number(provExpYears) || 1,
-          rateInfo: provRateInfo.trim(),
-          location: provLocation.trim(),
-          bio: provBio.trim(),
-          availability: provAvailability.trim()
-        })
+      const mod = await runModerationCheck({
+        type: 'marketplace',
+        title: `${provName.trim()} - ${provTitle.trim()}`,
+        text: provBio.trim() || provTitle.trim()
       });
-      const data = await res.json();
-      if (res.ok && Array.isArray(data.providers)) {
-        setMarketplaceProviders(data.providers);
+      if (!mod.allowed) {
+        setSpecialistError(mod.error || 'Provider listing blocked by safety moderation.');
+        return;
+      }
+
+      const uid = auth.currentUser?.uid || effectiveUserId;
+      const providerId = `provider-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const newProvider: MarketplaceProvider & { ownerId: string; isPublic: boolean } = {
+        id: providerId,
+        ownerId: uid.slice(0, 128),
+        name: provName.trim().slice(0, 80),
+        title: provTitle.trim().slice(0, 120),
+        category: provCategory.slice(0, 100),
+        experienceYears: Math.min(80, Math.max(0, Number(provExpYears) || 1)),
+        rateInfo: (provRateInfo.trim() || 'Contact for rate').slice(0, 100),
+        location: (provLocation.trim() || '').slice(0, 120),
+        bio: (provBio.trim() || '').slice(0, 800),
+        availability: (provAvailability.trim() || 'Flexible').slice(0, 100),
+        services: [],
+        isPublic: true,
+        registeredAt: new Date().toISOString()
+      };
+
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'marketplace_providers', providerId), newProvider);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, `marketplace_providers/${providerId}`);
+        }
+        setMarketplaceProviders(prev => [newProvider, ...prev.filter(p => p.id !== providerId)]);
         setIsProviderRegisterModalOpen(false);
         setProvName('');
         setProvTitle('');
         setProvBio('');
+      } else {
+        const res = await fetch('/api/community/marketplace/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newProvider)
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.providers)) {
+          setMarketplaceProviders(data.providers);
+          setIsProviderRegisterModalOpen(false);
+          setProvName('');
+          setProvTitle('');
+          setProvBio('');
+        }
       }
     } catch (err) {
       console.warn('Provider registration failed:', err);
@@ -724,26 +1064,55 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     if (!reqTitle.trim() || !reqDescription.trim()) return;
     setIsSubmittingRequest(true);
     try {
-      const res = await fetch('/api/community/marketplace/requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          familyName: reqFamilyName.trim() || myDisplayName || 'Family',
-          category: reqCategory,
-          title: reqTitle.trim(),
-          description: reqDescription.trim(),
-          schedule: reqSchedule.trim(),
-          location: reqLocation.trim(),
-          budget: reqBudget.trim(),
-          contactInfo: reqContactInfo.trim()
-        })
+      const mod = await runModerationCheck({
+        type: 'marketplace',
+        title: reqTitle.trim(),
+        text: reqDescription.trim()
       });
-      const data = await res.json();
-      if (res.ok && Array.isArray(data.requests)) {
-        setMarketplaceRequests(data.requests);
+      if (!mod.allowed) {
+        setSpecialistError(mod.error || 'Care request blocked by safety moderation.');
+        return;
+      }
+
+      const uid = auth.currentUser?.uid || effectiveUserId;
+      const reqId = `req-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const newRequest: FamilyCareRequest & { ownerId: string; isPublic: boolean } = {
+        id: reqId,
+        ownerId: uid.slice(0, 128),
+        familyName: (reqFamilyName.trim() || myDisplayName || 'Family').slice(0, 80),
+        category: reqCategory.slice(0, 100),
+        title: reqTitle.trim().slice(0, 150),
+        description: reqDescription.trim().slice(0, 1000),
+        schedule: (reqSchedule.trim() || 'Flexible').slice(0, 100),
+        location: (reqLocation.trim() || '').slice(0, 120),
+        budget: (reqBudget.trim() || 'Negotiable').slice(0, 100),
+        isPublic: true,
+        createdAt: new Date().toISOString()
+      };
+
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'marketplace_requests', reqId), newRequest);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, `marketplace_requests/${reqId}`);
+        }
+        setMarketplaceRequests(prev => [newRequest, ...prev.filter(r => r.id !== reqId)]);
         setIsCareRequestModalOpen(false);
         setReqTitle('');
         setReqDescription('');
+      } else {
+        const res = await fetch('/api/community/marketplace/requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newRequest)
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.requests)) {
+          setMarketplaceRequests(data.requests);
+          setIsCareRequestModalOpen(false);
+          setReqTitle('');
+          setReqDescription('');
+        }
       }
     } catch (err) {
       console.warn('Care request submission failed:', err);
@@ -1523,6 +1892,19 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               )}
               <div ref={chatEndRef} />
             </div>
+
+            {chatError && (
+              <div className="px-4 py-2.5 bg-red-50 border-t border-red-200 text-red-700 text-xs font-semibold flex items-center justify-between gap-2">
+                <span>{chatError}</span>
+                <button
+                  type="button"
+                  onClick={() => setChatError('')}
+                  className="text-red-500 hover:text-red-700 bg-transparent border-none cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             <form
               onSubmit={handleSendChatMessage}

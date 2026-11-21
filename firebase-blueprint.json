@@ -8,19 +8,57 @@
         "userId": {
           "type": "string",
           "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128,
           "description": "The UID of the user."
         },
         "encryptedPayload": {
           "type": "string",
+          "maxLength": 1048576,
           "description": "AES-encrypted JSON payload containing app state."
         },
         "updatedAt": {
           "type": "string",
           "format": "date-time",
+          "maxLength": 64,
           "description": "ISO timestamp of the last update."
         }
       },
       "required": ["userId", "encryptedPayload", "updatedAt"]
+    },
+    "VillageSync": {
+      "title": "Village Cloud Sync",
+      "description": "Encrypted multi-device shared family care snapshot for Village Mode.",
+      "type": "object",
+      "properties": {
+        "villageToken": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "ownerId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 128
+        },
+        "babyName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "encryptedPayload": {
+          "type": "string",
+          "maxLength": 1048576
+        },
+        "updatedBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 64
+        }
+      },
+      "required": ["villageToken", "ownerId", "encryptedPayload", "updatedAt"]
     },
     "MonitorSession": {
       "title": "Monitor Session",
@@ -30,15 +68,15 @@
         "offer": {
           "type": "object",
           "properties": {
-            "type": { "type": "string" },
-            "sdp": { "type": "string" }
+            "type": { "type": "string", "maxLength": 32 },
+            "sdp": { "type": "string", "maxLength": 16384 }
           }
         },
         "answer": {
           "type": "object",
           "properties": {
-            "type": { "type": "string" },
-            "sdp": { "type": "string" }
+            "type": { "type": "string", "maxLength": 32 },
+            "sdp": { "type": "string", "maxLength": 16384 }
           }
         },
         "updatedAt": {
@@ -53,23 +91,125 @@
       "description": "WebRTC ICE candidate for P2P connection.",
       "type": "object",
       "properties": {
-        "candidate": { "type": "string" },
-        "sdpMid": { "type": "string" },
+        "candidate": { "type": "string", "maxLength": 4096 },
+        "sdpMid": { "type": "string", "maxLength": 128 },
         "sdpMLineIndex": { "type": "number" },
-        "usernameFragment": { "type": "string" },
-        "from": { 
+        "usernameFragment": { "type": "string", "maxLength": 256 },
+        "from": {
           "type": "string",
           "enum": ["viewer", "camera"]
         },
         "timestamp": { "type": "number" }
       },
       "required": ["candidate", "from", "timestamp"]
+    },
+    "CommunityPost": {
+      "title": "Community Forum Post",
+      "description": "Public parent/caregiver discussion thread in the community forum.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "authorId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "authorName": { "type": "string", "maxLength": 80 },
+        "authorRole": { "type": "string", "maxLength": 80 },
+        "authorLocation": { "type": "string", "maxLength": 120 },
+        "babyAgeContext": { "type": "string", "maxLength": 60 },
+        "category": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 240 },
+        "content": { "type": "string", "maxLength": 4000 },
+        "tags": { "type": "array" },
+        "upvotes": { "type": "array" },
+        "replies": { "type": "array" },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "authorId", "authorName", "authorRole", "category", "title", "content", "upvotes", "replies", "isPublic", "createdAt", "updatedAt"]
+    },
+    "CommunityMessage": {
+      "title": "Community Chat Message",
+      "description": "Live chat message in a village room.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "roomId": { "type": "string", "maxLength": 128 },
+        "senderId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "senderName": { "type": "string", "maxLength": 80 },
+        "senderRole": { "type": "string", "maxLength": 80 },
+        "senderLocation": { "type": "string", "maxLength": 120 },
+        "text": { "type": "string", "maxLength": 2000 },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "roomId", "senderId", "senderName", "senderRole", "text", "isPublic", "createdAt"]
+    },
+    "CommunityMember": {
+      "title": "Community Member Profile",
+      "description": "Public peer network profile (no private PII).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 80 },
+        "role": { "type": "string", "maxLength": 80 },
+        "specialty": { "type": "string", "maxLength": 120 },
+        "location": { "type": "string", "maxLength": 120 },
+        "bio": { "type": "string", "maxLength": 600 },
+        "topics": { "type": "array" },
+        "isPublic": { "type": "boolean" },
+        "joinedAt": { "type": "string", "maxLength": 64 },
+        "lastActiveAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "name", "role", "isPublic", "joinedAt", "lastActiveAt"]
+    },
+    "MarketplaceProvider": {
+      "title": "Marketplace Care Provider",
+      "description": "Public caregiver, doula, or specialist listing.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "ownerId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 80 },
+        "title": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string", "maxLength": 100 },
+        "experienceYears": { "type": "number" },
+        "rateInfo": { "type": "string", "maxLength": 100 },
+        "location": { "type": "string", "maxLength": 120 },
+        "bio": { "type": "string", "maxLength": 800 },
+        "availability": { "type": "string", "maxLength": 100 },
+        "services": { "type": "array" },
+        "isPublic": { "type": "boolean" },
+        "registeredAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "ownerId", "name", "title", "category", "isPublic", "registeredAt"]
+    },
+    "MarketplaceRequest": {
+      "title": "Family Care Request",
+      "description": "Public care request posted by a family.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "ownerId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "familyName": { "type": "string", "maxLength": 80 },
+        "category": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "schedule": { "type": "string", "maxLength": 100 },
+        "location": { "type": "string", "maxLength": 120 },
+        "budget": { "type": "string", "maxLength": 100 },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "ownerId", "familyName", "category", "title", "description", "isPublic", "createdAt"]
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
       "description": "Private user sync document."
+    },
+    "/villages/{villageToken}": {
+      "schema": "VillageSync",
+      "description": "Encrypted multi-device Village Mode care snapshot."
     },
     "/monitors/{villageToken}": {
       "schema": "MonitorSession",
@@ -78,6 +218,26 @@
     "/monitors/{villageToken}/candidates/{candidateId}": {
       "schema": "IceCandidate",
       "description": "WebRTC candidates for a specific village monitor session."
+    },
+    "/community_posts/{postId}": {
+      "schema": "CommunityPost",
+      "description": "Public community forum posts with threaded replies and upvotes."
+    },
+    "/community_messages/{messageId}": {
+      "schema": "CommunityMessage",
+      "description": "Live chat messages in community rooms."
+    },
+    "/community_members/{memberId}": {
+      "schema": "CommunityMember",
+      "description": "Public peer network member directory."
+    },
+    "/marketplace_providers/{providerId}": {
+      "schema": "MarketplaceProvider",
+      "description": "Caregivers, doulas, and specialists listed in the marketplace."
+    },
+    "/marketplace_requests/{requestId}": {
+      "schema": "MarketplaceRequest",
+      "description": "Family care requests posted to the marketplace."
     }
   }
 }

@@ -7,7 +7,7 @@ export type SupportedCurrency = 'NGN' | 'USD' | 'GBP';
 export interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubscribe: (priceId: string, currency?: SupportedCurrency) => void;
+  onSubscribe: (priceId: string, currency?: SupportedCurrency, billingEmail?: string) => Promise<void> | void;
   userEmail?: string;
 }
 
@@ -20,12 +20,37 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [currency, setCurrency] = useState<SupportedCurrency>('NGN');
   const [showTierComparison, setShowTierComparison] = useState(false);
+  const [billingEmail, setBillingEmail] = useState(userEmail || '');
+  const [emailError, setEmailError] = useState('');
+
+  React.useEffect(() => {
+    if (userEmail && !billingEmail) {
+      setBillingEmail(userEmail);
+    }
+  }, [userEmail]);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setLoadingId(null);
+      setEmailError('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubscribe = (id: string) => {
+  const handleSubscribe = async (id: string) => {
+    const cleanEmail = (billingEmail || userEmail || '').trim();
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setEmailError('Please enter a valid email address for your Paystack receipt.');
+      return;
+    }
+    setEmailError('');
     setLoadingId(id);
-    onSubscribe(id, currency);
+    try {
+      await onSubscribe(id, currency, cleanEmail || undefined);
+    } finally {
+      setLoadingId(null);
+    }
   };
 
   return (
@@ -112,6 +137,26 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   <ShieldCheck className="w-4 h-4 text-primary" />
                   <span>Secured by Paystack</span>
                 </div>
+              </div>
+
+              {/* Billing Email for Paystack Live Authorization */}
+              <div className="mt-4 max-w-md mx-auto text-left">
+                <label className="text-[10px] font-black uppercase tracking-wider text-gray-500 block mb-1 pl-1">
+                  Receipt &amp; Billing Email (Required for Paystack)
+                </label>
+                <input
+                  type="email"
+                  value={billingEmail}
+                  onChange={(e) => {
+                    setBillingEmail(e.target.value);
+                    if (emailError) setEmailError('');
+                  }}
+                  placeholder="your.email@example.com"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-medium text-gray-900 focus:outline-none focus:border-primary"
+                />
+                {emailError && (
+                  <p className="text-[11px] font-semibold text-red-600 mt-1 pl-1">{emailError}</p>
+                )}
               </div>
             </div>
 

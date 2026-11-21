@@ -4,11 +4,18 @@ import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai";
 import { 
   getAuth, 
   GoogleAuthProvider, 
+  EmailAuthProvider,
   signInWithPopup, 
   signOut, 
   onAuthStateChanged, 
   signInAnonymously,
   linkWithPopup,
+  linkWithCredential,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  updateProfile,
   User as FirebaseUser 
 } from 'firebase/auth';
 import { 
@@ -18,6 +25,7 @@ import {
   persistentMultipleTabManager,
   doc, 
   getDoc, 
+  getDocFromServer,
   setDoc, 
   updateDoc, 
   onSnapshot,
@@ -25,6 +33,9 @@ import {
   collection,
   addDoc,
   query,
+  where,
+  orderBy,
+  limit,
   getDocs
 } from 'firebase/firestore';
 
@@ -56,19 +67,39 @@ export const db = dbInstance;
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
+// Validate Firestore connection on startup
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Please check your Firebase configuration: Firestore client is offline.');
+    }
+  }
+}
+testConnection();
+
 // Initialize the Gemini Developer API backend service
 export const ai = getAI(app, { backend: new GoogleAIBackend() });
 export const model = getGenerativeModel(ai, { model: "gemini-3.5-flash" });
 
 export { 
   analytics,
+  EmailAuthProvider,
   signInWithPopup, 
   signOut, 
   onAuthStateChanged, 
   signInAnonymously,
   linkWithPopup,
+  linkWithCredential,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  updateProfile,
   doc, 
   getDoc, 
+  getDocFromServer,
   setDoc, 
   updateDoc, 
   onSnapshot,
@@ -76,6 +107,9 @@ export {
   collection,
   addDoc,
   query,
+  where,
+  orderBy,
+  limit,
   getDocs
 };
 export type { FirebaseUser };

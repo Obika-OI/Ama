@@ -1,22 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 1. Global Safety Net
+    // 1. Global Safety Net (Default Deny)
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // 2. Helpers
+    // 2. Global Helpers
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     function incoming() {
@@ -28,52 +28,246 @@ service cloud.firestore {
     }
 
     // 3. Validation Blueprints
+
     function isValidUser(data) {
       return data.keys().hasAll(['userId', 'encryptedPayload', 'updatedAt'])
         && data.keys().hasOnly(['userId', 'encryptedPayload', 'updatedAt'])
         && data.userId == request.auth.uid
         && data.userId is string
+        && data.userId.size() <= 128
         && data.encryptedPayload is string
-        && data.encryptedPayload.size() < 1048576 // 1MB limit
-        && data.updatedAt is string; // ISO format
+        && data.encryptedPayload.size() < 1048576
+        && data.updatedAt is string
+        && data.updatedAt.size() <= 64;
+    }
+
+    function isValidVillageSync(data) {
+      return data.keys().hasAll(['villageToken', 'ownerId', 'encryptedPayload', 'updatedAt'])
+        && data.keys().hasOnly(['villageToken', 'ownerId', 'babyName', 'encryptedPayload', 'updatedBy', 'updatedAt'])
+        && isValidId(data.villageToken)
+        && data.ownerId is string
+        && data.ownerId.size() <= 128
+        && data.encryptedPayload is string
+        && data.encryptedPayload.size() < 1048576
+        && data.updatedAt is string
+        && data.updatedAt.size() <= 64
+        && (!('babyName' in data) || (data.babyName is string && data.babyName.size() <= 80))
+        && (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy.size() <= 128));
     }
 
     function isValidMonitor(data) {
       return data.keys().hasAll(['updatedAt'])
         && data.keys().hasOnly(['updatedAt', 'offer', 'answer'])
         && data.updatedAt is number
-        // Offer/Answer validation if present
-        && (!('offer' in data) || (data.offer.type is string && data.offer.sdp is string))
-        && (!('answer' in data) || (data.answer.type is string && data.answer.sdp is string));
+        && (!('offer' in data) || (data.offer.type is string && data.offer.type.size() <= 32 && data.offer.sdp is string && data.offer.sdp.size() < 16384))
+        && (!('answer' in data) || (data.answer.type is string && data.answer.type.size() <= 32 && data.answer.sdp is string && data.answer.sdp.size() < 16384));
     }
 
     function isValidCandidate(data) {
       return data.keys().hasAll(['candidate', 'from', 'timestamp'])
         && data.keys().hasOnly(['candidate', 'from', 'timestamp', 'sdpMid', 'sdpMLineIndex', 'usernameFragment'])
         && data.candidate is string
+        && data.candidate.size() < 4096
         && data.from in ['viewer', 'camera']
-        && data.timestamp is number;
+        && data.timestamp is number
+        && (!('sdpMid' in data) || data.sdpMid == null || (data.sdpMid is string && data.sdpMid.size() <= 128))
+        && (!('sdpMLineIndex' in data) || data.sdpMLineIndex == null || data.sdpMLineIndex is number)
+        && (!('usernameFragment' in data) || data.usernameFragment == null || (data.usernameFragment is string && data.usernameFragment.size() <= 256));
+    }
+
+    function isValidCommunityPost(data) {
+      return data.keys().hasAll(['id', 'authorId', 'authorName', 'authorRole', 'category', 'title', 'content', 'upvotes', 'replies', 'isPublic', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'authorId', 'authorName', 'authorRole', 'authorLocation', 'babyAgeContext', 'category', 'title', 'content', 'tags', 'upvotes', 'replies', 'isPublic', 'createdAt', 'updatedAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.authorId is string && data.authorId.size() <= 128
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80
+        && data.authorRole is string && data.authorRole.size() <= 80
+        && (!('authorLocation' in data) || (data.authorLocation is string && data.authorLocation.size() <= 120))
+        && (!('babyAgeContext' in data) || (data.babyAgeContext is string && data.babyAgeContext.size() <= 60))
+        && data.category is string && data.category.size() >= 1 && data.category.size() <= 100
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 240
+        && data.content is string && data.content.size() >= 1 && data.content.size() <= 4000
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 10 && (data.tags.size() == 0 || data.tags[0] is string)))
+        && data.upvotes is list && data.upvotes.size() <= 500 && (data.upvotes.size() == 0 || data.upvotes[0] is string)
+        && data.replies is list && data.replies.size() <= 100 && (data.replies.size() == 0 || data.replies[0] is map)
+        && data.isPublic == true
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    function isValidCommunityMessage(data) {
+      return data.keys().hasAll(['id', 'roomId', 'senderId', 'senderName', 'senderRole', 'text', 'isPublic', 'createdAt'])
+        && data.keys().hasOnly(['id', 'roomId', 'senderId', 'senderName', 'senderRole', 'senderLocation', 'text', 'isPublic', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128
+        && data.senderId is string && data.senderId.size() <= 128
+        && data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 80
+        && data.senderRole is string && data.senderRole.size() <= 80
+        && (!('senderLocation' in data) || (data.senderLocation is string && data.senderLocation.size() <= 120))
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 2000
+        && data.isPublic == true
+        && data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidCommunityMember(data) {
+      return data.keys().hasAll(['id', 'name', 'role', 'isPublic', 'joinedAt', 'lastActiveAt'])
+        && data.keys().hasOnly(['id', 'name', 'role', 'specialty', 'location', 'bio', 'topics', 'isPublic', 'joinedAt', 'lastActiveAt'])
+        && data.id == request.auth.uid
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && data.role is string && data.role.size() >= 1 && data.role.size() <= 80
+        && (!('specialty' in data) || (data.specialty is string && data.specialty.size() <= 120))
+        && (!('location' in data) || (data.location is string && data.location.size() <= 120))
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 600))
+        && (!('topics' in data) || (data.topics is list && data.topics.size() <= 10 && (data.topics.size() == 0 || data.topics[0] is string)))
+        && data.isPublic == true
+        && data.joinedAt is string && data.joinedAt.size() <= 64
+        && data.lastActiveAt is string && data.lastActiveAt.size() <= 64;
+    }
+
+    function isValidMarketplaceProvider(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'name', 'title', 'category', 'isPublic', 'registeredAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'name', 'title', 'category', 'experienceYears', 'rateInfo', 'location', 'bio', 'availability', 'services', 'isPublic', 'registeredAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.ownerId is string && data.ownerId.size() <= 128
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+        && data.category is string && data.category.size() >= 1 && data.category.size() <= 100
+        && (!('experienceYears' in data) || (data.experienceYears is number && data.experienceYears >= 0 && data.experienceYears <= 80))
+        && (!('rateInfo' in data) || (data.rateInfo is string && data.rateInfo.size() <= 100))
+        && (!('location' in data) || (data.location is string && data.location.size() <= 120))
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 800))
+        && (!('availability' in data) || (data.availability is string && data.availability.size() <= 100))
+        && (!('services' in data) || (data.services is list && data.services.size() <= 15 && (data.services.size() == 0 || data.services[0] is string)))
+        && data.isPublic == true
+        && data.registeredAt is string && data.registeredAt.size() <= 64;
+    }
+
+    function isValidMarketplaceRequest(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'familyName', 'category', 'title', 'description', 'isPublic', 'createdAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'familyName', 'category', 'title', 'description', 'schedule', 'location', 'budget', 'isPublic', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.ownerId is string && data.ownerId.size() <= 128
+        && data.familyName is string && data.familyName.size() >= 1 && data.familyName.size() <= 80
+        && data.category is string && data.category.size() >= 1 && data.category.size() <= 100
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 150
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 1000
+        && (!('schedule' in data) || (data.schedule is string && data.schedule.size() <= 100))
+        && (!('location' in data) || (data.location is string && data.location.size() <= 120))
+        && (!('budget' in data) || (data.budget is string && data.budget.size() <= 100))
+        && data.isPublic == true
+        && data.createdAt is string && data.createdAt.size() <= 64;
     }
 
     // 4. Collection Rules
 
+    // Private User Cloud Sync
     match /users/{userId} {
       allow get: if isSignedIn() && isOwner(userId) && isValidId(userId);
       allow create, update: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidUser(incoming());
       allow delete: if isSignedIn() && isOwner(userId) && isValidId(userId);
     }
 
+    // Cloud Multi-Device Sync ("Village Mode") — Token-gated, no list scraping
+    match /villages/{villageToken} {
+      allow get: if isSignedIn() && isValidId(villageToken);
+      allow create: if isSignedIn() && isValidId(villageToken) && isValidVillageSync(incoming()) && incoming().ownerId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(villageToken) && isValidVillageSync(incoming())
+        && incoming().ownerId == existing().ownerId
+        && incoming().villageToken == existing().villageToken
+        && incoming().diff(existing()).affectedKeys().hasOnly(['encryptedPayload', 'updatedAt', 'updatedBy', 'babyName']);
+      allow delete: if isSignedIn() && isValidId(villageToken) && existing().ownerId == request.auth.uid;
+    }
+
+    // Baby Monitor WebRTC Signaling
     match /monitors/{villageToken} {
       allow get: if isSignedIn() && isValidId(villageToken);
       allow create, update: if isSignedIn() && isValidId(villageToken) && isValidMonitor(incoming());
       allow delete: if isSignedIn() && isValidId(villageToken);
 
       match /candidates/{candidateId} {
-        // Master Gate: Parent session must exist
-        allow create: if isSignedIn() && exists(/databases/$(database)/documents/monitors/$(villageToken)) && isValidCandidate(incoming());
-        allow list: if isSignedIn() && exists(/databases/$(database)/documents/monitors/$(villageToken));
-        allow delete: if isSignedIn(); // For cleanup
+        allow create: if isSignedIn() && isValidId(candidateId) && isValidCandidate(incoming()) && exists(/databases/$(database)/documents/monitors/$(villageToken));
+        allow list: if isSignedIn() && resource.data.from in ['viewer', 'camera'];
+        allow delete: if isSignedIn() && isValidId(candidateId);
       }
+    }
+
+    // Community Forum Posts: authenticated users can read public posts, create own posts,
+    // edit/delete ONLY their own posts, or add replies/upvotes via guarded action branches.
+    match /community_posts/{postId} {
+      allow get: if isSignedIn() && isValidId(postId) && existing().isPublic == true;
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow create: if isSignedIn() && isValidId(postId) && isValidCommunityPost(incoming())
+        && incoming().authorId == request.auth.uid
+        && incoming().id == postId;
+      allow update: if isSignedIn() && isValidId(postId) && isValidCommunityPost(incoming())
+        && incoming().authorId == existing().authorId
+        && incoming().createdAt == existing().createdAt
+        && incoming().id == existing().id
+        && (
+          // Tier 1: Author editing their own post
+          (existing().authorId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'category', 'tags', 'updatedAt'])) ||
+          // Tier 2: Authenticated peer adding a reply or toggling upvote
+          (incoming().diff(existing()).affectedKeys().hasOnly(['replies', 'upvotes', 'updatedAt']))
+        );
+      allow delete: if isSignedIn() && isValidId(postId) && existing().authorId == request.auth.uid;
+    }
+
+    // Community Live Chat Messages: authenticated users can read public messages,
+    // create own messages, and delete ONLY their own messages.
+    match /community_messages/{messageId} {
+      allow get: if isSignedIn() && isValidId(messageId) && existing().isPublic == true;
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow create: if isSignedIn() && isValidId(messageId) && isValidCommunityMessage(incoming())
+        && incoming().senderId == request.auth.uid
+        && incoming().id == messageId;
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(messageId) && existing().senderId == request.auth.uid;
+    }
+
+    // Community Peer Network Members: authenticated users can read public profiles,
+    // create/edit/delete ONLY their own profile (doc ID == uid).
+    match /community_members/{memberId} {
+      allow get: if isSignedIn() && isValidId(memberId) && existing().isPublic == true;
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow create: if isSignedIn() && isOwner(memberId) && isValidId(memberId) && isValidCommunityMember(incoming());
+      allow update: if isSignedIn() && isOwner(memberId) && isValidId(memberId) && isValidCommunityMember(incoming())
+        && incoming().id == existing().id
+        && incoming().joinedAt == existing().joinedAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'specialty', 'location', 'bio', 'topics', 'lastActiveAt']);
+      allow delete: if isSignedIn() && isOwner(memberId) && isValidId(memberId);
+    }
+
+    // Marketplace Care Providers: authenticated users can read public listings,
+    // create/edit/delete ONLY their own listings.
+    match /marketplace_providers/{providerId} {
+      allow get: if isSignedIn() && isValidId(providerId) && existing().isPublic == true;
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow create: if isSignedIn() && isValidId(providerId) && isValidMarketplaceProvider(incoming())
+        && incoming().ownerId == request.auth.uid
+        && incoming().id == providerId;
+      allow update: if isSignedIn() && isValidId(providerId) && isValidMarketplaceProvider(incoming())
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().registeredAt == existing().registeredAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'title', 'category', 'experienceYears', 'rateInfo', 'location', 'bio', 'availability', 'services']);
+      allow delete: if isSignedIn() && isValidId(providerId) && existing().ownerId == request.auth.uid;
+    }
+
+    // Marketplace Family Care Requests: authenticated users can read public requests,
+    // create/edit/delete ONLY their own requests.
+    match /marketplace_requests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId) && existing().isPublic == true;
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow create: if isSignedIn() && isValidId(requestId) && isValidMarketplaceRequest(incoming())
+        && incoming().ownerId == request.auth.uid
+        && incoming().id == requestId;
+      allow update: if isSignedIn() && isValidId(requestId) && isValidMarketplaceRequest(incoming())
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['familyName', 'category', 'title', 'description', 'schedule', 'location', 'budget']);
+      allow delete: if isSignedIn() && isValidId(requestId) && existing().ownerId == request.auth.uid;
     }
   }
 }

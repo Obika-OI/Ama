@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import { INITIAL_GLOBAL_BABY_NAMES, BabyNameEntry } from "./src/constants/babyNamesData";
 import {
@@ -2400,7 +2400,178 @@ const liveStore = loadPersistentStore();
 
 // AI Specialist Synthesis feature removed.
 
-// --- 5A. COMMUNITY SUPPORT ENDPOINTS ---
+// --- 5A. COMMUNITY RATE LIMITING & GEMINI AUTOMATED TEXT MODERATION ---
+interface RateLimitBucket {
+  timestamps: number[];
+}
+
+const rateLimitStore = new Map<string, RateLimitBucket>();
+
+function createRateLimiter(options: { maxRequests: number; windowMs: number; scope: string }) {
+  return (req: Request, res: Response, next: express.NextFunction) => {
+    const userKey = String(
+      req.body?.senderId ||
+      req.body?.authorId ||
+      req.body?.ownerId ||
+      req.body?.userId ||
+      req.headers["x-forwarded-for"] ||
+      req.ip ||
+      "anonymous"
+    ).slice(0, 128);
+
+    const bucketKey = `${options.scope}:${userKey}`;
+    const now = Date.now();
+    const bucket = rateLimitStore.get(bucketKey) || { timestamps: [] };
+    bucket.timestamps = bucket.timestamps.filter((ts) => now - ts < options.windowMs);
+
+    if (bucket.timestamps.length >= options.maxRequests) {
+      const oldest = bucket.timestamps[0];
+      const retryAfterSeconds = Math.max(1, Math.ceil((options.windowMs - (now - oldest)) / 1000));
+      res.setHeader("Retry-After", String(retryAfterSeconds));
+      return res.status(429).json({
+        allowed: false,
+        rateLimited: true,
+        retryAfterSeconds,
+        error: `Rate limit reached: maximum ${options.maxRequests} ${options.scope} messages per minute. Please wait ${retryAfterSeconds}s before trying again.`
+      });
+    }
+
+    bucket.timestamps.push(now);
+    rateLimitStore.set(bucketKey, bucket);
+    next();
+  };
+}
+
+const chatRateLimiter = createRateLimiter({ maxRequests: 10, windowMs: 60_000, scope: "chat" });
+const postRateLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60_000, scope: "forum" });
+
+// Periodic cleanup of expired rate limit buckets
+setInterval(() => {
+  const cutoff = Date.now() - 120_000;
+  for (const [key, bucket] of rateLimitStore.entries()) {
+    bucket.timestamps = bucket.timestamps.filter((ts) => ts > cutoff);
+    if (bucket.timestamps.length === 0) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 120_000);
+
+const LOCAL_BLOCKED_PATTERNS: { pattern: RegExp; reason: string }[] = [
+  { pattern: /\b(kill yourself|kys|suicide pact)\b/i, reason: "Self-harm or abusive language is not permitted." },
+  { pattern: /\b(buy followers|free crypto|guaranteed forex|whatsapp \+\d{7,} for loan|click here to win)\b/i, reason: "Promotional spam or scam links are not permitted." },
+  { pattern: /(.)\1{14,}/, reason: "Excessive repeated character spam detected." }
+];
+
+async function moderateCommunityContent(
+  text: string,
+  contentType: "post" | "reply" | "chat" | "profile" | "marketplace"
+): Promise<{ allowed: boolean; category: string; reason: string; moderatedBy: "gemini" | "local" }> {
+  const cleanText = String(text || "").trim();
+  if (!cleanText) {
+    return { allowed: false, category: "empty", reason: "Content cannot be empty.", moderatedBy: "local" };
+  }
+
+  // 1. Fast deterministic pre-filter
+  for (const rule of LOCAL_BLOCKED_PATTERNS) {
+    if (rule.pattern.test(cleanText)) {
+      return { allowed: false, category: "policy_violation", reason: rule.reason, moderatedBy: "local" };
+    }
+  }
+
+  // 2. Gemini Safety Settings & Automated Text Moderation
+  const ai = getGenAI();
+  if (!ai) {
+    return { allowed: true, category: "safe", reason: "Passed local safety checks.", moderatedBy: "local" };
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-4-hydrogen",
+      contents: `Evaluate the following ${contentType} submitted to a public parenting and baby care community forum/chat:\n\n"""${cleanText.slice(0, 3000)}"""`,
+      config: {
+        systemInstruction:
+          "You are a strict community safety moderator for a parenting and baby care app. " +
+          "Block content ONLY if it contains: hate speech, harassment, bullying, profanity/slurs, sexually explicit material, spam/scams/phishing, self-harm, or dangerous infant medical harm (such as advising giving honey to infants under 12 months, giving adult drugs/bleach/alcohol to babies, or encouraging physical harm). " +
+          "Allow normal parenting questions, medical symptom discussions, breastfeeding/diaper discussions, venting about exhaustion, and genuine caregiver listings. " +
+          "Respond with JSON matching the schema.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            allowed: { type: Type.BOOLEAN, description: "True if safe for the parenting community, false if it must be blocked." },
+            category: { type: Type.STRING, description: "One of: safe, harassment, hate_speech, explicit, spam, dangerous_advice, self_harm." },
+            reason: { type: Type.STRING, description: "Short, polite explanation if blocked, or 'Safe' if allowed." }
+          },
+          required: ["allowed", "category", "reason"]
+        },
+        safetySettings: [
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE }
+        ]
+      }
+    });
+
+    // If Gemini's native safety filter blocked the prompt or candidate directly
+    const blockReason = (response as any)?.promptFeedback?.blockReason;
+    if (blockReason) {
+      return {
+        allowed: false,
+        category: String(blockReason).toLowerCase(),
+        reason: "This message was flagged by automated safety filters and cannot be published publicly.",
+        moderatedBy: "gemini"
+      };
+    }
+
+    const parsed = extractAndParseJson<{ allowed: boolean; category: string; reason: string }>(response.text || "");
+    if (parsed && typeof parsed.allowed === "boolean") {
+      return {
+        allowed: parsed.allowed,
+        category: parsed.category || (parsed.allowed ? "safe" : "policy_violation"),
+        reason: parsed.reason || (parsed.allowed ? "Safe" : "Content violates community safety guidelines."),
+        moderatedBy: "gemini"
+      };
+    }
+  } catch (err: any) {
+    console.warn("[Community Moderation] Gemini check unavailable, falling back to local filter:", err?.message || err);
+  }
+
+  return { allowed: true, category: "safe", reason: "Passed safety checks.", moderatedBy: "local" };
+}
+
+// Standalone moderation & rate-limit gate used before client-side Firestore writes
+app.post("/api/community/moderate", (req: Request, res: Response, next: express.NextFunction) => {
+  const type = String(req.body?.type || "chat");
+  if (type === "chat") {
+    return chatRateLimiter(req, res, next);
+  }
+  return postRateLimiter(req, res, next);
+}, async (req: Request, res: Response) => {
+  try {
+    const { text = "", title = "", type = "chat" } = req.body;
+    const combined = [title, text].filter(Boolean).join("\n\n");
+    const result = await moderateCommunityContent(
+      combined,
+      (["post", "reply", "chat", "profile", "marketplace"].includes(type) ? type : "chat") as any
+    );
+
+    if (!result.allowed) {
+      return res.status(422).json({
+        allowed: false,
+        category: result.category,
+        error: result.reason,
+        moderatedBy: result.moderatedBy
+      });
+    }
+
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(500).json({ allowed: false, error: error.message || "Moderation check failed." });
+  }
+});
+
+// --- 5B. COMMUNITY SUPPORT ENDPOINTS ---
 app.get("/api/community/state", (req: Request, res: Response) => {
   res.json({
     posts: liveStore.communityPosts,
@@ -2413,7 +2584,7 @@ app.get("/api/community/state", (req: Request, res: Response) => {
   });
 });
 
-app.post("/api/community/posts", async (req: Request, res: Response) => {
+app.post("/api/community/posts", postRateLimiter, async (req: Request, res: Response) => {
   try {
     const {
       authorId,
@@ -2428,8 +2599,13 @@ app.post("/api/community/posts", async (req: Request, res: Response) => {
       requestExpertAnswer = false
     } = req.body;
 
-    if (!title || ! String(title).trim() || !content || !String(content).trim()) {
+    if (!title || !String(title).trim() || !content || !String(content).trim()) {
       return res.status(400).json({ error: "Both a question title and details are required." });
+    }
+
+    const mod = await moderateCommunityContent(`${title}\n\n${content}`, "post");
+    if (!mod.allowed) {
+      return res.status(422).json({ error: mod.reason, category: mod.category });
     }
 
     const now = new Date().toISOString();
@@ -2462,13 +2638,18 @@ app.post("/api/community/posts", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/community/posts/:postId/reply", (req: Request, res: Response) => {
+app.post("/api/community/posts/:postId/reply", postRateLimiter, async (req: Request, res: Response) => {
   try {
     const { postId } = req.params;
     const { authorId, authorName, authorRole = "Parent", authorLocation = "", content, isExpertResponse = false } = req.body;
 
     if (!content || !String(content).trim()) {
       return res.status(400).json({ error: "Reply content cannot be empty." });
+    }
+
+    const mod = await moderateCommunityContent(String(content), "reply");
+    if (!mod.allowed) {
+      return res.status(422).json({ error: mod.reason, category: mod.category });
     }
 
     const post = liveStore.communityPosts.find(p => p.id === postId);
@@ -2617,11 +2798,16 @@ app.get("/api/community/chat", (req: Request, res: Response) => {
   res.json({ messages });
 });
 
-app.post("/api/community/chat", (req: Request, res: Response) => {
+app.post("/api/community/chat", chatRateLimiter, async (req: Request, res: Response) => {
   try {
     const { roomId = "general-parenting", senderId, senderName, senderRole = "Parent", senderLocation = "", text } = req.body;
     if (!text || !String(text).trim()) {
       return res.status(400).json({ error: "Message text is required." });
+    }
+
+    const mod = await moderateCommunityContent(String(text), "chat");
+    if (!mod.allowed) {
+      return res.status(422).json({ error: mod.reason, category: mod.category });
     }
 
     const msg: CommunityChatMessage = {

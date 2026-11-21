@@ -25,6 +25,7 @@ import { LandingPage } from './components/LandingPage';
 import { AiMealPlanner } from './components/AiMealPlanner';
 import { BabyCryAnalyzer } from './components/BabyCryAnalyzer';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { AuthModal } from './components/AuthModal';
 import { BabyMonitor } from './components/BabyMonitor';
 import { Dashboard } from './components/Dashboard';
 import { RecipeLibrary, RecipeDetail, AddRecipeScreen } from './components/RecipeLibrary';
@@ -58,9 +59,18 @@ import {
 export default function App() {
   const [isPremium, setIsPremium] = useState<boolean>(() => localStorage.getItem("ama_premium") === "true");
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
-  const handleSubscribe = async (priceId: string, currency: 'NGN' | 'USD' | 'GBP' = 'NGN') => {
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [dismissedAnonPrompt, setDismissedAnonPrompt] = useState(() => sessionStorage.getItem('ama_dismissed_anon_prompt') === 'true');
+  const [appToast, setAppToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showAppToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setAppToast({ type, message });
+    setTimeout(() => setAppToast(null), 5000);
+  };
+
+  const handleSubscribe = async (priceId: string, currency: 'NGN' | 'USD' | 'GBP' = 'NGN', billingEmail?: string) => {
     const livePublicKey = "pk_live_d2b967eddda456841f504b85549767fc33cc9fd4";
-    const userEmail = currentUser?.email || 'parent@ama-care.app';
+    const userEmail = (billingEmail || currentUser?.email || 'parent@ama-care.app').trim();
 
     // Amount calculation for Paystack Inline JS (in smallest currency unit: kobo/cents/pence)
     let amountKobo = 450000; // Default Monthly Pro in NGN (₦4,500)
@@ -81,6 +91,12 @@ export default function App() {
           amount: amountKobo,
           currency: currency,
           ref: `pstk_${priceId}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          metadata: {
+            custom_fields: [
+              { display_name: "Plan", variable_name: "price_id", value: priceId },
+              { display_name: "Account UID", variable_name: "uid", value: currentUser?.uid || "guest" }
+            ]
+          },
           onClose: () => {
             console.log("Paystack checkout modal closed by user.");
           },
@@ -92,12 +108,13 @@ export default function App() {
                 setIsPremium(true);
                 localStorage.setItem("ama_premium", "true");
                 setIsSubscriptionModalOpen(false);
-                alert("🎉 Payment Successful via Paystack! Welcome to Ama Premium. All AI features are now unlocked.");
+                showAppToast("Payment authorized via Paystack! Welcome to Ama Premium. All AI and Village Sync features are now unlocked.", "success");
               })
               .catch(() => {
                 setIsPremium(true);
                 localStorage.setItem("ama_premium", "true");
                 setIsSubscriptionModalOpen(false);
+                showAppToast("Payment authorized via Paystack! Ama Premium is now active.", "success");
               });
           }
         });
@@ -123,11 +140,11 @@ export default function App() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || "Failed to initiate Paystack checkout");
+        showAppToast(data.error || "Failed to initiate Paystack checkout.", "error");
         setIsSubscriptionModalOpen(false);
       }
     } catch (e) {
-      alert("Paystack billing service is currently unavailable. Please check your connection.");
+      showAppToast("Paystack billing service is currently unavailable. Please check your connection.", "error");
       setIsSubscriptionModalOpen(false);
     }
   };
@@ -2212,6 +2229,7 @@ export default function App() {
               onBack={() => setActiveScreen('home')}
               currentUser={currentUser}
               onGoogleSignIn={handleGoogleSignIn}
+              onOpenAuthModal={() => setIsAuthModalOpen(true)}
               onSignOut={handleSignOut}
               babyName={babyName}
               setBabyName={setBabyName}
@@ -2810,6 +2828,77 @@ export default function App() {
         onSubscribe={handleSubscribe}
         userEmail={currentUser?.email || ''}
       />
+
+      {/* Personal Account Auth Modal (Email/Password & Google Sign-In) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentUser={currentUser}
+        defaultParentName={parentName}
+        onAuthSuccess={(user, msg) => {
+          setCurrentUser(user);
+          if (user.displayName && !parentName) {
+            setParentName(user.displayName);
+            localStorage.setItem('parentName', user.displayName);
+          }
+          showAppToast(msg, 'success');
+        }}
+      />
+
+      {/* Anonymous / Guest Account Upgrade Prompt Banner */}
+      {(!currentUser || currentUser.isAnonymous) &&
+        !dismissedAnonPrompt &&
+        !showOnboarding &&
+        !showLegalConsent &&
+        activeScreen !== 'landing' &&
+        activeScreen !== 'blog' &&
+        activeScreen !== 'blog-article' && (
+          <div className="fixed bottom-20 sm:bottom-6 right-4 left-4 sm:left-auto sm:max-w-md z-40 bg-white border-2 border-primary/25 rounded-3xl shadow-xl p-4 flex items-start gap-3 text-left">
+            <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 font-black text-xs">
+              ID
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-gray-900">
+                Personalize Your Account
+              </p>
+              <p className="text-[11px] text-gray-600 mt-0.5 leading-snug">
+                You are using a temporary guest session. Sign in with Email/Password or Google to protect your baby logs, sync Village Mode, and post in Community.
+              </p>
+              <div className="mt-2.5 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="px-3.5 py-1.5 rounded-xl bg-primary text-white text-[11px] font-bold border-none cursor-pointer hover:bg-primary/90 transition-colors"
+                >
+                  Update Sign-In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDismissedAnonPrompt(true);
+                    sessionStorage.setItem('ama_dismissed_anon_prompt', 'true');
+                  }}
+                  className="px-2.5 py-1.5 rounded-xl bg-gray-100 text-gray-600 text-[11px] font-bold border-none cursor-pointer hover:bg-gray-200 transition-colors"
+                >
+                  Later
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      {/* Global Inline Toast Notification */}
+      {appToast && (
+        <div
+          className={`fixed top-5 right-5 z-50 max-w-sm px-4 py-3 rounded-2xl shadow-lg border text-xs font-bold flex items-center gap-2 ${
+            appToast.type === 'error'
+              ? 'bg-red-50 border-red-200 text-red-800'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+          }`}
+        >
+          <span>{appToast.message}</span>
+        </div>
+      )}
 
       {/* Mandatory Terms of Use & Privacy Policy Gate for Every New Device */}
       <LegalConsentModal 

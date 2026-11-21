@@ -5,8 +5,8 @@ import { AppUserGuide } from './AppUserGuide';
 import { LegalConsentModal } from './LegalConsentModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { deleteUser } from 'firebase/auth';
-import { deleteDoc, doc } from 'firebase/firestore';
-import { auth, db, FirebaseUser, model } from '../firebase';
+import { deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db, FirebaseUser, model, handleFirestoreError, OperationType } from '../firebase';
 import { encryptString, decryptString, processCloudData } from '../utils/helpers';
 import { DEFAULT_VACCINE_SCHEDULE } from '../constants/babyData';
 import { GlobalLocation, GlobalLocationPickerModal, POPULAR_GLOBAL_LOCATIONS } from './GlobalLocationPickerModal';
@@ -16,6 +16,7 @@ export const SettingsScreen = ({
   onNavigate,
   currentUser,
   onGoogleSignIn,
+  onOpenAuthModal,
   onSignOut,
   isPremium,
   setIsSubscriptionModalOpen,
@@ -42,6 +43,7 @@ export const SettingsScreen = ({
   onNavigate?: (screen: string) => void;
   currentUser: any;
   onGoogleSignIn: () => void;
+  onOpenAuthModal?: () => void;
   onSignOut: () => void;
   isPremium: boolean;
   setIsSubscriptionModalOpen: (open: boolean) => void;
@@ -468,51 +470,72 @@ export const SettingsScreen = ({
   const handleCreateCloudBackupAndInvite = async () => {
     if (!isPremium) {
       setIsSubscriptionModalOpen(true);
-      setSuccessMsg('🔒 Single User Mode Active: Multi-Device Village Sync & Caregiver Invites require Ama Premium. Upgrade via Paystack.');
+      setSuccessMsg('Single User Mode Active: Multi-Device Village Sync & Caregiver Invites require Ama Premium. Upgrade via Paystack.');
       setTimeout(() => setSuccessMsg(''), 4500);
       return;
     }
     if (userRole !== 'admin') {
-      setSuccessMsg('🔒 Only Primary Parent (Admin) can generate multi-device sync snapshots or caregiver invites.');
+      setSuccessMsg('Only Primary Parent (Admin) can generate multi-device sync snapshots or caregiver invites.');
       setTimeout(() => setSuccessMsg(''), 3500);
       return;
     }
     setIsCreatingSync(true);
     try {
-      const generatedToken = `VILLAGE_NANNY_${babyName?.toUpperCase() || 'BABY'}_${Date.now().toString(36).slice(-4).toUpperCase()}`;
+      const cleanBaby = (babyName || 'BABY').replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || 'BABY';
+      const generatedToken = `VILLAGE_${cleanBaby}_${Date.now().toString(36).slice(-5).toUpperCase()}`;
       const backupData = {
-        isPremium,
-  setIsSubscriptionModalOpen,
-  babyName,
+        babyName,
+        babyDob,
+        babyAge,
         parentName,
         parentDob,
         userRole: 'nanny',
+        sleepLogs: JSON.parse(localStorage.getItem('sleep_logs') || '[]'),
+        feedingLogs: JSON.parse(localStorage.getItem('local_feeding_logs') || '[]'),
+        diaperLogs: JSON.parse(localStorage.getItem('diaperLogs') || '[]'),
+        growthLogs: JSON.parse(localStorage.getItem('growthLogs') || '[]'),
+        allergenMatrix: JSON.parse(localStorage.getItem('allergenMatrix') || '[]'),
+        vaccineSchedule: JSON.parse(localStorage.getItem('vaccine_schedule') || '[]'),
         timestamp: new Date().toISOString()
       };
-      const res = await fetch('/api/sync/backup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          syncKey: generatedToken,
-          data: backupData
-        })
-      });
-      if (res.ok) {
+
+      const encryptedPayload = encryptString(JSON.stringify(backupData));
+
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'villages', generatedToken), {
+            villageToken: generatedToken,
+            ownerId: auth.currentUser.uid,
+            babyName: (babyName || 'Baby').slice(0, 80),
+            encryptedPayload,
+            updatedBy: auth.currentUser.uid,
+            updatedAt: new Date().toISOString()
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, `villages/${generatedToken}`);
+        }
         setActiveSyncToken(generatedToken);
         localStorage.setItem('ama_village_sync_token', generatedToken);
         const inviteUrl = `${window.location.origin}${window.location.pathname}#role=nanny&village=${generatedToken}&baby=${encodeURIComponent(babyName || 'Baby')}`;
         navigator.clipboard.writeText(inviteUrl);
-        setSuccessMsg('✅ Multi-Device Sync Snapshot created & Village Caregiver Invite Link copied to clipboard!');
-        addAuditLog('Caregiver Invite Link Generated', `Multi-device sync snapshot created with token: ${generatedToken}`, 'SECURITY');
+        setSuccessMsg('Multi-Device Village Cloud Sync created in Firestore and invite link copied to clipboard!');
+        addAuditLog('Village Cloud Sync Created', `Encrypted Firestore Village snapshot created with token: ${generatedToken}`, 'SECURITY');
       } else {
-        throw new Error("Server response error");
+        const res = await fetch('/api/sync/backup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ syncKey: generatedToken, data: backupData })
+        });
+        if (!res.ok) throw new Error('Server response error');
+        setActiveSyncToken(generatedToken);
+        localStorage.setItem('ama_village_sync_token', generatedToken);
+        const inviteUrl = `${window.location.origin}${window.location.pathname}#role=nanny&village=${generatedToken}&baby=${encodeURIComponent(babyName || 'Baby')}`;
+        navigator.clipboard.writeText(inviteUrl);
+        setSuccessMsg('Multi-Device Sync Snapshot created and Village Caregiver Invite Link copied to clipboard!');
+        addAuditLog('Caregiver Invite Link Generated', `Multi-device sync snapshot created with token: ${generatedToken}`, 'SECURITY');
       }
     } catch (err) {
-      const fallbackToken = `VILLAGE-${babyName?.toUpperCase() || 'CARE'}-NANNY-8821`;
-      setActiveSyncToken(fallbackToken);
-      const inviteUrl = `${window.location.origin}${window.location.pathname}#role=nanny&village=${fallbackToken}&baby=${encodeURIComponent(babyName || 'Baby')}`;
-      navigator.clipboard.writeText(inviteUrl);
-      setSuccessMsg('Caregiver Village Link copied to clipboard!');
+      setSuccessMsg('Sign in with a personal account to activate Firestore Village Cloud Sync.');
     } finally {
       setIsCreatingSync(false);
       setTimeout(() => setSuccessMsg(''), 4500);
@@ -520,27 +543,66 @@ export const SettingsScreen = ({
   };
 
   const handleRestoreFromSyncKey = async () => {
-    if (!syncKeyInput.trim()) return;
+    const token = syncKeyInput.trim();
+    if (!token) return;
     setIsRestoringSync(true);
     try {
-      const res = await fetch(`/api/sync/restore/${encodeURIComponent(syncKeyInput.trim())}`);
-      if (res.ok) {
-        const result = await res.json();
-        if (result.data) {
-          setSuccessMsg(`✅ Synced with Village Care Snapshot! Caregiver connected to ${result.data.babyName || 'Baby'}'s journal.`);
-          addAuditLog('Multi-Device Sync Restored', `Caregiver restored state from sync key: ${syncKeyInput}`, 'DATA_ACCESS');
-          setSyncKeyInput('');
-        } else {
-          setSuccessMsg('⚠️ Sync key not found or expired.');
+      let restoredData: any = null;
+
+      // 1. Try Firestore villages/{token} first
+      if (auth.currentUser && /^[a-zA-Z0-9_-]+$/.test(token)) {
+        try {
+          const villageSnap = await getDoc(doc(db, 'villages', token));
+          if (villageSnap.exists()) {
+            const raw = villageSnap.data();
+            if (raw.encryptedPayload) {
+              const decrypted = decryptString(raw.encryptedPayload);
+              restoredData = JSON.parse(decrypted);
+            }
+          }
+        } catch (err) {
+          console.warn('Firestore village lookup failed, trying API fallback:', err);
         }
+      }
+
+      // 2. Fallback to API sync endpoint
+      if (!restoredData) {
+        const res = await fetch(`/api/sync/restore/${encodeURIComponent(token)}`);
+        if (res.ok) {
+          const result = await res.json();
+          restoredData = result.data || null;
+        }
+      }
+
+      if (restoredData) {
+        localStorage.setItem('ama_village_sync_token', token);
+        setActiveSyncToken(token);
+        if (restoredData.babyName) {
+          setBabyName(restoredData.babyName);
+          localStorage.setItem('babyName', restoredData.babyName);
+        }
+        if (restoredData.babyDob) {
+          setBabyDob(restoredData.babyDob);
+          localStorage.setItem('babyDob', restoredData.babyDob);
+        }
+        if (Array.isArray(restoredData.sleepLogs)) localStorage.setItem('sleep_logs', JSON.stringify(restoredData.sleepLogs));
+        if (Array.isArray(restoredData.feedingLogs)) localStorage.setItem('local_feeding_logs', JSON.stringify(restoredData.feedingLogs));
+        if (Array.isArray(restoredData.diaperLogs)) localStorage.setItem('diaperLogs', JSON.stringify(restoredData.diaperLogs));
+        if (Array.isArray(restoredData.growthLogs)) localStorage.setItem('growthLogs', JSON.stringify(restoredData.growthLogs));
+        if (Array.isArray(restoredData.allergenMatrix)) localStorage.setItem('allergenMatrix', JSON.stringify(restoredData.allergenMatrix));
+        if (Array.isArray(restoredData.vaccineSchedule)) localStorage.setItem('vaccine_schedule', JSON.stringify(restoredData.vaccineSchedule));
+
+        setSuccessMsg(`Synced with Village Care Hub! Connected to ${restoredData.babyName || 'Baby'}'s cloud care journal.`);
+        addAuditLog('Multi-Device Sync Restored', `Caregiver connected to Firestore Village token: ${token}`, 'DATA_ACCESS');
+        setSyncKeyInput('');
       } else {
-        setSuccessMsg('⚠️ Sync key not found or server offline.');
+        setSuccessMsg('Village token not found. Double-check the token or ensure the primary parent created a cloud snapshot.');
       }
     } catch (err) {
-      setSuccessMsg('⚠️ Could not connect to sync server.');
+      setSuccessMsg('Could not connect to Village Cloud Sync. Please check your connection and sign-in status.');
     } finally {
       setIsRestoringSync(false);
-      setTimeout(() => setSuccessMsg(''), 4000);
+      setTimeout(() => setSuccessMsg(''), 4500);
     }
   };
 
@@ -656,6 +718,70 @@ export const SettingsScreen = ({
           <span>🔒 Caregiver View (Read-Only): Signed in as {userRole === 'family' ? 'Family Circle Member' : 'Caregiver / Nanny'}. Only Primary Parent (Admin) can switch village roles or modify compliance settings.</span>
         </div>
       )}
+
+      {/* Personal Account & Authentication Status */}
+      <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-5 text-left">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-xs">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-gray-800">Personal Account &amp; Cloud Sign-In</h2>
+              <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Email/Password &amp; Google Auth</p>
+            </div>
+          </div>
+          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+            currentUser && !currentUser.isAnonymous
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-amber-50 text-amber-800 border border-amber-200'
+          }`}>
+            {currentUser && !currentUser.isAnonymous ? 'Personal Account' : 'Guest / Anonymous'}
+          </span>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white/80 border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            {currentUser && !currentUser.isAnonymous ? (
+              <>
+                <p className="text-xs font-bold text-gray-800">
+                  Signed in as {currentUser.displayName || parentName || 'Parent'} ({currentUser.email})
+                </p>
+                <p className="text-[10px] text-gray-500 font-medium">
+                  Your care logs, Community profile, and Village Mode sync are backed up to Firebase Firestore.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-bold text-gray-800">
+                  Upgrade your temporary session to a personal account
+                </p>
+                <p className="text-[10px] text-gray-500 font-medium">
+                  Link an Email &amp; Password or Google account so your baby records stay safe across phones and browsers.
+                </p>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {currentUser && !currentUser.isAnonymous ? (
+              <button
+                onClick={onSignOut}
+                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold transition-all cursor-pointer border-none flex items-center gap-1.5"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => (onOpenAuthModal ? onOpenAuthModal() : onGoogleSignIn())}
+                className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border-none shadow-xs"
+              >
+                Personalize Account (Email / Google)
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Paystack Subscription & Plan Management */}
       <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-5 text-left">
