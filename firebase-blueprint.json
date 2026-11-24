@@ -155,6 +155,18 @@
         "location": { "type": "string", "maxLength": 120 },
         "bio": { "type": "string", "maxLength": 600 },
         "topics": { "type": "array" },
+        "phoneNumber": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 100 },
+        "deviceId": { "type": "string", "maxLength": 128 },
+        "clientIp": { "type": "string", "maxLength": 64 },
+        "isKycVerified": { "type": "boolean" },
+        "kycData": { "type": "object" },
+        "sellerPaymentMethods": { "type": "array" },
+        "completedInPersonDealsCount": { "type": "number" },
+        "providerLevel": { "type": "number" },
+        "disputeStrikes": { "type": "number" },
+        "hasProviderProtectionBadge": { "type": "boolean" },
+        "isAccountFrozen": { "type": "boolean" },
         "isPublic": { "type": "boolean" },
         "joinedAt": { "type": "string", "maxLength": 64 },
         "lastActiveAt": { "type": "string", "maxLength": 64 }
@@ -162,8 +174,8 @@
       "required": ["id", "name", "role", "isPublic", "joinedAt", "lastActiveAt"]
     },
     "MarketplaceProvider": {
-      "title": "Marketplace Care Provider",
-      "description": "Public caregiver, doula, or specialist listing.",
+      "title": "Marketplace Service, Goods & Free Gift Listing",
+      "description": "Public service provider, goods for sale, or free gift provision listing.",
       "type": "object",
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
@@ -171,6 +183,13 @@
         "name": { "type": "string", "maxLength": 80 },
         "title": { "type": "string", "maxLength": 120 },
         "category": { "type": "string", "maxLength": 100 },
+        "listingKind": { "type": "string", "enum": ["service", "goods"] },
+        "offerMode": { "type": "string", "enum": ["paid", "gift"] },
+        "condition": { "type": "string", "maxLength": 40 },
+        "itemStatus": { "type": "string", "enum": ["Available", "Claimed"] },
+        "claimedById": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "claimedByName": { "type": "string", "maxLength": 80 },
+        "claimedAt": { "type": "string", "maxLength": 64 },
         "experienceYears": { "type": "number" },
         "rateInfo": { "type": "string", "maxLength": 100 },
         "location": { "type": "string", "maxLength": 120 },
@@ -183,14 +202,21 @@
       "required": ["id", "ownerId", "name", "title", "category", "isPublic", "registeredAt"]
     },
     "MarketplaceRequest": {
-      "title": "Family Care Request",
-      "description": "Public care request posted by a family.",
+      "title": "Community Goods or Care Need Request",
+      "description": "Public goods or care service need posted by a family or community member.",
       "type": "object",
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
         "ownerId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
         "familyName": { "type": "string", "maxLength": 80 },
         "category": { "type": "string", "maxLength": 100 },
+        "needKind": { "type": "string", "enum": ["service", "goods"] },
+        "acceptsGift": { "type": "boolean" },
+        "fulfillmentStatus": { "type": "string", "enum": ["Open", "Gifted", "Fulfilled"] },
+        "giftedById": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "giftedByName": { "type": "string", "maxLength": 80 },
+        "giftNote": { "type": "string", "maxLength": 500 },
+        "giftedAt": { "type": "string", "maxLength": 64 },
         "title": { "type": "string", "maxLength": 150 },
         "description": { "type": "string", "maxLength": 1000 },
         "schedule": { "type": "string", "maxLength": 100 },
@@ -200,6 +226,140 @@
         "createdAt": { "type": "string", "maxLength": 64 }
       },
       "required": ["id", "ownerId", "familyName", "category", "title", "description", "isPublic", "createdAt"]
+    },
+    "BabyName": {
+      "title": "Community Baby Name",
+      "description": "Global cultural baby name entry contributed by users to the shared encyclopedia.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "meaning": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "significance": { "type": "string", "maxLength": 1000 },
+        "gender": { "type": "string", "enum": ["Male", "Female", "Unisex"] },
+        "origin": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "language": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "pronunciation": { "type": "string", "maxLength": 100 },
+        "contributedBy": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "authorId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": ["id", "name", "meaning", "gender", "origin", "language", "contributedBy", "authorId", "isPublic", "createdAt"]
+    },
+    "CaregiverShift": {
+      "title": "Nanny / Caregiver Shift Record",
+      "description": "Caregiver-only shift start/end times and baby care handover documentation.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "caregiverId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "caregiverName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "startTime": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "endTime": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "handedOverTo": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "villageToken": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "villageOwnerId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": ["id", "caregiverId", "caregiverName", "startTime", "endTime", "handedOverTo", "createdAt"]
+    },
+    "MarketplaceGift": {
+      "title": "Marketplace Free Gift Record",
+      "description": "Free goods or service gift offered onto a posted need or claimed from a free gift provision.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "giftSourceType": { "type": "string", "enum": ["need_fulfillment", "gift_provision"] },
+        "targetListingId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "itemKind": { "type": "string", "enum": ["service", "goods"] },
+        "category": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 150 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 600 },
+        "giverId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "giverName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "recipientId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "recipientName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "status": { "type": "string", "enum": ["Offered", "Claimed", "Received"] },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": ["id", "giftSourceType", "targetListingId", "itemKind", "category", "title", "description", "giverId", "giverName", "recipientId", "recipientName", "status", "isPublic", "createdAt"]
+    },
+    "MarketplaceOrder": {
+      "title": "Marketplace Locked Order & Payment Record",
+      "description": "Locked order terms with immutable payment snapshot, proof submission, shipping waybill, ETA windows, review countdown, and dispute tracking.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orderCode": { "type": "string", "maxLength": 32 },
+        "listingId": { "type": "string", "maxLength": 128 },
+        "itemTitle": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 100 },
+        "itemKind": { "type": "string", "enum": ["service", "goods"] },
+        "handoverType": { "type": "string", "enum": ["in_person", "shipping"] },
+        "agreedAmount": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "isInternational": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["locked", "proof_submitted", "confirmed", "awaiting_dispatch", "shipped", "courier_delivered_pending_consumer_review", "delivery_disputed", "denied", "completed", "cancelled"] },
+        "sellerId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "sellerName": { "type": "string", "maxLength": 80 },
+        "sellerPhone": { "type": "string", "maxLength": 30 },
+        "sellerEmail": { "type": "string", "maxLength": 100 },
+        "sellerDeviceId": { "type": "string", "maxLength": 128 },
+        "sellerKycVerified": { "type": "boolean" },
+        "sellerProviderLevel": { "type": "number" },
+        "buyerId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "buyerName": { "type": "string", "maxLength": 80 },
+        "buyerPhone": { "type": "string", "maxLength": 30 },
+        "buyerEmail": { "type": "string", "maxLength": 100 },
+        "buyerDeviceId": { "type": "string", "maxLength": 128 },
+        "buyerKycVerified": { "type": "boolean" },
+        "lockedPaymentMethod": { "type": "object" },
+        "paymentProof": { "type": "object" },
+        "reviewDeadline": { "type": "string", "maxLength": 64 },
+        "sellerSuspended": { "type": "boolean" },
+        "confirmedAt": { "type": "string", "maxLength": 64 },
+        "deniedAt": { "type": "string", "maxLength": 64 },
+        "denialReason": { "type": "string", "maxLength": 500 },
+        "denialStatementUrl": { "type": "string", "maxLength": 2048 },
+        "shippingProof": { "type": "object" },
+        "dispatchDeadline": { "type": "string", "maxLength": 64 },
+        "shippedAt": { "type": "string", "maxLength": 64 },
+        "deliveryEta": { "type": "string", "maxLength": 64 },
+        "deliveryDisputedAt": { "type": "string", "maxLength": 64 },
+        "deliveryDisputeEvidence": { "type": "object" },
+        "providerGraceDeadline": { "type": "string", "maxLength": 64 },
+        "providerDeliveryResponse": { "type": "object" },
+        "courierDeliveredAt": { "type": "string", "maxLength": 64 },
+        "autoCompleteDeadline": { "type": "string", "maxLength": 64 },
+        "completedAt": { "type": "string", "maxLength": 64 },
+        "isProviderFrozen": { "type": "boolean" },
+        "isConsumerStrikeApplied": { "type": "boolean" },
+        "providerProtectionAwarded": { "type": "boolean" },
+        "disputeNotes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "orderCode", "listingId", "itemTitle", "agreedAmount", "currency", "status", "sellerId", "sellerName", "buyerId", "buyerName", "lockedPaymentMethod", "createdAt", "updatedAt"]
+    },
+    "MarketplaceBan": {
+      "title": "Marketplace Permanent Fraud Ban",
+      "description": "Banned user ID and hardware Device ID record for fraud prevention.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "targetUserId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "targetUserName": { "type": "string", "maxLength": 80 },
+        "targetDeviceId": { "type": "string", "maxLength": 128 },
+        "targetIp": { "type": "string", "maxLength": 64 },
+        "reason": { "type": "string", "maxLength": 500 },
+        "evidenceOrderId": { "type": "string", "maxLength": 128 },
+        "bannedAt": { "type": "string", "maxLength": 64 },
+        "bannedBy": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 }
+      },
+      "required": ["id", "targetUserId", "targetDeviceId", "reason", "bannedAt", "bannedBy"]
     }
   },
   "firestore": {
@@ -238,6 +398,26 @@
     "/marketplace_requests/{requestId}": {
       "schema": "MarketplaceRequest",
       "description": "Family care requests posted to the marketplace."
+    },
+    "/baby_names/{nameId}": {
+      "schema": "BabyName",
+      "description": "Persistent global community-contributed baby names with cultural meanings and attribution."
+    },
+    "/caregiver_shifts/{shiftId}": {
+      "schema": "CaregiverShift",
+      "description": "Nanny and caregiver shift start/end and handover records."
+    },
+    "/marketplace_gifts/{giftId}": {
+      "schema": "MarketplaceGift",
+      "description": "Community free gift offers and claims for baby goods and care services."
+    },
+    "/marketplace_orders/{orderId}": {
+      "schema": "MarketplaceOrder",
+      "description": "Locked order records with immutable payment snapshot, proof submission, and dispute tracking."
+    },
+    "/marketplace_bans/{banId}": {
+      "schema": "MarketplaceBan",
+      "description": "Marketplace fraud bans with blocked hardware Device IDs."
     }
   }
 }

@@ -8,6 +8,8 @@ export interface BabyNameEntry {
   language: string;
   pronunciation?: string;
   contributedBy?: string;
+  authorId?: string;
+  isPublic?: boolean;
   createdAt?: string;
 }
 

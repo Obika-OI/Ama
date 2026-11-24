@@ -25,6 +25,7 @@ import { BabyProfileManager } from './BabyProfileManager';
 import { BabyProfile } from '../types';
 import { FirebaseUser, model } from '../firebase';
 import { GlobalLocation, GlobalLocationPickerModal, POPULAR_GLOBAL_LOCATIONS } from './GlobalLocationPickerModal';
+import { CaregiverShiftLogger } from './CaregiverShiftLogger';
 
 export const Dashboard = ({ 
   onNavigate,
@@ -621,6 +622,16 @@ export const Dashboard = ({
             </button>
           </div>
         </motion.div>
+      )}
+
+      {/* Nanny / Caregiver Shift & Handover Logger (Caregiver role only) */}
+      {userRole === 'nanny' && (
+        <CaregiverShiftLogger 
+          userRole={userRole} 
+          caregiverName={parentName} 
+          currentUser={currentUser} 
+          babyName={babyName} 
+        />
       )}
 
       {/* Fluid Intake Overview Card */}

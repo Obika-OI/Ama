@@ -111,7 +111,7 @@ service cloud.firestore {
 
     function isValidCommunityMember(data) {
       return data.keys().hasAll(['id', 'name', 'role', 'isPublic', 'joinedAt', 'lastActiveAt'])
-        && data.keys().hasOnly(['id', 'name', 'role', 'specialty', 'location', 'bio', 'topics', 'isPublic', 'joinedAt', 'lastActiveAt'])
+        && data.keys().hasOnly(['id', 'name', 'role', 'specialty', 'location', 'bio', 'topics', 'phoneNumber', 'email', 'deviceId', 'clientIp', 'isKycVerified', 'kycData', 'sellerPaymentMethods', 'completedInPersonDealsCount', 'providerLevel', 'disputeStrikes', 'hasProviderProtectionBadge', 'isAccountFrozen', 'isPublic', 'joinedAt', 'lastActiveAt'])
         && data.id == request.auth.uid
         && data.id is string && data.id.size() <= 128
         && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
@@ -120,6 +120,18 @@ service cloud.firestore {
         && (!('location' in data) || (data.location is string && data.location.size() <= 120))
         && (!('bio' in data) || (data.bio is string && data.bio.size() <= 600))
         && (!('topics' in data) || (data.topics is list && data.topics.size() <= 10 && (data.topics.size() == 0 || data.topics[0] is string)))
+        && (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 30))
+        && (!('email' in data) || (data.email is string && data.email.size() <= 100))
+        && (!('deviceId' in data) || (data.deviceId is string && data.deviceId.size() <= 128))
+        && (!('clientIp' in data) || (data.clientIp is string && data.clientIp.size() <= 64))
+        && (!('isKycVerified' in data) || data.isKycVerified is bool)
+        && (!('kycData' in data) || data.kycData is map)
+        && (!('sellerPaymentMethods' in data) || (data.sellerPaymentMethods is list && data.sellerPaymentMethods.size() <= 5))
+        && (!('completedInPersonDealsCount' in data) || data.completedInPersonDealsCount is number)
+        && (!('providerLevel' in data) || data.providerLevel is number)
+        && (!('disputeStrikes' in data) || data.disputeStrikes is number)
+        && (!('hasProviderProtectionBadge' in data) || data.hasProviderProtectionBadge is bool)
+        && (!('isAccountFrozen' in data) || data.isAccountFrozen is bool)
         && data.isPublic == true
         && data.joinedAt is string && data.joinedAt.size() <= 64
         && data.lastActiveAt is string && data.lastActiveAt.size() <= 64;
@@ -127,12 +139,19 @@ service cloud.firestore {
 
     function isValidMarketplaceProvider(data) {
       return data.keys().hasAll(['id', 'ownerId', 'name', 'title', 'category', 'isPublic', 'registeredAt'])
-        && data.keys().hasOnly(['id', 'ownerId', 'name', 'title', 'category', 'experienceYears', 'rateInfo', 'location', 'bio', 'availability', 'services', 'isPublic', 'registeredAt'])
-        && data.id is string && data.id.size() <= 128
-        && data.ownerId is string && data.ownerId.size() <= 128
+        && data.keys().hasOnly(['id', 'ownerId', 'name', 'title', 'category', 'listingKind', 'offerMode', 'condition', 'itemStatus', 'claimedById', 'claimedByName', 'claimedAt', 'experienceYears', 'rateInfo', 'location', 'bio', 'availability', 'services', 'isPublic', 'registeredAt'])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
         && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
         && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
         && data.category is string && data.category.size() >= 1 && data.category.size() <= 100
+        && (!('listingKind' in data) || data.listingKind in ['service', 'goods'])
+        && (!('offerMode' in data) || data.offerMode in ['paid', 'gift'])
+        && (!('condition' in data) || (data.condition is string && data.condition.size() <= 40))
+        && (!('itemStatus' in data) || data.itemStatus in ['Available', 'Claimed'])
+        && (!('claimedById' in data) || isValidId(data.claimedById))
+        && (!('claimedByName' in data) || (data.claimedByName is string && data.claimedByName.size() >= 1 && data.claimedByName.size() <= 80))
+        && (!('claimedAt' in data) || (data.claimedAt is string && data.claimedAt.size() <= 64))
         && (!('experienceYears' in data) || (data.experienceYears is number && data.experienceYears >= 0 && data.experienceYears <= 80))
         && (!('rateInfo' in data) || (data.rateInfo is string && data.rateInfo.size() <= 100))
         && (!('location' in data) || (data.location is string && data.location.size() <= 120))
@@ -145,11 +164,18 @@ service cloud.firestore {
 
     function isValidMarketplaceRequest(data) {
       return data.keys().hasAll(['id', 'ownerId', 'familyName', 'category', 'title', 'description', 'isPublic', 'createdAt'])
-        && data.keys().hasOnly(['id', 'ownerId', 'familyName', 'category', 'title', 'description', 'schedule', 'location', 'budget', 'isPublic', 'createdAt'])
-        && data.id is string && data.id.size() <= 128
-        && data.ownerId is string && data.ownerId.size() <= 128
+        && data.keys().hasOnly(['id', 'ownerId', 'familyName', 'category', 'needKind', 'acceptsGift', 'fulfillmentStatus', 'giftedById', 'giftedByName', 'giftNote', 'giftedAt', 'title', 'description', 'schedule', 'location', 'budget', 'isPublic', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
         && data.familyName is string && data.familyName.size() >= 1 && data.familyName.size() <= 80
         && data.category is string && data.category.size() >= 1 && data.category.size() <= 100
+        && (!('needKind' in data) || data.needKind in ['service', 'goods'])
+        && (!('acceptsGift' in data) || data.acceptsGift is bool)
+        && (!('fulfillmentStatus' in data) || data.fulfillmentStatus in ['Open', 'Gifted', 'Fulfilled'])
+        && (!('giftedById' in data) || isValidId(data.giftedById))
+        && (!('giftedByName' in data) || (data.giftedByName is string && data.giftedByName.size() >= 1 && data.giftedByName.size() <= 80))
+        && (!('giftNote' in data) || (data.giftNote is string && data.giftNote.size() <= 500))
+        && (!('giftedAt' in data) || (data.giftedAt is string && data.giftedAt.size() <= 64))
         && data.title is string && data.title.size() >= 1 && data.title.size() <= 150
         && data.description is string && data.description.size() >= 1 && data.description.size() <= 1000
         && (!('schedule' in data) || (data.schedule is string && data.schedule.size() <= 100))
@@ -157,6 +183,125 @@ service cloud.firestore {
         && (!('budget' in data) || (data.budget is string && data.budget.size() <= 100))
         && data.isPublic == true
         && data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidMarketplaceGift(data) {
+      return data.keys().hasAll(['id', 'giftSourceType', 'targetListingId', 'itemKind', 'category', 'title', 'description', 'giverId', 'giverName', 'recipientId', 'recipientName', 'status', 'isPublic', 'createdAt'])
+        && data.keys().hasOnly(['id', 'giftSourceType', 'targetListingId', 'itemKind', 'category', 'title', 'description', 'giverId', 'giverName', 'recipientId', 'recipientName', 'status', 'isPublic', 'createdAt'])
+        && isValidId(data.id)
+        && data.giftSourceType in ['need_fulfillment', 'gift_provision']
+        && isValidId(data.targetListingId)
+        && data.itemKind in ['service', 'goods']
+        && data.category is string && data.category.size() >= 1 && data.category.size() <= 100
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 150
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 600
+        && isValidId(data.giverId)
+        && data.giverName is string && data.giverName.size() >= 1 && data.giverName.size() <= 80
+        && isValidId(data.recipientId)
+        && data.recipientName is string && data.recipientName.size() >= 1 && data.recipientName.size() <= 80
+        && data.status in ['Offered', 'Claimed', 'Received']
+        && data.isPublic == true
+        && data.createdAt is string && data.createdAt.size() >= 1 && data.createdAt.size() <= 64;
+    }
+
+    function isValidMarketplaceOrder(data) {
+      return data.keys().hasAll(['id', 'orderCode', 'listingId', 'itemTitle', 'agreedAmount', 'currency', 'status', 'sellerId', 'sellerName', 'buyerId', 'buyerName', 'lockedPaymentMethod', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'orderCode', 'listingId', 'itemTitle', 'category', 'itemKind', 'handoverType', 'agreedAmount', 'currency', 'isInternational', 'status', 'sellerId', 'sellerName', 'sellerPhone', 'sellerEmail', 'sellerDeviceId', 'sellerKycVerified', 'sellerProviderLevel', 'buyerId', 'buyerName', 'buyerPhone', 'buyerEmail', 'buyerDeviceId', 'buyerKycVerified', 'lockedPaymentMethod', 'paymentProof', 'reviewDeadline', 'sellerSuspended', 'confirmedAt', 'deniedAt', 'denialReason', 'denialStatementUrl', 'shippingProof', 'dispatchDeadline', 'shippedAt', 'deliveryEta', 'deliveryDisputedAt', 'deliveryDisputeEvidence', 'providerGraceDeadline', 'providerDeliveryResponse', 'courierDeliveredAt', 'autoCompleteDeadline', 'completedAt', 'isProviderFrozen', 'isConsumerStrikeApplied', 'providerProtectionAwarded', 'disputeNotes', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.orderCode is string && data.orderCode.size() >= 3 && data.orderCode.size() <= 32
+        && isValidId(data.listingId)
+        && data.itemTitle is string && data.itemTitle.size() >= 1 && data.itemTitle.size() <= 150
+        && (!('category' in data) || (data.category is string && data.category.size() <= 100))
+        && (!('itemKind' in data) || data.itemKind in ['service', 'goods'])
+        && (!('handoverType' in data) || data.handoverType in ['in_person', 'shipping'])
+        && data.agreedAmount is number && data.agreedAmount >= 0
+        && data.currency is string && data.currency.size() >= 1 && data.currency.size() <= 10
+        && (!('isInternational' in data) || data.isInternational is bool)
+        && data.status in ['locked', 'proof_submitted', 'confirmed', 'awaiting_dispatch', 'shipped', 'courier_delivered_pending_consumer_review', 'delivery_disputed', 'denied', 'completed', 'cancelled']
+        && isValidId(data.sellerId)
+        && data.sellerName is string && data.sellerName.size() >= 1 && data.sellerName.size() <= 80
+        && (!('sellerPhone' in data) || (data.sellerPhone is string && data.sellerPhone.size() <= 30))
+        && (!('sellerEmail' in data) || (data.sellerEmail is string && data.sellerEmail.size() <= 100))
+        && (!('sellerDeviceId' in data) || (data.sellerDeviceId is string && data.sellerDeviceId.size() <= 128))
+        && (!('sellerKycVerified' in data) || data.sellerKycVerified is bool)
+        && (!('sellerProviderLevel' in data) || data.sellerProviderLevel is number)
+        && isValidId(data.buyerId)
+        && data.buyerName is string && data.buyerName.size() >= 1 && data.buyerName.size() <= 80
+        && (!('buyerPhone' in data) || (data.buyerPhone is string && data.buyerPhone.size() <= 30))
+        && (!('buyerEmail' in data) || (data.buyerEmail is string && data.buyerEmail.size() <= 100))
+        && (!('buyerDeviceId' in data) || (data.buyerDeviceId is string && data.buyerDeviceId.size() <= 128))
+        && (!('buyerKycVerified' in data) || data.buyerKycVerified is bool)
+        && data.lockedPaymentMethod is map
+        && (!('paymentProof' in data) || data.paymentProof is map)
+        && (!('reviewDeadline' in data) || (data.reviewDeadline is string && data.reviewDeadline.size() <= 64))
+        && (!('sellerSuspended' in data) || data.sellerSuspended is bool)
+        && (!('confirmedAt' in data) || (data.confirmedAt is string && data.confirmedAt.size() <= 64))
+        && (!('deniedAt' in data) || (data.deniedAt is string && data.deniedAt.size() <= 64))
+        && (!('denialReason' in data) || (data.denialReason is string && data.denialReason.size() <= 500))
+        && (!('denialStatementUrl' in data) || (data.denialStatementUrl is string && data.denialStatementUrl.size() <= 2048))
+        && (!('shippingProof' in data) || data.shippingProof is map)
+        && (!('dispatchDeadline' in data) || (data.dispatchDeadline is string && data.dispatchDeadline.size() <= 64))
+        && (!('shippedAt' in data) || (data.shippedAt is string && data.shippedAt.size() <= 64))
+        && (!('deliveryEta' in data) || (data.deliveryEta is string && data.deliveryEta.size() <= 64))
+        && (!('deliveryDisputedAt' in data) || (data.deliveryDisputedAt is string && data.deliveryDisputedAt.size() <= 64))
+        && (!('deliveryDisputeEvidence' in data) || data.deliveryDisputeEvidence is map)
+        && (!('providerGraceDeadline' in data) || (data.providerGraceDeadline is string && data.providerGraceDeadline.size() <= 64))
+        && (!('providerDeliveryResponse' in data) || data.providerDeliveryResponse is map)
+        && (!('courierDeliveredAt' in data) || (data.courierDeliveredAt is string && data.courierDeliveredAt.size() <= 64))
+        && (!('autoCompleteDeadline' in data) || (data.autoCompleteDeadline is string && data.autoCompleteDeadline.size() <= 64))
+        && (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 64))
+        && (!('isProviderFrozen' in data) || data.isProviderFrozen is bool)
+        && (!('isConsumerStrikeApplied' in data) || data.isConsumerStrikeApplied is bool)
+        && (!('providerProtectionAwarded' in data) || data.providerProtectionAwarded is bool)
+        && (!('disputeNotes' in data) || (data.disputeNotes is string && data.disputeNotes.size() <= 1000))
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    function isValidMarketplaceBan(data) {
+      return data.keys().hasAll(['id', 'targetUserId', 'targetDeviceId', 'reason', 'bannedAt', 'bannedBy'])
+        && data.keys().hasOnly(['id', 'targetUserId', 'targetUserName', 'targetDeviceId', 'targetIp', 'reason', 'evidenceOrderId', 'bannedAt', 'bannedBy'])
+        && isValidId(data.id)
+        && isValidId(data.targetUserId)
+        && (!('targetUserName' in data) || (data.targetUserName is string && data.targetUserName.size() <= 80))
+        && data.targetDeviceId is string && data.targetDeviceId.size() >= 1 && data.targetDeviceId.size() <= 128
+        && (!('targetIp' in data) || (data.targetIp is string && data.targetIp.size() <= 64))
+        && data.reason is string && data.reason.size() >= 1 && data.reason.size() <= 500
+        && (!('evidenceOrderId' in data) || (data.evidenceOrderId is string && data.evidenceOrderId.size() <= 128))
+        && data.bannedAt is string && data.bannedAt.size() <= 64
+        && isValidId(data.bannedBy);
+    }
+
+    function isValidBabyName(data) {
+      return data.keys().hasAll(['id', 'name', 'meaning', 'gender', 'origin', 'language', 'contributedBy', 'authorId', 'isPublic', 'createdAt'])
+        && data.keys().hasOnly(['id', 'name', 'meaning', 'significance', 'gender', 'origin', 'language', 'pronunciation', 'contributedBy', 'authorId', 'isPublic', 'createdAt'])
+        && isValidId(data.id)
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && data.meaning is string && data.meaning.size() >= 1 && data.meaning.size() <= 500
+        && (!('significance' in data) || (data.significance is string && data.significance.size() <= 1000))
+        && data.gender in ['Male', 'Female', 'Unisex']
+        && data.origin is string && data.origin.size() >= 1 && data.origin.size() <= 80
+        && data.language is string && data.language.size() >= 1 && data.language.size() <= 80
+        && (!('pronunciation' in data) || (data.pronunciation is string && data.pronunciation.size() <= 100))
+        && data.contributedBy is string && data.contributedBy.size() >= 1 && data.contributedBy.size() <= 80
+        && isValidId(data.authorId)
+        && data.isPublic == true
+        && data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidCaregiverShift(data) {
+      return data.keys().hasAll(['id', 'caregiverId', 'caregiverName', 'startTime', 'endTime', 'handedOverTo', 'createdAt'])
+        && data.keys().hasOnly(['id', 'caregiverId', 'caregiverName', 'startTime', 'endTime', 'handedOverTo', 'notes', 'villageToken', 'villageOwnerId', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.caregiverId)
+        && data.caregiverName is string && data.caregiverName.size() >= 1 && data.caregiverName.size() <= 80
+        && data.startTime is string && data.startTime.size() >= 1 && data.startTime.size() <= 64
+        && data.endTime is string && data.endTime.size() >= 1 && data.endTime.size() <= 64
+        && data.handedOverTo is string && data.handedOverTo.size() >= 1 && data.handedOverTo.size() <= 120
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
+        && (!('villageToken' in data) || isValidId(data.villageToken))
+        && (!('villageOwnerId' in data) || isValidId(data.villageOwnerId))
+        && data.createdAt is string && data.createdAt.size() >= 1 && data.createdAt.size() <= 64;
     }
 
     // 4. Collection Rules
@@ -192,8 +337,7 @@ service cloud.firestore {
       }
     }
 
-    // Community Forum Posts: authenticated users can read public posts, create own posts,
-    // edit/delete ONLY their own posts, or add replies/upvotes via guarded action branches.
+    // Community Forum Posts
     match /community_posts/{postId} {
       allow get: if isSignedIn() && isValidId(postId) && existing().isPublic == true;
       allow list: if isSignedIn() && resource.data.isPublic == true;
@@ -205,16 +349,13 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt
         && incoming().id == existing().id
         && (
-          // Tier 1: Author editing their own post
           (existing().authorId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'category', 'tags', 'updatedAt'])) ||
-          // Tier 2: Authenticated peer adding a reply or toggling upvote
           (incoming().diff(existing()).affectedKeys().hasOnly(['replies', 'upvotes', 'updatedAt']))
         );
       allow delete: if isSignedIn() && isValidId(postId) && existing().authorId == request.auth.uid;
     }
 
-    // Community Live Chat Messages: authenticated users can read public messages,
-    // create own messages, and delete ONLY their own messages.
+    // Community Live Chat Messages
     match /community_messages/{messageId} {
       allow get: if isSignedIn() && isValidId(messageId) && existing().isPublic == true;
       allow list: if isSignedIn() && resource.data.isPublic == true;
@@ -225,8 +366,7 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isValidId(messageId) && existing().senderId == request.auth.uid;
     }
 
-    // Community Peer Network Members: authenticated users can read public profiles,
-    // create/edit/delete ONLY their own profile (doc ID == uid).
+    // Community Peer Network Members
     match /community_members/{memberId} {
       allow get: if isSignedIn() && isValidId(memberId) && existing().isPublic == true;
       allow list: if isSignedIn() && resource.data.isPublic == true;
@@ -234,12 +374,11 @@ service cloud.firestore {
       allow update: if isSignedIn() && isOwner(memberId) && isValidId(memberId) && isValidCommunityMember(incoming())
         && incoming().id == existing().id
         && incoming().joinedAt == existing().joinedAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'specialty', 'location', 'bio', 'topics', 'lastActiveAt']);
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'specialty', 'location', 'bio', 'topics', 'phoneNumber', 'email', 'deviceId', 'clientIp', 'isKycVerified', 'kycData', 'sellerPaymentMethods', 'completedInPersonDealsCount', 'providerLevel', 'disputeStrikes', 'hasProviderProtectionBadge', 'isAccountFrozen', 'lastActiveAt']);
       allow delete: if isSignedIn() && isOwner(memberId) && isValidId(memberId);
     }
 
-    // Marketplace Care Providers: authenticated users can read public listings,
-    // create/edit/delete ONLY their own listings.
+    // Marketplace Service Providers, Goods for Sale & Free Gift Provisions
     match /marketplace_providers/{providerId} {
       allow get: if isSignedIn() && isValidId(providerId) && existing().isPublic == true;
       allow list: if isSignedIn() && resource.data.isPublic == true;
@@ -247,15 +386,21 @@ service cloud.firestore {
         && incoming().ownerId == request.auth.uid
         && incoming().id == providerId;
       allow update: if isSignedIn() && isValidId(providerId) && isValidMarketplaceProvider(incoming())
-        && existing().ownerId == request.auth.uid
+        && incoming().id == existing().id
         && incoming().ownerId == existing().ownerId
         && incoming().registeredAt == existing().registeredAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'title', 'category', 'experienceYears', 'rateInfo', 'location', 'bio', 'availability', 'services']);
+        && (
+          (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'title', 'category', 'listingKind', 'offerMode', 'condition', 'itemStatus', 'experienceYears', 'rateInfo', 'location', 'bio', 'availability', 'services'])) ||
+          (existing().offerMode == 'gift'
+            && (!('itemStatus' in existing()) || existing().itemStatus == 'Available')
+            && incoming().itemStatus == 'Claimed'
+            && incoming().claimedById == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['itemStatus', 'claimedById', 'claimedByName', 'claimedAt']))
+        );
       allow delete: if isSignedIn() && isValidId(providerId) && existing().ownerId == request.auth.uid;
     }
 
-    // Marketplace Family Care Requests: authenticated users can read public requests,
-    // create/edit/delete ONLY their own requests.
+    // Marketplace Goods & Care Needs
     match /marketplace_requests/{requestId} {
       allow get: if isSignedIn() && isValidId(requestId) && existing().isPublic == true;
       allow list: if isSignedIn() && resource.data.isPublic == true;
@@ -263,11 +408,118 @@ service cloud.firestore {
         && incoming().ownerId == request.auth.uid
         && incoming().id == requestId;
       allow update: if isSignedIn() && isValidId(requestId) && isValidMarketplaceRequest(incoming())
-        && existing().ownerId == request.auth.uid
+        && incoming().id == existing().id
         && incoming().ownerId == existing().ownerId
         && incoming().createdAt == existing().createdAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['familyName', 'category', 'title', 'description', 'schedule', 'location', 'budget']);
+        && (
+          (existing().ownerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['familyName', 'category', 'needKind', 'acceptsGift', 'fulfillmentStatus', 'title', 'description', 'schedule', 'location', 'budget'])) ||
+          ((!('fulfillmentStatus' in existing()) || existing().fulfillmentStatus == 'Open')
+            && incoming().fulfillmentStatus == 'Gifted'
+            && incoming().giftedById == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['fulfillmentStatus', 'giftedById', 'giftedByName', 'giftNote', 'giftedAt']))
+        );
       allow delete: if isSignedIn() && isValidId(requestId) && existing().ownerId == request.auth.uid;
+    }
+
+    // Marketplace Free Gifts Exchange
+    match /marketplace_gifts/{giftId} {
+      allow get: if isSignedIn() && isValidId(giftId) && existing().isPublic == true;
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow create: if isSignedIn() && isValidId(giftId) && isValidMarketplaceGift(incoming())
+        && incoming().id == giftId
+        && (
+          (incoming().giftSourceType == 'need_fulfillment' && incoming().giverId == request.auth.uid && incoming().status == 'Offered') ||
+          (incoming().giftSourceType == 'gift_provision' && incoming().recipientId == request.auth.uid && incoming().status == 'Claimed')
+        );
+      allow update: if isSignedIn() && isValidId(giftId) && isValidMarketplaceGift(incoming())
+        && incoming().id == existing().id
+        && incoming().giverId == existing().giverId
+        && incoming().recipientId == existing().recipientId
+        && incoming().createdAt == existing().createdAt
+        && (existing().giverId == request.auth.uid || existing().recipientId == request.auth.uid)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'description']);
+      allow delete: if isSignedIn() && isValidId(giftId) && (existing().giverId == request.auth.uid || existing().recipientId == request.auth.uid);
+    }
+
+    // Marketplace Locked Orders & External Verification
+    match /marketplace_orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId)
+        && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
+      allow list: if isSignedIn()
+        && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(orderId) && isValidMarketplaceOrder(incoming())
+        && incoming().buyerId == request.auth.uid
+        && incoming().id == orderId;
+      allow update: if isSignedIn() && isValidId(orderId) && isValidMarketplaceOrder(incoming())
+        && incoming().id == existing().id
+        && incoming().orderCode == existing().orderCode
+        && incoming().listingId == existing().listingId
+        && incoming().sellerId == existing().sellerId
+        && incoming().buyerId == existing().buyerId
+        && incoming().createdAt == existing().createdAt
+        && (
+          (existing().buyerId == request.auth.uid && incoming().status == 'proof_submitted'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'paymentProof', 'reviewDeadline', 'updatedAt'])) ||
+          (existing().sellerId == request.auth.uid && (incoming().status == 'confirmed' || incoming().status == 'awaiting_dispatch')
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'confirmedAt', 'dispatchDeadline', 'updatedAt'])) ||
+          (existing().sellerId == request.auth.uid && incoming().status == 'shipped'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'shippingProof', 'shippedAt', 'deliveryEta', 'updatedAt'])) ||
+          (existing().buyerId == request.auth.uid && incoming().status == 'delivery_disputed'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'deliveryDisputedAt', 'deliveryDisputeEvidence', 'providerGraceDeadline', 'disputeNotes', 'updatedAt'])) ||
+          (existing().sellerId == request.auth.uid && incoming().status == 'courier_delivered_pending_consumer_review'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'providerDeliveryResponse', 'courierDeliveredAt', 'autoCompleteDeadline', 'disputeNotes', 'updatedAt'])) ||
+          ((existing().buyerId == request.auth.uid || existing().sellerId == request.auth.uid) && incoming().status == 'completed'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'completedAt', 'updatedAt'])) ||
+          (existing().sellerId == request.auth.uid && incoming().status == 'denied'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'deniedAt', 'denialReason', 'denialStatementUrl', 'updatedAt'])) ||
+          ((existing().buyerId == request.auth.uid || existing().sellerId == request.auth.uid)
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'disputeNotes', 'sellerSuspended', 'isProviderFrozen', 'isConsumerStrikeApplied', 'providerProtectionAwarded', 'updatedAt']))
+        );
+      allow delete: if false;
+    }
+
+    // Marketplace Fraud Bans
+    match /marketplace_bans/{banId} {
+      allow get: if isSignedIn() && isValidId(banId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(banId) && isValidMarketplaceBan(incoming())
+        && incoming().id == banId
+        && incoming().bannedBy == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Global Baby Name Database
+    match /baby_names/{nameId} {
+      allow get: if isValidId(nameId) && existing().isPublic == true;
+      allow list: if resource.data.isPublic == true;
+      allow create: if isSignedIn() && isValidId(nameId) && isValidBabyName(incoming())
+        && incoming().authorId == request.auth.uid
+        && incoming().id == nameId;
+      allow update: if isSignedIn() && isValidId(nameId) && isValidBabyName(incoming())
+        && existing().authorId == request.auth.uid
+        && incoming().authorId == existing().authorId
+        && incoming().id == existing().id
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['meaning', 'significance', 'pronunciation', 'origin', 'language', 'contributedBy']);
+      allow delete: if isSignedIn() && isValidId(nameId) && existing().authorId == request.auth.uid;
+    }
+
+    // Caregiver & Nanny Shift & Handover Records
+    match /caregiver_shifts/{shiftId} {
+      allow get: if isSignedIn() && isValidId(shiftId)
+        && (existing().caregiverId == request.auth.uid || existing().villageOwnerId == request.auth.uid);
+      allow list: if isSignedIn()
+        && (resource.data.caregiverId == request.auth.uid || resource.data.villageOwnerId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(shiftId) && isValidCaregiverShift(incoming())
+        && incoming().caregiverId == request.auth.uid
+        && incoming().id == shiftId;
+      allow update: if isSignedIn() && isValidId(shiftId) && isValidCaregiverShift(incoming())
+        && existing().caregiverId == request.auth.uid
+        && incoming().caregiverId == existing().caregiverId
+        && incoming().id == existing().id
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['startTime', 'endTime', 'handedOverTo', 'notes', 'caregiverName']);
+      allow delete: if isSignedIn() && isValidId(shiftId) && existing().caregiverId == request.auth.uid;
     }
   }
 }

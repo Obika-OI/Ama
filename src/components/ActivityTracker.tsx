@@ -7,6 +7,7 @@ import { MOCK_ACTIVITIES, THEME } from '../constants';
 import { Activity } from '../types';
 import { BabyCryAnalyzer } from './BabyCryAnalyzer';
 import { ImmunizationScheduler } from './ImmunizationScheduler';
+import { CaregiverShiftHistoryView } from './CaregiverShiftLogger';
 
 export const ActivityTracker = ({ 
   loggedMoods, 
@@ -95,18 +96,15 @@ export const ActivityTracker = ({
     return 'Mom';
   }, [userRole]);
 
-  const [activeShift, setActiveShift] = useState<{
-    caregiverName: string;
-    caregiverRole: string;
-    focusNote: string;
-    isDelegatedRemWindow: boolean;
-  }>({
-    caregiverName: resolvedCaregiverName,
-    caregiverRole: resolvedCaregiverRole,
-    focusNote: `Active monitoring by signed-in account (${resolvedCaregiverName})`,
-    isDelegatedRemWindow: false
+  const [remSleepEndTime, setRemSleepEndTime] = useState<string | null>(() => {
+    try {
+      const saved = localStorage.getItem('ama_maternal_rem_sleep_end');
+      if (!saved) return null;
+      return new Date(saved).getTime() > Date.now() ? saved : null;
+    } catch {
+      return null;
+    }
   });
-  const [remSleepEndTime, setRemSleepEndTime] = useState<string | null>(null);
   const [serverWisdomBlessings, setServerWisdomBlessings] = useState<any[]>([]);
   const [playingVoiceBlessingId, setPlayingVoiceBlessingId] = useState<string | null>(null);
   const voiceBlessingAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -122,26 +120,12 @@ export const ActivityTracker = ({
     fetch('/api/omugwo/state')
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
-        if (data?.activeShift) setActiveShift(data.activeShift);
-        if (data?.remSleepDelegationEndTime) setRemSleepEndTime(data.remSleepDelegationEndTime);
         if (Array.isArray(data?.wisdomEntries)) {
           setServerWisdomBlessings(data.wisdomEntries.filter((w: any) => w.audioDataUrl));
         }
       })
       .catch(() => {});
   }, []);
-
-  // Synchronize on-duty caregiver with signed-in session when not delegated
-  useEffect(() => {
-    if (!remSleepEndTime) {
-      setActiveShift(prev => ({
-        ...prev,
-        caregiverName: resolvedCaregiverName,
-        caregiverRole: resolvedCaregiverRole,
-        focusNote: `Active monitoring by signed-in account (${resolvedCaregiverName})`
-      }));
-    }
-  }, [resolvedCaregiverName, resolvedCaregiverRole, remSleepEndTime]);
 
   const remainingRemTime = useMemo(() => {
     if (!remSleepEndTime) return null;
@@ -152,27 +136,15 @@ export const ActivityTracker = ({
     return `${hrs}h ${mins}m remaining`;
   }, [remSleepEndTime]);
 
-  const handleToggleRemDelegation = async () => {
-    const activate = !remainingRemTime;
-    try {
-      const res = await fetch('/api/omugwo/shift', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          activateRemSleepDelegation: activate,
-          caregiverName: activate ? 'Grandma / On-Duty Caregiver' : resolvedCaregiverName,
-          caregiverRole: activate ? 'Grandma' : resolvedCaregiverRole,
-          focusNote: activate
-            ? '4-Hour Uninterrupted REM Sleep Window for Mom - Alerts Routed to Grandma/Caregiver'
-            : `Active monitoring by signed-in account (${resolvedCaregiverName})`
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.activeShift) setActiveShift(data.activeShift);
-        setRemSleepEndTime(data.remSleepDelegationEndTime || null);
-      }
-    } catch {}
+  const handleToggleRemDelegation = () => {
+    if (remainingRemTime) {
+      setRemSleepEndTime(null);
+      localStorage.removeItem('ama_maternal_rem_sleep_end');
+    } else {
+      const endsAt = new Date(Date.now() + 4 * 3600 * 1000).toISOString();
+      setRemSleepEndTime(endsAt);
+      localStorage.setItem('ama_maternal_rem_sleep_end', endsAt);
+    }
   };
 
   const toggleVideoMonitor = async () => {
@@ -222,7 +194,7 @@ export const ActivityTracker = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageDataUrl,
-          relativeName: activeShift.caregiverName || 'Grandma',
+          caregiverName: resolvedCaregiverName,
           babyName
         })
       });
@@ -1224,8 +1196,8 @@ export const ActivityTracker = ({
                 </div>
                 <p className="text-[10px] text-gray-600 font-medium">
                   {remainingRemTime
-                    ? `🛌 Mom's 4h Rest Window Active (${remainingRemTime}) • Care & cry alerts active for on-duty caregiver`
-                    : activeShift.focusNote}
+                    ? `🛌 Mom's 4h Rest Window Active (${remainingRemTime}) • Monitoring active`
+                    : `Active monitoring by signed-in account (${resolvedCaregiverName})`}
                 </p>
               </div>
             </div>
@@ -1281,7 +1253,7 @@ export const ActivityTracker = ({
                   </div>
                   {decibels > 40 && (
                     <p className="text-[9px] font-black text-primary uppercase tracking-wider animate-pulse">
-                      ⚠️ Sound detected! Alerting {activeShift.caregiverName}.
+                      ⚠️ Sound detected! Alerting {resolvedCaregiverName}.
                     </p>
                   )}
                 </div>
@@ -2111,6 +2083,17 @@ export const ActivityTracker = ({
     </div>
             
     </div>
+
+          {/* Read-Only Caregiver Shift & Handover History for Parents & Family */}
+          {(userRole === 'admin' || userRole === 'family') && (
+            <div className="md:col-span-2">
+              <CaregiverShiftHistoryView
+                userRole={userRole}
+                currentUser={currentUser}
+                babyName={babyName}
+              />
+            </div>
+          )}
         </motion.div>
       )}
       

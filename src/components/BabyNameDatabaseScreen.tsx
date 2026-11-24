@@ -1,11 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search, Plus, Filter, Heart, Compass, Globe, BookOpen, ChevronLeft,
-  CheckCircle2, X, Volume2, User, Tag, ArrowUpDown, RotateCcw, Loader2
+  CheckCircle2, X, Volume2, User, Tag, ArrowUpDown, RotateCcw, Loader2, Trash2, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { INITIAL_GLOBAL_BABY_NAMES, BabyNameEntry } from '../constants/babyNamesData';
 import { useSEO } from '../utils/seo';
+import {
+  auth,
+  db,
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  where,
+  limit,
+  onAuthStateChanged,
+  handleFirestoreError,
+  OperationType
+} from '../firebase';
 
 interface BabyNameDatabaseScreenProps {
   onBack: () => void;
@@ -14,6 +29,7 @@ interface BabyNameDatabaseScreenProps {
   embedded?: boolean;
   initialOriginFilter?: string;
   initialSearchQuery?: string;
+  onOpenAuthModal?: () => void;
 }
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -40,7 +56,8 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
   userLocation = '',
   embedded = false,
   initialOriginFilter = 'All',
-  initialSearchQuery = ''
+  initialSearchQuery = '',
+  onOpenAuthModal
 }) => {
   useSEO({
     title: 'Global Baby Name Database - Search & Filter Names by Meaning, Origin & Language | Ama Baby',
@@ -79,7 +96,9 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
   const [endingWithFilter, setEndingWithFilter] = useState<string>('');
   const [activeLetter, setActiveLetter] = useState<string>('All');
   const [sortOrder, setSortOrder] = useState<'az' | 'za' | 'recent' | 'favorites'>('az');
+  const [communityOnly, setCommunityOnly] = useState<boolean>(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(true);
+  const [currentAuthUid, setCurrentAuthUid] = useState<string | null>(() => auth.currentUser?.uid || null);
 
   // Add Name Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -90,7 +109,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
   const [newOrigin, setNewOrigin] = useState('');
   const [newLanguage, setNewLanguage] = useState('');
   const [newPronunciation, setNewPronunciation] = useState('');
-  const [contributor, setContributor] = useState(parentName || 'Parent');
+  const [contributor, setContributor] = useState(() => auth.currentUser?.displayName || parentName || 'Parent');
   const [addError, setAddError] = useState('');
   const [addSuccess, setAddSuccess] = useState('');
   const [isSubmittingName, setIsSubmittingName] = useState(false);
@@ -101,20 +120,97 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
   const [discoveryNotice, setDiscoveryNotice] = useState('');
   const [selectedNameDetail, setSelectedNameDetail] = useState<BabyNameEntry | null>(null);
 
-  // Sync with backend persistent store
+  const mergeBabyNameLists = (existingList: BabyNameEntry[], incomingList: BabyNameEntry[]): BabyNameEntry[] => {
+    const map = new Map<string, BabyNameEntry>();
+    INITIAL_GLOBAL_BABY_NAMES.forEach(n => map.set(n.id, n));
+    existingList.forEach(n => map.set(n.id, n));
+    incomingList.forEach(n => {
+      if (n && n.id && n.name) map.set(n.id, n);
+    });
+    return Array.from(map.values());
+  };
+
+  // Sync with backend store + real-time persistent Firestore baby_names collection
   useEffect(() => {
     let mounted = true;
+
     fetch('/api/baby-names')
       .then(res => res.json())
       .then(data => {
         if (mounted && data?.names && Array.isArray(data.names)) {
-          setNamesList(data.names);
-          localStorage.setItem('ama_global_baby_names_cache', JSON.stringify(data.names));
+          setNamesList(prev => {
+            const merged = mergeBabyNameLists(prev, data.names);
+            try {
+              localStorage.setItem('ama_global_baby_names_cache', JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
         }
       })
       .catch(err => console.warn('Using local baby names cache:', err));
+
+    const babyNamesQuery = query(
+      collection(db, 'baby_names'),
+      where('isPublic', '==', true),
+      limit(500)
+    );
+
+    const attachListener = () =>
+      onSnapshot(
+        babyNamesQuery,
+        (snapshot) => {
+          if (!mounted) return;
+          const firestoreEntries: BabyNameEntry[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data();
+            firestoreEntries.push({
+              id: d.id,
+              name: String(data.name || ''),
+              meaning: String(data.meaning || ''),
+              significance: String(data.significance || data.meaning || ''),
+              gender: (data.gender === 'Male' || data.gender === 'Female' || data.gender === 'Unisex') ? data.gender : 'Unisex',
+              origin: String(data.origin || 'Global'),
+              language: String(data.language || 'Universal'),
+              pronunciation: data.pronunciation ? String(data.pronunciation) : '',
+              contributedBy: String(data.contributedBy || 'Community Parent'),
+              authorId: data.authorId ? String(data.authorId) : undefined,
+              isPublic: data.isPublic !== false,
+              createdAt: data.createdAt ? String(data.createdAt) : ''
+            });
+          });
+
+          setNamesList(prev => {
+            const merged = mergeBabyNameLists(prev, firestoreEntries);
+            try {
+              localStorage.setItem('ama_global_baby_names_cache', JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        },
+        (err) => {
+          try {
+            handleFirestoreError(err, OperationType.LIST, 'baby_names');
+          } catch {}
+        }
+      );
+
+    let unsubSnapshot: (() => void) | null = attachListener();
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (!mounted) return;
+      setCurrentAuthUid(user?.uid || null);
+      if (user?.displayName && !contributor) {
+        setContributor(user.displayName);
+      }
+      if (unsubSnapshot) {
+        unsubSnapshot();
+      }
+      unsubSnapshot = attachListener();
+    });
+
     return () => {
       mounted = false;
+      unsubAuth();
+      if (unsubSnapshot) unsubSnapshot();
     };
   }, []);
 
@@ -224,6 +320,11 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
         return false;
       }
 
+      // 10. Community Additions Filter
+      if (communityOnly && !entry.authorId && !entry.id.startsWith('bn-user-') && !entry.contributedBy) {
+        return false;
+      }
+
       return true;
     });
 
@@ -250,8 +351,13 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
     endingWithFilter,
     activeLetter,
     sortOrder,
+    communityOnly,
     favorites
   ]);
+
+  const communityAdditionsCount = useMemo(() => {
+    return namesList.filter(entry => Boolean(entry.authorId || entry.id.startsWith('bn-user-') || entry.contributedBy)).length;
+  }, [namesList]);
 
   const resetAllFilters = () => {
     setSearchQuery('');
@@ -264,6 +370,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
     setEndingWithFilter('');
     setActiveLetter('All');
     setSortOrder('az');
+    setCommunityOnly(false);
     setDiscoveryNotice('');
   };
 
@@ -277,6 +384,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
     Boolean(startingWithFilter.trim()),
     Boolean(endingWithFilter.trim()),
     activeLetter !== 'All',
+    communityOnly,
     sortOrder === 'favorites'
   ].filter(Boolean).length;
 
@@ -329,65 +437,101 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
       return;
     }
 
+    const activeUser = auth.currentUser;
+    if (!activeUser) {
+      setAddError('Please sign in first so your baby name submission can be permanently saved to the shared Firestore catalog.');
+      return;
+    }
+
     setIsSubmittingName(true);
+    const cleanName = newName.trim();
+    const formattedName = (cleanName.charAt(0).toUpperCase() + cleanName.slice(1)).slice(0, 80);
+    const cleanMeaning = newMeaning.trim().slice(0, 500);
+    const cleanSignificance = (newSignificance.trim() || cleanMeaning).slice(0, 1000);
+    const cleanOrigin = (newOrigin.trim() || 'Global').slice(0, 80);
+    const cleanLanguage = (newLanguage.trim() || 'Universal').slice(0, 80);
+    const cleanPronunciation = newPronunciation.trim().slice(0, 100);
+    const cleanContributor = (contributor.trim() || activeUser.displayName || parentName || 'Parent').slice(0, 80);
+
+    // Check duplicate by name + language
+    const existingDup = namesList.find(
+      n => n.name.toLowerCase() === formattedName.toLowerCase() && n.language.toLowerCase() === cleanLanguage.toLowerCase()
+    );
+    if (existingDup) {
+      setAddError(`"${formattedName}" (${cleanLanguage}) is already listed in the Global Baby Name Database.`);
+      setIsSubmittingName(false);
+      return;
+    }
+
+    const newDocId = `bn-user-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const createdAt = new Date().toISOString();
+
+    const firestorePayload = {
+      id: newDocId,
+      name: formattedName,
+      meaning: cleanMeaning,
+      significance: cleanSignificance,
+      gender: newGender,
+      origin: cleanOrigin,
+      language: cleanLanguage,
+      pronunciation: cleanPronunciation,
+      contributedBy: cleanContributor,
+      authorId: activeUser.uid,
+      isPublic: true,
+      createdAt
+    };
+
     try {
-      const res = await fetch('/api/baby-names', {
+      await setDoc(doc(db, 'baby_names', newDocId), firestorePayload);
+
+      // Keep local server store warm as well
+      fetch('/api/baby-names', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newName.trim(),
-          meaning: newMeaning.trim(),
-          significance: newSignificance.trim() || newMeaning.trim(),
-          gender: newGender,
-          origin: newOrigin.trim() || 'Global',
-          language: newLanguage.trim() || 'Universal',
-          pronunciation: newPronunciation.trim(),
-          contributedBy: contributor.trim() || parentName || 'Parent'
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setAddError(data.error || 'Could not add baby name.');
-      } else {
-        const updatedList = data.names || [data.entry, ...namesList];
-        setNamesList(updatedList);
+        body: JSON.stringify(firestorePayload)
+      }).catch(() => {});
+
+      const updatedList = mergeBabyNameLists(namesList, [firestorePayload]);
+      setNamesList(updatedList);
+      try {
         localStorage.setItem('ama_global_baby_names_cache', JSON.stringify(updatedList));
-        setAddSuccess(`"${data.entry.name}" has been added to the Global Baby Name Database!`);
-        setNewName('');
-        setNewMeaning('');
-        setNewSignificance('');
-        setNewOrigin('');
-        setNewLanguage('');
-        setNewPronunciation('');
-        setTimeout(() => {
-          setIsAddModalOpen(false);
-          setAddSuccess('');
-        }, 1200);
-      }
-    } catch {
-      // Offline local fallback persistence
-      const fallbackEntry: BabyNameEntry = {
-        id: `bn-local-${Date.now()}`,
-        name: newName.trim(),
-        meaning: newMeaning.trim(),
-        significance: newSignificance.trim() || newMeaning.trim(),
-        gender: newGender,
-        origin: newOrigin.trim() || 'Global',
-        language: newLanguage.trim() || 'Universal',
-        pronunciation: newPronunciation.trim(),
-        contributedBy: contributor.trim() || parentName || 'Parent',
-        createdAt: new Date().toISOString()
-      };
-      const updated = [fallbackEntry, ...namesList];
-      setNamesList(updated);
-      localStorage.setItem('ama_global_baby_names_cache', JSON.stringify(updated));
-      setAddSuccess(`"${fallbackEntry.name}" saved to database!`);
+      } catch {}
+
+      setAddSuccess(`"${formattedName}" has been saved to Firestore! All users can now view its details and your attribution (${cleanContributor}).`);
+      setNewName('');
+      setNewMeaning('');
+      setNewSignificance('');
+      setNewOrigin('');
+      setNewLanguage('');
+      setNewPronunciation('');
       setTimeout(() => {
         setIsAddModalOpen(false);
         setAddSuccess('');
-      }, 1200);
+      }, 1300);
+    } catch (err) {
+      try {
+        handleFirestoreError(err, OperationType.WRITE, `baby_names/${newDocId}`);
+      } catch {}
+      setAddError('Could not publish baby name to Firestore right now. Please check your connection or sign in and try again.');
     } finally {
       setIsSubmittingName(false);
+    }
+  };
+
+  const handleDeleteContributedName = async (entry: BabyNameEntry) => {
+    if (!currentAuthUid || entry.authorId !== currentAuthUid) return;
+    try {
+      await deleteDoc(doc(db, 'baby_names', entry.id));
+      const updated = namesList.filter(n => n.id !== entry.id);
+      setNamesList(updated);
+      try {
+        localStorage.setItem('ama_global_baby_names_cache', JSON.stringify(updated));
+      } catch {}
+      setSelectedNameDetail(null);
+    } catch (err) {
+      try {
+        handleFirestoreError(err, OperationType.DELETE, `baby_names/${entry.id}`);
+      } catch {}
     }
   };
 
@@ -716,12 +860,26 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
           )}
         </AnimatePresence>
 
-        {/* Interactive A-Z Alphabetical Browse Bar */}
+        {/* Interactive A-Z Alphabetical Browse Bar & Community Additions Filter */}
         <div className="pt-2 border-t border-gray-100 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-              Browse Alphabetically (A-Z)
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                Browse Alphabetically (A-Z)
+              </span>
+              <button
+                type="button"
+                onClick={() => setCommunityOnly(prev => !prev)}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 border cursor-pointer transition-all ${
+                  communityOnly
+                    ? 'bg-primary text-white border-primary shadow-2xs'
+                    : 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/15'
+                }`}
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Community Additions ({communityAdditionsCount})</span>
+              </button>
+            </div>
             <span className="text-[11px] font-bold text-gray-600">
               Showing <strong className="text-primary">{filteredNames.length}</strong> {filteredNames.length === 1 ? 'name' : 'names'}
             </span>
@@ -852,20 +1010,30 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                   </p>
                 </div>
 
-                {/* Footer Metadata: Origin & Language */}
-                <div className="pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60">
-                      🌍 {entry.origin}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 border border-sky-200/60">
-                      🗣️ {entry.language}
-                    </span>
+                {/* Footer Metadata: Origin, Language & Contributor Attribution */}
+                <div className="pt-3 border-t border-gray-100 space-y-2 text-[10px] font-bold">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                        🌍 {entry.origin}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 border border-sky-200/60">
+                        🗣️ {entry.language}
+                      </span>
+                    </div>
+                    {(entry.authorId || entry.id.startsWith('bn-user-')) && (
+                      <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase tracking-wider">
+                        Community Addition
+                      </span>
+                    )}
                   </div>
                   {entry.contributedBy && (
-                    <span className="text-gray-400 truncate max-w-[120px]" title={`Added by ${entry.contributedBy}`}>
-                      By {entry.contributedBy}
-                    </span>
+                    <div className="flex items-center gap-1.5 text-[11px] text-gray-600 bg-gray-50 px-2.5 py-1.5 rounded-xl border border-gray-100">
+                      <User className="w-3 h-3 text-primary shrink-0" />
+                      <span className="truncate">
+                        Suggested by <strong className="text-gray-900">{entry.contributedBy}</strong>
+                      </span>
+                    </div>
                   )}
                 </div>
               </motion.div>
@@ -982,6 +1150,22 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                 </p>
               </div>
 
+              {(selectedNameDetail.contributedBy || selectedNameDetail.createdAt) && (
+                <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-gray-700 font-semibold">
+                    <User className="w-4 h-4 text-primary shrink-0" />
+                    <span>
+                      Suggested by <strong className="text-gray-900">{selectedNameDetail.contributedBy || 'Community Parent'}</strong>
+                    </span>
+                  </div>
+                  {selectedNameDetail.createdAt && (
+                    <span className="text-[10px] font-bold text-gray-500">
+                      Added {new Date(selectedNameDetail.createdAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
                 <button
                   onClick={() => toggleFavorite(selectedNameDetail.id)}
@@ -994,6 +1178,16 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                   <Heart className={`w-4 h-4 ${favorites.includes(selectedNameDetail.id) ? 'fill-white' : ''}`} />
                   <span>{favorites.includes(selectedNameDetail.id) ? 'Saved in Favorites' : 'Save to Favorites'}</span>
                 </button>
+                {currentAuthUid && selectedNameDetail.authorId === currentAuthUid && (
+                  <button
+                    onClick={() => handleDeleteContributedName(selectedNameDetail)}
+                    className="px-4 py-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-black uppercase tracking-wider border border-red-200 cursor-pointer flex items-center gap-1.5"
+                    title="Remove your submitted baby name"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
+                  </button>
+                )}
                 <button
                   onClick={() => setSelectedNameDetail(null)}
                   className="px-6 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-black uppercase tracking-wider border-none cursor-pointer"
@@ -1156,6 +1350,24 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                     />
                   </div>
                 </div>
+
+                {!currentAuthUid && (
+                  <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-between gap-2 text-xs text-sky-900">
+                    <span>Sign in to save this name permanently so all community parents can view it.</span>
+                    {onOpenAuthModal && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddModalOpen(false);
+                          onOpenAuthModal();
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-wider border-none cursor-pointer shrink-0"
+                      >
+                        Sign In
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {addError && (
                   <p className="text-xs font-bold text-sky-600 bg-sky-50 px-3.5 py-2 rounded-xl border border-sky-200">

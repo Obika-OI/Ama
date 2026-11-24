@@ -3,6 +3,7 @@ import { DiaperAnalyzer } from './DiaperAnalyzer';
 import { StorybookGenerator } from './StorybookGenerator';
 import { MemorySlideshow } from './MemorySlideshow';
 import { FlexibleScheduleBuilder } from './FlexibleScheduleBuilder';
+import { CaregiverShiftHistoryView } from './CaregiverShiftLogger';
 import { Plus, Calendar, Search, Star, Heart, FileText, Printer, Trash2, Edit3, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, Award, Shield, Info, Copy, Share2, Crown, ChevronDown, ShoppingBag, Mic, MicOff, Volume2, Utensils } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
@@ -192,7 +193,7 @@ export const Journal = ({  isPremium,
   const audioChunksRef = useRef<Blob[]>([]);
   const diaryAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
-  // Shift Handover & On-Duty Caregiver Coordination State (Auto-resolved from signed-in account)
+  // Signed-in caregiver attribution for observation entries
   const resolvedAccountCaregiver = useMemo(() => {
     if (currentUser && !currentUser.isAnonymous) {
       if (currentUser.displayName) return currentUser.displayName;
@@ -205,60 +206,6 @@ export const Journal = ({  isPremium,
     if (userRole === 'family') return 'Family Member';
     return parentName ? `${parentName} (Primary)` : 'Mom (Primary)';
   }, [currentUser, parentName, userRole]);
-
-  const resolvedAccountRole = useMemo(() => {
-    if (userRole === 'nanny') return 'Caregiver';
-    if (userRole === 'family') return 'Grandma';
-    return 'Mom';
-  }, [userRole]);
-
-  const [onDutyCaregiver, setOnDutyCaregiver] = useState<{
-    caregiverName: string;
-    caregiverRole: string;
-    focusNote: string;
-  }>({
-    caregiverName: resolvedAccountCaregiver,
-    caregiverRole: resolvedAccountRole,
-    focusNote: `Active monitoring by signed-in account (${resolvedAccountCaregiver})`
-  });
-  const [handoverHistory, setHandoverHistory] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetch('/api/omugwo/state')
-      .then(res => (res.ok ? res.json() : null))
-      .then(data => {
-        if (data?.activeShift) {
-          setOnDutyCaregiver(data.activeShift);
-        } else {
-          setOnDutyCaregiver({
-            caregiverName: resolvedAccountCaregiver,
-            caregiverRole: resolvedAccountRole,
-            focusNote: `Active monitoring by signed-in account (${resolvedAccountCaregiver})`
-          });
-        }
-        if (Array.isArray(data?.handoverNotes)) setHandoverHistory(data.handoverNotes);
-      })
-      .catch(() => {});
-  }, [resolvedAccountCaregiver, resolvedAccountRole]);
-
-  const handleSetOnDutyRole = async (role: string, name: string) => {
-    setOnDutyCaregiver(prev => ({ ...prev, caregiverRole: role, caregiverName: name }));
-    try {
-      const res = await fetch('/api/omugwo/shift', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caregiverRole: role,
-          caregiverName: name,
-          focusNote: `On duty monitoring ${babyName}'s active feeds & comfort`
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.activeShift) setOnDutyCaregiver(data.activeShift);
-      }
-    } catch {}
-  };
 
   const toggleRecordBlessing = async () => {
     if (isRecordingBlessing) {
@@ -702,26 +649,9 @@ export const Journal = ({  isPremium,
       date: selectedDate.toISOString(),
       symptoms: obsSymptoms,
       notes: obsNotes,
-      caregiverName: onDutyCaregiver.caregiverName
+      caregiverName: resolvedAccountCaregiver
     };
     setObservationLogs([...observationLogs, newObs]);
-    if (obsNotes.trim() || obsSymptoms.trim()) {
-      fetch('/api/omugwo/handover', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caregiverName: onDutyCaregiver.caregiverName,
-          caregiverRole: onDutyCaregiver.caregiverRole,
-          recipientName: onDutyCaregiver.caregiverRole === 'Mom' ? 'Grandma / Dad' : 'Mom & Dad',
-          summary: `${obsSymptoms ? `[${obsSymptoms}] ` : ''}${obsNotes}`.trim()
-        })
-      })
-        .then(res => (res.ok ? res.json() : null))
-        .then(data => {
-          if (data?.note) setHandoverHistory(prev => [data.note, ...prev]);
-        })
-        .catch(() => {});
-    }
     setObsSymptoms('');
     setObsNotes('');
   };
@@ -2224,6 +2154,14 @@ export const Journal = ({  isPremium,
         )}
       </AnimatePresence>
 
+      {/* Read-Only Caregiver Shift & Handover History for Parents & Family */}
+      {(userRole === 'admin' || userRole === 'family') && (
+        <CaregiverShiftHistoryView
+          userRole={userRole}
+          currentUser={currentUser}
+          babyName={babyName}
+        />
+      )}
 
           </motion.div>
         )}

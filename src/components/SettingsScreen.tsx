@@ -516,6 +516,7 @@ export const SettingsScreen = ({
         }
         setActiveSyncToken(generatedToken);
         localStorage.setItem('ama_village_sync_token', generatedToken);
+        localStorage.setItem('ama_village_owner_id', auth.currentUser.uid);
         const inviteUrl = `${window.location.origin}${window.location.pathname}#role=nanny&village=${generatedToken}&baby=${encodeURIComponent(babyName || 'Baby')}`;
         navigator.clipboard.writeText(inviteUrl);
         setSuccessMsg('Multi-Device Village Cloud Sync created in Firestore and invite link copied to clipboard!');
@@ -555,6 +556,9 @@ export const SettingsScreen = ({
           const villageSnap = await getDoc(doc(db, 'villages', token));
           if (villageSnap.exists()) {
             const raw = villageSnap.data();
+            if (typeof raw.ownerId === 'string' && raw.ownerId) {
+              localStorage.setItem('ama_village_owner_id', raw.ownerId);
+            }
             if (raw.encryptedPayload) {
               const decrypted = decryptString(raw.encryptedPayload);
               restoredData = JSON.parse(decrypted);

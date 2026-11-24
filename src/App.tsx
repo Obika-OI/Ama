@@ -5,7 +5,7 @@ import {
   CheckCircle2, Flame, Compass, RefreshCw, Award, Shield, Info, Printer, ShoppingBag,
   Trash2, FileText, Edit3, Copy, RotateCcw, ChevronDown, LogOut, QrCode, Wifi, WifiOff,
   Link, X, Settings, Lock, Crown, ShieldAlert, EyeOff, UserCheck, ShieldCheck, FileCode,
-  Dna, Activity as ActivityIcon, Users, Check, HelpCircle, Mic
+  Dna, Activity as ActivityIcon, Users, Check, HelpCircle, Mic, Mail, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MOCK_MEALS, THEME, MOCK_ACTIVITIES, MOCK_REMINDERS, DEFAULT_REMINDERS, QUEST_POOL } from './constants';
@@ -51,8 +51,10 @@ import confetti from 'canvas-confetti';
 import { deleteUser } from 'firebase/auth';
 import { deleteDoc } from 'firebase/firestore';
 import {
-  auth, db, googleProvider, signInWithPopup, signOut, onAuthStateChanged,
-  signInAnonymously, linkWithPopup, doc, setDoc, getDoc, onSnapshot, FirebaseUser, model,
+  auth, db, googleProvider, EmailAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+  signInAnonymously, linkWithPopup, linkWithCredential, createUserWithEmailAndPassword,
+  signInWithEmailAndPassword, sendEmailVerification, updateProfile,
+  doc, setDoc, getDoc, onSnapshot, FirebaseUser, model,
   handleFirestoreError, OperationType
 } from './firebase';
 
@@ -280,6 +282,15 @@ export default function App() {
         articleSlug = pathname.split('/')[2] || null;
       }
 
+      const rawHash = window.location.hash || '';
+      const villageMatch = rawHash.match(/village=([a-zA-Z0-9_-]+)/i);
+      if (villageMatch && villageMatch[1]) {
+        localStorage.setItem('ama_village_sync_token', villageMatch[1]);
+      }
+      if (searchParams.get('village') && /^[a-zA-Z0-9_-]+$/.test(searchParams.get('village')!)) {
+        localStorage.setItem('ama_village_sync_token', searchParams.get('village')!);
+      }
+
       if (articleSlug) {
         const found = BLOG_ARTICLES.find(a => a.slug === articleSlug || a.id === articleSlug);
         if (found) {
@@ -343,6 +354,12 @@ export default function App() {
 
     window.addEventListener('hashchange', handleHashChange);
     window.addEventListener('popstate', handleHashChange);
+
+    const initialVillageMatch = (window.location.hash || '').match(/village=([a-zA-Z0-9_-]+)/i);
+    if (initialVillageMatch && initialVillageMatch[1]) {
+      localStorage.setItem('ama_village_sync_token', initialVillageMatch[1]);
+    }
+
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
       window.removeEventListener('popstate', handleHashChange);
@@ -540,6 +557,14 @@ export default function App() {
   const [onboardingMicStatus, setOnboardingMicStatus] = useState<'idle' | 'granted' | 'denied'>('idle');
   const [isOnboardingMicTesting, setIsOnboardingMicTesting] = useState(false);
 
+  // Onboarding Authentication Form States (Email/Password, Google, or Anonymous)
+  const [onboardingAuthMode, setOnboardingAuthMode] = useState<'signup' | 'signin'>('signup');
+  const [onboardingEmail, setOnboardingEmail] = useState('');
+  const [onboardingPassword, setOnboardingPassword] = useState('');
+  const [onboardingConfirmPassword, setOnboardingConfirmPassword] = useState('');
+  const [isOnboardingAuthLoading, setIsOnboardingAuthLoading] = useState(false);
+  const [onboardingAuthStatus, setOnboardingAuthStatus] = useState('');
+
   const handleTestOnboardingMic = async () => {
     setIsOnboardingMicTesting(true);
     try {
@@ -683,45 +708,232 @@ export default function App() {
     return age;
   };
 
-  const handleFinishOnboarding = () => {
-    if (!onboardingParentName.trim()) {
-      setAgeGateError("Please enter parent/guardian name.");
-      return;
+  const validateOnboardingDetails = (overrideName?: string): boolean => {
+    const resolvedName = (overrideName ?? onboardingParentName).trim();
+    if (!resolvedName) {
+      setAgeGateError("Please enter your user name / parent or guardian name.");
+      return false;
     }
     if (!onboardingParentDob) {
       setAgeGateError("Regulatory requirement: Please provide your Date of Birth to verify you are an adult parent or guardian.");
-      return;
+      return false;
     }
     const age = calculateAge(onboardingParentDob);
     if (age < 18) {
       setAgeGateError("Guardian Verification Required: This child tracking workspace must be created and managed by an adult parent or legal guardian (18 years or older).");
-      return;
+      return false;
     }
-
     setAgeGateError('');
+    return true;
+  };
+
+  const commitOnboardingLocalState = (overrideName?: string) => {
+    const finalParentName = (overrideName || onboardingParentName).trim() || 'Mom';
     const finalBabyName = onboardingBabyName.trim() || 'Baby';
     const finalBabyAge = onboardingBabyAge.trim() || '6 Months';
-    
-    localStorage.setItem('parentName', onboardingParentName.trim());
-    localStorage.setItem('parentDob', onboardingParentDob);
+    const age = onboardingParentDob ? calculateAge(onboardingParentDob) : 18;
+
+    localStorage.setItem('parentName', finalParentName);
+    if (onboardingParentDob) localStorage.setItem('parentDob', onboardingParentDob);
     localStorage.setItem('babyName', finalBabyName);
     localStorage.setItem('babyAge', finalBabyAge);
     localStorage.setItem('babyDob', onboardingBabyDob);
     localStorage.setItem('ama_onboarded', 'true');
-    
-    setParentName(onboardingParentName.trim());
-    setParentDob(onboardingParentDob);
+
+    setParentName(finalParentName);
+    if (onboardingParentDob) setParentDob(onboardingParentDob);
     setBabyName(finalBabyName);
     setBabyAge(finalBabyAge);
     setBabyDob(onboardingBabyDob);
-    
-    // Update or seed growthLogs
+
     const currentLogs = [...growthLogs];
     setGrowthLogs(currentLogs);
     localStorage.setItem('growthLogs', JSON.stringify(currentLogs));
 
     setShowOnboarding(false);
     addAuditLog('Onboarding Completed', 'Account initialized with Parent DOB validation. Verified age: ' + age + ' years.', 'ACCOUNT');
+  };
+
+  const handleFinishOnboarding = () => {
+    if (!validateOnboardingDetails()) return;
+    commitOnboardingLocalState();
+  };
+
+  const formatOnboardingAuthError = (err: any): string => {
+    const code = err?.code || '';
+    if (code === 'auth/email-already-in-use' || code === 'auth/credential-already-in-use') {
+      return 'An account with this email already exists. Switch to "Sign In" to access your existing account.';
+    }
+    if (code === 'auth/invalid-email') return 'Please enter a valid email address.';
+    if (code === 'auth/weak-password') return 'Password must be at least 6 characters long.';
+    if (code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/user-not-found') {
+      return 'Invalid email or password. Please check your credentials and try again.';
+    }
+    if (code === 'auth/operation-not-allowed') {
+      return 'Email/Password sign-in is not enabled yet in Firebase Console. Enable it under Authentication -> Sign-in method, or choose Google / Anonymous Sign-In.';
+    }
+    if (code === 'auth/admin-restricted-operation') {
+      return 'Anonymous Sign-In is disabled in Firebase Console. Enable Anonymous sign-in in Authentication -> Sign-in method, or sign in with Email/Password or Google.';
+    }
+    if (code === 'auth/unauthorized-domain') {
+      return 'This domain is not authorized in Firebase Console. Add it under Authentication -> Settings -> Authorized domains.';
+    }
+    if (code === 'auth/popup-closed-by-user') {
+      return 'Sign-in popup was closed before completing.';
+    }
+    return err?.message || 'Authentication failed. Please try again.';
+  };
+
+  const handleOnboardingEmailAuth = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAgeGateError('');
+    setOnboardingAuthStatus('');
+
+    const trimmedEmail = onboardingEmail.trim();
+    if (!trimmedEmail) {
+      setAgeGateError('Please enter your email address.');
+      return;
+    }
+    if (onboardingPassword.length < 6) {
+      setAgeGateError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (onboardingAuthMode === 'signup') {
+      if (!validateOnboardingDetails()) return;
+      if (onboardingPassword !== onboardingConfirmPassword) {
+        setAgeGateError('Passwords do not match.');
+        return;
+      }
+    }
+
+    setIsOnboardingAuthLoading(true);
+    try {
+      let signedUser: FirebaseUser;
+      if (onboardingAuthMode === 'signup') {
+        if (auth.currentUser && auth.currentUser.isAnonymous) {
+          const cred = EmailAuthProvider.credential(trimmedEmail, onboardingPassword);
+          const res = await linkWithCredential(auth.currentUser, cred);
+          signedUser = res.user;
+        } else {
+          const res = await createUserWithEmailAndPassword(auth, trimmedEmail, onboardingPassword);
+          signedUser = res.user;
+        }
+        const trimmedName = onboardingParentName.trim();
+        if (trimmedName) {
+          try {
+            await updateProfile(signedUser, { displayName: trimmedName });
+          } catch {}
+        }
+        try {
+          await sendEmailVerification(signedUser);
+        } catch {}
+        setCurrentUser(signedUser);
+        commitOnboardingLocalState(trimmedName);
+        showAppToast('Account created and synced!', 'success');
+      } else {
+        const res = await signInWithEmailAndPassword(auth, trimmedEmail, onboardingPassword);
+        signedUser = res.user;
+        setCurrentUser(signedUser);
+
+        if (onboardingParentName.trim() && onboardingParentDob && calculateAge(onboardingParentDob) >= 18) {
+          commitOnboardingLocalState(onboardingParentName.trim() || signedUser.displayName || undefined);
+          showAppToast('Signed in! Welcome back.', 'success');
+        } else {
+          // Check if cloud backup already has a valid 18+ Guardian DOB
+          try {
+            const snap = await getDoc(doc(db, 'users', signedUser.uid));
+            if (snap.exists()) {
+              const cloudData = processCloudData(snap.data());
+              if (cloudData?.parentDob && calculateAge(cloudData.parentDob) >= 18) {
+                localStorage.setItem('ama_onboarded', 'true');
+                setShowOnboarding(false);
+                showAppToast('Signed in and backup restored!', 'success');
+                return;
+              }
+            }
+          } catch {}
+          if (signedUser.displayName && !onboardingParentName.trim()) {
+            setOnboardingParentName(signedUser.displayName);
+          }
+          setOnboardingAuthStatus('Signed in! Please confirm your User Name and 18+ Guardian Date of Birth above to finish setup.');
+        }
+      }
+    } catch (err: any) {
+      setAgeGateError(formatOnboardingAuthError(err));
+    } finally {
+      setIsOnboardingAuthLoading(false);
+    }
+  };
+
+  const handleOnboardingGoogleAuth = async () => {
+    setAgeGateError('');
+    setOnboardingAuthStatus('');
+    setIsOnboardingAuthLoading(true);
+    try {
+      const res = auth.currentUser && auth.currentUser.isAnonymous
+        ? await linkWithPopup(auth.currentUser, googleProvider)
+        : await signInWithPopup(auth, googleProvider);
+      const signedUser = res.user;
+      setCurrentUser(signedUser);
+
+      const resolvedName = (onboardingParentName.trim() || signedUser.displayName || '').trim();
+      if (resolvedName && onboardingParentDob && calculateAge(onboardingParentDob) >= 18) {
+        if (!onboardingParentName.trim()) setOnboardingParentName(resolvedName);
+        commitOnboardingLocalState(resolvedName);
+        showAppToast('Google account connected!', 'success');
+        return;
+      }
+
+      try {
+        const snap = await getDoc(doc(db, 'users', signedUser.uid));
+        if (snap.exists()) {
+          const cloudData = processCloudData(snap.data());
+          if (cloudData?.parentDob && calculateAge(cloudData.parentDob) >= 18) {
+            localStorage.setItem('ama_onboarded', 'true');
+            setShowOnboarding(false);
+            showAppToast('Google account signed in & backup restored!', 'success');
+            return;
+          }
+        }
+      } catch {}
+
+      if (resolvedName && !onboardingParentName.trim()) {
+        setOnboardingParentName(resolvedName);
+      }
+      setOnboardingAuthStatus('Google account connected! Enter your 18+ Guardian Date of Birth and baby details above, then tap Complete Setup.');
+    } catch (err: any) {
+      setAgeGateError(formatOnboardingAuthError(err));
+    } finally {
+      setIsOnboardingAuthLoading(false);
+    }
+  };
+
+  const handleOnboardingAnonymousAuth = async () => {
+    setAgeGateError('');
+    setOnboardingAuthStatus('');
+    if (!validateOnboardingDetails()) return;
+
+    setIsOnboardingAuthLoading(true);
+    try {
+      let guestUser = auth.currentUser;
+      if (!guestUser) {
+        const res = await signInAnonymously(auth);
+        guestUser = res.user;
+      }
+      if (guestUser && onboardingParentName.trim()) {
+        try {
+          await updateProfile(guestUser, { displayName: onboardingParentName.trim() });
+        } catch {}
+      }
+      setCurrentUser(guestUser);
+      commitOnboardingLocalState(onboardingParentName.trim());
+      showAppToast('Continuing as anonymous guest session.', 'success');
+    } catch (err: any) {
+      setAgeGateError(formatOnboardingAuthError(err));
+    } finally {
+      setIsOnboardingAuthLoading(false);
+    }
   };
 
   // One-time initialization to ensure a 100% clean slate on load
@@ -1137,38 +1349,6 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
-  // Automatically derive active on-duty caregiver from authenticated account session & role
-  const resolvedCaregiverName = useMemo(() => {
-    if (currentUser && !currentUser.isAnonymous) {
-      if (currentUser.displayName) return currentUser.displayName;
-      if (currentUser.email) {
-        const handle = currentUser.email.split('@')[0];
-        return handle.charAt(0).toUpperCase() + handle.slice(1);
-      }
-    }
-    if (userRole === 'nanny') return 'Nanny / Caregiver';
-    if (userRole === 'family') return 'Family Member';
-    return parentName ? `${parentName} (Primary)` : 'Primary Parent';
-  }, [currentUser, parentName, userRole]);
-
-  const resolvedCaregiverRole = useMemo(() => {
-    if (userRole === 'nanny') return 'Nanny';
-    if (userRole === 'family') return 'Grandma';
-    return 'Mom';
-  }, [userRole]);
-
-  useEffect(() => {
-    fetch('/api/omugwo/shift', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        caregiverName: resolvedCaregiverName,
-        caregiverRole: resolvedCaregiverRole,
-        focusNote: `Active monitoring by signed-in account (${resolvedCaregiverName})`
-      })
-    }).catch(() => {});
-  }, [resolvedCaregiverName, resolvedCaregiverRole]);
-
   const [lastLocalUpdate, setLastLocalUpdate] = useState<number>(() => {
     return parseInt(localStorage.getItem('lastLocalUpdate') || '0', 10);
   });
@@ -1193,8 +1373,7 @@ export default function App() {
     localStorage.setItem('lastLocalUpdate', newTime.toString());
   }, [
     isPremium,
-  setIsSubscriptionModalOpen,
-  babyName,
+    babyName,
     parentName,
     allergenMatrix,
     weeklyPlan,
@@ -1273,8 +1452,6 @@ export default function App() {
       setCurrentUser(null);
       setIsInitialLoadComplete(false);
       localStorage.removeItem('lastLocalUpdate');
-      // Create new anonymous account silently on logout
-      await signInAnonymously(auth);
     } catch (err) {
       console.error("Sign out failed:", err);
     }
@@ -1308,6 +1485,10 @@ export default function App() {
     setBabyName('');
     setParentName('');
     setParentDob('');
+    setOnboardingParentName('');
+    setOnboardingParentDob('');
+    setOnboardingBabyName('');
+    setOnboardingBabyDob('');
     setAllergenMatrix([]);
     setWeeklyPlan({});
     setGroceryChecked([]);
@@ -1330,17 +1511,13 @@ export default function App() {
     setReminders([]);
     setVaccineSchedule([]);
 
-    // Turn onboarding back on
+    // Turn onboarding back on without creating any guest account automatically
     setShowOnboarding(true);
 
     // Sign out to clear active Firebase Session
     try {
       await signOut(auth);
-    } catch (e) {}
-
-    // Force sign in anonymously so they get a fresh guest session right away
-    try {
-      await signInAnonymously(auth);
+      setCurrentUser(null);
     } catch (e) {}
   };
 
@@ -1350,7 +1527,7 @@ export default function App() {
         setCurrentUser(user);
         
         const isOnboarded = localStorage.getItem('ama_onboarded') === 'true';
-        if (!isOnboarded) {
+        if (!isOnboarded && user.isAnonymous) {
           setIsInitialLoadComplete(true);
           return;
         }
@@ -1516,17 +1693,10 @@ export default function App() {
           setIsInitialLoadComplete(true);
         }
       } else {
-        // Sign the user in silently with an Anonymous Account tied to their device
-        try {
-          await signInAnonymously(auth);
-        } catch (anonymousErr: any) {
-          if (anonymousErr.code === 'auth/admin-restricted-operation') {
-            console.error("CRITICAL: Silent anonymous sign-in failed. Anonymous Authentication is likely DISABLED in the Firebase Console.");
-            console.warn("Please go to Firebase Console -> Authentication -> Sign-in method -> Enable 'Anonymous'.");
-          } else {
-            console.error("Silent anonymous sign-in failed:", anonymousErr);
-          }
-        }
+        // Do NOT auto-register anonymous accounts on boot; guest/anonymous sign-in happens only when
+        // the user opens the onboarding form, fills details, and chooses Anonymous Sign-In.
+        setCurrentUser(null);
+        setIsInitialLoadComplete(true);
       }
     });
     return () => unsubscribe();
@@ -1661,8 +1831,7 @@ export default function App() {
         if (proceedWithWrite) {
           const statePayload = {
             isPremium,
-  setIsSubscriptionModalOpen,
-  babyName,
+            babyName,
             parentName,
             parentDob,
             allergenMatrix,
@@ -1718,8 +1887,7 @@ export default function App() {
     isOnline,
     lastLocalUpdate,
     isPremium,
-  setIsSubscriptionModalOpen,
-  babyName,
+    babyName,
     parentName,
     parentDob,
     allergenMatrix,
@@ -1907,8 +2075,7 @@ export default function App() {
   const getSyncLink = () => {
     const syncState = {
       isPremium,
-  setIsSubscriptionModalOpen,
-  babyName,
+      babyName,
       parentName,
       fluidMl,
       fluidTarget,
@@ -1942,6 +2109,79 @@ export default function App() {
     window.addEventListener('gmp-quota-exceeded', handleQuotaExceeded);
     return () => window.removeEventListener('gmp-quota-exceeded', handleQuotaExceeded);
   }, []);
+
+  const getCurrentPageContext = () => {
+    const babyLabel = babyName || 'Baby';
+    if (showOnboarding && activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'about' && activeScreen !== 'contact' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide')) {
+      return {
+        pageTitle: 'Welcome Setup & Account Registration',
+        pageContentSummary: 'User is currently seeing the Welcome to Ama Baby onboarding form collecting User Name / Parent Name, 18+ Guardian Date of Birth, Baby details, and authentication via Email & Password, Google Account, or Anonymous Sign-In.'
+      };
+    }
+    switch (activeScreen) {
+      case 'landing':
+        return { pageTitle: 'Welcome Page', pageContentSummary: 'Public Ama Baby landing page introducing feeding logs, sleep & cry analysis, global baby names, postpartum Mother Care, and parent community.' };
+      case 'home':
+        return { pageTitle: 'Dashboard', pageContentSummary: `Main Dashboard for ${babyLabel} (${babyAge || 'Infant'}) showing daily Growth Quests, fluid intake (${fluidMl}/${fluidTarget} ml), streak (${dailyStreak} days), scheduled meals/meds/activities, and navigation tiles.` };
+      case 'feeding':
+        return {
+          pageTitle: feedingTrackerTab === 'guide' ? 'Solid Food Safety Guide' : 'Meal Log & Feeding Tracker',
+          pageContentSummary: feedingTrackerTab === 'guide'
+            ? 'Interactive Solid Food & Meal Safety Guide covering choking prevention, safe textures, and top allergen timing.'
+            : `Feeding & Hydration Tracker for ${babyLabel} (${fluidMl}/${fluidTarget} ml today), scheduled feeds, and Allergen Introduction Matrix.`
+        };
+      case 'sleep':
+        return { pageTitle: 'Activity & Sleep Tracker', pageContentSummary: `Activity, Sleep & Naps, Immunizations/Vaccines, Care & Moments (where Parents & Family view Caregiver Shift & Handover Records), and Developmental Milestones for ${babyLabel}.` };
+      case 'cry-analyzer':
+        return { pageTitle: 'AI Cry Analyzer', pageContentSummary: `Acoustic Cry Analyzer inside Activity Tracker listening to ${babyLabel}'s cry cues for hunger, tiredness, gas, or discomfort.` };
+      case 'recipes':
+        return { pageTitle: 'Recipe Library', pageContentSummary: `Stage-by-stage baby food recipes (First Purees, Soft Solids, Finger Foods) plus ${personalRecipes.length} personal saved recipes.` };
+      case 'recipe-detail':
+        return { pageTitle: selectedMeal ? `Recipe: ${selectedMeal.title}` : 'Recipe Detail', pageContentSummary: selectedMeal ? `Viewing recipe "${selectedMeal.title}" (${selectedMeal.stage}, prep time ${selectedMeal.time}) with ingredients and log meal button.` : 'Viewing detailed baby food recipe.' };
+      case 'add-recipe':
+        return { pageTitle: 'Add Custom Recipe', pageContentSummary: 'Form for adding a custom family puree, solid food, or snack recipe to the Recipe Library.' };
+      case 'ai-meal-planner':
+        return { pageTitle: 'AI Weekly Meal Planner', pageContentSummary: `AI-powered 7-day meal schedule and localized grocery list builder tailored to ${babyLabel}.` };
+      case 'journal':
+        return { pageTitle: 'Baby Journal & Growth', pageContentSummary: `Baby Journal for ${babyLabel} showing daily meals (${loggedMeals.length}), diapers (${diaperLogs.length}), moods/notes (${loggedMoods.length}), Caregiver Shift & Handover Records for Parents & Family, WHO Growth Charts, and AI Storybook.` };
+      case 'activities':
+        return { pageTitle: 'Activities & Milestones', pageContentSummary: `Daily play quests, growth log measurements, and streak tracker (${dailyStreak} days).` };
+      case 'community':
+        return { pageTitle: 'Community & Marketplace', pageContentSummary: 'Community Support Hub featuring parent forums, live chat rooms, Care Services & Goods Marketplace (post goods for sale or needed, chat to negotiate, settle privately), and Free Gifts (give or receive free goods and services directly onto posted needs or gift listings).' };
+      case 'local-directories':
+        return { pageTitle: 'Local Care Directories', pageContentSummary: 'Searchable directory of nearby maternity hospitals, pediatric clinics, pharmacies, plus access to the Global Baby Name Directory tab.' };
+      case 'baby-names':
+        return { pageTitle: 'Global Baby Names', pageContentSummary: 'Global Baby Name Directory & Firestore Community Additions where users browse meanings, cultural origins, and see who suggested each added name ("Suggested by [Name]").' };
+      case 'mother-care':
+        return { pageTitle: 'Mother Care', pageContentSummary: 'Postpartum recovery & Omugwo maternal nourishment workspace tracking mom meals, warm broths, hydration, and wellness tips.' };
+      case 'monitor':
+        return { pageTitle: 'Live Baby Monitor', pageContentSummary: `Real-time Live Baby Monitor for pairing a crib station and parent viewer for ${babyLabel}.` };
+      case 'settings':
+        return { pageTitle: 'Settings & Account', pageContentSummary: 'Profile settings for Guardian & Baby, Email/Password & Google account sign-in/linking, Village Mode QR/Cloud sync, privacy audit logs, and Ama Premium.' };
+      case 'notifications':
+        return { pageTitle: 'Notifications', pageContentSummary: 'Care alerts, vaccine reminders, and Village activity notifications.' };
+      case 'reminders':
+        return { pageTitle: 'Care Reminders', pageContentSummary: 'Scheduled feeding, nap, and medication alarm manager.' };
+      case 'user-guide':
+        return { pageTitle: 'App User Guide', pageContentSummary: 'Comprehensive walkthrough of how to register and use every feature in Ama Baby.' };
+      case 'safety-guide':
+        return { pageTitle: 'Infant Safety Guide', pageContentSummary: 'Practical infant safety guidelines, safe sleep checklist, choking first aid, and emergency readiness.' };
+      case 'blog':
+        return { pageTitle: 'Parenting Blog', pageContentSummary: 'Evidence-backed articles on infant feeding, sleep rhythms, allergies, and postpartum wellness.' };
+      case 'blog-article':
+        return { pageTitle: selectedBlogArticle ? selectedBlogArticle.title : 'Parenting Article', pageContentSummary: selectedBlogArticle ? `Reading article: "${selectedBlogArticle.title}".` : 'Reading an Ama Baby parenting article.' };
+      case 'about':
+        return { pageTitle: 'About Ama Baby', pageContentSummary: 'Mission, heritage, and story behind Ama Baby Companion.' };
+      case 'contact':
+        return { pageTitle: 'Contact & Support', pageContentSummary: 'Help and support contact page for Ama Baby families.' };
+      case 'legal-terms':
+        return { pageTitle: 'Terms & Privacy', pageContentSummary: 'Privacy Policy, Terms of Use, and data protection standards.' };
+      default:
+        return { pageTitle: 'Ama Baby', pageContentSummary: 'Ama Baby parenting and infant care companion.' };
+    }
+  };
+
+  const currentPageContext = getCurrentPageContext();
 
   return (
     <div className="min-h-screen bg-background font-sans text-gray-900 w-full max-w-7xl mx-auto relative overflow-x-clip transition-all duration-300 pb-28 md:pb-32">
@@ -2414,6 +2654,7 @@ export default function App() {
             <LocalDirectoriesScreen
               onBack={() => setActiveScreen('home')}
               onNavigate={handleNavigate}
+              onOpenAuthModal={() => setIsAuthModalOpen(true)}
               parentName={parentName}
               initialTab={activeScreen === 'baby-names' ? 'baby-names' : 'hospitals'}
               scheduledActivities={scheduledActivities}
@@ -2604,53 +2845,50 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Interactive First-Launch Onboarding Overlay */}
+      {/* Interactive First-Launch Onboarding Overlay with Email/Password, Google & Anonymous Sign-In */}
       {showOnboarding && activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'about' && activeScreen !== 'contact' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide') && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md overflow-y-auto">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/45 backdrop-blur-md overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 24 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="w-full max-w-sm bg-white rounded-[48px] border border-solid border-gray-100 shadow-2xl p-8 space-y-6 text-center relative overflow-hidden"
+            className="w-full max-w-md max-h-[92vh] overflow-y-auto bg-white rounded-[36px] border border-solid border-gray-100 shadow-2xl p-6 sm:p-8 space-y-5 text-center relative"
           >
-            {/* Top decorative subtle abstract pattern bubble */}
-            <div className="absolute -top-12 -right-12 w-28 h-28 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
-
-            {/* Playful/Elegant Header */}
-            <div className="space-y-3 relative z-10">
-              <div className="w-16 h-16 bg-primary/10 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-inner border border-primary/20">
+            <div className="space-y-2 relative z-10">
+              <div className="w-14 h-14 bg-primary/10 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-inner border border-primary/20">
                 👶✨
               </div>
               <div>
                 <h2 className="text-2xl font-serif font-black text-gray-800 leading-tight">Welcome to Ama Baby</h2>
-                <p className="text-[11px] text-gray-400 mt-1 font-medium leading-relaxed">Let's set up your baby's weaning, care, and milestoning journey</p>
-                
-    </div>
-              
-    </div>
+                <p className="text-xs text-gray-500 mt-1 font-medium leading-relaxed">
+                  Fill in your details below, then create your account or sign in to begin.
+                </p>
+              </div>
+            </div>
 
-            {/* Inputs */}
-            <div className="space-y-5 text-left relative z-10">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Parent / Guardian Name
+            {/* Profile & Guardian Details */}
+            <div className="space-y-4 text-left relative z-10">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-primary uppercase tracking-widest block pl-1">
+                  User Name / Parent Name *
                 </label>
-                <input
-                  type="text"
-                  value={onboardingParentName}
-                  onChange={(e) => {
-                    setOnboardingParentName(e.target.value);
-                    setAgeGateError('');
-                  }}
-                  placeholder="e.g. Mom"
-                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
-                />
-                
-    </div>
+                <div className="relative">
+                  <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={onboardingParentName}
+                    onChange={(e) => {
+                      setOnboardingParentName(e.target.value);
+                      setAgeGateError('');
+                    }}
+                    placeholder="e.g. Amara Okafor or Mom"
+                    className="w-full bg-gray-50 border border-solid border-gray-200 rounded-2xl pl-10 pr-4 py-3 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
+                  />
+                </div>
+              </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Guardian Date of Birth (Neutral Age Gate)
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-primary uppercase tracking-widest block pl-1">
+                  Guardian Date of Birth (18+ Verification) *
                 </label>
                 <input
                   type="date"
@@ -2659,159 +2897,260 @@ export default function App() {
                     setOnboardingParentDob(e.target.value);
                     setAgeGateError('');
                   }}
-                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
+                  className="w-full bg-gray-50 border border-solid border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
                 />
-                <p className="text-[9px] text-gray-400 pl-1 leading-normal">
-                  Guardian Verification Notice: Ama Baby is designed for adult parent or guardian tracking only.
+                <p className="text-[10px] text-gray-500 pl-1 leading-normal">
+                  Guardian Notice: Child tracking workspaces must be created and managed by an adult parent or guardian.
                 </p>
-                
-    </div>
-
-              <div className="space-y-1.5 pt-2 border-t border-gray-100/50">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Baby's Name
-                </label>
-                <input
-                  type="text"
-                  value={onboardingBabyName}
-                  onChange={(e) => {
-                    setOnboardingBabyName(e.target.value);
-                  }}
-                  placeholder="e.g. Leo"
-                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
-                />
-                
-    </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Baby's Date of Birth
-                </label>
-                <input
-                  type="date"
-                  value={onboardingBabyDob}
-                  onChange={(e) => {
-                    const dob = e.target.value;
-                    setOnboardingBabyDob(dob);
-                    const calculated = calculateBabyAge(dob);
-                    setOnboardingBabyAge(calculated);
-                  }}
-                  className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl px-4 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
-                />
-                {onboardingBabyAge && (
-                  <p className="text-[11px] text-primary font-bold pl-1 mt-1">
-                    Calculated Age: {onboardingBabyAge}
-                  </p>
-                )}
-                
               </div>
 
-              {/* 1-Step Microphone Access Verification */}
-              <div className="space-y-2 pt-2 border-t border-gray-100">
-                <label className="text-[9px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Microphone Access (Cry Analysis & Care Notes)
-                </label>
-                <div className="p-3 bg-slate-50 rounded-2xl border border-gray-200/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Mic className="w-4 h-4 text-primary" />
-                      <span className="text-xs font-bold text-gray-800">
-                        {onboardingMicStatus === 'granted' ? 'Mic Access Granted' : onboardingMicStatus === 'denied' ? 'Mic Permission Blocked' : 'Check Mic Hardware'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleTestOnboardingMic}
-                      disabled={isOnboardingMicTesting}
-                      className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-black uppercase tracking-wider transition-all border-none cursor-pointer"
-                    >
-                      {isOnboardingMicTesting ? 'Testing...' : onboardingMicStatus === 'granted' ? 'Re-test' : 'Test Mic'}
-                    </button>
-                  </div>
-
-                  {onboardingMicStatus === 'granted' && (
-                    <div className="p-2 bg-primary/10 rounded-xl border border-primary/20 text-[10px] text-gray-800 font-bold flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
-                      <span>Web audio permission verified! Ready for noise-filtered cry analysis.</span>
-                    </div>
-                  )}
-
-                  {onboardingMicStatus === 'denied' && (
-                    <div className="p-2 bg-primary/5 rounded-xl border border-primary/20 text-[10px] text-gray-800 font-medium leading-relaxed">
-                      ⚠️ Permission blocked. You can still use manual care logging and enable microphone permissions anytime in your browser.
-                    </div>
-                  )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-primary uppercase tracking-widest block pl-1">
+                    Baby&apos;s Name
+                  </label>
+                  <input
+                    type="text"
+                    value={onboardingBabyName}
+                    onChange={(e) => setOnboardingBabyName(e.target.value)}
+                    placeholder="e.g. Leo"
+                    className="w-full bg-gray-50 border border-solid border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
+                  />
                 </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-primary uppercase tracking-widest block pl-1">
+                    Baby&apos;s Date of Birth
+                  </label>
+                  <input
+                    type="date"
+                    value={onboardingBabyDob}
+                    onChange={(e) => {
+                      const dob = e.target.value;
+                      setOnboardingBabyDob(dob);
+                      const calculated = calculateBabyAge(dob);
+                      setOnboardingBabyAge(calculated);
+                    }}
+                    className="w-full bg-gray-50 border border-solid border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
+                  />
+                </div>
+              </div>
+              {onboardingBabyAge && onboardingBabyDob && (
+                <p className="text-[11px] text-primary font-bold pl-1 -mt-2">
+                  Calculated Age: {onboardingBabyAge}
+                </p>
+              )}
+
+              {/* 1-Step Microphone Access Verification */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-gray-200/80 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Mic className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-xs font-bold text-gray-800">
+                      {onboardingMicStatus === 'granted' ? 'Mic Access Granted' : onboardingMicStatus === 'denied' ? 'Mic Blocked' : 'Microphone Check (Optional)'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleTestOnboardingMic}
+                    disabled={isOnboardingMicTesting}
+                    className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-black uppercase tracking-wider transition-all border-none cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    {isOnboardingMicTesting ? 'Testing...' : onboardingMicStatus === 'granted' ? 'Re-test' : 'Test Mic'}
+                  </button>
+                </div>
+                {onboardingMicStatus === 'granted' && (
+                  <p className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>Ready for Cry Analyzer & voice logs.</span>
+                  </p>
+                )}
               </div>
             </div>
 
             {ageGateError && (
-              <div className="p-4 bg-primary/10 rounded-2xl border border-solid border-primary/20 text-left text-gray-800 text-[10px] font-bold leading-relaxed relative z-10">
+              <div className="p-3.5 bg-red-50 rounded-2xl border border-solid border-red-200 text-left text-red-800 text-xs font-bold leading-relaxed relative z-10">
                 ⚠️ {ageGateError}
               </div>
             )}
 
-            {/* Start Button */}
-            <div className="space-y-3 relative z-10">
-              <button
-                onClick={handleFinishOnboarding}
-                disabled={!onboardingParentName.trim() || !onboardingParentDob}
-                className="w-full py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest cursor-pointer border-none shadow-lg transition-all bg-primary text-white hover:bg-primary-dark disabled:opacity-40 disabled:cursor-not-allowed shadow-primary/20"
-              >
-                Start Journey
-              </button>
-              
-              <button
-                onClick={handleGoogleSignIn}
-                className="w-full py-3.5 rounded-3xl font-black text-[10px] uppercase tracking-widest cursor-pointer border border-solid border-gray-200 transition-all bg-white text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
-              >
-                <Shield className="w-3.5 h-3.5 text-primary" />
-                Restore Backup / Log In
-              </button>
-              
-    </div>
+            {onboardingAuthStatus && (
+              <div className="p-3.5 bg-emerald-50 rounded-2xl border border-solid border-emerald-200 text-left text-emerald-800 text-xs font-bold leading-relaxed relative z-10">
+                ✓ {onboardingAuthStatus}
+              </div>
+            )}
+
+            {/* Account Authentication Section */}
+            {currentUser && !currentUser.isAnonymous ? (
+              <div className="space-y-3 pt-2 border-t border-gray-100 text-left relative z-10">
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 font-bold flex items-center justify-between gap-2">
+                  <span className="truncate">Signed in as {currentUser.email || currentUser.displayName}</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleFinishOnboarding}
+                  className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest cursor-pointer border-none shadow-lg transition-all bg-primary text-white hover:bg-primary/90"
+                >
+                  Complete Setup & Start Journey
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3.5 pt-3 border-t border-gray-100 text-left relative z-10">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-black text-gray-700 uppercase tracking-widest">
+                    Account & Authentication
+                  </span>
+                  <div className="flex bg-gray-100 p-0.5 rounded-xl gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => { setOnboardingAuthMode('signup'); setAgeGateError(''); }}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black border-none cursor-pointer transition-all whitespace-nowrap ${
+                        onboardingAuthMode === 'signup' ? 'bg-white text-gray-900 shadow-2xs' : 'bg-transparent text-gray-500'
+                      }`}
+                    >
+                      Register
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setOnboardingAuthMode('signin'); setAgeGateError(''); }}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black border-none cursor-pointer transition-all whitespace-nowrap ${
+                        onboardingAuthMode === 'signin' ? 'bg-white text-gray-900 shadow-2xs' : 'bg-transparent text-gray-500'
+                      }`}
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                </div>
+
+                {/* User Name / Email & Password Form */}
+                <form onSubmit={handleOnboardingEmailAuth} className="space-y-2.5">
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      required
+                      value={onboardingEmail}
+                      onChange={(e) => setOnboardingEmail(e.target.value)}
+                      placeholder="Email address *"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-semibold text-gray-800 focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={onboardingPassword}
+                      onChange={(e) => setOnboardingPassword(e.target.value)}
+                      placeholder="Password (min. 6 characters) *"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-semibold text-gray-800 focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  {onboardingAuthMode === 'signup' && (
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        value={onboardingConfirmPassword}
+                        onChange={(e) => setOnboardingConfirmPassword(e.target.value)}
+                        placeholder="Confirm password *"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-semibold text-gray-800 focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={isOnboardingAuthLoading}
+                    className="w-full py-3 rounded-2xl font-black text-xs uppercase tracking-widest cursor-pointer border-none shadow-md transition-all bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {isOnboardingAuthLoading
+                      ? 'Authenticating...'
+                      : onboardingAuthMode === 'signup'
+                      ? 'Create Account & Start Journey'
+                      : 'Sign In & Restore'}
+                  </button>
+                </form>
+
+                {/* Google Sign-In */}
+                <button
+                  type="button"
+                  disabled={isOnboardingAuthLoading}
+                  onClick={handleOnboardingGoogleAuth}
+                  className="w-full py-3 px-4 rounded-2xl font-bold text-xs cursor-pointer border border-solid border-gray-200 transition-all bg-white text-gray-800 hover:bg-gray-50 flex items-center justify-center gap-2 shadow-2xs disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  </svg>
+                  <span>Continue with Google Account</span>
+                </button>
+
+                {/* Gated Anonymous Sign-In Option */}
+                <button
+                  type="button"
+                  disabled={isOnboardingAuthLoading}
+                  onClick={handleOnboardingAnonymousAuth}
+                  className="w-full py-2.5 px-4 rounded-2xl font-bold text-xs cursor-pointer border border-dashed border-gray-300 transition-all bg-gray-50 hover:bg-gray-100 text-gray-700 disabled:opacity-50"
+                >
+                  Continue as Anonymous Sign-In (Guest)
+                </button>
+              </div>
+            )}
           </motion.div>
-          
-    </div>
+        </div>
       )}
 
-      {isInitialLoadComplete && (
-        <VoiceAssistant 
-          babyName={babyName || 'Baby'}
-          babyAge={babyAge || '6 Months'}
-          stage="Purees & Finger Foods"
-          lastFeedStr={loggedMeals.length > 0 ? (loggedMeals[loggedMeals.length - 1].date ? new Date(loggedMeals[loggedMeals.length - 1].date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '2 hours ago') : 'No feed logged today'}
-          lastSleepStr="1h 30m nap logged"
-          lastDiaperStr="Clean diaper logged"
-          isPremium={isPremium}
-          onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-          onLogMeal={(meal) => {
-            const newMeal = { id: `m-${Date.now()}`, ...meal, date: new Date().toISOString() };
-            setLoggedMeals(prev => [...prev, newMeal]);
-          }}
-          onStartTimer={(side) => {
-            alert(`Starting ${side} breast nursing timer for ${babyName || 'baby'}.`);
-          }}
-          onAddNote={(note) => {
-            const newMood = { id: `d-${Date.now()}`, date: new Date().toISOString(), mood: 'Neutral', notes: note };
-            setLoggedMoods(prev => [...prev, newMood]);
-          }}
-          onLogSleep={(durationMinutes) => {
-            const newMood = { id: `s-${Date.now()}`, date: new Date().toISOString(), mood: 'Sleep', notes: `Logged ${durationMinutes}m nap with Ogoo` };
-            setLoggedMoods(prev => [...prev, newMood]);
-          }}
-          onLogDiaper={(type) => {
-            const newDiaper = { id: `dp-${Date.now()}`, date: new Date().toISOString(), type: type || 'wet', notes: 'Logged via Ogoo' };
-            setDiaperLogs(prev => [...prev, newDiaper]);
-          }}
-          loggedMeals={loggedMeals}
-          observationLogs={observationLogs}
-          loggedMoods={loggedMoods}
-          diaperLogs={diaperLogs}
-          vaccineSchedule={vaccineSchedule}
-          memories={memories}
-        />
-      )}
+      {/* Ogoo AI Floating Assistant — Always available & page-aware throughout the entire app */}
+      <VoiceAssistant 
+        babyName={babyName || 'Baby'}
+        babyAge={babyAge || '6 Months'}
+        stage="Purees & Finger Foods"
+        lastFeedStr={loggedMeals.length > 0 ? (loggedMeals[loggedMeals.length - 1].date ? new Date(loggedMeals[loggedMeals.length - 1].date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '2 hours ago') : 'No feed logged today'}
+        lastSleepStr="1h 30m nap logged"
+        lastDiaperStr={diaperLogs.length > 0 ? `${diaperLogs[diaperLogs.length - 1].type || 'Wet'} diaper` : 'No diaper logged today'}
+        isPremium={isPremium}
+        onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+        onLogMeal={(meal) => {
+          const newMeal = { id: `m-${Date.now()}`, ...meal, date: new Date().toISOString() };
+          setLoggedMeals(prev => [...prev, newMeal]);
+        }}
+        onStartTimer={(side) => {
+          showAppToast(`Starting ${side} breast nursing timer for ${babyName || 'baby'}.`, 'success');
+        }}
+        onAddNote={(note) => {
+          const newMood = { id: `d-${Date.now()}`, date: new Date().toISOString(), mood: 'Neutral', notes: note };
+          setLoggedMoods(prev => [...prev, newMood]);
+        }}
+        onLogSleep={(durationMinutes) => {
+          const newMood = { id: `s-${Date.now()}`, date: new Date().toISOString(), mood: 'Sleep', notes: `Logged ${durationMinutes}m nap with Ogoo` };
+          setLoggedMoods(prev => [...prev, newMood]);
+        }}
+        onLogDiaper={(type) => {
+          const newDiaper = { id: `dp-${Date.now()}`, date: new Date().toISOString(), type: type || 'wet', notes: 'Logged via Ogoo' };
+          setDiaperLogs(prev => [...prev, newDiaper]);
+        }}
+        loggedMeals={loggedMeals}
+        observationLogs={observationLogs}
+        loggedMoods={loggedMoods}
+        diaperLogs={diaperLogs}
+        vaccineSchedule={vaccineSchedule}
+        memories={memories}
+        activeScreen={activeScreen}
+        pageTitle={currentPageContext.pageTitle}
+        pageContentSummary={currentPageContext.pageContentSummary}
+        isOnboarded={localStorage.getItem('ama_onboarded') === 'true' && !showOnboarding}
+        authStatus={currentUser ? (currentUser.isAnonymous ? 'anonymous' : 'signed_in') : 'signed_out'}
+        parentName={parentName || 'Parent'}
+        userRole={userRole}
+        onNavigate={(screen) => handleNavigate(screen)}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+      />
 
       {/* Active Scheduled Alarm Modal */}
       <ActiveAlarmModal
@@ -2853,7 +3192,7 @@ export default function App() {
         activeScreen !== 'landing' &&
         activeScreen !== 'blog' &&
         activeScreen !== 'blog-article' && (
-          <div className="fixed bottom-20 sm:bottom-6 right-4 left-4 sm:left-auto sm:max-w-md z-40 bg-white border-2 border-primary/25 rounded-3xl shadow-xl p-4 flex items-start gap-3 text-left">
+          <div className="fixed bottom-24 left-4 right-20 sm:bottom-6 sm:left-6 sm:right-auto sm:max-w-md z-40 bg-white border-2 border-primary/25 rounded-3xl shadow-xl p-4 flex items-start gap-3 text-left">
             <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 font-black text-xs">
               ID
             </div>

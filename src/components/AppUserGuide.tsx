@@ -130,14 +130,14 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
     },
     {
       id: 'village-rbac',
-      title: '5. Sibling Logging & Household Syncing',
+      title: '5. Sibling Logging, Caregiver Shifts & Household Syncing',
       category: 'SECURITY',
       icon: '👥',
-      summary: 'Childcare is a collaborative effort. Ama is built to support smooth, secure household coordination across shared family devices. You can manage multiple child profiles (such as twins, siblings, or newborns) and share logs with family helpers or nannies. By navigating to the Village panel in settings, you can generate secure, encrypted sync tokens or QR codes to mirror baby diaries onto another phone. To protect family privacy, our platform supports role permissions: secondary users like caregivers can log active feeding timers, wet diapers, and sleep schedules, while private journal reflections remain shielded.',
+      summary: 'Childcare is a collaborative effort. Ama is built to support smooth, secure household coordination across shared family devices. You can manage multiple child profiles (such as twins, siblings, or newborns) and share logs with family helpers or nannies. By navigating to the Village panel in settings, you can generate secure, encrypted sync tokens or QR codes to mirror baby diaries onto another phone. Caregivers and nannies log their start/end shift times and who they handed baby care over to on their Caregiver Dashboard, while Parents and Family can review the complete Caregiver Shift & Handover History under Activity Tracker → Care & Moments and Baby Journal → Daily.',
       steps: [
         'Add multiple child profiles in Settings to log records for siblings or twins separately.',
-        'Generate secure, encrypted sync tokens to mirror tracking logs on your partner’s device.',
-        'Configure caregiver mode to grant temporary logging access while protecting historical diaries.'
+        'Generate secure, encrypted sync tokens to mirror tracking logs on your partner’s or caregiver’s device.',
+        'Review Nanny/Caregiver Shift & Handover History anytime in Activity Tracker (Care & Moments) or Baby Journal (Daily).'
       ],
       tips: [
         'Review active shared connections regularly in the Village panel to manage household access.',

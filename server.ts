@@ -9,12 +9,9 @@ import {
   TRADITIONAL_POSTPARTUM_RECIPES,
   VettedCaregiver,
   PostpartumRecipe,
-  OmugwoShiftState,
-  ShiftHandoverNote,
   NourishmentLogEntry,
   WisdomJournalEntry,
-  GenerationalCaptureEntry,
-  OmugwoBookingEntry
+  GenerationalCaptureEntry
 } from "./src/constants/omugwoData";
 
 const app = express();
@@ -95,19 +92,20 @@ async function generateContentWithFallback(
     config?: any;
   }
 ) {
-  // Model Cascade using the undeprecated Gemini models (prioritizing ultra-stable flash-lite & 3.5-flash first)
+  // Model Cascade using undeprecated Gemini models (prioritizing gemini-4-hydrogen for general text/multimodal tasks)
   const UNDEPRECATED_10_MODEL_CASCADE = [
-    "gemini-3.5-flash-lite",     // 1. Ultra stable fast lite model
-    "gemini-3.5-flash",          // 2. Ultra stable standard flash model
-    "gemini-3.1-flash-lite",     // 3. Stable flash lite variant
-    "gemini-3.7-flash",          // 4. Enhanced 3.7 flash variant
-    "gemini-3.6-flash",          // 5. Stable 3.6 flash variant
-    "gemini-3.8-flash",          // 6. Flagship flash model
-    "gemini-flash-latest",       // 7. Latest flash alias
-    "gemini-3.1-pro-preview",    // 8. Complex reasoning & pro model
-    "gemini-flash-lite-latest",  // 9. Latest flash-lite alias
-    "gemini-3-flash-preview",    // 10. Gemini 3 flash preview
-    "gemini-pro-latest"          // 11. Pro latest alias
+    "gemini-4-hydrogen",         // 1. Recommended fast general text, Q&A & multimodal model
+    "gemini-3.5-flash-lite",     // 2. Ultra stable fast lite model
+    "gemini-3.5-flash",          // 3. Ultra stable standard flash model
+    "gemini-3.1-flash-lite",     // 4. Stable flash lite variant
+    "gemini-3.7-flash",          // 5. Enhanced 3.7 flash variant
+    "gemini-3.6-flash",          // 6. Stable 3.6 flash variant
+    "gemini-3.8-flash",          // 7. Flagship flash model
+    "gemini-flash-latest",       // 8. Latest flash alias
+    "gemini-3.1-pro-preview",    // 9. Complex reasoning & pro model
+    "gemini-flash-lite-latest",  // 10. Latest flash-lite alias
+    "gemini-3-flash-preview",    // 11. Gemini 3 flash preview
+    "gemini-pro-latest"          // 12. Pro latest alias
   ];
 
   // Prioritize gemini-3.5-flash when Search Grounding (googleSearch tool) is requested
@@ -137,10 +135,17 @@ async function generateContentWithFallback(
   for (const model of models) {
     try {
       console.log(`[Gemini API] Attempting generateContent with model: ${model}`);
+      let modelConfig = options.config;
+      // Gemini 4 models reject deprecated sampling parameters (temperature, topP, topK, candidateCount)
+      if (modelConfig && model.startsWith("gemini-4-")) {
+        const { temperature, topP, topK, candidateCount, ...cleanConfig } = modelConfig;
+        modelConfig = Object.keys(cleanConfig).length > 0 ? cleanConfig : undefined;
+      }
+
       const response = await ai.models.generateContent({
         model,
         contents: options.contents,
-        config: options.config,
+        config: modelConfig,
       });
 
       // Reset penalty count on success
@@ -1250,9 +1255,19 @@ function getHeuristicResponse(
   weaningStage: string,
   lastFeedStr: string,
   lastSleepStr: string,
-  lastDiaperStr: string
+  lastDiaperStr: string,
+  appContext?: {
+    activeScreen?: string;
+    pageTitle?: string;
+    isOnboarded?: boolean;
+    authStatus?: string;
+  }
 ) {
-  const lowerMsg = message.toLowerCase();
+  const lowerMsg = (message || "").toLowerCase();
+  const activeScreen = appContext?.activeScreen || "home";
+  const pageTitle = appContext?.pageTitle || "Dashboard";
+  const authStatus = appContext?.authStatus || "anonymous";
+  const isOnboarded = appContext?.isOnboarded !== false;
   let replyText = "";
   let actionToTrigger: any = null;
   let suggestedFollowUps: string[] = [];
@@ -1262,53 +1277,147 @@ function getHeuristicResponse(
     lowerMsg.includes("log") ||
     lowerMsg.includes("save") ||
     lowerMsg.includes("record") ||
-    lowerMsg.includes("add") ||
+    lowerMsg.includes("add ") ||
     lowerMsg.includes("track") ||
     lowerMsg.includes("start") ||
     lowerMsg.includes("timer") ||
-    lowerMsg.includes("done") ||
     lowerMsg.includes("changed") ||
-    lowerMsg.includes("just") ||
+    lowerMsg.includes("just ") ||
     lowerMsg.includes("woke") ||
     lowerMsg.includes("put to") ||
     lowerMsg.includes("fell asleep");
 
-  if (isLoggingIntent && (lowerMsg.includes("feed") || lowerMsg.includes("bottle") || lowerMsg.includes("milk") || lowerMsg.includes("formula"))) {
+  if (
+    lowerMsg.includes("register") ||
+    lowerMsg.includes("sign up") ||
+    lowerMsg.includes("signup") ||
+    lowerMsg.includes("sign in") ||
+    lowerMsg.includes("login") ||
+    lowerMsg.includes("create account") ||
+    lowerMsg.includes("how do i join") ||
+    lowerMsg.includes("save my account") ||
+    lowerMsg.includes("backup")
+  ) {
+    actionToTrigger = { type: "open_auth" };
+    if (!isOnboarded) {
+      replyText = `Here is how to register on Ama Baby in 2 easy steps:\n1. First, tap Get Started or go to Dashboard to enter your Parent Name, confirm your age (18+), and add ${babyName}'s name and date of birth.\n2. Next, tap the button below to create your free personal account using Email and Password or Google Sign-In so all your baby logs, Village Mode sync, community posts, and baby name suggestions stay saved safely!`;
+    } else if (authStatus !== "signed_in") {
+      replyText = `You are currently using a temporary guest session. To register your permanent personal account, tap the button below and link your Email and Password or Google Sign-In! Keeping your account linked ensures none of ${babyName}'s logs are lost and unlocks Community posting and Baby Name submissions.`;
+    } else {
+      replyText = `Good news! Your personal Ama Baby account is already signed in and syncing to the cloud. You can manage your baby profiles, Village Mode family invites, or privacy settings anytime inside Settings.`;
+      actionToTrigger = { type: "navigate", targetScreen: "settings" };
+    }
+    suggestedFollowUps = ["What can I do on this page?", "How does Village Mode sync work?"];
+  } else if (
+    lowerMsg.includes("baby name") ||
+    lowerMsg.includes("name database") ||
+    lowerMsg.includes("suggest a name") ||
+    lowerMsg.includes("community addition") ||
+    lowerMsg.includes("naming")
+  ) {
+    actionToTrigger = { type: "navigate", targetScreen: "baby-names" };
+    replyText = `In the Global Baby Name Directory, you can search traditional and modern names by origin, meaning, and gender! Anyone can browse all names and see who suggested each Community Addition. When you are signed in with a personal account, tap "Add Name" to share a meaningful name with the whole community.`;
+    suggestedFollowUps = ["How do I register to add a name?", "Take me to Care Directories"];
+  } else if (
+    lowerMsg.includes("community") ||
+    lowerMsg.includes("forum") ||
+    lowerMsg.includes("doula") ||
+    lowerMsg.includes("nanny") ||
+    lowerMsg.includes("caregiver") ||
+    lowerMsg.includes("marketplace")
+  ) {
+    actionToTrigger = { type: "navigate", targetScreen: "community" };
+    replyText = `Our Community Support hub brings families and providers together! Join discussion forums, chat live in parent rooms, post or browse Care Services and Baby Goods for sale, post services or goods you need, negotiate prices directly in chat (settling privately outside the app), or give and receive Free Gifts!`;
+    suggestedFollowUps = ["How do I give or receive a Free Gift?", "Find hospitals near me"];
+  } else if (
+    lowerMsg.includes("hospital") ||
+    lowerMsg.includes("clinic") ||
+    lowerMsg.includes("doctor") ||
+    lowerMsg.includes("pediatrician") ||
+    lowerMsg.includes("directory") ||
+    lowerMsg.includes("directories")
+  ) {
+    actionToTrigger = { type: "navigate", targetScreen: "local-directories" };
+    replyText = `In Local Care Directories, you can discover pediatric clinics, maternity hospitals, pharmacies, and switch directly to the Global Baby Name Directory tab. Tap the button below to open Local Directories right now!`;
+    suggestedFollowUps = ["Open Baby Names Directory", "What are signs of a fever?"];
+  } else if (
+    lowerMsg.includes("mother") ||
+    lowerMsg.includes("postpartum") ||
+    lowerMsg.includes("omugwo") ||
+    lowerMsg.includes("mom care") ||
+    lowerMsg.includes("healing")
+  ) {
+    actionToTrigger = { type: "navigate", targetScreen: "mother-care" };
+    replyText = `The Mother Care wellness space is built to look after you, mama! You can track postpartum hydration and nourishment meals, follow gentle recovery tips, and find emotional and physical healing support.`;
+    suggestedFollowUps = ["Good warm foods for postpartum?", "Take me to Dashboard"];
+  } else if (
+    lowerMsg.includes("monitor") ||
+    lowerMsg.includes("camera") ||
+    lowerMsg.includes("baby cam")
+  ) {
+    actionToTrigger = { type: "navigate", targetScreen: "monitor" };
+    replyText = `Our Baby Monitor lets you watch and listen for cries in real time using one device by the crib and another parent device connected via your Village room code.`;
+    suggestedFollowUps = ["Check Baby Sleep & Cry Analyzer", "How do I invite my partner?"];
+  } else if (
+    lowerMsg.includes("journal") ||
+    lowerMsg.includes("growth") ||
+    lowerMsg.includes("storybook") ||
+    lowerMsg.includes("diary") ||
+    lowerMsg.includes("vaccine")
+  ) {
+    actionToTrigger = { type: "navigate", targetScreen: "journal" };
+    replyText = `Your Journal keeps all of ${babyName}'s daily meals, diaper logs, growth measurements (weight and height charts), vaccine tracking, weekly food schedules, and even creates a keepsake bedtime storybook from your notes!`;
+    suggestedFollowUps = ["Log a 4 oz bottle feed", "Check Sleep & Cry Analyzer"];
+  } else if (
+    lowerMsg.includes("meal plan") ||
+    lowerMsg.includes("weekly plan") ||
+    lowerMsg.includes("grocery")
+  ) {
+    actionToTrigger = { type: "navigate", targetScreen: "ai-meal-planner" };
+    replyText = `The AI Weekly Meal Planner builds a 7-day soft food and puree schedule tailored to ${babyName}'s age and allergies, plus a handy grocery shopping list!`;
+    suggestedFollowUps = ["Browse Baby Recipes", "Safe foods for " + babyAge];
+  } else if (
+    lowerMsg.includes("this page") ||
+    lowerMsg.includes("where am i") ||
+    lowerMsg.includes("use the app") ||
+    lowerMsg.includes("how does this app work") ||
+    lowerMsg.includes("guide")
+  ) {
+    replyText = `You are currently viewing ${pageTitle} (${activeScreen}). From Ama Baby's bottom bar you can jump between Dashboard, Meal Log, Activity (Sleep, Cry Analyzer & Milestones), Recipes, and Journal — or tap the menu cards on Dashboard for Community, Baby Names, Mother Care, Monitor, and Local Directories. Ask me anything about any part of the app!`;
+    suggestedFollowUps = ["How do I register an account?", "Take me to Baby Names", "Take me to Meal Log"];
+  } else if (isLoggingIntent && (lowerMsg.includes("feed") || lowerMsg.includes("bottle") || lowerMsg.includes("milk") || lowerMsg.includes("formula"))) {
     const matchOz = lowerMsg.match(/(\d+)\s*(oz|ounce|ml)/);
     const amount = matchOz ? parseInt(matchOz[1], 10) : 4;
     const unit = matchOz && matchOz[2].includes("ml") ? "ml" : "oz";
-    actionToTrigger = { action: "log_meal", details: { amount, unit, type: "bottle" } };
+    actionToTrigger = { type: "log_meal", amount, unit, mealType: "bottle" };
     replyText = `I've logged a ${amount} ${unit} bottle feed for ${babyName}. Remember to hold your sweet baby close while feeding!`;
-    suggestedFollowUps = ["Yummy recipe for Leo?", "How is Leo doing?"];
+    suggestedFollowUps = [`Yummy recipe for ${babyName}?`, `How is ${babyName} doing?`];
   } else if (isLoggingIntent && (lowerMsg.includes("sleep") || lowerMsg.includes("nap"))) {
-    actionToTrigger = { action: "log_sleep", details: { durationMinutes: 60 } };
+    actionToTrigger = { type: "log_sleep", durationMinutes: 60 };
     replyText = `I've logged a nap for ${babyName}. Sweet dreams! At ${babyAge}, babies stay awake about 2 to 3 hours between naps.`;
-    suggestedFollowUps = ["How long should he sleep?", "When should he nap next?"];
+    suggestedFollowUps = [`How long should ${babyName} sleep?`, "When should the next nap be?"];
   } else if (isLoggingIntent && (lowerMsg.includes("diaper") || lowerMsg.includes("nappy"))) {
     const isPoop = lowerMsg.includes("poop") || lowerMsg.includes("dirty") || lowerMsg.includes("bowel");
-    actionToTrigger = { action: "log_diaper", details: { type: isPoop ? "dirty" : "wet" } };
+    actionToTrigger = { type: "log_diaper", diaperType: isPoop ? "dirty" : "wet" };
     replyText = `I've recorded a ${isPoop ? "poopy" : "wet"} diaper change for ${babyName}. Keeping baby dry and clean keeps their skin happy!`;
     suggestedFollowUps = ["Diaper rash tips", "Log a feeding"];
   } else if (lowerMsg.includes("timer") || lowerMsg.includes("nursing") || lowerMsg.includes("breast")) {
     const side = lowerMsg.includes("right") ? "right" : "left";
-    actionToTrigger = { action: "start_timer", details: { side } };
+    actionToTrigger = { type: "start_timer", side };
     replyText = `I am starting the feeding timer for the ${side} side now. You are doing a wonderful job feeding ${babyName}!`;
-    suggestedFollowUps = ["Stop timer", "Log bottle feed"];
+    suggestedFollowUps = ["Log bottle feed", "Safe breastfeeding snacks for mom"];
   } else if (lowerMsg.includes("sleep") || lowerMsg.includes("nap") || lowerMsg.includes("wake") || lowerMsg.includes("bed")) {
-    // General sleep question (no logging intent)
-    replyText = `At ${babyAge}, sweet ${babyName} needs about 12 to 15 hours of sleep total each day. This usually means a few nice naps during the day and a longer stretch at night. If you want to save a nap, just let me know to 'log a nap'!`;
-    suggestedFollowUps = ["Log a nap for Leo", "How long should he stay awake between naps?"];
+    replyText = `At ${babyAge}, sweet ${babyName} needs about 12 to 15 hours of sleep total each day. This usually means a few nice naps during the day and a longer stretch at night. If you want to save a nap, just ask me to "log a nap"!`;
+    suggestedFollowUps = [`Log a nap for ${babyName}`, "Open Activity & Sleep Tracker"];
   } else if (lowerMsg.includes("recipe") || lowerMsg.includes("eat") || lowerMsg.includes("food") || lowerMsg.includes("wean") || lowerMsg.includes("lunch") || lowerMsg.includes("breakfast") || lowerMsg.includes("feed")) {
-    // General food question (no logging intent)
     replyText = `For ${babyName} at ${babyAge} (${weaningStage} stage), try starting with yummy single foods like mashed plantains, soft carrots, or warm cereals. Give just one new food at a time to watch for any tummy troubles!`;
-    suggestedFollowUps = ["Yummy recipes", "Log a bottle feed"];
+    suggestedFollowUps = ["Open Recipe Library", "Log a bottle feed"];
   } else if (lowerMsg.includes("diaper") || lowerMsg.includes("nappy") || lowerMsg.includes("poop") || lowerMsg.includes("pee")) {
-    // General diaper question (no logging intent)
-    replyText = `Most babies Leo's age need about 6 to 8 diaper changes a day. Keeping skin dry helps avoid rashes. If you changed a diaper, just let me know to 'record wet diaper'!`;
-    suggestedFollowUps = ["Record diaper change", "Diaper rash tips"];
+    replyText = `Most babies ${babyName}'s age need about 6 to 8 diaper changes a day. Keeping skin dry helps avoid rashes. If you changed a diaper, just tell me to "record wet diaper"!`;
+    suggestedFollowUps = ["Record wet diaper", "Diaper rash tips"];
   } else {
-    replyText = `Hi! I am Ogoo, your baby care assistant. I am here to help you track ${babyName}'s meals, naps, and diaper changes, or share easy recipes. How can I help you today, mama?`;
-    suggestedFollowUps = [`Yummy recipe for ${babyName}?`, "How much sleep does he need?", "Save wet diaper"];
+    replyText = `Hi! I am Ogoo, your baby care companion on ${pageTitle}. I can guide you to register your account, explain any screen in Ama Baby, track ${babyName}'s feeds, naps, and diapers, or answer parenting questions. How can I help you today?`;
+    suggestedFollowUps = ["How do I register?", "What can I do on this page?", `Yummy recipe for ${babyName}?`];
   }
 
   return { replyText, actionToTrigger, suggestedFollowUps };
@@ -1461,15 +1570,24 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
       loggedMoods = [],
       diaperLogs = [],
       vaccineSchedule = [],
-      memories = []
+      memories = [],
+      activeScreen = "home",
+      pageTitle = "Dashboard",
+      pageContentSummary = "",
+      isOnboarded = true,
+      authStatus = "anonymous",
+      userRole = "admin",
+      parentName = "Parent"
     } = req.body;
+
+    const appCtx = { activeScreen, pageTitle, isOnboarded, authStatus };
 
     const ai = getGenAI();
     if (!ai) {
-      const heuristic = getHeuristicResponse(message, babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr, lastDiaperStr);
+      const heuristic = getHeuristicResponse(message, babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr, lastDiaperStr, appCtx);
       return res.json({
         ...heuristic,
-        contextSnapshot: { babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr },
+        contextSnapshot: { babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr, activeScreen, pageTitle },
         references: [],
         researchedWithSearch: false
       });
@@ -1477,48 +1595,66 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
 
     // Determine if web search research grounding should be triggered
     const lowerMsg = (message || "").toLowerCase();
-    const isQuestionOrInformationNeeded = 
-      lowerMsg.includes("?") ||
-      lowerMsg.includes("what") ||
-      lowerMsg.includes("how") ||
-      lowerMsg.includes("why") ||
-      lowerMsg.includes("when") ||
-      lowerMsg.includes("should") ||
-      lowerMsg.includes("can") ||
-      lowerMsg.includes("is it") ||
-      lowerMsg.includes("recipe") ||
-      lowerMsg.includes("sleep") ||
-      lowerMsg.includes("feed") ||
-      lowerMsg.includes("fever") ||
-      lowerMsg.includes("rash") ||
-      lowerMsg.includes("food") ||
-      lowerMsg.includes("health") ||
-      lowerMsg.includes("advice");
+    const isAppOrAuthQuestion =
+      lowerMsg.includes("register") ||
+      lowerMsg.includes("sign up") ||
+      lowerMsg.includes("sign in") ||
+      lowerMsg.includes("login") ||
+      lowerMsg.includes("this page") ||
+      lowerMsg.includes("this screen") ||
+      lowerMsg.includes("how do i use") ||
+      lowerMsg.includes("ama baby") ||
+      lowerMsg.includes("baby name directory") ||
+      lowerMsg.includes("community addition");
 
-    const shouldResearch = enableResearch || isQuestionOrInformationNeeded ||
-      lowerMsg.includes("research") ||
-      lowerMsg.includes("study") ||
-      lowerMsg.includes("guideline") ||
-      lowerMsg.includes("aap") ||
-      lowerMsg.includes("who ") ||
-      lowerMsg.includes("cdc") ||
-      lowerMsg.includes("recall") ||
-      lowerMsg.includes("safe") ||
-      lowerMsg.includes("safety") ||
-      lowerMsg.includes("allergy") ||
-      lowerMsg.includes("allergic") ||
-      lowerMsg.includes("fever") ||
-      lowerMsg.includes("medicine") ||
-      lowerMsg.includes("dosage") ||
-      lowerMsg.includes("milestone") ||
-      lowerMsg.includes("vaccine") ||
-      lowerMsg.includes("immunization") ||
-      lowerMsg.includes("first aid") ||
-      lowerMsg.includes("choking") ||
-      lowerMsg.includes("cpr") ||
-      lowerMsg.includes("can baby eat");
+    const isQuestionOrInformationNeeded =
+      !isAppOrAuthQuestion && (
+        lowerMsg.includes("?") ||
+        lowerMsg.includes("what") ||
+        lowerMsg.includes("how") ||
+        lowerMsg.includes("why") ||
+        lowerMsg.includes("when") ||
+        lowerMsg.includes("should") ||
+        lowerMsg.includes("can") ||
+        lowerMsg.includes("is it") ||
+        lowerMsg.includes("recipe") ||
+        lowerMsg.includes("sleep") ||
+        lowerMsg.includes("feed") ||
+        lowerMsg.includes("fever") ||
+        lowerMsg.includes("rash") ||
+        lowerMsg.includes("food") ||
+        lowerMsg.includes("health") ||
+        lowerMsg.includes("advice")
+      );
 
-    // Build beautiful, readable memory snapshots of the baby's historical database
+    const shouldResearch = enableResearch || (
+      !isAppOrAuthQuestion && (
+        isQuestionOrInformationNeeded ||
+        lowerMsg.includes("research") ||
+        lowerMsg.includes("study") ||
+        lowerMsg.includes("guideline") ||
+        lowerMsg.includes("aap") ||
+        lowerMsg.includes("who ") ||
+        lowerMsg.includes("cdc") ||
+        lowerMsg.includes("recall") ||
+        lowerMsg.includes("safe") ||
+        lowerMsg.includes("safety") ||
+        lowerMsg.includes("allergy") ||
+        lowerMsg.includes("allergic") ||
+        lowerMsg.includes("fever") ||
+        lowerMsg.includes("medicine") ||
+        lowerMsg.includes("dosage") ||
+        lowerMsg.includes("milestone") ||
+        lowerMsg.includes("vaccine") ||
+        lowerMsg.includes("immunization") ||
+        lowerMsg.includes("first aid") ||
+        lowerMsg.includes("choking") ||
+        lowerMsg.includes("cpr") ||
+        lowerMsg.includes("can baby eat")
+      )
+    );
+
+    // Build readable memory snapshots of the baby's historical database
     const mealsHistory = Array.isArray(loggedMeals) && loggedMeals.length > 0 
       ? loggedMeals.slice(-8).map((m: any) => 
           `- Feed: ${m.newFood || m.foodName || m.type || 'Meal'} (${m.amount ? m.amount + ' ' + (m.unit || 'oz') : 'solid'}), logged at ${m.date || m.timestamp ? new Date(m.date || m.timestamp).toLocaleDateString() : 'recently'}. Taste/Acceptance: ${m.acceptance || m.taste || 'good'}.`
@@ -1558,15 +1694,15 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
     // Dynamic persona resolution: if caller provided custom systemInstruction or systemPrompt, respect it directly
     const effectiveCustomPrompt = systemInstruction || customSystemPrompt;
     const defaultOgooPrompt = `
-You are Ogoo (pronounced phonetically like "Augur"), an exceptionally intelligent, deeply knowledgeable, and empathetic parenting companion. You possess world-class knowledge in infant care, developmental milestones, sleep patterns, healthy infant nutrition (BLW & purees), lactation support, and practical safety.
+You are Ogoo (pronounced phonetically like "Augur"), an exceptionally intelligent, deeply knowledgeable, and empathetic parenting companion inside the Ama Baby app. You possess world-class knowledge in infant care, developmental milestones, sleep patterns, healthy infant nutrition (BLW & purees), lactation support, practical safety, AND complete mastery of every feature, screen, and registration step inside Ama Baby.
 
 KNOWLEDGE BASE & GUIDELINES:
 - Grounded in gold-standard evidence-based wellness guidance from the American Academy of Pediatrics (AAP), World Health Organization (WHO), Centers for Disease Control and Prevention (CDC), National Health Service (NHS), and Mayo Clinic.
-- Extensive knowledge of age-specific wake windows, nap transitions, circadian rhythms, sleep cycles (4M, 8M, 12M), nutritious solid food introduction, top allergen exposure timelines (peanut, egg, dairy, sesame), infant stool consistency observations, and teething timelines.
+- Extensive knowledge of age-specific wake windows, nap transitions, daily sleep rhythms, solid food readiness, top allergen exposure timelines, infant stool consistency observations, and teething timelines.
 - Immediate awareness of practical first aid protocols for infant choking, rescue breathing, fever monitoring, dehydration signs, and allergic reaction signs.
 
 CRITICAL LANGUAGE SIMPLICITY MANDATE (FOR ALL MOTHERS & CAREGIVERS):
-- You MUST ALWAYS speak in extremely simple, plain, easy-to-understand everyday words that any mother or caregiver, including uneducated or first-time mothers, can easily understand.
+- You MUST ALWAYS speak in extremely simple, plain, easy-to-understand everyday words that any mother or caregiver, including first-time mothers, can easily understand.
 - ABSOLUTELY NO big medical words, wellness jargon, or complicated terminology.
 - Always use simple everyday phrases:
   * Say "nap and bedtime routine" instead of "circadian window" or "sleep architecture"
@@ -1576,21 +1712,52 @@ CRITICAL LANGUAGE SIMPLICITY MANDATE (FOR ALL MOTHERS & CAREGIVERS):
   * Say "hot body or fever" instead of "febrile state"
   * Say "enough water and milk in baby body" instead of "hydration status"
   * Say "poop and wet nappy" instead of "bowel and urinary excretion"
-- Keep sentences direct, short, loving, step-by-step, and easy to follow.
+- Keep sentences direct, warm, step-by-step, and easy to follow.
+
+CURRENT PAGE & ACCOUNT AWARENESS:
+- Active Screen ID: ${activeScreen}
+- Active Page Title: ${pageTitle}
+- What is currently on the user's screen: ${pageContentSummary || 'Ama Baby main care workspace'}
+- Parent / Caregiver Name: ${parentName} (Role: ${userRole})
+- First-Time Setup (Onboarding) Complete: ${isOnboarded ? 'Yes' : 'Not yet (user still needs to finish Welcome Setup: Parent Name, 18+ Guardian DOB, Baby Name, Baby DOB)'}
+- Account Registration Status: ${authStatus === 'signed_in' ? 'Signed in with personal Email or Google account (cloud sync active)' : authStatus === 'anonymous' ? 'Temporary guest session — guide them kindly to tap "Sign In / Register" to link Email/Password or Google Sign-In so data never gets lost and Community/Baby Name additions work!' : 'Signed out — encourage tapping "Sign In / Register" to save progress.'}
+
+COMPLETE AMA BABY APP MAP (Answer questions about ANY part of the app):
+- landing: Public Welcome page introducing Ama Baby with Get Started, Blog, User Guide, Safety Guide.
+- home: Main Dashboard with baby profile switcher, daily Growth Quests & streak, scheduled meals/meds/activities, quick logs, Village Mode caregiver invites, and shortcuts to all tools.
+- feeding: Meal Log & Feeding Tracker with breast/bottle/milk fluid intake tracker, Allergen Introduction Matrix, and Solid Food & Meal Safety Guide.
+- sleep: Activity Tracker with Sleep & Nap logger, Immunizations/Vaccines schedule, Developmental Milestones, Memories, and Caregiver Shift & Handover History (under Care & Moments for Parents and Family).
+- cry-analyzer: Acoustic AI Baby Cry Analyzer inside Activity Tracker to listen to a baby's cry and suggest probable causes (hunger, tiredness, discomfort, gas).
+- recipes: Recipe Library sorted by weaning stage (First Purees, Soft Solids, Finger Foods) plus "Add Your Own Recipe" (add-recipe).
+- ai-meal-planner: AI 7-Day Weekly Solid Meal & Localized Grocery Planner tailored to baby's age and allergens.
+- journal: Full Baby Journal, Growth Charts (WHO weight/height/head curves with predictions), Diaper Logs, Weekly Schedule, Caregiver Shift & Handover History (in Daily Journal for Parents and Family), and AI Keepsake Storybook generator.
+- community: Community Support Hub with discussion Forums, Live Parent Chat Rooms, and Care, Goods & Free Gifts Marketplace (no in-app checkout: list Care Services or Baby Goods for sale, post Needs, chat to negotiate privately, or give/receive Free Goods & Services as gifts).
+- local-directories: Local Care Directories for nearby maternity hospitals, pediatric clinics, and pharmacies.
+- baby-names: Global Baby Name Directory & Community Additions! All users can search names, meanings, pronunciation, cultural origin, and see who suggested each Community Addition ("Suggested by [Name]"). Signed-in users can contribute new names saved permanently to Firestore.
+- mother-care: Mother Care / Postpartum Wellness space for tracking maternal nourishment & hydration (omugwo logs), recovery checklists, and mom wellness tips.
+- monitor: Live Baby Monitor (crib camera/audio station paired with parent viewer via Village room code).
+- reminders & notifications: Care alarm scheduler and notification center.
+- settings: Manage Baby & Guardian profile, upgrade/sign in to personal Email/Google account, Village Mode sync/QR code, privacy & audit logs, or Ama Premium subscription.
+- user-guide & safety-guide: Step-by-step App User Guide and Infant Safety & First Aid Guide.
+- blog & blog-article: Evidence-backed parenting articles on nutrition, sleep, and baby development.
+
+REGISTRATION GUIDANCE:
+- Whenever a user asks how to register, sign up, save data, post in Community, contribute a Baby Name, or when they are on a guest session and seem unsure:
+  1. Explain clearly in 1-2-3 simple steps: complete the quick Baby Setup (if not done), then create/link a free personal Email & Password or Google account.
+  2. Set "actionToTrigger": {"type": "open_auth"} if they explicitly ask to register/sign in/create an account right now!
 
 CORE APPROACH & INTELLIGENCE:
-1. Deeply analyze all available context for ${babyName}: exact age (${babyAge}), weaning stage (${weaningStage}), recent feeds (${lastFeedStr}), sleep history (${lastSleepStr}), diaper status (${lastDiaperStr}), vaccines, and notes.
-2. Provide thorough, precise, highly informative, and practical guidance. Explain *why* something is happening and give exact step-by-step numbers, timelines, or portion sizes.
+1. Deeply analyze current screen context (${pageTitle}) AND all available context for ${babyName}: age (${babyAge}), weaning stage (${weaningStage}), recent feeds (${lastFeedStr}), sleep (${lastSleepStr}), diaper (${lastDiaperStr}), vaccines, and notes.
+2. When a user asks "What do I do here?", "How does this work?", or questions about another screen, answer accurately using the App Map and offer a helpful navigation action if appropriate!
 3. If an attached file, video, image, or document is provided:
-   - For Images: evaluate visual appearance (e.g. skin rash morphology, diaper stool color/consistency, solid food puree texture, thermometry, or medicine label) with high precision.
-   - For Videos: observe infant movement, motor control, respiratory effort/cough, or crying cues.
-   - For Documents/PDFs: review growth chart metrics, record summaries, or wellness notes.
-4. Speak in a warm, gentle, clear, reassuring, and highly knowledgeable tone that empowers caregivers without causing panic.
+   - For Images: evaluate visual appearance (skin rash, diaper stool color/consistency, puree texture, thermometer, medicine label).
+   - For Videos: observe infant movement, motor control, breathing effort, or crying cues.
+   - For Documents/PDFs: review growth metrics, record summaries, or wellness notes.
+4. Speak in a warm, gentle, reassuring Nigerian-inspired sisterly/mentor warmth without losing clarity.
 
 FORMATTING FOR PERFECT VOICE SYNTHESIS & READABILITY:
 - Format output in plain, clean, readable text.
 - NEVER use markdown asterisks (*), hashtags (#), or weird symbols that cause glitchy speech synthesizer audio playback. Use simple numbered lists (1. 2. 3.) or natural paragraphs.
-- Cite trusted wellness guidelines naturally (e.g., "According to American Academy of Pediatrics guidelines...", "World Health Organization recommendations suggest...").
 
 AI MEMORY & BABY CONTEXT:
 - Baby Name: ${babyName}
@@ -1621,23 +1788,26 @@ ${generalHistory}
 USER MESSAGE: "${message || (image ? `Please analyze this attached ${image.type || image.name || 'file/video'} for baby care.` : 'Hi Ogoo')}"
 ${image ? `[MULTIMODAL ATTACHMENT INCLUDED (MIME: ${image.mimeType || 'file'}, Name: ${image.name || 'Attachment'}, Type: ${image.type || 'Media'}): Analyze the attached video, image, document, or file in detail. Evaluate visual, video motion/sound, or document text content for safety, health observations, or care instructions with supportive guidance.]` : ''}
 
-INSTRUCTIONS FOR AUTOMATIC ACTIONS:
-If the user wants to log something, identify the action and populate "actionToTrigger":
+INSTRUCTIONS FOR AUTOMATIC ACTIONS ("actionToTrigger"):
+If the user wants to log care OR asks to register/sign in OR wants to visit/open a specific screen, populate "actionToTrigger" with ONE of:
 - Log Feed: {"type": "log_meal", "amount": number, "unit": "oz", "mealType": "bottle"|"breast"|"solid", "notes": "string"}
 - Start Breast Timer: {"type": "start_timer", "side": "left"|"right"}
 - Add Note/Diary: {"type": "add_note", "note": "text"}
 - Log Sleep/Nap: {"type": "log_sleep", "durationMinutes": number}
 - Log Diaper: {"type": "log_diaper", "diaperType": "wet"|"dirty"|"clean"}
+- Open Registration / Sign In Modal: {"type": "open_auth"}
+- Open Premium Subscription Modal: {"type": "open_subscription"}
+- Open Another App Screen: {"type": "navigate", "targetScreen": "home"|"feeding"|"sleep"|"cry-analyzer"|"recipes"|"ai-meal-planner"|"journal"|"activities"|"community"|"local-directories"|"baby-names"|"mother-care"|"monitor"|"settings"|"reminders"|"notifications"|"user-guide"|"safety-guide"|"blog"}
 
 PROACTIVE CARE INSIGHT:
-Provide a smart, age-tailored proactive tip or reminder for ${babyName} in "proactiveInsight".
+Provide a smart, age- or page-tailored proactive tip or registration/care reminder in "proactiveInsight".
 
 Return ONLY valid JSON matching this schema:
 {
-  "replyText": "Thorough, highly knowledgeable, evidence-backed, reassuring guidance for the parent...",
+  "replyText": "Thorough, clear, reassuring answer in simple everyday English...",
   "actionToTrigger": null or object with type and parameters,
   "suggestedFollowUps": ["Informed follow-up question?", "Another practical question?"],
-  "proactiveInsight": "Proactive 1-sentence tip tailored for ${babyName}"
+  "proactiveInsight": "Proactive 1-sentence tip tailored for ${babyName} or the current screen"
 }
 `;
 
@@ -1749,10 +1919,10 @@ USER MESSAGE: "${message || 'Hello'}"
       });
     } catch (aiError: any) {
       console.warn("Gemini API request failed. Falling back to local heuristic.", aiError);
-      const heuristic = getHeuristicResponse(message, babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr, lastDiaperStr);
+      const heuristic = getHeuristicResponse(message, babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr, lastDiaperStr, appCtx);
       res.json({
         ...heuristic,
-        contextSnapshot: { babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr },
+        contextSnapshot: { babyName, babyAge, weaningStage, lastFeedStr, lastSleepStr, activeScreen, pageTitle },
         references: [],
         researchedWithSearch: false
       });
@@ -1777,12 +1947,112 @@ app.post("/api/ai/ogoo-proactive-insights", async (req: Request, res: Response) 
       lastDiaperStr = "",
       loggedMeals = [],
       diaperLogs = [],
-      vaccineSchedule = []
+      vaccineSchedule = [],
+      activeScreen = "home",
+      pageTitle = "Dashboard",
+      isOnboarded = true,
+      authStatus = "anonymous"
     } = req.body;
 
-    const insights = [];
+    const insights: any[] = [];
     const now = new Date();
     const currentHour = now.getHours();
+
+    // 0a. Onboarding / Account Registration Guidance Card (when not yet signed in with personal account)
+    if (!isOnboarded) {
+      insights.push({
+        id: "onboarding-guide",
+        type: "account",
+        title: "Complete Baby Profile Setup",
+        description: "Tap Get Started to add your name, verify adult age, and personalize your baby's care tracker.",
+        actionLabel: "How to Register",
+        actionPayload: { query: "How do I register and set up my baby profile?" },
+        badge: "Setup Guide"
+      });
+    } else if (authStatus !== "signed_in") {
+      insights.push({
+        id: "account-register",
+        type: "account",
+        title: "Protect & Sync Your Account",
+        description: "You are on a guest session. Register with Email or Google to protect logs, post in Community, and suggest Baby Names.",
+        actionLabel: "Register / Sign In",
+        actionPayload: { type: "open_auth" },
+        badge: "Account"
+      });
+    }
+
+    // 0b. Page-Specific Proactive Guidance Card
+    if (activeScreen === "landing") {
+      insights.push({
+        id: "landing-tour",
+        type: "guide",
+        title: "Welcome to Ama Baby",
+        description: "Explore meal tracking, cry analysis, global baby names, postpartum care, and our parent community.",
+        actionLabel: "Open Dashboard",
+        actionPayload: { type: "navigate", targetScreen: "home" },
+        badge: "Welcome"
+      });
+    } else if (activeScreen === "baby-names") {
+      insights.push({
+        id: "baby-names-tip",
+        type: "guide",
+        title: "Explore & Suggest Names",
+        description: "Search meanings worldwide, check who suggested Community Additions, or share a name with other families.",
+        actionLabel: "How to Add Name",
+        actionPayload: { query: "How do I add a baby name to Community Additions?" },
+        badge: "Directory"
+      });
+    } else if (activeScreen === "community") {
+      insights.push({
+        id: "community-tip",
+        type: "guide",
+        title: "Village Forum & Marketplace",
+        description: "Join mother support threads, chat live with parents, or browse doulas and caregivers nearby.",
+        actionLabel: "Ask About Community",
+        actionPayload: { query: "How do I use the Community forum and Caregiver Marketplace?" },
+        badge: "Community"
+      });
+    } else if (activeScreen === "local-directories") {
+      insights.push({
+        id: "directories-tip",
+        type: "guide",
+        title: "Find Care & Baby Names",
+        description: "Discover nearby hospitals and clinics, or switch to the Baby Names tab to explore cultural meanings.",
+        actionLabel: "Open Baby Names",
+        actionPayload: { type: "navigate", targetScreen: "baby-names" },
+        badge: "Directories"
+      });
+    } else if (activeScreen === "mother-care") {
+      insights.push({
+        id: "mother-care-tip",
+        type: "guide",
+        title: "Postpartum Nourishment",
+        description: "Log warm broths, hydration, and rest so your body recovers steadily alongside caring for baby.",
+        actionLabel: "Postpartum Food Tips",
+        actionPayload: { query: "What nourishing warm foods and drinks help mothers recover postpartum?" },
+        badge: "Mom Care"
+      });
+    } else if (activeScreen === "journal") {
+      insights.push({
+        id: "journal-tip",
+        type: "guide",
+        title: "Growth Charts & Storybook",
+        description: "Check weight percentiles, track weekly meals, and turn diary notes into a bedtime storybook.",
+        actionLabel: "Ask About Journal",
+        actionPayload: { query: `How can I use the Journal and Storybook on ${pageTitle}?` },
+        badge: "Journal"
+      });
+    } else if (activeScreen === "recipes" || activeScreen === "ai-meal-planner") {
+      insights.push({
+        id: "recipes-tip",
+        type: "recipe",
+        title: "7-Day AI Meal Plan",
+        description: `Generate a full weekly menu and shopping list matched to ${babyName}'s age and allergens.`,
+        actionLabel: "Open Meal Planner",
+        actionPayload: { type: "navigate", targetScreen: "ai-meal-planner" },
+        badge: "Nutrition"
+      });
+    }
 
     // 1. Time-of-Day & Nap Routine Insight
     if (currentHour >= 12 && currentHour <= 15) {
@@ -1802,8 +2072,8 @@ app.post("/api/ai/ogoo-proactive-insights", async (req: Request, res: Response) 
         type: "sleep",
         title: "Bedtime Soothing Window",
         description: `Dimming nursery lights and starting a gentle lullaby helps ${babyName} settle into deep restorative sleep.`,
-        actionLabel: "Start White Noise",
-        actionPayload: { type: "soothe" },
+        actionLabel: "Ask Sleep Tips",
+        actionPayload: { query: `Gentle bedtime routine tips for ${babyName} at ${babyAge}` },
         icon: "moon",
         badge: "Bedtime"
       });
@@ -1832,7 +2102,7 @@ app.post("/api/ai/ogoo-proactive-insights", async (req: Request, res: Response) 
       actionLabel: "Ask Recipe",
       actionPayload: { query: `Yummy ${stage} recipe for ${babyName}` },
       icon: "sparkles",
-      badge: "Pediatric Nutrition"
+      badge: "Baby Nutrition"
     });
 
     // 4. Diaper & Hydration Check
@@ -1842,7 +2112,7 @@ app.post("/api/ai/ogoo-proactive-insights", async (req: Request, res: Response) 
         id: "hydration-check",
         type: "diaper",
         title: "Daily Hydration Watch",
-        description: `Healthy babies average 5 to 6+ wet diapers per day. Track changes to monitor optimal hydration.`,
+        description: `Healthy babies average 5 to 6+ wet diapers per day. Track changes to monitor steady hydration.`,
         actionLabel: "Log Clean Diaper",
         actionPayload: { type: "log_diaper", diaperType: "wet" },
         icon: "check",
@@ -1853,6 +2123,7 @@ app.post("/api/ai/ogoo-proactive-insights", async (req: Request, res: Response) 
     res.json({
       babyName,
       babyAge,
+      activeScreen,
       generatedAt: now.toISOString(),
       insights
     });
@@ -2207,6 +2478,21 @@ interface CommunityPost {
   updatedAt: string;
 }
 
+export interface SellerPaymentMethod {
+  id: string;
+  type: "local_bank" | "global_app";
+  isVerified?: boolean;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  appName?: string;
+  handleOrEmail?: string;
+  payUrl?: string;
+  legalName?: string;
+  country?: string;
+  createdAt: string;
+}
+
 interface CommunityMember {
   id: string;
   name: string;
@@ -2215,6 +2501,23 @@ interface CommunityMember {
   location: string;
   bio: string;
   topics: string[];
+  phoneNumber?: string;
+  email?: string;
+  deviceId?: string;
+  clientIp?: string;
+  isKycVerified?: boolean;
+  kycData?: {
+    idType: string;
+    idNumberLast4: string;
+    verifiedAt: string;
+    legalName: string;
+  };
+  sellerPaymentMethods?: SellerPaymentMethod[];
+  completedInPersonDealsCount?: number;
+  providerLevel?: number; // 1: Local Handover Only, 2: Remote Shipping Cleared
+  disputeStrikes?: number; // 0, 1, 2
+  hasProviderProtectionBadge?: boolean;
+  isAccountFrozen?: boolean;
   joinedAt: string;
   lastActiveAt: string;
 }
@@ -2245,9 +2548,17 @@ export interface IndependentSpecialist {
 
 export interface MarketplaceProvider {
   id: string;
+  ownerId?: string;
   name: string;
   title: string;
   category: string;
+  listingKind?: "service" | "goods";
+  offerMode?: "paid" | "gift";
+  condition?: string;
+  itemStatus?: "Available" | "Claimed";
+  claimedById?: string;
+  claimedByName?: string;
+  claimedAt?: string;
   experienceYears: number;
   rateInfo: string;
   location: string;
@@ -2259,8 +2570,16 @@ export interface MarketplaceProvider {
 
 export interface FamilyCareRequest {
   id: string;
+  ownerId?: string;
   familyName: string;
   category: string;
+  needKind?: "service" | "goods";
+  acceptsGift?: boolean;
+  fulfillmentStatus?: "Open" | "Gifted" | "Fulfilled";
+  giftedById?: string;
+  giftedByName?: string;
+  giftNote?: string;
+  giftedAt?: string;
   title: string;
   description: string;
   schedule: string;
@@ -2270,14 +2589,119 @@ export interface FamilyCareRequest {
   createdAt: string;
 }
 
+export interface MarketplaceGift {
+  id: string;
+  giftSourceType: "need_fulfillment" | "gift_provision";
+  targetListingId: string;
+  itemKind: "service" | "goods";
+  category: string;
+  title: string;
+  description: string;
+  giverId: string;
+  giverName: string;
+  recipientId: string;
+  recipientName: string;
+  status: "Offered" | "Claimed" | "Received";
+  isPublic: boolean;
+  createdAt: string;
+}
+
+export interface MarketplaceOrder {
+  id: string;
+  orderCode: string;
+  listingId: string;
+  itemTitle: string;
+  category: string;
+  itemKind: "service" | "goods";
+  handoverType?: "in_person" | "shipping";
+  agreedAmount: number;
+  currency: string;
+  isInternational: boolean;
+  status: "locked" | "proof_submitted" | "confirmed" | "awaiting_dispatch" | "shipped" | "courier_delivered_pending_consumer_review" | "delivery_disputed" | "denied" | "completed" | "cancelled";
+  sellerId: string; // providerId
+  sellerName: string; // providerName
+  sellerPhone: string;
+  sellerEmail: string;
+  sellerDeviceId: string;
+  sellerKycVerified: boolean;
+  sellerProviderLevel?: number;
+  buyerId: string; // consumerId
+  buyerName: string; // consumerName
+  buyerPhone: string;
+  buyerEmail: string;
+  buyerDeviceId: string;
+  buyerKycVerified: boolean;
+  lockedPaymentMethod: SellerPaymentMethod;
+  paymentProof?: {
+    method: string;
+    amountPaid: number;
+    currency: string;
+    paidTimestamp: string;
+    transactionId: string;
+    receiptProofUrl?: string;
+    screenshotUrl?: string;
+    notes?: string;
+    submittedAt: string;
+  };
+  reviewDeadline?: string;
+  sellerSuspended?: boolean;
+  confirmedAt?: string;
+  deniedAt?: string;
+  denialReason?: string;
+  denialStatementUrl?: string;
+  shippingProof?: {
+    courierName: string;
+    waybillNumber: string;
+    receiptDocUrl?: string;
+    packagePhotoUrl?: string;
+    shippedAt: string;
+    notes?: string;
+  };
+  dispatchDeadline?: string;
+  shippedAt?: string;
+  deliveryEta?: string;
+  deliveryDisputedAt?: string;
+  deliveryDisputeEvidence?: {
+    reason: string;
+    evidenceUrl?: string;
+    notes?: string;
+    filedAt: string;
+  };
+  providerGraceDeadline?: string;
+  providerDeliveryResponse?: {
+    responseType: string;
+    proofUrl?: string;
+    notes?: string;
+    respondedAt: string;
+  };
+  courierDeliveredAt?: string;
+  autoCompleteDeadline?: string;
+  completedAt?: string;
+  isProviderFrozen?: boolean;
+  isConsumerStrikeApplied?: boolean;
+  providerProtectionAwarded?: boolean;
+  disputeNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MarketplaceBanRecord {
+  id: string;
+  targetUserId: string;
+  targetUserName?: string;
+  targetDeviceId: string;
+  targetIp?: string;
+  reason: string;
+  evidenceOrderId?: string;
+  bannedAt: string;
+  bannedBy: string;
+}
+
 interface OmugwoPersistentData {
-  activeShift: OmugwoShiftState;
-  handoverNotes: ShiftHandoverNote[];
   nourishmentLogs: NourishmentLogEntry[];
   wisdomEntries: WisdomJournalEntry[];
   generationalCaptures: GenerationalCaptureEntry[];
   caregivers: VettedCaregiver[];
-  bookings: OmugwoBookingEntry[];
   customRecipes: PostpartumRecipe[];
 }
 
@@ -2289,6 +2713,9 @@ interface PersistentAppStore {
   communitySpecialists: IndependentSpecialist[];
   marketplaceProviders: MarketplaceProvider[];
   marketplaceRequests: FamilyCareRequest[];
+  marketplaceGifts: MarketplaceGift[];
+  marketplaceOrders: MarketplaceOrder[];
+  marketplaceBans: MarketplaceBanRecord[];
   babyNames: BabyNameEntry[];
   omugwo: OmugwoPersistentData;
 }
@@ -2298,22 +2725,10 @@ const STORE_FILE = path.join(DATA_DIR, "ama_live_store.json");
 
 function getDefaultOmugwoState(): OmugwoPersistentData {
   return {
-    activeShift: {
-      caregiverName: "Parent (Mom / Dad)",
-      caregiverRole: "Primary Parent",
-      startedAt: new Date().toISOString(),
-      status: "On Duty",
-      focusNote: "Monitoring active feeding & nap schedule",
-      isDelegatedRemWindow: false,
-      delegationEndsAt: null,
-      delegatedBy: ""
-    },
-    handoverNotes: [],
     nourishmentLogs: [],
     wisdomEntries: [],
     generationalCaptures: [],
     caregivers: [...INITIAL_VETTED_CAREGIVERS],
-    bookings: [],
     customRecipes: [...TRADITIONAL_POSTPARTUM_RECIPES]
   };
 }
@@ -2332,7 +2747,6 @@ function loadPersistentStore(): PersistentAppStore {
         ...(parsed.babyNames || []),
         ...INITIAL_GLOBAL_BABY_NAMES.filter(n => !existingIds.has(n.id))
       ];
-      const defOmugwo = getDefaultOmugwoState();
       const rawOmugwo = parsed.omugwo || {};
       const existingCgIds = new Set((rawOmugwo.caregivers || []).map((c: VettedCaregiver) => c.id));
       const mergedCaregivers = [
@@ -2353,15 +2767,15 @@ function loadPersistentStore(): PersistentAppStore {
         communitySpecialists: Array.isArray(parsed.communitySpecialists) ? parsed.communitySpecialists : [],
         marketplaceProviders: Array.isArray(parsed.marketplaceProviders) ? parsed.marketplaceProviders : [],
         marketplaceRequests: Array.isArray(parsed.marketplaceRequests) ? parsed.marketplaceRequests : [],
+        marketplaceGifts: Array.isArray(parsed.marketplaceGifts) ? parsed.marketplaceGifts : [],
+        marketplaceOrders: Array.isArray(parsed.marketplaceOrders) ? parsed.marketplaceOrders : [],
+        marketplaceBans: Array.isArray(parsed.marketplaceBans) ? parsed.marketplaceBans : [],
         babyNames: mergedNames,
         omugwo: {
-          activeShift: rawOmugwo.activeShift || defOmugwo.activeShift,
-          handoverNotes: Array.isArray(rawOmugwo.handoverNotes) ? rawOmugwo.handoverNotes : [],
           nourishmentLogs: Array.isArray(rawOmugwo.nourishmentLogs) ? rawOmugwo.nourishmentLogs : [],
           wisdomEntries: Array.isArray(rawOmugwo.wisdomEntries) ? rawOmugwo.wisdomEntries : [],
           generationalCaptures: Array.isArray(rawOmugwo.generationalCaptures) ? rawOmugwo.generationalCaptures : [],
           caregivers: mergedCaregivers,
-          bookings: Array.isArray(rawOmugwo.bookings) ? rawOmugwo.bookings : [],
           customRecipes: mergedRecipes
         }
       };
@@ -2378,6 +2792,9 @@ function loadPersistentStore(): PersistentAppStore {
     communitySpecialists: [],
     marketplaceProviders: [],
     marketplaceRequests: [],
+    marketplaceGifts: [],
+    marketplaceOrders: [],
+    marketplaceBans: [],
     babyNames: [...INITIAL_GLOBAL_BABY_NAMES],
     omugwo: getDefaultOmugwoState()
   };
@@ -2572,6 +2989,12 @@ app.post("/api/community/moderate", (req: Request, res: Response, next: express.
 });
 
 // --- 5B. COMMUNITY SUPPORT ENDPOINTS ---
+app.get("/api/client-ip", (req: Request, res: Response) => {
+  const forwarded = req.headers["x-forwarded-for"];
+  const ip = typeof forwarded === "string" ? forwarded.split(",")[0].trim() : req.socket.remoteAddress || "127.0.0.1";
+  res.json({ ip });
+});
+
 app.get("/api/community/state", (req: Request, res: Response) => {
   res.json({
     posts: liveStore.communityPosts,
@@ -2580,7 +3003,10 @@ app.get("/api/community/state", (req: Request, res: Response) => {
     messages: liveStore.communityMessages,
     specialists: liveStore.communitySpecialists,
     marketplaceProviders: liveStore.marketplaceProviders,
-    marketplaceRequests: liveStore.marketplaceRequests
+    marketplaceRequests: liveStore.marketplaceRequests,
+    marketplaceGifts: liveStore.marketplaceGifts,
+    marketplaceOrders: liveStore.marketplaceOrders,
+    marketplaceBans: liveStore.marketplaceBans
   });
 });
 
@@ -2732,7 +3158,22 @@ app.delete("/api/community/posts/:postId", (req: Request, res: Response) => {
 
 app.post("/api/community/members", (req: Request, res: Response) => {
   try {
-    const { id, name, role = "Parent", specialty = "", location = "", bio = "", topics = [] } = req.body;
+    const {
+      id,
+      name,
+      role = "Parent",
+      specialty = "",
+      location = "",
+      bio = "",
+      topics = [],
+      phoneNumber = "",
+      email = "",
+      deviceId = "",
+      clientIp = "",
+      isKycVerified = false,
+      kycData,
+      sellerPaymentMethods = []
+    } = req.body;
     if (!name || !String(name).trim()) {
       return res.status(400).json({ error: "Member display name is required." });
     }
@@ -2740,6 +3181,15 @@ app.post("/api/community/members", (req: Request, res: Response) => {
     const memberId = String(id || `member-${Date.now()}`).slice(0, 128);
     const now = new Date().toISOString();
     const existingIdx = liveStore.communityMembers.findIndex(m => m.id === memberId);
+    const existingMember = existingIdx >= 0 ? liveStore.communityMembers[existingIdx] : null;
+
+    // Check if this deviceId or member is banned
+    const isBanned = liveStore.marketplaceBans.some(
+      b => b.targetUserId === memberId || (deviceId && b.targetDeviceId === deviceId)
+    );
+    if (isBanned) {
+      return res.status(403).json({ error: "This device and account have been permanently banned from the marketplace for verified fraud or violations." });
+    }
 
     const memberRecord: CommunityMember = {
       id: memberId,
@@ -2749,7 +3199,16 @@ app.post("/api/community/members", (req: Request, res: Response) => {
       location: String(location).trim().slice(0, 120),
       bio: String(bio).trim().slice(0, 600),
       topics: Array.isArray(topics) ? topics.slice(0, 8).map(t => String(t).trim().slice(0, 50)).filter(Boolean) : [],
-      joinedAt: existingIdx >= 0 ? liveStore.communityMembers[existingIdx].joinedAt : now,
+      phoneNumber: String(phoneNumber || existingMember?.phoneNumber || "").trim().slice(0, 30),
+      email: String(email || existingMember?.email || "").trim().slice(0, 100),
+      deviceId: String(deviceId || existingMember?.deviceId || "").trim().slice(0, 128),
+      clientIp: String(clientIp || existingMember?.clientIp || "").trim().slice(0, 64),
+      isKycVerified: Boolean(isKycVerified ?? existingMember?.isKycVerified ?? false),
+      kycData: kycData || existingMember?.kycData,
+      sellerPaymentMethods: Array.isArray(sellerPaymentMethods) && sellerPaymentMethods.length > 0
+        ? sellerPaymentMethods.slice(0, 5)
+        : existingMember?.sellerPaymentMethods || [],
+      joinedAt: existingMember ? existingMember.joinedAt : now,
       lastActiveAt: now
     };
 
@@ -2864,23 +3323,53 @@ app.post("/api/community/specialists/register", (req: Request, res: Response) =>
   }
 });
 
-app.post("/api/community/marketplace/providers", (req: Request, res: Response) => {
+app.post("/api/community/marketplace/providers", postRateLimiter, async (req: Request, res: Response) => {
   try {
-    const { name, title, category, experienceYears = 1, rateInfo = "", location = "", bio = "", availability = "Flexible", services = [] } = req.body;
+    const {
+      id,
+      ownerId = "anon",
+      name,
+      title,
+      category,
+      listingKind = "service",
+      offerMode = "paid",
+      condition = "",
+      experienceYears = 1,
+      rateInfo = "",
+      location = "",
+      bio = "",
+      availability = "Flexible",
+      services = []
+    } = req.body;
     if (!name || !title || !category) {
-      return res.status(400).json({ error: "Name, title, and service category are required." });
+      return res.status(400).json({ error: "Name, title, and category are required." });
+    }
+
+    const ownerMember = liveStore.communityMembers.find(m => m.id === ownerId);
+    if (ownerMember?.isAccountFrozen) {
+      return res.status(403).json({ error: "Your Provider account is currently frozen due to an unresolved dispute. Resolve pending disputes before creating new listings." });
+    }
+
+    const mod = await moderateCommunityContent(`${name} - ${title}\n\n${bio}`, "marketplace");
+    if (!mod.allowed) {
+      return res.status(422).json({ error: mod.reason, category: mod.category });
     }
 
     const newProvider: MarketplaceProvider = {
-      id: `provider-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id: String(id || `provider-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`).slice(0, 128),
+      ownerId: String(ownerId).slice(0, 128),
       name: String(name).trim().slice(0, 80),
-      title: String(title).trim().slice(0, 100),
-      category: String(category).trim().slice(0, 80),
-      experienceYears: Number(experienceYears) || 1,
-      rateInfo: String(rateInfo || "Contact for rate").trim().slice(0, 80),
-      location: String(location).trim().slice(0, 100),
+      title: String(title).trim().slice(0, 120),
+      category: String(category).trim().slice(0, 100),
+      listingKind: listingKind === "goods" ? "goods" : "service",
+      offerMode: offerMode === "gift" ? "gift" : "paid",
+      ...(listingKind === "goods" && condition ? { condition: String(condition).trim().slice(0, 40) } : {}),
+      ...(offerMode === "gift" ? { itemStatus: "Available" as const } : {}),
+      experienceYears: listingKind === "goods" ? 0 : Math.min(80, Math.max(0, Number(experienceYears) || 1)),
+      rateInfo: offerMode === "gift" ? "Free Gift (No Cost)" : String(rateInfo || "Negotiate in chat").trim().slice(0, 100),
+      location: String(location).trim().slice(0, 120),
       bio: String(bio).trim().slice(0, 800),
-      availability: String(availability).trim().slice(0, 80),
+      availability: String(availability).trim().slice(0, 100),
       services: Array.isArray(services) ? services.map(s => String(s).trim()) : [],
       registeredAt: new Date().toISOString()
     };
@@ -2893,22 +3382,44 @@ app.post("/api/community/marketplace/providers", (req: Request, res: Response) =
   }
 });
 
-app.post("/api/community/marketplace/requests", (req: Request, res: Response) => {
+app.post("/api/community/marketplace/requests", postRateLimiter, async (req: Request, res: Response) => {
   try {
-    const { familyName, category, title, description, schedule = "Flexible", location = "", budget = "Negotiable", contactInfo = "" } = req.body;
+    const {
+      id,
+      ownerId = "anon",
+      familyName,
+      category,
+      needKind = "service",
+      acceptsGift = true,
+      title,
+      description,
+      schedule = "Flexible",
+      location = "",
+      budget = "Negotiable",
+      contactInfo = ""
+    } = req.body;
     if (!familyName || !title || !description) {
-      return res.status(400).json({ error: "Family name, title, and request description are required." });
+      return res.status(400).json({ error: "Name, title, and description are required." });
+    }
+
+    const mod = await moderateCommunityContent(`${title}\n\n${description}`, "marketplace");
+    if (!mod.allowed) {
+      return res.status(422).json({ error: mod.reason, category: mod.category });
     }
 
     const newRequest: FamilyCareRequest = {
-      id: `req-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id: String(id || `req-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`).slice(0, 128),
+      ownerId: String(ownerId).slice(0, 128),
       familyName: String(familyName).trim().slice(0, 80),
-      category: String(category || "General Care").trim().slice(0, 80),
+      category: String(category || "General Care").trim().slice(0, 100),
+      needKind: needKind === "goods" ? "goods" : "service",
+      acceptsGift: Boolean(acceptsGift),
+      fulfillmentStatus: "Open",
       title: String(title).trim().slice(0, 150),
       description: String(description).trim().slice(0, 1000),
-      schedule: String(schedule).trim().slice(0, 80),
-      location: String(location).trim().slice(0, 100),
-      budget: String(budget).trim().slice(0, 80),
+      schedule: String(schedule).trim().slice(0, 100),
+      location: String(location).trim().slice(0, 120),
+      budget: String(budget).trim().slice(0, 100),
       contactInfo: String(contactInfo).trim().slice(0, 150),
       createdAt: new Date().toISOString()
     };
@@ -2916,6 +3427,447 @@ app.post("/api/community/marketplace/requests", (req: Request, res: Response) =>
     liveStore.marketplaceRequests.unshift(newRequest);
     savePersistentStore(liveStore);
     return res.json({ request: newRequest, requests: liveStore.marketplaceRequests });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/community/marketplace/gifts", postRateLimiter, async (req: Request, res: Response) => {
+  try {
+    const {
+      id,
+      giftSourceType = "gift_provision",
+      targetListingId = "",
+      itemKind = "goods",
+      category = "General",
+      title,
+      description,
+      giverId = "anon",
+      giverName = "Member",
+      recipientId = "anon",
+      recipientName = "Family",
+      status = "Offered"
+    } = req.body;
+
+    if (!title || !description) {
+      return res.status(400).json({ error: "Gift title and description are required." });
+    }
+
+    const mod = await moderateCommunityContent(`${title}\n\n${description}`, "marketplace");
+    if (!mod.allowed) {
+      return res.status(422).json({ error: mod.reason, category: mod.category });
+    }
+
+    const now = new Date().toISOString();
+    const newGift: MarketplaceGift = {
+      id: String(id || `gift-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`).slice(0, 128),
+      giftSourceType: giftSourceType === "need_fulfillment" ? "need_fulfillment" : "gift_provision",
+      targetListingId: String(targetListingId).slice(0, 128),
+      itemKind: itemKind === "service" ? "service" : "goods",
+      category: String(category).slice(0, 100),
+      title: String(title).trim().slice(0, 150),
+      description: String(description).trim().slice(0, 600),
+      giverId: String(giverId).slice(0, 128),
+      giverName: String(giverName).trim().slice(0, 80),
+      recipientId: String(recipientId).slice(0, 128),
+      recipientName: String(recipientName).trim().slice(0, 80),
+      status: status === "Claimed" ? "Claimed" : status === "Received" ? "Received" : "Offered",
+      isPublic: true,
+      createdAt: now
+    };
+
+    liveStore.marketplaceGifts.unshift(newGift);
+
+    if (newGift.giftSourceType === "need_fulfillment" && newGift.targetListingId) {
+      const targetReq = liveStore.marketplaceRequests.find(r => r.id === newGift.targetListingId);
+      if (targetReq) {
+        targetReq.fulfillmentStatus = "Gifted";
+        targetReq.giftedById = newGift.giverId;
+        targetReq.giftedByName = newGift.giverName;
+        targetReq.giftNote = newGift.description;
+        targetReq.giftedAt = now;
+      }
+    } else if (newGift.giftSourceType === "gift_provision" && newGift.targetListingId) {
+      const targetProv = liveStore.marketplaceProviders.find(p => p.id === newGift.targetListingId);
+      if (targetProv) {
+        targetProv.itemStatus = "Claimed";
+        targetProv.claimedById = newGift.recipientId;
+        targetProv.claimedByName = newGift.recipientName;
+        targetProv.claimedAt = now;
+      }
+    }
+
+    savePersistentStore(liveStore);
+    return res.json({ gift: newGift, gifts: liveStore.marketplaceGifts });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// --- 5C. MARKETPLACE ORDERS, FRAUD BANS & EXTERNAL ESCROW VERIFICATION ---
+app.get("/api/community/marketplace/orders", (req: Request, res: Response) => {
+  const userId = req.query.userId ? String(req.query.userId) : null;
+  const userOrders = userId
+    ? liveStore.marketplaceOrders.filter(o => o.buyerId === userId || o.sellerId === userId)
+    : liveStore.marketplaceOrders;
+  res.json({ orders: userOrders });
+});
+
+app.post("/api/community/marketplace/orders", postRateLimiter, async (req: Request, res: Response) => {
+  try {
+    const {
+      listingId,
+      itemTitle,
+      category = "General",
+      itemKind = "goods",
+      handoverType = "in_person",
+      agreedAmount,
+      currency = "GBP",
+      isInternational = false,
+      sellerId,
+      sellerName,
+      sellerPhone = "",
+      sellerEmail = "",
+      sellerDeviceId = "",
+      sellerKycVerified = false,
+      sellerProviderLevel = 1,
+      buyerId,
+      buyerName,
+      buyerPhone = "",
+      buyerEmail = "",
+      buyerDeviceId = "",
+      buyerKycVerified = false,
+      lockedPaymentMethod
+    } = req.body;
+
+    if (!listingId || !itemTitle || !agreedAmount || !sellerId || !buyerId || !lockedPaymentMethod) {
+      return res.status(400).json({ error: "Missing required order creation terms or payment method." });
+    }
+
+    // 1. Device and User Ban / Freeze Check
+    const isBanned = liveStore.marketplaceBans.some(
+      b =>
+        b.targetUserId === buyerId ||
+        b.targetUserId === sellerId ||
+        (buyerDeviceId && b.targetDeviceId === buyerDeviceId) ||
+        (sellerDeviceId && b.targetDeviceId === sellerDeviceId)
+    );
+    if (isBanned) {
+      return res.status(403).json({ error: "One of the participating accounts or devices is permanently banned from marketplace transactions." });
+    }
+
+    const sellerMember = liveStore.communityMembers.find(m => m.id === sellerId);
+    if (sellerMember?.isAccountFrozen) {
+      return res.status(403).json({ error: "This Provider account is temporarily frozen due to an unresolved non-delivery dispute." });
+    }
+
+    // 2. Block Remote Shipping for Unproven Providers (Level 1: Local Only, Level 2: Remote Shipping Cleared)
+    const isLevel2Provider = Boolean(
+      (sellerMember?.isKycVerified || sellerKycVerified) &&
+      ((sellerMember?.completedInPersonDealsCount || 0) >= 5 || (sellerMember?.providerLevel || sellerProviderLevel || 1) >= 2)
+    );
+
+    if (handoverType === "shipping" && !isLevel2Provider) {
+      return res.status(403).json({
+        error: "Level 2 Provider Required: Remote shipping is blocked for unproven providers. Providers must complete KYC verification and 5+ successful in-person handovers before offering remote courier delivery."
+      });
+    }
+
+    // 3. Unverified Tier Limits Check (Max 3 orders/day below ~£50 / $65 / ₦95,000 equivalent)
+    if (!buyerKycVerified) {
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const recentBuyerOrders = liveStore.marketplaceOrders.filter(
+        o => o.buyerId === buyerId && new Date(o.createdAt).getTime() > oneDayAgo
+      );
+      if (recentBuyerOrders.length >= 3) {
+        return res.status(400).json({
+          error: "Unverified limit exceeded: You may only initiate up to 3 transactions per day. Complete KYC verification for unlimited bookings and orders."
+        });
+      }
+
+      // Value threshold (£50 GBP, or equivalent ~$65 USD, ~₦95,000 NGN)
+      const numericAmount = Number(agreedAmount) || 0;
+      const isOverLimit =
+        (currency.toUpperCase() === "GBP" && numericAmount > 50) ||
+        (currency.toUpperCase() === "USD" && numericAmount > 65) ||
+        (currency.toUpperCase() === "EUR" && numericAmount > 60) ||
+        (currency.toUpperCase() === "NGN" && numericAmount > 95000);
+
+      if (isOverLimit) {
+        return res.status(400).json({
+          error: `Unverified limit exceeded: Single transaction amount (${currency} ${numericAmount}) exceeds the £50 equivalent limit for unverified accounts. Complete KYC verification to proceed.`
+        });
+      }
+    }
+
+    const orderId = `order-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const orderCode = `ORD-${randomDigits}`;
+    const now = new Date().toISOString();
+
+    const newOrder: MarketplaceOrder = {
+      id: orderId,
+      orderCode,
+      listingId: String(listingId).slice(0, 128),
+      itemTitle: String(itemTitle).slice(0, 150),
+      category: String(category).slice(0, 100),
+      itemKind: itemKind === "service" ? "service" : "goods",
+      handoverType: handoverType === "shipping" ? "shipping" : "in_person",
+      agreedAmount: Number(agreedAmount),
+      currency: String(currency).slice(0, 10).toUpperCase(),
+      isInternational: Boolean(isInternational),
+      status: "locked",
+      sellerId: String(sellerId).slice(0, 128),
+      sellerName: String(sellerName).slice(0, 80),
+      sellerPhone: String(sellerPhone).slice(0, 30),
+      sellerEmail: String(sellerEmail).slice(0, 100),
+      sellerDeviceId: String(sellerDeviceId).slice(0, 128),
+      sellerKycVerified: Boolean(sellerKycVerified),
+      sellerProviderLevel: isLevel2Provider ? 2 : 1,
+      buyerId: String(buyerId).slice(0, 128),
+      buyerName: String(buyerName).slice(0, 80),
+      buyerPhone: String(buyerPhone).slice(0, 30),
+      buyerEmail: String(buyerEmail).slice(0, 100),
+      buyerDeviceId: String(buyerDeviceId).slice(0, 128),
+      buyerKycVerified: Boolean(buyerKycVerified),
+      lockedPaymentMethod,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    liveStore.marketplaceOrders.unshift(newOrder);
+    savePersistentStore(liveStore);
+
+    return res.json({ order: newOrder, orders: liveStore.marketplaceOrders });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch("/api/community/marketplace/orders/:orderId", async (req: Request, res: Response) => {
+  try {
+    const { orderId } = req.params;
+    const {
+      action,
+      paymentProof,
+      denialReason,
+      denialStatementUrl,
+      shippingProof,
+      deliveryEta,
+      deliveryDisputeEvidence,
+      providerDeliveryResponse,
+      resolution,
+      disputeNotes
+    } = req.body;
+
+    const order = liveStore.marketplaceOrders.find(o => o.id === orderId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found." });
+    }
+
+    const now = new Date().toISOString();
+
+    if (action === "submit_proof") {
+      if (!paymentProof || !paymentProof.transactionId) {
+        return res.status(400).json({ error: "Payment proof with official transaction ID is required." });
+      }
+      order.status = "proof_submitted";
+      order.paymentProof = {
+        method: String(paymentProof.method || "Bank Transfer").slice(0, 50),
+        amountPaid: Number(paymentProof.amountPaid || order.agreedAmount),
+        currency: String(paymentProof.currency || order.currency).slice(0, 10),
+        paidTimestamp: String(paymentProof.paidTimestamp || now).slice(0, 64),
+        transactionId: String(paymentProof.transactionId).trim().slice(0, 128),
+        receiptProofUrl: paymentProof.receiptProofUrl ? String(paymentProof.receiptProofUrl).slice(0, 2048) : undefined,
+        screenshotUrl: paymentProof.screenshotUrl ? String(paymentProof.screenshotUrl).slice(0, 2048) : undefined,
+        notes: paymentProof.notes ? String(paymentProof.notes).slice(0, 500) : undefined,
+        submittedAt: now
+      };
+      const windowHours = order.isInternational ? 48 : 24;
+      order.reviewDeadline = new Date(Date.now() + windowHours * 60 * 60 * 1000).toISOString();
+      order.updatedAt = now;
+    } else if (action === "confirm_receipt") {
+      order.confirmedAt = now;
+      if (order.handoverType === "shipping") {
+        order.status = "awaiting_dispatch";
+        // Mandatory 48-hour dispatch proof window for Provider
+        order.dispatchDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+      } else {
+        order.status = "completed";
+        order.completedAt = now;
+        // Credit Provider with completed in-person deal
+        const sellerMem = liveStore.communityMembers.find(m => m.id === order.sellerId);
+        if (sellerMem) {
+          sellerMem.completedInPersonDealsCount = (sellerMem.completedInPersonDealsCount || 0) + 1;
+          if (sellerMem.completedInPersonDealsCount >= 5 && sellerMem.isKycVerified) {
+            sellerMem.providerLevel = 2;
+          }
+        }
+      }
+      order.updatedAt = now;
+    } else if (action === "upload_shipping_proof") {
+      if (!shippingProof || !shippingProof.courierName || !shippingProof.waybillNumber) {
+        return res.status(400).json({
+          error: "Courier company name, trackable waybill number, receipt, and package photo are required before dispatch confirmation."
+        });
+      }
+      order.status = "shipped";
+      order.shippedAt = now;
+      order.deliveryEta = String(deliveryEta || new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString());
+      order.shippingProof = {
+        courierName: String(shippingProof.courierName).slice(0, 80),
+        waybillNumber: String(shippingProof.waybillNumber).trim().slice(0, 100),
+        receiptDocUrl: shippingProof.receiptDocUrl ? String(shippingProof.receiptDocUrl).slice(0, 2048) : undefined,
+        packagePhotoUrl: shippingProof.packagePhotoUrl ? String(shippingProof.packagePhotoUrl).slice(0, 2048) : undefined,
+        notes: shippingProof.notes ? String(shippingProof.notes).slice(0, 500) : undefined,
+        shippedAt: now
+      };
+      order.updatedAt = now;
+    } else if (action === "report_non_delivery") {
+      if (!deliveryDisputeEvidence || !deliveryDisputeEvidence.reason) {
+        return res.status(400).json({
+          error: "Proof is required to report non-delivery (e.g. courier tracking screenshot, rider cancellation, or unanswered messages past ETA)."
+        });
+      }
+      order.status = "delivery_disputed";
+      order.deliveryDisputedAt = now;
+      order.deliveryDisputeEvidence = {
+        reason: String(deliveryDisputeEvidence.reason).slice(0, 500),
+        evidenceUrl: deliveryDisputeEvidence.evidenceUrl ? String(deliveryDisputeEvidence.evidenceUrl).slice(0, 2048) : undefined,
+        notes: deliveryDisputeEvidence.notes ? String(deliveryDisputeEvidence.notes).slice(0, 500) : undefined,
+        filedAt: now
+      };
+      // 24-hour Provider Grace Window before storefront freeze
+      order.providerGraceDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      order.updatedAt = now;
+    } else if (action === "provider_grace_response") {
+      if (!providerDeliveryResponse || !providerDeliveryResponse.proofUrl) {
+        return res.status(400).json({ error: "Official courier delivery proof / tracking slip is required." });
+      }
+      order.status = "courier_delivered_pending_consumer_review";
+      order.courierDeliveredAt = now;
+      order.providerDeliveryResponse = {
+        responseType: String(providerDeliveryResponse.responseType || "Courier Delivered Tracking").slice(0, 100),
+        proofUrl: String(providerDeliveryResponse.proofUrl).slice(0, 2048),
+        notes: providerDeliveryResponse.notes ? String(providerDeliveryResponse.notes).slice(0, 500) : undefined,
+        respondedAt: now
+      };
+      // 48-hour Consumer confirmation window before Auto-Complete Override
+      order.autoCompleteDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+      order.updatedAt = now;
+    } else if (action === "auto_complete_delivery" || action === "confirm_delivery_received") {
+      order.status = "completed";
+      order.completedAt = now;
+      order.updatedAt = now;
+      const sellerMem = liveStore.communityMembers.find(m => m.id === order.sellerId);
+      if (sellerMem) {
+        sellerMem.completedInPersonDealsCount = (sellerMem.completedInPersonDealsCount || 0) + 1;
+        if (sellerMem.completedInPersonDealsCount >= 5 && sellerMem.isKycVerified) {
+          sellerMem.providerLevel = 2;
+        }
+      }
+    } else if (action === "resolve_dispute") {
+      if (resolution === "consumer_false_claim") {
+        // Consumer strike system: 1st warning strike, 2nd permanent ban
+        const buyerMem = liveStore.communityMembers.find(m => m.id === order.buyerId);
+        const currentStrikes = (buyerMem?.disputeStrikes || 0) + 1;
+        if (buyerMem) {
+          buyerMem.disputeStrikes = currentStrikes;
+        }
+
+        if (currentStrikes >= 2 && buyerMem) {
+          liveStore.marketplaceBans.unshift({
+            id: `ban-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            targetUserId: buyerMem.id,
+            targetUserName: buyerMem.name,
+            targetDeviceId: buyerMem.deviceId || order.buyerDeviceId || "",
+            reason: "2nd False Non-Delivery Claim / Dispute Abuse (Permanent Device & Phone Ban)",
+            evidenceOrderId: order.id,
+            bannedAt: now,
+            bannedBy: "system_admin"
+          });
+        }
+
+        // Wipe any negative impact from Provider, grant Protected Provider Badge
+        const providerMem = liveStore.communityMembers.find(m => m.id === order.sellerId);
+        if (providerMem) {
+          providerMem.isAccountFrozen = false;
+          providerMem.hasProviderProtectionBadge = true;
+          providerMem.completedInPersonDealsCount = (providerMem.completedInPersonDealsCount || 0) + 1;
+        }
+
+        order.status = "completed";
+        order.completedAt = now;
+        order.isConsumerStrikeApplied = true;
+        order.providerProtectionAwarded = true;
+        order.isProviderFrozen = false;
+        order.disputeNotes = "Dispute resolved: Delivery verified authentic. Consumer penalized with dispute strike; Provider awarded Protected Provider Badge.";
+      } else if (resolution === "provider_default") {
+        // Freeze Provider account and hide listings
+        const providerMem = liveStore.communityMembers.find(m => m.id === order.sellerId);
+        if (providerMem) {
+          providerMem.isAccountFrozen = true;
+        }
+        order.status = "cancelled";
+        order.isProviderFrozen = true;
+        order.disputeNotes = "Dispute resolved: Provider failed to provide delivery proof past grace period. Provider storefront frozen.";
+      }
+      order.updatedAt = now;
+    } else if (action === "deny_receipt") {
+      if (!denialStatementUrl) {
+        return res.status(400).json({
+          error: "To deny receipt, an official single-day bank statement PDF or document showing no incoming transfer is required."
+        });
+      }
+      order.status = "denied";
+      order.deniedAt = now;
+      order.denialReason = String(denialReason || "Bank statement attached showing no matching credit.").slice(0, 500);
+      order.denialStatementUrl = String(denialStatementUrl).slice(0, 2048);
+      order.updatedAt = now;
+    } else if (action === "report_fraud") {
+      order.status = "delivery_disputed";
+      order.disputeNotes = String(disputeNotes || "Reported for dispute investigation.").slice(0, 1000);
+      order.updatedAt = now;
+    } else {
+      return res.status(400).json({ error: "Invalid order action." });
+    }
+
+    savePersistentStore(liveStore);
+    return res.json({ order, orders: liveStore.marketplaceOrders });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/community/marketplace/bans", (req: Request, res: Response) => {
+  res.json({ bans: liveStore.marketplaceBans });
+});
+
+app.post("/api/community/marketplace/bans", async (req: Request, res: Response) => {
+  try {
+    const { targetUserId, targetUserName = "User", targetDeviceId, targetIp = "", reason, evidenceOrderId, bannedBy } = req.body;
+
+    if (!targetUserId || !targetDeviceId || !reason) {
+      return res.status(400).json({ error: "Target user ID, device hardware ID, and clear fraud reason are required." });
+    }
+
+    const banId = `ban-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const newBan: MarketplaceBanRecord = {
+      id: banId,
+      targetUserId: String(targetUserId).slice(0, 128),
+      targetUserName: String(targetUserName).slice(0, 80),
+      targetDeviceId: String(targetDeviceId).slice(0, 128),
+      targetIp: String(targetIp).slice(0, 64),
+      reason: String(reason).slice(0, 500),
+      evidenceOrderId: evidenceOrderId ? String(evidenceOrderId).slice(0, 128) : undefined,
+      bannedAt: new Date().toISOString(),
+      bannedBy: String(bannedBy || "system").slice(0, 128)
+    };
+
+    liveStore.marketplaceBans.unshift(newBan);
+    savePersistentStore(liveStore);
+
+    return res.json({ ban: newBan, bans: liveStore.marketplaceBans });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
@@ -3436,129 +4388,11 @@ Return ONLY a valid JSON array of objects with these exact keys:
 });
 
 // ============================================================================
-// 6. OMUGWO CARE & POSTPARTUM VILLAGE MODULE ENDPOINTS
+// 6. OMUGWO CARE & POSTPARTUM NOURISHMENT MODULE ENDPOINTS
 // ============================================================================
 
 app.get("/api/omugwo/state", (_req: Request, res: Response) => {
-  // Check if a 4-hour REM Sleep Delegation window has naturally expired
-  if (
-    liveStore.omugwo.activeShift.isDelegatedRemWindow &&
-    liveStore.omugwo.activeShift.delegationEndsAt &&
-    new Date(liveStore.omugwo.activeShift.delegationEndsAt).getTime() <= Date.now()
-  ) {
-    liveStore.omugwo.activeShift.isDelegatedRemWindow = false;
-    liveStore.omugwo.activeShift.delegationEndsAt = null;
-    savePersistentStore(liveStore);
-  }
   res.json(liveStore.omugwo);
-});
-
-// Update Real-Time On-Duty Caregiver Status or Activate 4-Hour REM Sleep Delegation
-app.post("/api/omugwo/shift", (req: Request, res: Response) => {
-  try {
-    const {
-      caregiverName,
-      caregiverRole = "Grandma / Elder Caregiver",
-      focusNote = "On Duty — Monitoring Baby Feed & Cry Alerts",
-      startRemDelegation = false,
-      endRemDelegation = false,
-      delegatedBy = "Mom",
-      durationHours = 4
-    } = req.body;
-
-    const now = new Date();
-    if (endRemDelegation) {
-      liveStore.omugwo.activeShift.isDelegatedRemWindow = false;
-      liveStore.omugwo.activeShift.delegationEndsAt = null;
-      if (caregiverName) {
-        liveStore.omugwo.activeShift.caregiverName = String(caregiverName).trim();
-        liveStore.omugwo.activeShift.caregiverRole = String(caregiverRole).trim();
-      }
-      liveStore.omugwo.activeShift.focusNote = String(focusNote || "Standard parent monitoring active").trim();
-      savePersistentStore(liveStore);
-      return res.json({ activeShift: liveStore.omugwo.activeShift });
-    }
-
-    const hrs = Math.max(1, Math.min(12, Number(durationHours) || 4));
-    const endsAt = startRemDelegation
-      ? new Date(now.getTime() + hrs * 3600 * 1000).toISOString()
-      : liveStore.omugwo.activeShift.delegationEndsAt;
-
-    liveStore.omugwo.activeShift = {
-      caregiverName: String(caregiverName || liveStore.omugwo.activeShift.caregiverName).trim(),
-      caregiverRole: String(caregiverRole || liveStore.omugwo.activeShift.caregiverRole).trim(),
-      startedAt: now.toISOString(),
-      status: "On Duty",
-      focusNote: String(
-        startRemDelegation
-          ? `${hrs}-Hour Uninterrupted REM Sleep Window for ${delegatedBy} — All cry & feeding alerts routed to ${caregiverName}`
-          : focusNote
-      ).trim(),
-      isDelegatedRemWindow: Boolean(startRemDelegation),
-      delegationEndsAt: startRemDelegation ? endsAt : null,
-      delegatedBy: startRemDelegation ? String(delegatedBy) : ""
-    };
-
-    savePersistentStore(liveStore);
-    return res.json({ activeShift: liveStore.omugwo.activeShift });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || "Failed to update caregiver shift status." });
-  }
-});
-
-// Log End-of-Shift Handover Note
-app.post("/api/omugwo/handover", (req: Request, res: Response) => {
-  try {
-    const {
-      caregiverName = "Grandma",
-      caregiverRole = "Visiting Grandmother",
-      receivingPerson = "Mom & Dad",
-      summary,
-      babyMood = "Calm & Content",
-      feedsLoggedSummary = "",
-      sleepLoggedSummary = "",
-      switchDutyToReceiving = false
-    } = req.body;
-
-    if (!summary || !String(summary).trim()) {
-      return res.status(400).json({ error: "Please provide a shift handover summary note." });
-    }
-
-    const note: ShiftHandoverNote = {
-      id: `ho-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      caregiverName: String(caregiverName).trim().slice(0, 80),
-      caregiverRole: String(caregiverRole).trim().slice(0, 80),
-      receivingPerson: String(receivingPerson).trim().slice(0, 80),
-      summary: String(summary).trim().slice(0, 1500),
-      babyMood: String(babyMood).trim().slice(0, 80),
-      feedsLoggedSummary: String(feedsLoggedSummary).trim().slice(0, 300),
-      sleepLoggedSummary: String(sleepLoggedSummary).trim().slice(0, 300),
-      createdAt: new Date().toISOString()
-    };
-
-    liveStore.omugwo.handoverNotes.unshift(note);
-    if (switchDutyToReceiving && receivingPerson) {
-      liveStore.omugwo.activeShift = {
-        caregiverName: String(receivingPerson).trim(),
-        caregiverRole: "Parent / Incoming Shift",
-        startedAt: note.createdAt,
-        status: "On Duty",
-        focusNote: `Handed over from ${note.caregiverName}: "${note.summary.slice(0, 80)}"`,
-        isDelegatedRemWindow: false,
-        delegationEndsAt: null,
-        delegatedBy: ""
-      };
-    }
-
-    savePersistentStore(liveStore);
-    return res.json({
-      note,
-      handoverNotes: liveStore.omugwo.handoverNotes,
-      activeShift: liveStore.omugwo.activeShift
-    });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || "Failed to save handover note." });
-  }
 });
 
 // Grandma Mode Voice-Activated AI Logging ("The baby has just slept", "The baby drank 3 oz")
@@ -3567,8 +4401,7 @@ app.post("/api/omugwo/voice-log", async (req: Request, res: Response) => {
     const {
       transcript,
       babyName = "Baby",
-      caregiverName = "Grandma",
-      caregiverRole = "Visiting Grandmother"
+      caregiverName = "Grandma"
     } = req.body;
 
     if (!transcript || !String(transcript).trim()) {
@@ -3579,7 +4412,7 @@ app.post("/api/omugwo/voice-log", async (req: Request, res: Response) => {
     const ai = getGenAI();
 
     let parsedResult: {
-      actionType: "feed_bottle" | "feed_breast" | "sleep" | "diaper" | "bath_massage" | "handover_note" | "maternal_meal";
+      actionType: "feed_bottle" | "feed_breast" | "sleep" | "diaper" | "bath_massage" | "observation_note" | "maternal_meal";
       title: string;
       amountMl: number;
       amountOz: number;
@@ -3590,11 +4423,11 @@ app.post("/api/omugwo/voice-log", async (req: Request, res: Response) => {
     } | null = null;
 
     if (ai) {
-      const prompt = `You are the Voice-Activated AI Logger for "Grandma Mode" in the Ama Baby Care Omugwo Module.
-A grandmother or postpartum caregiver (${caregiverName}) just pressed the microphone button and said:
+      const prompt = `You are the Voice-Activated AI Logger for "Grandma Mode" in Ama Baby Care.
+A family member (${caregiverName}) just pressed the microphone button and said:
 "${cleanTranscript}"
 
-Parse what happened with ${babyName} (or the mother) into a structured JSON object so the app can automatically log it into the baby's feeding, sleep, diaper, bath/massage, or shift handover records.
+Parse what happened with ${babyName} (or the mother) into a structured JSON object so the app can automatically log it into the baby's feeding, sleep, diaper, bath/massage, or observation records.
 Conversion rules:
 - 1 oz = 30 ml (e.g. "3 oz" -> amountOz: 3, amountMl: 90). If ml is spoken (e.g. "120 ml"), set amountMl: 120, amountOz: 4. Default bottle feed if unspecified is 90 ml (3 oz).
 - If they mention sleeping, napping, or "baby has just slept", set actionType to "sleep" and durationMinutes (default 45 if duration not specified).
@@ -3603,11 +4436,11 @@ Conversion rules:
 - If they mention diaper, nappy, wet, pee, poop, or stool, set actionType to "diaper" and diaperType ("wet", "dirty", or "both").
 - If they mention bath, warm water, shea butter, ori, or infant massage/stretching, set actionType to "bath_massage".
 - If they mention pepper soup, pap, akamu, uziza tea, or food for the mother, set actionType to "maternal_meal".
-- Otherwise, treat it as a shift observation/handover note ("handover_note").
+- Otherwise, treat it as a general observation note ("observation_note").
 
 Return ONLY a valid JSON object matching this exact schema:
 {
-  "actionType": "feed_bottle" | "feed_breast" | "sleep" | "diaper" | "bath_massage" | "handover_note" | "maternal_meal",
+  "actionType": "feed_bottle" | "feed_breast" | "sleep" | "diaper" | "bath_massage" | "observation_note" | "maternal_meal",
   "title": "Short clean title (e.g. 'Bottle Feed (3 oz / 90 ml)', 'Afternoon Nap Logged', 'Warm Bath & Infant Massage')",
   "amountMl": 90,
   "amountOz": 3,
@@ -3687,38 +4520,20 @@ Return ONLY a valid JSON object matching this exact schema:
         };
       } else {
         parsedResult = {
-          actionType: "handover_note",
-          title: "Caregiver Shift Observation",
+          actionType: "observation_note",
+          title: "Family Observation Note",
           amountMl: 0,
           amountOz: 0,
           durationMinutes: 0,
           diaperType: "wet",
           summaryText: cleanTranscript,
-          spokenConfirmation: `Thank you ${caregiverName}! I have saved your voice note to the family shift handover log.`
+          spokenConfirmation: `Thank you ${caregiverName}! I have saved your voice note to ${babyName}'s journal.`
         };
       }
     }
 
-    // Also record in handover notes if it's a handover note
-    if (parsedResult.actionType === "handover_note") {
-      const note: ShiftHandoverNote = {
-        id: `ho-voice-${Date.now()}`,
-        caregiverName: String(caregiverName),
-        caregiverRole: String(caregiverRole),
-        receivingPerson: "Mom & Dad",
-        summary: parsedResult.summaryText || cleanTranscript,
-        babyMood: "Observed via Grandma Mode Voice",
-        feedsLoggedSummary: "",
-        sleepLoggedSummary: "",
-        createdAt: new Date().toISOString()
-      };
-      liveStore.omugwo.handoverNotes.unshift(note);
-      savePersistentStore(liveStore);
-    }
-
     return res.json({
-      parsed: parsedResult,
-      handoverNotes: liveStore.omugwo.handoverNotes
+      parsed: parsedResult
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message || "Failed to process voice log." });
@@ -3953,50 +4768,6 @@ Return ONLY a valid JSON object with these exact keys:
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message || "Failed to save Generational Growth Capture." });
-  }
-});
-
-// Book a Vetted Omugwo Caregiver or Schedule Nurse / Pediatrician Consultation
-app.post("/api/omugwo/book", (req: Request, res: Response) => {
-  try {
-    const {
-      caregiverId,
-      caregiverName,
-      serviceType = "Postpartum Recovery & Infant Care",
-      bookingMode = "Daily",
-      startDate,
-      timeSlot = "08:00 AM",
-      parentName = "Parent",
-      specialRequests = ""
-    } = req.body;
-
-    if (!caregiverName || !startDate) {
-      return res.status(400).json({ error: "Caregiver name and start date are required." });
-    }
-
-    const booking: OmugwoBookingEntry = {
-      id: `bk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      caregiverId: String(caregiverId || `cg-${Date.now()}`),
-      caregiverName: String(caregiverName).trim(),
-      serviceType: String(serviceType).trim(),
-      bookingMode: bookingMode,
-      startDate: String(startDate).trim(),
-      timeSlot: String(timeSlot).trim(),
-      parentName: String(parentName).trim(),
-      specialRequests: String(specialRequests || "").trim(),
-      status: "Confirmed",
-      createdAt: new Date().toISOString()
-    };
-
-    liveStore.omugwo.bookings.unshift(booking);
-    savePersistentStore(liveStore);
-
-    return res.json({
-      booking,
-      bookings: liveStore.omugwo.bookings
-    });
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message || "Failed to complete Omugwo booking." });
   }
 });
 

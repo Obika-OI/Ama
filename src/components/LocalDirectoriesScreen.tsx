@@ -19,11 +19,11 @@ import {
   RefreshCw,
   CheckCircle2,
   Calendar,
-  Users
+  Users,
+  MessageSquare
 } from 'lucide-react';
 import { GlobalLocation, GlobalLocationPickerModal, POPULAR_GLOBAL_LOCATIONS } from './GlobalLocationPickerModal';
 import { BabyNameDatabaseScreen } from './BabyNameDatabaseScreen';
-import { INITIAL_VETTED_CAREGIVERS, VettedCaregiver } from '../constants/omugwoData';
 import { useSEO } from '../utils/seo';
 
 export interface VerifiedDirectoryPlace {
@@ -56,6 +56,7 @@ interface LocalDirectoriesScreenProps {
   initialTab?: 'hospitals' | 'healthcare' | 'lactation' | 'caregivers' | 'pharmacies' | 'baby-names';
   scheduledActivities?: any[];
   setScheduledActivities?: React.Dispatch<React.SetStateAction<any[]>>;
+  onOpenAuthModal?: () => void;
 }
 
 const DIRECTORY_CATEGORIES = [
@@ -315,7 +316,8 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
   onBack,
   onNavigate,
   parentName = 'Parent',
-  initialTab = 'hospitals'
+  initialTab = 'hospitals',
+  onOpenAuthModal
 }) => {
   useSEO({
     title: 'Local Healthcare, Hospital, Lactation & Baby Name Directories | Ama Baby',
@@ -345,55 +347,6 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isLocatingGps, setIsLocatingGps] = useState(false);
-
-  // Vetted Postpartum Caregivers & Omugwo Booking State
-  const [caregiversList] = useState<VettedCaregiver[]>(() => INITIAL_VETTED_CAREGIVERS);
-  const [selectedCaregiverForBooking, setSelectedCaregiverForBooking] = useState<VettedCaregiver | null>(null);
-  const [bookingScheduleType, setBookingScheduleType] = useState<'Daily' | 'Weekend' | 'Live-In' | 'Nurse/Paediatrician Consultation'>('Daily');
-  const [bookingNotes, setBookingNotes] = useState('');
-  const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
-  const [bookingsList, setBookingsList] = useState<any[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('ama_omugwo_bookings') || '[]');
-    } catch {
-      return [];
-    }
-  });
-
-  const handleBookCaregiver = async (cg: VettedCaregiver) => {
-    const newBooking = {
-      id: `booking-${Date.now()}`,
-      caregiverId: cg.id,
-      caregiverName: cg.name,
-      scheduleType: bookingScheduleType,
-      startDate: new Date().toISOString().split('T')[0],
-      parentName,
-      notes: bookingNotes.trim() || `Requested ${bookingScheduleType} support (${cg.coreServices.slice(0, 2).join(', ')})`,
-      status: 'Confirmed & Scheduled'
-    };
-    const updated = [newBooking, ...bookingsList];
-    setBookingsList(updated);
-    try {
-      localStorage.setItem('ama_omugwo_bookings', JSON.stringify(updated));
-    } catch {}
-
-    try {
-      const res = await fetch('/api/omugwo/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newBooking)
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.bookings) setBookingsList(data.bookings);
-      }
-    } catch {}
-
-    setBookingSuccessMsg(`Confirmed ${bookingScheduleType} booking with ${cg.name}!`);
-    setSelectedCaregiverForBooking(null);
-    setBookingNotes('');
-    setTimeout(() => setBookingSuccessMsg(null), 5000);
-  };
 
   // Places from Google Maps Places API
   const [placesList, setPlacesList] = useState<VerifiedDirectoryPlace[]>([]);
@@ -640,165 +593,40 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
             userLocation={currentLoc.name}
             embedded={true}
             initialSearchQuery={appliedQuery}
+            onOpenAuthModal={onOpenAuthModal}
           />
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Vetted Postpartum Caregivers & Nurse/Paediatrician Consultations */}
+          {/* Caregivers & Doulas Marketplace Notice (No In-App Checkout) */}
           {activeTab === 'caregivers' && (
-            <div className="bg-white rounded-[32px] p-6 border border-white shadow-xl shadow-card/10 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
-                <div>
+            <div className="bg-white rounded-[32px] p-6 border border-white shadow-xl shadow-card/10 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-card text-gray-800 border border-white flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-primary" /> Vetted & Medically Screened
-                    </span>
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20">
-                      ✓ Health Cleared • ✓ Identity & Background Verified
+                      <ShieldCheck className="w-3 h-3 text-primary" /> Local Care Directory & Private Negotiation
                     </span>
                   </div>
-                  <h2 className="text-lg sm:text-xl font-serif font-black text-gray-900 mt-1">
-                    Vetted Postpartum Caregivers, Doulas & Nurses
+                  <h2 className="text-lg sm:text-xl font-serif font-black text-gray-900">
+                    Postpartum Caregivers, Doulas & Family Services
                   </h2>
-                  <p className="text-xs text-gray-600">
-                    Connect with certified postpartum doulas, pediatric nurses, and newborn specialists for restorative maternal recovery, infant soothing, lactation assistance, and night shift support.
+                  <p className="text-xs text-gray-600 leading-relaxed max-w-2xl">
+                    Browse verified local postpartum clinics and agencies on the map below, or visit the Community Care, Goods &amp; Free Gifts Marketplace to chat directly with providers, list or request baby goods and care services, negotiate fees privately, or give and receive Free Gifts. Ama Baby does not process marketplace payments or checkout.
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                  {(['Daily', 'Weekend', 'Live-In', 'Nurse/Paediatrician Consultation'] as const).map(sched => (
-                    <button
-                      key={sched}
-                      type="button"
-                      onClick={() => setBookingScheduleType(sched)}
-                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer border transition-all ${
-                        bookingScheduleType === sched
-                          ? 'bg-primary text-white border-primary shadow-2xs'
-                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                      }`}
-                    >
-                      {sched}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {bookingSuccessMsg && (
-                <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/20 text-xs font-bold text-primary flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                  <span>{bookingSuccessMsg}</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {caregiversList.map(cg => (
-                  <div
-                    key={cg.id}
-                    className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 hover:border-primary/30 transition-all flex flex-col justify-between gap-3 shadow-xs"
+                {onNavigate && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('community')}
+                    className="px-4 py-3 rounded-2xl bg-primary hover:bg-primary/90 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer shrink-0 flex items-center gap-2 shadow-md"
                   >
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-white text-primary border border-primary/20">
-                            {cg.title} • {cg.experienceYears} yrs exp
-                          </span>
-                          <h3 className="text-sm font-serif font-black text-gray-900 mt-1">{cg.name}</h3>
-                          <p className="text-[11px] text-gray-500 font-semibold">{cg.location} • {cg.languages.join(', ')}</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-sky-700 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-200">
-                            ⭐ {cg.rating.toFixed(2)} ({cg.reviewCount})
-                          </span>
-                          <p className="text-[10px] font-black text-gray-700 mt-1">₦{cg.dailyRateNGN.toLocaleString()}/day</p>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-gray-600 leading-relaxed">{cg.bio}</p>
-
-                      <div className="flex flex-wrap gap-1">
-                        {cg.coreServices.map((srv, i) => (
-                          <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-white border border-gray-200 text-gray-700">
-                            {srv}
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="pt-2 border-t border-gray-200/60 flex flex-wrap gap-1.5 text-[9px] font-black uppercase tracking-wider text-primary">
-                        <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">✓ ID & Background Verified</span>
-                        <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">✓ Health & Clinical Screened</span>
-                        <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">✓ Newborn Certified</span>
-                      </div>
-                    </div>
-
-                    {selectedCaregiverForBooking?.id === cg.id ? (
-                      <div className="pt-2 border-t border-gray-200 space-y-2">
-                        <input
-                          type="text"
-                          value={bookingNotes}
-                          onChange={e => setBookingNotes(e.target.value)}
-                          placeholder={`Notes for ${bookingScheduleType} booking (e.g. Newborn night shift, lactation support)...`}
-                          className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold outline-none focus:border-primary"
-                        />
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleBookCaregiver(cg)}
-                            className="flex-1 py-2 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-wider border-none cursor-pointer"
-                          >
-                            Confirm {bookingScheduleType} Booking
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedCaregiverForBooking(null)}
-                            className="px-3 py-2 rounded-xl bg-gray-200 text-gray-700 text-[10px] font-bold border-none cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2 pt-1">
-                        <div className="flex flex-wrap gap-1">
-                          {cg.availability.map(opt => (
-                            <span key={opt} className="text-[9px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
-                              {opt}
-                            </span>
-                          ))}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCaregiverForBooking(cg)}
-                          className="px-3.5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase tracking-wider border-none cursor-pointer shrink-0 flex items-center gap-1"
-                        >
-                          <Calendar className="w-3 h-3" />
-                          <span>Book {bookingScheduleType}</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Open Care Marketplace</span>
+                  </button>
+                )}
               </div>
-
-              {bookingsList.length > 0 && (
-                <div className="pt-3 border-t border-gray-100 space-y-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                    Your Active Postpartum & Consultation Bookings ({bookingsList.length})
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {bookingsList.slice(0, 4).map((b: any) => (
-                      <div key={b.id} className="p-2.5 rounded-xl bg-card/40 border border-white flex items-center justify-between gap-2 text-xs">
-                        <div>
-                          <p className="font-black text-gray-900">{b.caregiverName} • {b.scheduleType}</p>
-                          <p className="text-[10px] text-gray-600">{b.notes}</p>
-                        </div>
-                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-white text-primary border border-white shrink-0">
-                          {b.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

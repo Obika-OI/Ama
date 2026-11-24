@@ -26,14 +26,23 @@ import {
   Loader2,
   Play,
   Pause,
-  RotateCcw
+  RotateCcw,
+  Plus,
+  Soup,
+  Coffee,
+  Sparkles
 } from 'lucide-react';
 import { useSEO } from '../utils/seo';
 import { EPDSTool } from './EPDSTool';
+import { db } from '../firebase';
+import { collection, doc, setDoc, query, where, onSnapshot } from 'firebase/firestore';
 
 interface MotherCareScreenProps {
   onBack: () => void;
   parentName?: string;
+  currentUser?: any;
+  omugwoLogs?: any[];
+  onAddOmugwoLog?: (log: any) => void;
 }
 
 export interface WellnessPostpartumRecipe {
@@ -166,7 +175,13 @@ const GLOBAL_WELLNESS_RECIPES: WellnessPostpartumRecipe[] = [
   }
 ];
 
-export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, parentName = 'Mother' }) => {
+export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ 
+  onBack, 
+  parentName = 'Mom',
+  currentUser,
+  omugwoLogs = [],
+  onAddOmugwoLog
+}) => {
   const [activeSection, setActiveSection] = useState<'recovery' | 'nutrition' | 'mental' | 'mobility'>('recovery');
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
 
@@ -209,20 +224,52 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
     }
   };
 
-  // Mom Go To Sleep: 4-Hour Consolidated REM Sleep Window Delegation
-  const [remSleepEndTime, setRemSleepEndTime] = useState<string | null>(null);
-  const [activeShift, setActiveShift] = useState<{ caregiverName: string; caregiverRole: string; focusNote: string } | null>(null);
-  const [isDelegationLoading, setIsDelegationLoading] = useState(false);
+  // Mom Go To Sleep: 4-Hour Consolidated REM Sleep Window
+  const [remSleepEndTime, setRemSleepEndTime] = useState<string | null>(() => {
+    try {
+      const saved = localStorage.getItem('ama_maternal_rem_sleep_end');
+      if (!saved) return null;
+      const diff = new Date(saved).getTime() - Date.now();
+      return diff > 0 ? saved : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Nourishment Logging State (omugwo_logs)
+  const [isLogNourishmentModalOpen, setIsLogNourishmentModalOpen] = useState(false);
+  const [nourishmentTitle, setNourishmentTitle] = useState('');
+  const [nourishmentCategory, setNourishmentCategory] = useState('Healing Soup');
+  const [nourishmentBenefits, setNourishmentBenefits] = useState('');
+  const [nourishmentNotes, setNourishmentNotes] = useState('');
+  const [isSavingNourishment, setIsSavingNourishment] = useState(false);
+  const [nourishmentSuccessMsg, setNourishmentSuccessMsg] = useState('');
+  const [firestoreOmugwoLogs, setFirestoreOmugwoLogs] = useState<any[]>([]);
 
   React.useEffect(() => {
-    fetch('/api/omugwo/state')
-      .then(res => (res.ok ? res.json() : null))
-      .then(data => {
-        if (data?.activeShift) setActiveShift(data.activeShift);
-        if (data?.remSleepDelegationEndTime) setRemSleepEndTime(data.remSleepDelegationEndTime);
-      })
-      .catch(() => {});
-  }, []);
+    if (!currentUser?.uid) return;
+    const q = query(collection(db, 'omugwo_logs'), where('userId', '==', currentUser.uid));
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        const docs: any[] = [];
+        snapshot.forEach((d) => docs.push({ id: d.id, ...d.data() }));
+        docs.sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime());
+        setFirestoreOmugwoLogs(docs);
+      },
+      (err) => console.warn('Firestore omugwo_logs sync error:', err)
+    );
+    return () => unsub();
+  }, [currentUser?.uid]);
+
+  const combinedOmugwoLogs = React.useMemo(() => {
+    const map = new Map<string, any>();
+    (omugwoLogs || []).forEach(l => map.set(l.id, l));
+    firestoreOmugwoLogs.forEach(l => map.set(l.id, l));
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()
+    );
+  }, [omugwoLogs, firestoreOmugwoLogs]);
 
   const remainingRemTime = React.useMemo(() => {
     if (!remSleepEndTime) return null;
@@ -233,32 +280,55 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
     return `${hrs}h ${mins}m remaining`;
   }, [remSleepEndTime]);
 
-  const handleToggleRemDelegation = async () => {
-    setIsDelegationLoading(true);
-    const activate = !remainingRemTime;
-    try {
-      const res = await fetch('/api/omugwo/shift', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          activateRemSleepDelegation: activate,
-          caregiverName: activate ? (activeShift?.caregiverName || 'On-Duty Caregiver') : (parentName || 'Mom'),
-          caregiverRole: activate ? 'Grandma' : 'Mom',
-          focusNote: activate
-            ? '4-Hour Uninterrupted REM Sleep Window for Mom - Baby cry & care alerts routed to On-Duty Caregiver'
-            : 'Maternal rest window concluded • Returned to active monitoring'
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.activeShift) setActiveShift(data.activeShift);
-        setRemSleepEndTime(data.remSleepDelegationEndTime || null);
-      }
-    } catch (err) {
-      console.warn("Failed to toggle REM sleep delegation:", err);
-    } finally {
-      setIsDelegationLoading(false);
+  const handleToggleRemSleep = () => {
+    if (remainingRemTime) {
+      setRemSleepEndTime(null);
+      localStorage.removeItem('ama_maternal_rem_sleep_end');
+    } else {
+      const endsAt = new Date(Date.now() + 4 * 3600 * 1000).toISOString();
+      setRemSleepEndTime(endsAt);
+      localStorage.setItem('ama_maternal_rem_sleep_end', endsAt);
     }
+  };
+
+  const handleSaveNourishmentLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nourishmentTitle.trim()) return;
+
+    setIsSavingNourishment(true);
+    const newLogId = `omugwo-log-${Date.now()}`;
+    const newLog = {
+      id: newLogId,
+      userId: currentUser?.uid || 'user',
+      title: nourishmentTitle.trim(),
+      category: nourishmentCategory,
+      benefits: nourishmentBenefits.trim() || 'Postpartum recovery and tissue healing',
+      loggedAt: new Date().toISOString(),
+      notes: nourishmentNotes.trim()
+    };
+
+    // Save to Firestore omugwo_logs collection for the user
+    if (currentUser?.uid) {
+      try {
+        await setDoc(doc(db, 'omugwo_logs', newLogId), newLog);
+      } catch (err) {
+        console.warn('Failed to save to Firestore omugwo_logs collection:', err);
+      }
+    }
+
+    if (onAddOmugwoLog) {
+      onAddOmugwoLog(newLog);
+    }
+
+    setIsSavingNourishment(false);
+    setNourishmentSuccessMsg(`Logged "${newLog.title}" to nourishment records!`);
+    setTimeout(() => {
+      setIsLogNourishmentModalOpen(false);
+      setNourishmentSuccessMsg('');
+      setNourishmentTitle('');
+      setNourishmentBenefits('');
+      setNourishmentNotes('');
+    }, 1200);
   };
 
   useSEO({
@@ -405,17 +475,14 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
 
             <button
               type="button"
-              onClick={handleToggleRemDelegation}
-              disabled={isDelegationLoading}
+              onClick={handleToggleRemSleep}
               className={`px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider cursor-pointer border-none transition-all flex items-center justify-center gap-2 shadow-md shrink-0 active:scale-95 ${
                 remainingRemTime
                   ? 'bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-200'
                   : 'bg-primary hover:bg-primary/90 text-white shadow-primary/20'
               }`}
             >
-              {isDelegationLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : remainingRemTime ? (
+              {remainingRemTime ? (
                 <>
                   <Moon className="w-4 h-4" />
                   <span>End Sleep Window / Wake Up</span>
@@ -438,8 +505,8 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>
                   {remainingRemTime
-                    ? `🛌 Mom is Resting (${remainingRemTime}) • Baby cry & monitor alerts are delegated to: ${activeShift?.caregiverName || 'On-Duty Caregiver'}`
-                    : `Active On-Duty Alert Receiver: ${activeShift?.caregiverName || 'On-Duty Caregiver / Partner'}`}
+                    ? `🛌 Mom is Resting (${remainingRemTime}) • Dedicated 4-Hour REM Sleep Recovery Active`
+                    : "Consolidated Rest Ready • Tap to begin Mom's 4-hour recovery window"}
                 </span>
               </span>
             </div>
@@ -631,17 +698,59 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
               className="space-y-6"
             >
               <div className="bg-white/90 backdrop-blur-xs p-6 sm:p-8 rounded-[36px] border border-white shadow-xl shadow-card/10 space-y-4">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-primary">
-                    Global Evidence-Based Postpartum Recipes
-                  </span>
-                  <h3 className="text-xl font-serif font-black text-gray-900">
-                    Nourishment for Tissue Repair & Milk Synthesis
-                  </h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Postpartum dietary needs include approximately 450 to 500 additional daily calories for lactation, coupled with elevated micronutrients (iron, zinc, choline, iodine, and omega-3 DHA). Select any recipe below for step-by-step preparation.
-                  </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-primary">
+                      Global Evidence-Based Postpartum Recipes
+                    </span>
+                    <h3 className="text-xl font-serif font-black text-gray-900">
+                      Nourishment for Tissue Repair & Milk Synthesis
+                    </h3>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      Postpartum dietary needs include approximately 450 to 500 additional daily calories for lactation, coupled with elevated micronutrients.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setNourishmentTitle('Ji Mmiri Oku (Postpartum Yam Pepper Soup)');
+                      setNourishmentCategory('Healing Soup');
+                      setNourishmentBenefits('Uterine involution, blood cleansing, and lactation stimulation via Uziza & Uda');
+                      setIsLogNourishmentModalOpen(true);
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-primary text-white text-xs font-bold flex items-center gap-2 hover:bg-primary/90 transition-all cursor-pointer border-none shadow-md shrink-0 self-start sm:self-center"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Log Nourishment</span>
+                  </button>
                 </div>
+
+                {/* Logged Nourishment History (omugwo_logs) */}
+                {combinedOmugwoLogs.length > 0 && (
+                  <div className="mt-4 p-4 rounded-2xl bg-amber-50/60 border border-amber-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                        <Soup className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Recent Maternal Nourishment Logs ({combinedOmugwoLogs.length})</span>
+                      </span>
+                      <span className="text-[9px] font-bold text-amber-700 bg-white px-2 py-0.5 rounded-full border border-amber-200">
+                        Saved in Cloud (omugwo_logs)
+                      </span>
+                    </div>
+                    <div className="divide-y divide-amber-100/80">
+                      {combinedOmugwoLogs.slice(0, 5).map((log: any) => (
+                        <div key={log.id} className="py-2 flex items-start justify-between gap-2 text-xs">
+                          <div>
+                            <p className="font-bold text-gray-900">{log.title}</p>
+                            <p className="text-[11px] text-gray-600">{log.benefits || log.notes || log.category}</p>
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">
+                            {new Date(log.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   {GLOBAL_WELLNESS_RECIPES.map((recipe) => (
@@ -857,14 +966,142 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({ onBack, pare
                     <span className="text-[11px] font-bold text-gray-500">
                       Recommended: {selectedRecipe.recommendedTiming}
                     </span>
-                    <button 
-                      onClick={() => setSelectedRecipeId(null)}
-                      className="bg-primary text-white px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-primary/90 transition-colors cursor-pointer border-none shadow-sm"
-                    >
-                      Close Recipe
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setNourishmentTitle(selectedRecipe.title);
+                          setNourishmentCategory(selectedRecipe.category);
+                          setNourishmentBenefits(selectedRecipe.healthBenefit);
+                          setSelectedRecipeId(null);
+                          setIsLogNourishmentModalOpen(true);
+                        }}
+                        className="bg-emerald-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold hover:bg-emerald-700 transition-colors cursor-pointer border-none flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Log to Records</span>
+                      </button>
+                      <button 
+                        onClick={() => setSelectedRecipeId(null)}
+                        className="bg-primary text-white px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-primary/90 transition-colors cursor-pointer border-none shadow-sm"
+                      >
+                        Close
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Modal: Log Nourishment to Firestore (omugwo_logs) */}
+        <AnimatePresence>
+          {isLogNourishmentModalOpen && (
+            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white rounded-[36px] p-6 sm:p-8 max-w-md w-full space-y-4 border border-gray-100 shadow-2xl text-left"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                      Maternal Recovery Intake
+                    </span>
+                    <h3 className="text-xl font-serif font-black text-gray-900 mt-0.5">
+                      Log Nourishment (omugwo_logs)
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setIsLogNourishmentModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 border-none cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {nourishmentSuccessMsg && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-bold">
+                    ✅ {nourishmentSuccessMsg}
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveNourishmentLog} className="space-y-3 text-xs">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Meal / Broth / Tea Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={nourishmentTitle}
+                      onChange={e => setNourishmentTitle(e.target.value)}
+                      placeholder="e.g. Ji Mmiri Oku, Lactation Porridge, Chicken Broth"
+                      className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={nourishmentCategory}
+                      onChange={e => setNourishmentCategory(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-primary"
+                    >
+                      <option value="Healing Soup">Healing Soup</option>
+                      <option value="Lactation Porridge / Pap">Lactation Porridge / Pap</option>
+                      <option value="Herbal Recovery Tea">Herbal Recovery Tea</option>
+                      <option value="Hydration & Electrolytes">Hydration & Electrolytes</option>
+                      <option value="High-Iron Nutrient Meal">High-Iron Nutrient Meal</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Health Benefit & Herbs
+                    </label>
+                    <input
+                      type="text"
+                      value={nourishmentBenefits}
+                      onChange={e => setNourishmentBenefits(e.target.value)}
+                      placeholder="e.g. Uterine involution with Uziza and Uda spices"
+                      className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Notes or Caregiver Observation (Optional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={nourishmentNotes}
+                      onChange={e => setNourishmentNotes(e.target.value)}
+                      placeholder="e.g. Mom finished warm bowl with 2 cups of water; appetite improving"
+                      className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-primary resize-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsLogNourishmentModalOpen(false)}
+                      className="flex-1 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold border-none cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingNourishment || !nourishmentTitle.trim()}
+                      className="flex-1 py-3 rounded-2xl bg-primary hover:bg-primary/90 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
+                    >
+                      {isSavingNourishment ? 'Saving...' : 'Save to Firestore'}
+                    </button>
+                  </div>
+                </form>
               </motion.div>
             </div>
           )}

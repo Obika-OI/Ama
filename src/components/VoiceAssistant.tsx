@@ -4,7 +4,7 @@ import {
   Mic, MicOff, Loader2, ShieldCheck, Send, X, Utensils, Moon, 
   CheckCircle2, Volume2, VolumeX, Crown, AlertCircle, Camera, 
   Image as ImageIcon, Globe, ExternalLink, RefreshCw, Zap, 
-  ChevronRight, Compass, Heart, Paperclip, FileText, Video
+  ChevronRight, Compass, Heart, Paperclip, FileText, Video, UserPlus
 } from 'lucide-react';
 import { OgooAvatar } from './OgooAvatar';
 import ReactMarkdown from 'react-markdown';
@@ -29,6 +29,15 @@ interface VoiceAssistantProps {
   diaperLogs?: any[];
   vaccineSchedule?: any[];
   memories?: any[];
+  activeScreen?: string;
+  pageTitle?: string;
+  pageContentSummary?: string;
+  isOnboarded?: boolean;
+  authStatus?: 'signed_in' | 'anonymous' | 'signed_out';
+  parentName?: string;
+  userRole?: string;
+  onNavigate?: (screen: string) => void;
+  onOpenAuthModal?: () => void;
 }
 
 interface ReferenceItem {
@@ -46,11 +55,18 @@ export interface AttachedMedia {
   sizeStr?: string;
 }
 
+interface InlineActionButton {
+  label: string;
+  type: 'open_auth' | 'navigate' | 'open_subscription';
+  targetScreen?: string;
+}
+
 interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant';
   text: string;
   actionTaken?: string;
+  inlineAction?: InlineActionButton;
   isPaywall?: boolean;
   timestamp: string;
   imageUrl?: string;
@@ -63,7 +79,7 @@ interface ChatMessage {
 
 interface ProactiveCard {
   id: string;
-  type: 'feeding' | 'sleep' | 'recipe' | 'diaper';
+  type: 'feeding' | 'sleep' | 'recipe' | 'diaper' | 'account' | 'guide';
   title: string;
   description: string;
   actionLabel: string;
@@ -71,10 +87,189 @@ interface ProactiveCard {
   badge: string;
 }
 
+const SCREEN_LABELS: Record<string, string> = {
+  landing: 'Welcome Page',
+  home: 'Dashboard',
+  feeding: 'Meal Log & Safety',
+  sleep: 'Activity & Sleep',
+  'cry-analyzer': 'AI Cry Analyzer',
+  recipes: 'Recipe Library',
+  'recipe-detail': 'Recipe Detail',
+  'add-recipe': 'Add Recipe',
+  'ai-meal-planner': 'AI Weekly Meal Planner',
+  journal: 'Baby Journal & Growth',
+  activities: 'Activities & Milestones',
+  community: 'Community & Caregivers',
+  'local-directories': 'Local Care Directories',
+  'baby-names': 'Global Baby Names',
+  'mother-care': 'Mother Care',
+  monitor: 'Baby Monitor',
+  settings: 'Settings & Account',
+  notifications: 'Notifications',
+  reminders: 'Care Reminders',
+  'user-guide': 'App User Guide',
+  'safety-guide': 'Infant Safety Guide',
+  blog: 'Parenting Blog',
+  'blog-article': 'Parenting Article',
+  about: 'About Ama Baby',
+  contact: 'Contact & Support',
+  'legal-terms': 'Terms & Privacy'
+};
+
+interface PageAwarenessPreset {
+  greeting: (babyName: string, isOnboarded: boolean, authStatus: string) => string;
+  chips: (babyName: string, babyAge: string) => string[];
+}
+
+const DEFAULT_PAGE_PRESET: PageAwarenessPreset = {
+  greeting: (babyName, isOnboarded, authStatus) =>
+    !isOnboarded
+      ? `Hi! I am Ogoo, your Ama Baby care guide. Tap "Get Started" to complete your quick setup, or ask me how to register, explore baby names, meals, or sleep tips!`
+      : authStatus !== 'signed_in'
+      ? `Hi! I am Ogoo, your proactive infant care assistant helping with ${babyName}. I can answer questions from anywhere in the app, help you register a permanent personal account, or log meals, naps, and diapers!`
+      : `Hi! I am Ogoo, your proactive infant care assistant constantly learning from ${babyName}'s routine. Speak, type, or attach a photo, video, or document anytime!`,
+  chips: (babyName, babyAge) => [
+    `What can I do on this page?`,
+    `Safe foods for ${babyAge}`,
+    `Log a 4 oz feeding`,
+    `Start 60m nap timer`,
+    `Fever first aid guide`
+  ]
+};
+
+const PAGE_AWARENESS_PRESETS: Record<string, PageAwarenessPreset> = {
+  landing: {
+    greeting: (_babyName, isOnboarded, authStatus) =>
+      `Welcome to Ama Baby! I am Ogoo, your personal parenting and app guide. ${!isOnboarded || authStatus !== 'signed_in' ? 'I can walk you through registration in 2 easy steps, show you how meal tracking works, or take you straight to Baby Names, Community, or Recipes.' : 'Ask me about any feature or tap below to jump straight into your Dashboard!'}`,
+    chips: () => [
+      `How do I register on Ama Baby?`,
+      `What features are in this app?`,
+      `Show me Global Baby Names`,
+      `Take me to Community Support`
+    ]
+  },
+  'baby-names': {
+    greeting: (_babyName, _isOnboarded, authStatus) =>
+      `You are in the Global Baby Name Directory! Every user can explore names, meanings, pronunciation, and see who suggested each Community Addition. ${authStatus !== 'signed_in' ? 'Want to suggest a new baby name to share with families worldwide? I can help you sign in first!' : 'Tap "Add Name" anytime to contribute a name with your attribution!'}`,
+    chips: () => [
+      `How do I add a baby name?`,
+      `Suggest traditional African or modern names`,
+      `How do I see who added a name?`,
+      `Open Local Care Directories`
+    ]
+  },
+  community: {
+    greeting: (babyName, _isOnboarded, authStatus) =>
+      `Welcome to the Ama Baby Community! Join parent forums, chat live with mothers, post or browse Care Services and Baby Goods for sale, share what you need, or give and receive Free Gifts. ${authStatus !== 'signed_in' ? 'Register with Email/Password, Google, or Anonymous Sign-In from onboarding so you can post and participate safely!' : `Ask me anything about posting or finding care, goods, or free gifts for ${babyName}!`}`,
+    chips: () => [
+      `How do Goods & Free Gifts work?`,
+      `Where do parents view Caregiver Shift records?`,
+      `Where is the Global Baby Name list?`,
+      `Postpartum support tips`
+    ]
+  },
+  'local-directories': {
+    greeting: () =>
+      `You are viewing Local Care Directories! Search nearby maternity clinics, pediatricians, and pharmacies, or switch tabs to browse the Global Baby Name Directory.`,
+    chips: () => [
+      `Open Global Baby Names`,
+      `When should I take baby to a clinic for fever?`,
+      `How do I register my account?`,
+      `What else can I do in Ama Baby?`
+    ]
+  },
+  'mother-care': {
+    greeting: () =>
+      `Welcome to Mother Care, mama! This space supports your postpartum recovery, warm nourishing meals, hydration tracking, and rest. Ask me about healing foods or wellness anytime!`,
+    chips: () => [
+      `Best warm foods after birth?`,
+      `How much water should a nursing mom drink?`,
+      `How do I track Omugwo nourishment logs?`,
+      `Take me back to Dashboard`
+    ]
+  },
+  feeding: {
+    greeting: (babyName) =>
+      `You are in ${babyName}'s Meal Log & Feeding Safety hub! Track milk/fluid ounces, review top allergens in the Allergen Matrix, or ask me to log a feed for you right here.`,
+    chips: (babyName, babyAge) => [
+      `Safe foods for ${babyAge}`,
+      `Log a 4 oz bottle feeding for ${babyName}`,
+      `How do I introduce peanut or egg safely?`,
+      `Open AI Weekly Meal Planner`
+    ]
+  },
+  recipes: {
+    greeting: (babyName) =>
+      `You are in the Recipe Library! Filter age-safe purees and finger foods, save your own family recipes, or let our AI build a 7-day menu for ${babyName}.`,
+    chips: (babyName, babyAge) => [
+      `Yummy stage recipe for ${babyAge}`,
+      `Open AI Weekly Meal Planner`,
+      `What textures fit ${babyName}'s stage?`,
+      `Foods to avoid under 12 months`
+    ]
+  },
+  'ai-meal-planner': {
+    greeting: (babyName) =>
+      `You are in the AI Weekly Meal Planner! Pick your baby's allergens and local pantry ingredients to generate a full 7-day meal schedule and grocery list for ${babyName}.`,
+    chips: (babyName) => [
+      `Explain how the AI Meal Planner works`,
+      `Best iron-rich foods for ${babyName}`,
+      `Open Recipe Library`
+    ]
+  },
+  sleep: {
+    greeting: (babyName) =>
+      `You are in Activity & Sleep Tracker! Log naps, use the AI Cry Analyzer, check routine immunizations, or capture ${babyName}'s developmental milestones.`,
+    chips: (babyName, babyAge) => [
+      `How much sleep for ${babyAge}?`,
+      `Start 60m nap timer for ${babyName}`,
+      `How does AI Cry Analyzer work?`,
+      `When are routine vaccines due?`
+    ]
+  },
+  'cry-analyzer': {
+    greeting: (babyName) =>
+      `You are in the AI Cry Analyzer! Tap record to listen to ${babyName}'s cry so we can help spot hunger, sleepiness, gas, or discomfort cues.`,
+    chips: (babyName) => [
+      `Why is ${babyName} crying right after feeding?`,
+      `Tips to calm a gassy baby`,
+      `Log a 60m nap`
+    ]
+  },
+  journal: {
+    greeting: (babyName) =>
+      `Welcome to ${babyName}'s Baby Journal & Growth Charts! Review daily diapers and moods, track weight & height percentiles, or create a bedtime storybook from your notes.`,
+    chips: (babyName) => [
+      `How do I generate a bedtime storybook?`,
+      `Normal wet diapers per day?`,
+      `Add a happy diary note for ${babyName}`,
+      `Open Settings & Village Sync`
+    ]
+  },
+  monitor: {
+    greeting: (babyName) =>
+      `You are in the Live Baby Monitor! Pair a crib device and a parent viewing device using your Village room code to keep an eye on ${babyName}.`,
+    chips: () => [
+      `How do I pair two phones for Baby Monitor?`,
+      `Safe sleep crib setup checklist`,
+      `Take me to Activity & Sleep`
+    ]
+  },
+  settings: {
+    greeting: (_babyName, _isOnboarded, authStatus) =>
+      `You are in Settings & Account! ${authStatus !== 'signed_in' ? 'Here you can upgrade your guest session to Email/Password or Google Sign-In, ' : ''}manage Baby Profiles, invite family via Village Mode QR sync, or check Privacy & Audit Logs.`,
+    chips: () => [
+      `How do I invite my partner with Village Mode?`,
+      `How do I sign in with Email or Google?`,
+      `Take me to Dashboard`
+    ]
+  }
+};
+
 const FREE_AI_QUERY_LIMIT = 5;
 
 export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
-  babyName = 'Leo',
+  babyName = 'Baby',
   babyAge = '6 Months',
   stage = 'Purees & Finger Foods',
   lastFeedStr = 'No feed logged today',
@@ -92,7 +287,16 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   loggedMoods = [],
   diaperLogs = [],
   vaccineSchedule = [],
-  memories = []
+  memories = [],
+  activeScreen = 'home',
+  pageTitle = 'Dashboard',
+  pageContentSummary = '',
+  isOnboarded = true,
+  authStatus = 'anonymous',
+  parentName = 'Parent',
+  userRole = 'admin',
+  onNavigate,
+  onOpenAuthModal
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputText, setInputText] = useState('');
@@ -116,6 +320,9 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   const isStoppingWakeRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const resolvedPageTitle = pageTitle || SCREEN_LABELS[activeScreen] || 'Ama Baby';
+  const currentPreset = PAGE_AWARENESS_PRESETS[activeScreen] || DEFAULT_PAGE_PRESET;
+
   // Free trial AI queries state
   const [aiQueryCount, setAiQueryCount] = useState<number>(() => {
     return parseInt(localStorage.getItem('ama_ai_query_count') || '0', 10);
@@ -123,24 +330,38 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   
   const remainingQueries = isPremium ? Infinity : Math.max(0, FREE_AI_QUERY_LIMIT - aiQueryCount);
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      sender: 'assistant',
-      text: `Hi! I am Ogoo, your proactive infant care assistant. I constantly learn from ${babyName}'s routine.\n\nYou can speak or type to me, attach files, videos, or photos (diaper stool, skin rash, puree texture, medicine), or ask for practical parenting guidance!`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
+  const buildWelcomeMessage = (): ChatMessage => ({
+    id: 'welcome',
+    sender: 'assistant',
+    text: currentPreset.greeting(babyName, isOnboarded, authStatus),
+    inlineAction:
+      authStatus !== 'signed_in' && onOpenAuthModal
+        ? { label: 'Register / Sign In Account', type: 'open_auth' }
+        : undefined,
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [buildWelcomeMessage()]);
+
+  // Keep welcome greeting fresh when navigating across screens before user starts chatting
+  useEffect(() => {
+    setMessages(prev => {
+      if (prev.length === 1 && prev[0].id === 'welcome') {
+        return [buildWelcomeMessage()];
+      }
+      return prev;
+    });
+  }, [activeScreen, babyName, isOnboarded, authStatus]);
 
   const recognitionRef = useRef<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Load Proactive Insights on open
+  // Load Proactive Insights on open or page switch
   useEffect(() => {
     if (isOpen) {
       loadProactiveInsights();
     }
-  }, [isOpen, babyName, babyAge, stage, lastFeedStr, lastSleepStr]);
+  }, [isOpen, activeScreen, authStatus, isOnboarded, babyName, babyAge, stage, lastFeedStr, lastSleepStr]);
 
   const loadProactiveInsights = async () => {
     setIsLoadingInsights(true);
@@ -157,7 +378,11 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
           lastDiaperStr,
           loggedMeals,
           diaperLogs,
-          vaccineSchedule
+          vaccineSchedule,
+          activeScreen,
+          pageTitle: resolvedPageTitle,
+          isOnboarded,
+          authStatus
         })
       });
       if (res.ok) {
@@ -313,7 +538,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
       recognitionRef.current = recognition;
     }
-  }, [babyName, babyAge, stage, lastFeedStr, lastSleepStr, lastDiaperStr, aiQueryCount, isPremium, selectedImage, researchMode]);
+  }, [babyName, babyAge, stage, lastFeedStr, lastSleepStr, lastDiaperStr, aiQueryCount, isPremium, selectedImage, researchMode, activeScreen, authStatus, isOnboarded]);
 
   // Wake-word recognition setup (Always-on 'Hey Ogoo' listener)
   useEffect(() => {
@@ -472,8 +697,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const executeTriggeredAction = (action: any): string => {
-    if (!action || !action.type) return '';
+  const executeTriggeredAction = (action: any): { actionTaken?: string; inlineAction?: InlineActionButton } => {
+    if (!action || !action.type) return {};
 
     if (action.type === 'log_meal') {
       onLogMeal({
@@ -482,43 +707,92 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         type: action.mealType || 'bottle',
         notes: action.notes || 'Logged via Ogoo AI'
       });
-      return `Saved! Logged ${action.amount || 4} ${action.unit || 'oz'} ${action.mealType || 'feeding'}.`;
+      return { actionTaken: `Saved! Logged ${action.amount || 4} ${action.unit || 'oz'} ${action.mealType || 'feeding'}.` };
     }
 
     if (action.type === 'start_timer') {
       onStartTimer(action.side || 'left');
-      return `Started ${action.side || 'left'} breast nursing timer.`;
+      return { actionTaken: `Started ${action.side || 'left'} breast nursing timer.` };
     }
 
     if (action.type === 'log_sleep' && onLogSleep) {
       onLogSleep(action.durationMinutes || 60);
-      return `Saved! Recorded ${action.durationMinutes || 60} minute nap.`;
+      return { actionTaken: `Saved! Recorded ${action.durationMinutes || 60} minute nap.` };
     }
 
     if (action.type === 'log_diaper' && onLogDiaper) {
       onLogDiaper(action.diaperType || 'wet');
-      return `Saved! Recorded ${action.diaperType || 'clean'} diaper change.`;
+      return { actionTaken: `Saved! Recorded ${action.diaperType || 'clean'} diaper change.` };
     }
 
     if (action.type === 'add_note') {
       onAddNote(action.note || 'Note via Ogoo');
-      return `Saved note to ${babyName}'s journal.`;
+      return { actionTaken: `Saved note to ${babyName}'s journal.` };
     }
 
-    return '';
+    if (action.type === 'open_auth' && onOpenAuthModal) {
+      return {
+        inlineAction: {
+          label: authStatus === 'signed_in' ? 'Manage Account Sign-In' : 'Register / Sign In Now',
+          type: 'open_auth'
+        }
+      };
+    }
+
+    if (action.type === 'open_subscription' && onOpenSubscriptionModal) {
+      return {
+        inlineAction: {
+          label: 'View Ama Premium Plans',
+          type: 'open_subscription'
+        }
+      };
+    }
+
+    if (action.type === 'navigate' && action.targetScreen && onNavigate) {
+      const targetLabel = SCREEN_LABELS[action.targetScreen] || action.targetScreen;
+      return {
+        inlineAction: {
+          label: `Open ${targetLabel}`,
+          type: 'navigate',
+          targetScreen: action.targetScreen
+        }
+      };
+    }
+
+    return {};
+  };
+
+  const handleInlineActionClick = (inlineAction: InlineActionButton) => {
+    if (inlineAction.type === 'open_auth' && onOpenAuthModal) {
+      setIsOpen(false);
+      onOpenAuthModal();
+    } else if (inlineAction.type === 'open_subscription' && onOpenSubscriptionModal) {
+      setIsOpen(false);
+      onOpenSubscriptionModal();
+    } else if (inlineAction.type === 'navigate' && inlineAction.targetScreen && onNavigate) {
+      setIsOpen(false);
+      onNavigate(inlineAction.targetScreen);
+    }
   };
 
   const handleProactiveCardClick = (card: ProactiveCard) => {
     if (card.actionPayload) {
       if (card.actionPayload.query) {
         handleSendUserMessage(card.actionPayload.query);
+      } else if (card.actionPayload.type === 'open_auth' && onOpenAuthModal) {
+        setIsOpen(false);
+        onOpenAuthModal();
+      } else if (card.actionPayload.type === 'navigate' && card.actionPayload.targetScreen && onNavigate) {
+        setIsOpen(false);
+        onNavigate(card.actionPayload.targetScreen);
       } else {
-        const actionResult = executeTriggeredAction(card.actionPayload);
+        const result = executeTriggeredAction(card.actionPayload);
         const confirmationMsg: ChatMessage = {
           id: `a-${Date.now()}`,
           sender: 'assistant',
-          text: `I've proactively taken care of that for you: ${card.title}.\n${actionResult || 'Action completed successfully.'}`,
-          actionTaken: actionResult,
+          text: `I've proactively taken care of that for you: ${card.title}.\n${result.actionTaken || 'Action completed successfully.'}`,
+          actionTaken: result.actionTaken,
+          inlineAction: result.inlineAction,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setMessages(prev => [...prev, confirmationMsg]);
@@ -609,18 +883,21 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
           loggedMoods,
           diaperLogs,
           vaccineSchedule,
-          memories
+          memories,
+          activeScreen,
+          pageTitle: resolvedPageTitle,
+          pageContentSummary,
+          isOnboarded,
+          authStatus,
+          parentName,
+          userRole
         })
       });
 
       if (!response.ok) throw new Error('API server error');
       const data = await response.json();
 
-      let actionNote: string | undefined = undefined;
-      if (data.actionToTrigger) {
-        const actionResult = executeTriggeredAction(data.actionToTrigger);
-        if (actionResult) actionNote = actionResult;
-      }
+      const actionMeta = data.actionToTrigger ? executeTriggeredAction(data.actionToTrigger) : {};
 
       // Increment AI query count if not premium
       if (!isPremium && !isDirectLoggingIntent) {
@@ -633,7 +910,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         id: `a-${Date.now()}`,
         sender: 'assistant',
         text: data.replyText || `Got it! I saved that for ${babyName}.`,
-        actionTaken: actionNote,
+        actionTaken: actionMeta.actionTaken,
+        inlineAction: actionMeta.inlineAction,
         researchedWithSearch: data.researchedWithSearch,
         references: data.references || [],
         searchQueries: data.searchQueries || [],
@@ -689,19 +967,23 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
   return (
     <>
-      {/* Floating Activation Button on Mobile / Desktop */}
+      {/* Floating Activation Button visible throughout the entire app */}
       <motion.button
         id="voice-assistant-floating-btn"
         onClick={() => {
           setIsOpen(true);
           if (talkBackEnabled) {
-            speakText(`Hi! How can I help with ${babyName} today?`);
+            speakText(
+              !isOnboarded
+                ? `Hi! I am Ogoo. Let me help you register and explore Ama Baby!`
+                : `Hi! We are on ${resolvedPageTitle}. How can I help with ${babyName} today?`
+            );
           }
         }}
         whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.94 }}
-        className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-40 bg-gradient-to-tr from-primary to-primary-light text-white p-2.5 sm:p-3 rounded-full shadow-2xl flex items-center gap-2.5 border-2 border-white/80 backdrop-blur-md cursor-pointer group hover:shadow-primary/30"
-        title="Open Ogoo AI Agent (Multimodal & Research)"
+        className="fixed bottom-24 right-4 sm:bottom-8 sm:right-8 z-[45] bg-gradient-to-tr from-primary to-accent text-white p-2.5 sm:p-3 rounded-full shadow-2xl flex items-center gap-2.5 border-2 border-white/80 backdrop-blur-md cursor-pointer group hover:shadow-primary/30"
+        title={`Ask Ogoo AI (${resolvedPageTitle})`}
       >
         <OgooAvatar 
           size="sm" 
@@ -713,7 +995,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
             Ask Ogoo
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
           </p>
-          <p className="text-[9px] text-sky-100 font-medium leading-tight">Proactive AI Agent</p>
+          <p className="text-[9px] text-sky-100 font-medium leading-tight max-w-[110px] truncate">{resolvedPageTitle}</p>
         </div>
       </motion.button>
 
@@ -823,9 +1105,26 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                 </div>
               </div>
 
-              {/* Context Summary & Proactive Insights Banner */}
-              <div className="bg-sky-50/70 border-b border-primary/10 px-3.5 py-2 flex items-center justify-between text-[11px] text-gray-700">
-                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
+              {/* Context Summary & Page Awareness Banner */}
+              <div className="bg-sky-50/70 border-b border-primary/10 px-3.5 py-2 flex items-center justify-between text-[11px] text-gray-700 gap-2">
+                <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar">
+                  <span className="shrink-0 inline-flex items-center gap-1 font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-md">
+                    <Compass className="w-3 h-3" />
+                    {resolvedPageTitle}
+                  </span>
+                  {authStatus !== 'signed_in' && onOpenAuthModal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsOpen(false);
+                        onOpenAuthModal();
+                      }}
+                      className="shrink-0 inline-flex items-center gap-1 font-bold bg-primary text-white hover:bg-accent px-2 py-0.5 rounded-md border-none cursor-pointer transition-colors"
+                    >
+                      <UserPlus className="w-3 h-3" />
+                      <span>Register / Sign In</span>
+                    </button>
+                  )}
                   <span className="shrink-0 flex items-center gap-1 font-medium">
                     <Utensils className="w-3 h-3 text-primary" />
                     Feed: <strong className="text-gray-900">{lastFeedStr}</strong>
@@ -837,10 +1136,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                 </div>
                 <button
                   onClick={() => setShowProactivePanel(prev => !prev)}
-                  className="shrink-0 text-[10px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer border-none bg-transparent ml-2"
+                  className="shrink-0 text-[10px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer border-none bg-transparent ml-1"
                 >
                   <Zap className="w-3 h-3" />
-                  {showProactivePanel ? 'Hide Insights' : 'Show Insights'}
+                  {showProactivePanel ? 'Hide' : 'Tips'}
                 </button>
               </div>
 
@@ -856,12 +1155,12 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                     <div className="flex items-center justify-between mb-1.5 px-1">
                       <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1">
                         <ShieldCheck className="w-3 h-3 text-primary" />
-                        Proactive Care Recommendations
+                        Proactive Page & Care Guidance
                       </span>
                       <button
                         onClick={loadProactiveInsights}
                         disabled={isLoadingInsights}
-                        className="text-[10px] text-primary hover:text-primary-dark font-semibold flex items-center gap-0.5 cursor-pointer bg-transparent border-none"
+                        className="text-[10px] text-primary hover:text-accent font-semibold flex items-center gap-0.5 cursor-pointer bg-transparent border-none"
                       >
                         <RefreshCw className={`w-2.5 h-2.5 ${isLoadingInsights ? 'animate-spin' : ''}`} />
                         Refresh
@@ -885,7 +1184,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                           </div>
                           <button
                             onClick={() => handleProactiveCardClick(card)}
-                            className="mt-2 w-full py-1 px-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer border-none shadow-2xs"
+                            className="mt-2 w-full py-1 px-2 bg-primary hover:bg-accent text-white rounded-xl text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer border-none shadow-2xs"
                           >
                             <span>{card.actionLabel}</span>
                             <ChevronRight className="w-3 h-3" />
@@ -971,7 +1270,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                         <button
                           type="button"
                           onClick={() => speakText(msg.text)}
-                          className="mt-2 text-[10px] font-bold text-primary hover:text-primary-dark flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded-full transition-colors cursor-pointer border-none w-fit"
+                          className="mt-2 text-[10px] font-bold text-primary hover:text-accent flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded-full transition-colors cursor-pointer border-none w-fit"
                           title="Tap Ogoo to speak this message aloud"
                         >
                           <Volume2 className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -985,6 +1284,21 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                           <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
                           <span>{msg.actionTaken}</span>
                         </div>
+                      )}
+
+                      {/* Inline Action / Navigation / Registration Button */}
+                      {msg.inlineAction && (
+                        <button
+                          type="button"
+                          onClick={() => handleInlineActionClick(msg.inlineAction!)}
+                          className="mt-2.5 w-full py-2 px-3 bg-primary hover:bg-accent text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer border-none shadow-xs transition-colors"
+                        >
+                          {msg.inlineAction.type === 'open_auth' && <UserPlus className="w-3.5 h-3.5 text-white" />}
+                          {msg.inlineAction.type === 'navigate' && <Compass className="w-3.5 h-3.5 text-white" />}
+                          {msg.inlineAction.type === 'open_subscription' && <Crown className="w-3.5 h-3.5 text-white" />}
+                          <span>{msg.inlineAction.label}</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-white" />
+                        </button>
                       )}
 
                       {/* Google Search Research Grounding Citations */}
@@ -1027,7 +1341,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                             setIsOpen(false);
                             onOpenSubscriptionModal();
                           }}
-                          className="mt-3 w-full py-2 px-3 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer border-none shadow-xs"
+                          className="mt-3 w-full py-2 px-3 bg-primary hover:bg-accent text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer border-none shadow-xs"
                         >
                           <Crown className="w-3.5 h-3.5 text-white" />
                           <span>Upgrade to Ama Premium</span>
@@ -1057,15 +1371,12 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                 <div ref={chatEndRef} />
               </div>
 
-              {/* Quick Prompt Chips */}
+              {/* Page-Aware Quick Prompt Chips */}
               <div className="px-3 py-2 bg-white/90 border-t border-primary/10 flex items-center gap-2 overflow-x-auto no-scrollbar">
-                {[
-                  `🥣 Safe foods for ${babyAge}`,
-                  `🍼 Log a 4 oz feeding`,
-                  `💤 Start 60m nap timer`,
-                  `🌡️ Fever first aid guide`,
-                  `🥑 Stage recipe idea`
-                ].map((chip, idx) => (
+                {(authStatus !== 'signed_in' && !currentPreset.chips(babyName, babyAge).some(c => c.toLowerCase().includes('register'))
+                  ? ['How do I register an account?', ...currentPreset.chips(babyName, babyAge)]
+                  : currentPreset.chips(babyName, babyAge)
+                ).map((chip, idx) => (
                   <button
                     key={idx}
                     onClick={() => {
@@ -1179,7 +1490,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                   id="voice-assistant-send-btn"
                   onClick={() => handleSendUserMessage()}
                   disabled={(!inputText.trim() && !selectedImage) || isProcessing}
-                  className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center hover:bg-primary-dark transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-none shrink-0 shadow-md shadow-primary/20"
+                  className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center hover:bg-accent transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-none shrink-0 shadow-md shadow-primary/20"
                 >
                   <Send className="w-4 h-4" />
                 </button>

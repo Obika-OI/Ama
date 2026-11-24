@@ -33,11 +33,23 @@ import {
   Mail,
   ShieldAlert,
   Building,
-  Heart
+  Heart,
+  Gift,
+  Package,
+  Lock,
+  Copy,
+  FileDown,
+  Clock,
+  CreditCard,
+  AlertTriangle,
+  Ban,
+  Truck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSEO } from '../utils/seo';
-import { INITIAL_VETTED_CAREGIVERS, VettedCaregiver } from '../constants/omugwoData';
+import { INITIAL_VETTED_CAREGIVERS } from '../constants/omugwoData';
+import { getOrGenerateDeviceId, fetchClientIpAddress, isDeviceLocallyBanned, markDeviceAsBanned } from '../utils/deviceTracker';
+import { generateDisputeEvidencePdf, DisputePdfData } from '../utils/disputePdf';
 import {
   auth,
   db,
@@ -85,6 +97,21 @@ export interface CommunityPostItem {
   updatedAt: string;
 }
 
+export interface SellerPaymentMethod {
+  id: string;
+  type: 'local_bank' | 'global_app';
+  isVerified?: boolean;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  appName?: string;
+  handleOrEmail?: string;
+  payUrl?: string;
+  legalName?: string;
+  country?: string;
+  createdAt: string;
+}
+
 export interface CommunityMemberItem {
   id: string;
   name: string;
@@ -93,8 +120,129 @@ export interface CommunityMemberItem {
   location: string;
   bio: string;
   topics: string[];
+  phoneNumber?: string;
+  email?: string;
+  deviceId?: string;
+  clientIp?: string;
+  isKycVerified?: boolean;
+  completedInPersonDealsCount?: number;
+  providerLevel?: number; // 1 = Local In-Person Only, 2 = Remote Shipping Cleared
+  disputeStrikes?: number;
+  hasProviderProtectionBadge?: boolean;
+  isAccountFrozen?: boolean;
+  frozenAt?: string;
+  freezeReason?: string;
+  kycData?: {
+    idType: string;
+    idNumberLast4: string;
+    verifiedAt: string;
+    legalName: string;
+  };
+  sellerPaymentMethods?: SellerPaymentMethod[];
   joinedAt: string;
   lastActiveAt: string;
+}
+
+export interface MarketplaceOrder {
+  id: string;
+  orderCode: string;
+  listingId: string;
+  itemTitle: string;
+  category: string;
+  itemKind: 'service' | 'goods';
+  handoverType?: 'in_person' | 'shipping';
+  sellerProviderLevel?: number;
+  agreedAmount: number;
+  currency: string;
+  isInternational: boolean;
+  status:
+    | 'locked'
+    | 'proof_submitted'
+    | 'confirmed'
+    | 'awaiting_dispatch'
+    | 'shipped'
+    | 'delivery_disputed'
+    | 'courier_delivered_pending_consumer_review'
+    | 'completed'
+    | 'denied'
+    | 'disputed'
+    | 'cancelled';
+  sellerId: string;
+  sellerName: string;
+  sellerPhone?: string;
+  sellerEmail?: string;
+  sellerDeviceId?: string;
+  sellerKycVerified: boolean;
+  buyerId: string;
+  buyerName: string;
+  buyerPhone?: string;
+  buyerEmail?: string;
+  buyerDeviceId?: string;
+  buyerKycVerified: boolean;
+  lockedPaymentMethod: SellerPaymentMethod;
+  paymentProof?: {
+    method: string;
+    amountPaid: number;
+    currency: string;
+    paidTimestamp: string;
+    transactionId: string;
+    receiptProofUrl?: string;
+    screenshotUrl?: string;
+    notes?: string;
+    submittedAt: string;
+  };
+  reviewDeadline?: string;
+  sellerSuspended?: boolean;
+  confirmedAt?: string;
+  deniedAt?: string;
+  denialReason?: string;
+  denialStatementUrl?: string;
+  disputeNotes?: string;
+  shippingProof?: {
+    courierName: string;
+    waybillNumber: string;
+    receiptDocUrl?: string;
+    packagePhotoUrl?: string;
+    notes?: string;
+    shippedAt: string;
+  };
+  dispatchDeadline?: string;
+  shippedAt?: string;
+  deliveryEta?: string;
+  deliveryDisputedAt?: string;
+  deliveryDisputeEvidence?: {
+    reason: string;
+    evidenceUrl?: string;
+    notes?: string;
+    filedAt: string;
+  };
+  providerGraceDeadline?: string;
+  providerDeliveryResponse?: {
+    responseType: string;
+    proofUrl: string;
+    notes?: string;
+    respondedAt: string;
+  };
+  courierDeliveredAt?: string;
+  autoCompleteDeadline?: string;
+  completedAt?: string;
+  isProviderFrozen?: boolean;
+  isConsumerStrikeApplied?: boolean;
+  providerProtectionAwarded?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MarketplaceBanRecord {
+  id: string;
+  targetUserId: string;
+  targetUserName?: string;
+  targetDeviceId: string;
+  targetIp?: string;
+  reason: string;
+  evidenceOrderId?: string;
+  bannedAt: string;
+  bannedBy: string;
 }
 
 export interface CommunityChatMessageItem {
@@ -123,9 +271,17 @@ export interface IndependentSpecialist {
 
 export interface MarketplaceProvider {
   id: string;
+  ownerId?: string;
   name: string;
   title: string;
   category: string;
+  listingKind?: 'service' | 'goods';
+  offerMode?: 'paid' | 'gift';
+  condition?: string;
+  itemStatus?: 'Available' | 'Claimed';
+  claimedById?: string;
+  claimedByName?: string;
+  claimedAt?: string;
   experienceYears: number;
   rateInfo: string;
   location: string;
@@ -137,14 +293,39 @@ export interface MarketplaceProvider {
 
 export interface FamilyCareRequest {
   id: string;
+  ownerId?: string;
   familyName: string;
   category: string;
+  needKind?: 'service' | 'goods';
+  acceptsGift?: boolean;
+  fulfillmentStatus?: 'Open' | 'Gifted' | 'Fulfilled';
+  giftedById?: string;
+  giftedByName?: string;
+  giftNote?: string;
+  giftedAt?: string;
   title: string;
   description: string;
   schedule: string;
   location: string;
   budget: string;
   contactInfo?: string;
+  createdAt: string;
+}
+
+export interface MarketplaceGiftItem {
+  id: string;
+  giftSourceType: 'need_fulfillment' | 'gift_provision';
+  targetListingId: string;
+  itemKind: 'service' | 'goods';
+  category: string;
+  title: string;
+  description: string;
+  giverId: string;
+  giverName: string;
+  recipientId: string;
+  recipientName: string;
+  status: 'Offered' | 'Claimed' | 'Received';
+  isPublic: boolean;
   createdAt: string;
 }
 
@@ -209,8 +390,14 @@ const CHAT_ROOMS = [
   { id: 'sleep-wake-windows', name: '# Night Feeds & Sleep Lounge', desc: '2 AM check-ins, wake windows & gentle soothing' }
 ];
 
-const MARKETPLACE_CATEGORIES = [
-  'All Services',
+const GOODS_CATEGORIES = [
+  'Baby Gear, Strollers & Nursery Goods',
+  'Diapers, Feeding & Baby Clothing',
+  'Maternal & Postpartum Care Goods',
+  'Toys, Books & Learning Goods'
+];
+
+const SERVICE_CATEGORIES = [
   'Special Needs & Therapy',
   'Physiotherapy & Rehabilitation',
   'Psychotherapy & Mental Health',
@@ -223,6 +410,12 @@ const MARKETPLACE_CATEGORIES = [
   'Elder Sitters & Senior Care',
   'Doulas & Night Care',
   'Household & Meal Support'
+];
+
+const MARKETPLACE_CATEGORIES = [
+  'All Listings',
+  ...GOODS_CATEGORIES,
+  ...SERVICE_CATEGORIES
 ];
 
 export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
@@ -274,21 +467,128 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   const [specialists, setSpecialists] = useState<IndependentSpecialist[]>([]);
   const [marketplaceProviders, setMarketplaceProviders] = useState<MarketplaceProvider[]>([]);
   const [marketplaceRequests, setMarketplaceRequests] = useState<FamilyCareRequest[]>([]);
+  const [marketplaceGifts, setMarketplaceGifts] = useState<MarketplaceGiftItem[]>([]);
 
-  // Care Marketplace State
-  const [marketplaceCategoryFilter, setMarketplaceCategoryFilter] = useState('All Services');
-  const [selectedCaregiverForBooking, setSelectedCaregiverForBooking] = useState<any | null>(null);
-  const [bookingScheduleType, setBookingScheduleType] = useState<'Daily' | 'Weekend' | 'Live-In' | 'Nurse/Paediatrician Consultation'>('Daily');
-  const [bookingDate, setBookingDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [bookingDietNotes, setBookingDietNotes] = useState('Ji Mmiri Oku (Postpartum Pepper Soup) & Tom Brown pap');
-  const [bookingSuccessMsg, setBookingSuccessMsg] = useState('');
-  const [activeBookings, setActiveBookings] = useState<any[]>(() => {
+  // Care, Goods & Free Gift Marketplace State
+  const [marketplaceCategoryFilter, setMarketplaceCategoryFilter] = useState('All Listings');
+  const [marketplaceTypeFilter, setMarketplaceTypeFilter] = useState<'all' | 'services' | 'goods' | 'needs' | 'gifts' | 'orders'>('all');
+  const [marketplaceNotice, setMarketplaceNotice] = useState('');
+
+  // Device & KYC Security Tracking
+  const [myPhoneNumber, setMyPhoneNumber] = useState(() => localStorage.getItem('ama_comm_phone') || '');
+  const [isMyKycVerified, setIsMyKycVerified] = useState(() => localStorage.getItem('ama_comm_kyc_verified') === 'true');
+  const [deviceId, setDeviceId] = useState('');
+  const [clientIp, setClientIp] = useState('');
+  const [isLocallyBanned, setIsLocallyBanned] = useState(false);
+  const [marketplaceBans, setMarketplaceBans] = useState<MarketplaceBanRecord[]>([]);
+
+  // KYC Verification Modal State
+  const [isKycModalOpen, setIsKycModalOpen] = useState(false);
+  const [kycLegalName, setKycLegalName] = useState(() => myDisplayName || parentName || '');
+  const [kycIdType, setKycIdType] = useState('National ID (NIN / SSN / National Card)');
+  const [kycLast4, setKycLast4] = useState('');
+  const [isSubmittingKyc, setIsSubmittingKyc] = useState(false);
+  const [kycNotice, setKycNotice] = useState('');
+
+  // Seller External Payment Methods (Up to 5)
+  const [myPaymentMethods, setMyPaymentMethods] = useState<SellerPaymentMethod[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem('ama_omugwo_bookings') || '[]');
+      const stored = localStorage.getItem('ama_comm_payment_methods');
+      return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
     }
   });
+  const [isPaymentMethodModalOpen, setIsPaymentMethodModalOpen] = useState(false);
+  const [pmType, setPmType] = useState<'local_bank' | 'global_app'>('local_bank');
+  const [pmBankName, setPmBankName] = useState('OPay');
+  const [pmAccountNumber, setPmAccountNumber] = useState('');
+  const [pmAccountName, setPmAccountName] = useState(() => myDisplayName || parentName || '');
+  const [pmAppName, setPmAppName] = useState('PayPal');
+  const [pmHandle, setPmHandle] = useState('');
+  const [pmPayUrl, setPmPayUrl] = useState('');
+  const [pmLegalName, setPmLegalName] = useState('');
+  const [pmCountry, setPmCountry] = useState('United Kingdom');
+  const [pmError, setPmError] = useState('');
+
+  // Locked Orders & Escrow Tracking
+  const [marketplaceOrders, setMarketplaceOrders] = useState<MarketplaceOrder[]>([]);
+  const [lockOrderTarget, setLockOrderTarget] = useState<MarketplaceProvider | null>(null);
+  const [lockOrderAmount, setLockOrderAmount] = useState('');
+  const [lockOrderCurrency, setLockOrderCurrency] = useState('GBP');
+  const [lockOrderIsIntl, setLockOrderIsIntl] = useState(false);
+  const [lockOrderSelectedPmId, setLockOrderSelectedPmId] = useState('');
+  const [lockOrderHandoverType, setLockOrderHandoverType] = useState<'in_person' | 'shipping'>('in_person');
+  const [isLockingOrder, setIsLockingOrder] = useState(false);
+  const [lockOrderError, setLockOrderError] = useState('');
+
+  // Consumer Proof Submission Modal State
+  const [selectedOrderForProof, setSelectedOrderForProof] = useState<MarketplaceOrder | null>(null);
+  const [proofMethod, setProofMethod] = useState('Bank Transfer');
+  const [proofAmount, setProofAmount] = useState('');
+  const [proofTransactionId, setProofTransactionId] = useState('');
+  const [proofReceiptDoc, setProofReceiptDoc] = useState('');
+  const [proofNotes, setProofNotes] = useState('');
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
+  const [proofError, setProofError] = useState('');
+
+  // Provider Denial with Official Statement Modal State
+  const [selectedOrderForDenial, setSelectedOrderForDenial] = useState<MarketplaceOrder | null>(null);
+  const [denialStatementDoc, setDenialStatementDoc] = useState('');
+  const [denialReasonText, setDenialReasonText] = useState('Single-day bank statement uploaded showing no matching incoming credit.');
+  const [isSubmittingDenial, setIsSubmittingDenial] = useState(false);
+  const [denialError, setDenialError] = useState('');
+
+  // Provider Courier Dispatch Proof Modal State (Mandatory sub-step for shipping deals)
+  const [selectedOrderForShipping, setSelectedOrderForShipping] = useState<MarketplaceOrder | null>(null);
+  const [shippingCourierName, setShippingCourierName] = useState('DHL Express');
+  const [shippingWaybillNumber, setShippingWaybillNumber] = useState('');
+  const [shippingReceiptDoc, setShippingReceiptDoc] = useState('');
+  const [shippingPackagePhoto, setShippingPackagePhoto] = useState('');
+  const [shippingEtaHours, setShippingEtaHours] = useState('72');
+  const [shippingNotes, setShippingNotes] = useState('');
+  const [isSubmittingShipping, setIsSubmittingShipping] = useState(false);
+  const [shippingError, setShippingError] = useState('');
+
+  // Consumer Report Non-Delivery Modal State (Mandatory evidence required)
+  const [selectedOrderForNonDelivery, setSelectedOrderForNonDelivery] = useState<MarketplaceOrder | null>(null);
+  const [nonDeliveryReason, setNonDeliveryReason] = useState('Courier tracking unfulfilled past ETA deadline');
+  const [nonDeliveryEvidenceDoc, setNonDeliveryEvidenceDoc] = useState('');
+  const [nonDeliveryNotes, setNonDeliveryNotes] = useState('');
+  const [isSubmittingNonDelivery, setIsSubmittingNonDelivery] = useState(false);
+  const [nonDeliveryError, setNonDeliveryError] = useState('');
+
+  // Provider 24-Hour Grace Response Modal State
+  const [selectedOrderForGraceResponse, setSelectedOrderForGraceResponse] = useState<MarketplaceOrder | null>(null);
+  const [graceResponseType, setGraceResponseType] = useState('Official Courier Tracking Confirmation');
+  const [graceProofDoc, setGraceProofDoc] = useState('');
+  const [graceNotes, setGraceNotes] = useState('');
+  const [isSubmittingGraceResponse, setIsSubmittingGraceResponse] = useState(false);
+  const [graceError, setGraceError] = useState('');
+
+  // Dispute Arbitration & Strike Resolution Modal State
+  const [selectedOrderForResolution, setSelectedOrderForResolution] = useState<MarketplaceOrder | null>(null);
+  const [resolutionType, setResolutionType] = useState<'consumer_false_claim' | 'provider_default'>('consumer_false_claim');
+  const [resolutionNotes, setResolutionNotes] = useState('');
+  const [isSubmittingResolution, setIsSubmittingResolution] = useState(false);
+  const [resolutionError, setResolutionError] = useState('');
+
+  // Safety & Guidance Drawer state ('none' | 'fraud' | 'gifts' | 'tiers')
+  const [marketplaceSafetyTab, setMarketplaceSafetyTab] = useState<'none' | 'fraud' | 'gifts' | 'tiers'>('none');
+
+  // Copy Feedback
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Gift Action Modal State (Give a Free Gift onto a Need OR Receive a Free Gift Provision)
+  const [giftModalContext, setGiftModalContext] = useState<{
+    mode: 'give_to_need' | 'receive_provision';
+    targetNeed?: FamilyCareRequest;
+    targetProvision?: MarketplaceProvider;
+  } | null>(null);
+  const [giftActorName, setGiftActorName] = useState(() => localStorage.getItem('ama_comm_name') || parentName || 'Parent');
+  const [giftNoteInput, setGiftNoteInput] = useState('');
+  const [giftError, setGiftError] = useState('');
+  const [isSubmittingGift, setIsSubmittingGift] = useState(false);
 
   // Forum state
   const [selectedField, setSelectedField] = useState('All Fields');
@@ -342,6 +642,9 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
 
   const [provName, setProvName] = useState('');
   const [provTitle, setProvTitle] = useState('');
+  const [provListingKind, setProvListingKind] = useState<'service' | 'goods'>('service');
+  const [provOfferMode, setProvOfferMode] = useState<'paid' | 'gift'>('paid');
+  const [provCondition, setProvCondition] = useState('Gently Used');
   const [provCategory, setProvCategory] = useState('Caregivers & Sitters');
   const [provExpYears, setProvExpYears] = useState('3');
   const [provRateInfo, setProvRateInfo] = useState('$25/hr or Negotiable');
@@ -351,6 +654,8 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   const [isSubmittingProvider, setIsSubmittingProvider] = useState(false);
 
   const [reqFamilyName, setReqFamilyName] = useState(myDisplayName || parentName || 'Family');
+  const [reqNeedKind, setReqNeedKind] = useState<'service' | 'goods'>('service');
+  const [reqAcceptsGift, setReqAcceptsGift] = useState(true);
   const [reqCategory, setReqCategory] = useState('Caregivers & Sitters');
   const [reqTitle, setReqTitle] = useState('');
   const [reqDescription, setReqDescription] = useState('');
@@ -398,6 +703,19 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         }
         if (Array.isArray(data.members)) {
           setMembers(prev => (prev.length > 0 ? prev : data.members));
+          // Hydrate current member's KYC and payment methods
+          const myRec = data.members.find((m: CommunityMemberItem) => m.id === effectiveUserId);
+          if (myRec) {
+            if (myRec.phoneNumber) setMyPhoneNumber(myRec.phoneNumber);
+            if (myRec.isKycVerified) {
+              setIsMyKycVerified(true);
+              localStorage.setItem('ama_comm_kyc_verified', 'true');
+            }
+            if (Array.isArray(myRec.sellerPaymentMethods) && myRec.sellerPaymentMethods.length > 0) {
+              setMyPaymentMethods(myRec.sellerPaymentMethods);
+              localStorage.setItem('ama_comm_payment_methods', JSON.stringify(myRec.sellerPaymentMethods));
+            }
+          }
         }
         if (Array.isArray(data.connections)) setConnections(data.connections);
         if (Array.isArray(data.messages)) {
@@ -409,6 +727,15 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         }
         if (Array.isArray(data.marketplaceRequests)) {
           setMarketplaceRequests(prev => (prev.length > 0 ? prev : data.marketplaceRequests));
+        }
+        if (Array.isArray(data.marketplaceGifts)) {
+          setMarketplaceGifts(prev => (prev.length > 0 ? prev : data.marketplaceGifts));
+        }
+        if (Array.isArray(data.marketplaceOrders)) {
+          setMarketplaceOrders(data.marketplaceOrders);
+        }
+        if (Array.isArray(data.marketplaceBans)) {
+          setMarketplaceBans(data.marketplaceBans);
         }
       }
     } catch (err) {
@@ -422,7 +749,24 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     fetchCommunityState();
   }, []);
 
-  // Real-time Firestore bindings for community_posts, community_messages, community_members, marketplace_providers, marketplace_requests
+  // Initialize hardware device ID and client IP
+  useEffect(() => {
+    (async () => {
+      try {
+        const dId = await getOrGenerateDeviceId();
+        setDeviceId(dId);
+        const ip = await fetchClientIpAddress();
+        setClientIp(ip);
+        if (isDeviceLocallyBanned()) {
+          setIsLocallyBanned(true);
+        }
+      } catch (e) {
+        console.warn('Device fingerprint error:', e);
+      }
+    })();
+  }, []);
+
+  // Real-time Firestore bindings
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -525,14 +869,74 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
       }
     );
 
+    const unsubGifts = onSnapshot(
+      query(collection(db, 'marketplace_gifts'), where('isPublic', '==', true), limit(100)),
+      (snap) => {
+        const fsGifts: MarketplaceGiftItem[] = snap.docs
+          .map(d => d.data() as MarketplaceGiftItem)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setMarketplaceGifts(fsGifts);
+      },
+      (err) => {
+        try {
+          handleFirestoreError(err, OperationType.LIST, 'marketplace_gifts');
+        } catch {}
+      }
+    );
+
+    const unsubOrders = onSnapshot(
+      query(collection(db, 'marketplace_orders'), limit(100)),
+      (snap) => {
+        const fsOrders: MarketplaceOrder[] = snap.docs
+          .map(d => d.data() as MarketplaceOrder)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        if (fsOrders.length > 0) {
+          setMarketplaceOrders(prev => {
+            const fsIds = new Set(fsOrders.map(o => o.id));
+            const remaining = prev.filter(o => !fsIds.has(o.id));
+            return [...fsOrders, ...remaining];
+          });
+        }
+      },
+      (err) => {
+        try {
+          handleFirestoreError(err, OperationType.LIST, 'marketplace_orders');
+        } catch {}
+      }
+    );
+
+    const unsubBans = onSnapshot(
+      query(collection(db, 'marketplace_bans'), limit(100)),
+      (snap) => {
+        const fsBans: MarketplaceBanRecord[] = snap.docs.map(d => d.data() as MarketplaceBanRecord);
+        setMarketplaceBans(fsBans);
+        // Check if device or user is in this ban list
+        const isMeBanned = fsBans.some(
+          b => (deviceId && b.targetDeviceId === deviceId) || b.targetUserId === effectiveUserId
+        );
+        if (isMeBanned) {
+          setIsLocallyBanned(true);
+          markDeviceAsBanned('Banned by platform audit for fraudulent activity');
+        }
+      },
+      (err) => {
+        try {
+          handleFirestoreError(err, OperationType.LIST, 'marketplace_bans');
+        } catch {}
+      }
+    );
+
     return () => {
       unsubPosts();
       unsubMessages();
       unsubMembers();
       unsubProviders();
       unsubRequests();
+      unsubGifts();
+      unsubOrders();
+      unsubBans();
     };
-  }, [auth.currentUser?.uid]);
+  }, [auth.currentUser?.uid, deviceId, effectiveUserId]);
 
   // Filtered Forum Posts
   const filteredPosts = useMemo(() => {
@@ -813,11 +1217,13 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     localStorage.setItem('ama_comm_role', myRole);
     localStorage.setItem('ama_comm_specialty', mySpecialty.trim());
     localStorage.setItem('ama_comm_bio', myBio.trim());
+    localStorage.setItem('ama_comm_phone', myPhoneNumber.trim());
     localStorage.setItem('ama_comm_profile_created', 'true');
     setHasCompletedProfile(true);
 
     try {
       const uid = auth.currentUser?.uid || effectiveUserId;
+      const userEmail = auth.currentUser?.email || localStorage.getItem('ama_comm_email') || '';
       const now = new Date().toISOString();
       const existingMember = members.find(m => m.id === uid);
       const memberRecord: CommunityMemberItem & { isPublic: boolean } = {
@@ -828,6 +1234,13 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         location: (userLocation || '').slice(0, 120),
         bio: (myBio.trim() || `Active ${myRole} in ${userLocation}.`).slice(0, 600),
         topics: [selectedField !== 'All Fields' ? selectedField : 'Feeding & Weaning'],
+        phoneNumber: myPhoneNumber.trim().slice(0, 30),
+        email: userEmail.slice(0, 100),
+        deviceId: deviceId.slice(0, 128),
+        clientIp: clientIp.slice(0, 64),
+        isKycVerified: isMyKycVerified,
+        kycData: existingMember?.kycData,
+        sellerPaymentMethods: myPaymentMethods,
         isPublic: true,
         joinedAt: existingMember?.joinedAt || now,
         lastActiveAt: now
@@ -996,7 +1409,15 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   const handleRegisterProvider = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!provName.trim() || !provTitle.trim()) return;
+
+    const currentMember = members.find(m => m.id === effectiveUserId);
+    if (currentMember?.isAccountFrozen) {
+      setSpecialistError('Your Provider account is currently frozen due to an unresolved non-delivery dispute. Please resolve pending disputes before creating new listings.');
+      return;
+    }
+
     setIsSubmittingProvider(true);
+    setSpecialistError('');
     try {
       const mod = await runModerationCheck({
         type: 'marketplace',
@@ -1004,23 +1425,32 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         text: provBio.trim() || provTitle.trim()
       });
       if (!mod.allowed) {
-        setSpecialistError(mod.error || 'Provider listing blocked by safety moderation.');
+        setSpecialistError(mod.error || 'Marketplace listing blocked by safety moderation.');
         return;
       }
 
       const uid = auth.currentUser?.uid || effectiveUserId;
       const providerId = `provider-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const computedRate =
+        provOfferMode === 'gift'
+          ? 'Free Gift (No Cost)'
+          : (provRateInfo.trim() || 'Negotiate directly in chat').slice(0, 100);
+
       const newProvider: MarketplaceProvider & { ownerId: string; isPublic: boolean } = {
         id: providerId,
         ownerId: uid.slice(0, 128),
         name: provName.trim().slice(0, 80),
         title: provTitle.trim().slice(0, 120),
         category: provCategory.slice(0, 100),
-        experienceYears: Math.min(80, Math.max(0, Number(provExpYears) || 1)),
-        rateInfo: (provRateInfo.trim() || 'Contact for rate').slice(0, 100),
+        listingKind: provListingKind,
+        offerMode: provOfferMode,
+        ...(provListingKind === 'goods' ? { condition: provCondition.slice(0, 40) } : {}),
+        ...(provOfferMode === 'gift' ? { itemStatus: 'Available' as const } : {}),
+        experienceYears: provListingKind === 'goods' ? 0 : Math.min(80, Math.max(0, Number(provExpYears) || 1)),
+        rateInfo: computedRate,
         location: (provLocation.trim() || '').slice(0, 120),
         bio: (provBio.trim() || '').slice(0, 800),
-        availability: (provAvailability.trim() || 'Flexible').slice(0, 100),
+        availability: (provAvailability.trim() || (provListingKind === 'goods' ? 'Ready for Pickup / Delivery' : 'Flexible')).slice(0, 100),
         services: [],
         isPublic: true,
         registeredAt: new Date().toISOString()
@@ -1037,6 +1467,11 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         setProvName('');
         setProvTitle('');
         setProvBio('');
+        setMarketplaceNotice(
+          provOfferMode === 'gift'
+            ? 'Free Gift listing published! Community members can now claim it or chat with you.'
+            : `${provListingKind === 'goods' ? 'Goods' : 'Service'} listing published to the Marketplace!`
+        );
       } else {
         const res = await fetch('/api/community/marketplace/providers', {
           method: 'POST',
@@ -1053,7 +1488,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         }
       }
     } catch (err) {
-      console.warn('Provider registration failed:', err);
+      console.warn('Provider/listing registration failed:', err);
     } finally {
       setIsSubmittingProvider(false);
     }
@@ -1063,6 +1498,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     e.preventDefault();
     if (!reqTitle.trim() || !reqDescription.trim()) return;
     setIsSubmittingRequest(true);
+    setSpecialistError('');
     try {
       const mod = await runModerationCheck({
         type: 'marketplace',
@@ -1070,7 +1506,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         text: reqDescription.trim()
       });
       if (!mod.allowed) {
-        setSpecialistError(mod.error || 'Care request blocked by safety moderation.');
+        setSpecialistError(mod.error || 'Need listing blocked by safety moderation.');
         return;
       }
 
@@ -1081,11 +1517,14 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         ownerId: uid.slice(0, 128),
         familyName: (reqFamilyName.trim() || myDisplayName || 'Family').slice(0, 80),
         category: reqCategory.slice(0, 100),
+        needKind: reqNeedKind,
+        acceptsGift: reqAcceptsGift,
+        fulfillmentStatus: 'Open',
         title: reqTitle.trim().slice(0, 150),
         description: reqDescription.trim().slice(0, 1000),
         schedule: (reqSchedule.trim() || 'Flexible').slice(0, 100),
         location: (reqLocation.trim() || '').slice(0, 120),
-        budget: (reqBudget.trim() || 'Negotiable').slice(0, 100),
+        budget: (reqBudget.trim() || (reqAcceptsGift ? 'Negotiable or Open to Free Gift' : 'Negotiable')).slice(0, 100),
         isPublic: true,
         createdAt: new Date().toISOString()
       };
@@ -1100,6 +1539,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         setIsCareRequestModalOpen(false);
         setReqTitle('');
         setReqDescription('');
+        setMarketplaceNotice('Your need has been posted! Users can negotiate in chat or offer a Free Gift.');
       } else {
         const res = await fetch('/api/community/marketplace/requests', {
           method: 'POST',
@@ -1115,33 +1555,1135 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         }
       }
     } catch (err) {
-      console.warn('Care request submission failed:', err);
+      console.warn('Care/goods need submission failed:', err);
     } finally {
       setIsSubmittingRequest(false);
     }
   };
 
-  const handleBookCaregiver = (caregiverItem: any) => {
-    const newBooking = {
-      id: `booking-${Date.now()}`,
-      caregiverId: caregiverItem.id,
-      caregiverName: caregiverItem.name,
-      scheduleType: bookingScheduleType,
-      startDate: bookingDate,
-      notes: bookingDietNotes,
-      status: 'Scheduled & Confirmed',
+  const handleOpenGiftModal = (
+    mode: 'give_to_need' | 'receive_provision',
+    target: { need?: FamilyCareRequest; provision?: MarketplaceProvider }
+  ) => {
+    setGiftError('');
+    setGiftActorName(myDisplayName.trim() || parentName || 'Community Member');
+    setGiftNoteInput(
+      mode === 'give_to_need'
+        ? 'I would love to gift this to your family for free! Let us arrange pickup or schedule in chat.'
+        : 'Thank you so much! I would gratefully love to receive this free gift for my family.'
+    );
+    setGiftModalContext({
+      mode,
+      targetNeed: target.need,
+      targetProvision: target.provision
+    });
+  };
+
+  const handleSubmitGiftAction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!giftModalContext) return;
+    const actorName = giftActorName.trim() || myDisplayName.trim() || parentName || 'Community Member';
+    const note = giftNoteInput.trim();
+    if (!note) {
+      setGiftError('Please enter a brief note about your free gift offer or pickup.');
+      return;
+    }
+
+    setGiftError('');
+    setIsSubmittingGift(true);
+    try {
+      const mod = await runModerationCheck({
+        type: 'marketplace',
+        title: giftModalContext.targetNeed?.title || giftModalContext.targetProvision?.title || 'Community Free Gift',
+        text: note
+      });
+      if (!mod.allowed) {
+        setGiftError(mod.error || 'Gift note blocked by safety moderation.');
+        return;
+      }
+
+      const uid = auth.currentUser?.uid || effectiveUserId;
+      const now = new Date().toISOString();
+      const giftId = `gift-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+      let giftRecord: MarketplaceGiftItem;
+
+      if (giftModalContext.mode === 'give_to_need' && giftModalContext.targetNeed) {
+        const req = giftModalContext.targetNeed;
+        giftRecord = {
+          id: giftId,
+          giftSourceType: 'need_fulfillment',
+          targetListingId: req.id.slice(0, 128),
+          itemKind: req.needKind || (GOODS_CATEGORIES.includes(req.category) ? 'goods' : 'service'),
+          category: req.category.slice(0, 100),
+          title: `Free Gift for Need: ${req.title}`.slice(0, 150),
+          description: note.slice(0, 600),
+          giverId: uid.slice(0, 128),
+          giverName: actorName.slice(0, 80),
+          recipientId: (req.ownerId || req.id).slice(0, 128),
+          recipientName: (req.familyName || 'Family').slice(0, 80),
+          status: 'Offered',
+          isPublic: true,
+          createdAt: now
+        };
+
+        if (auth.currentUser) {
+          try {
+            await setDoc(doc(db, 'marketplace_gifts', giftId), giftRecord);
+          } catch (err) {
+            handleFirestoreError(err, OperationType.CREATE, `marketplace_gifts/${giftId}`);
+          }
+          if (req.ownerId) {
+            try {
+              await updateDoc(doc(db, 'marketplace_requests', req.id), {
+                fulfillmentStatus: 'Gifted',
+                giftedById: uid.slice(0, 128),
+                giftedByName: actorName.slice(0, 80),
+                giftNote: note.slice(0, 500),
+                giftedAt: now
+              });
+            } catch (err) {
+              handleFirestoreError(err, OperationType.UPDATE, `marketplace_requests/${req.id}`);
+            }
+          }
+        } else {
+          await fetch('/api/community/marketplace/gifts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(giftRecord)
+          });
+        }
+
+        setMarketplaceGifts(prev => [giftRecord, ...prev.filter(g => g.id !== giftId)]);
+        setMarketplaceRequests(prev =>
+          prev.map(r =>
+            r.id === req.id
+              ? { ...r, fulfillmentStatus: 'Gifted', giftedById: uid, giftedByName: actorName, giftNote: note, giftedAt: now }
+              : r
+          )
+        );
+        setMarketplaceNotice(`Free Gift sent to ${req.familyName}! You can coordinate handoff in direct chat.`);
+      } else if (giftModalContext.mode === 'receive_provision' && giftModalContext.targetProvision) {
+        const prov = giftModalContext.targetProvision;
+        giftRecord = {
+          id: giftId,
+          giftSourceType: 'gift_provision',
+          targetListingId: prov.id.slice(0, 128),
+          itemKind: prov.listingKind || (GOODS_CATEGORIES.includes(prov.category) ? 'goods' : 'service'),
+          category: prov.category.slice(0, 100),
+          title: `Claimed Free Gift: ${prov.title}`.slice(0, 150),
+          description: note.slice(0, 600),
+          giverId: (prov.ownerId || prov.id).slice(0, 128),
+          giverName: (prov.name || 'Community Member').slice(0, 80),
+          recipientId: uid.slice(0, 128),
+          recipientName: actorName.slice(0, 80),
+          status: 'Claimed',
+          isPublic: true,
+          createdAt: now
+        };
+
+        if (auth.currentUser) {
+          try {
+            await setDoc(doc(db, 'marketplace_gifts', giftId), giftRecord);
+          } catch (err) {
+            handleFirestoreError(err, OperationType.CREATE, `marketplace_gifts/${giftId}`);
+          }
+          if (prov.ownerId) {
+            try {
+              await updateDoc(doc(db, 'marketplace_providers', prov.id), {
+                itemStatus: 'Claimed',
+                claimedById: uid.slice(0, 128),
+                claimedByName: actorName.slice(0, 80),
+                claimedAt: now
+              });
+            } catch (err) {
+              handleFirestoreError(err, OperationType.UPDATE, `marketplace_providers/${prov.id}`);
+            }
+          }
+        } else {
+          await fetch('/api/community/marketplace/gifts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(giftRecord)
+          });
+        }
+
+        setMarketplaceGifts(prev => [giftRecord, ...prev.filter(g => g.id !== giftId)]);
+        setMarketplaceProviders(prev =>
+          prev.map(p =>
+            p.id === prov.id
+              ? { ...p, itemStatus: 'Claimed', claimedById: uid, claimedByName: actorName, claimedAt: now }
+              : p
+          )
+        );
+        setMarketplaceNotice(`Free Gift claimed from ${prov.name}! Chat directly to arrange collection or service time.`);
+      }
+
+      setGiftModalContext(null);
+      setGiftNoteInput('');
+    } catch (err) {
+      console.warn('Free gift submission failed:', err);
+      setGiftError('Could not complete free gift action. Please make sure you are signed in and try again.');
+    } finally {
+      setIsSubmittingGift(false);
+    }
+  };
+
+  const handleDeleteProviderListing = async (providerId: string) => {
+    try {
+      if (auth.currentUser) {
+        await deleteDoc(doc(db, 'marketplace_providers', providerId));
+      }
+      setMarketplaceProviders(prev => prev.filter(p => p.id !== providerId));
+    } catch (err) {
+      try {
+        handleFirestoreError(err, OperationType.DELETE, `marketplace_providers/${providerId}`);
+      } catch {}
+    }
+  };
+
+  const handleDeleteRequestListing = async (requestId: string) => {
+    try {
+      if (auth.currentUser) {
+        await deleteDoc(doc(db, 'marketplace_requests', requestId));
+      }
+      setMarketplaceRequests(prev => prev.filter(r => r.id !== requestId));
+    } catch (err) {
+      try {
+        handleFirestoreError(err, OperationType.DELETE, `marketplace_requests/${requestId}`);
+      } catch {}
+    }
+  };
+
+  // Copy helper with feedback
+  const handleCopyText = (text: string, key: string) => {
+    try {
+      navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 2000);
+    } catch {}
+  };
+
+  // Countdown timer calculator
+  const getTimerRemaining = (
+    deadlineStr?: string,
+    customExpiredText = 'Window Expired (Action Pending)',
+    suffix = 'left'
+  ) => {
+    if (!deadlineStr) return { text: 'Countdown pending', isExpired: false, hours: 0, minutes: 0 };
+    const diffMs = new Date(deadlineStr).getTime() - Date.now();
+    if (diffMs <= 0) {
+      return { text: customExpiredText, isExpired: true, hours: 0, minutes: 0 };
+    }
+    const totalSecs = Math.floor(diffMs / 1000);
+    const hours = Math.floor(totalSecs / 3600);
+    const minutes = Math.floor((totalSecs % 3600) / 60);
+    const seconds = totalSecs % 60;
+    return {
+      text: `${hours}h ${minutes}m ${seconds}s ${suffix}`,
+      isExpired: false,
+      hours,
+      minutes
+    };
+  };
+
+  // Seller External Payment Methods Handlers (Up to 5)
+  const handleSavePaymentMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPmError('');
+
+    if (myPaymentMethods.length >= 5) {
+      setPmError('You can store up to 5 verified external payment methods.');
+      return;
+    }
+
+    if (pmType === 'local_bank') {
+      if (!pmBankName.trim() || !pmAccountNumber.trim() || !pmAccountName.trim()) {
+        setPmError('Bank/App name, account number, and legal account name are required.');
+        return;
+      }
+    } else {
+      if (!pmAppName.trim() || (!pmHandle.trim() && !pmPayUrl.trim())) {
+        setPmError('App name and your handle / pay link are required.');
+        return;
+      }
+      if (pmAppName.toLowerCase().includes('payoneer') && (!pmLegalName.trim() || !pmCountry.trim())) {
+        setPmError('Payoneer requires your full legal name and registered country.');
+        return;
+      }
+    }
+
+    const newPm: SellerPaymentMethod = {
+      id: `pm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      type: pmType,
+      isVerified: true,
+      bankName: pmType === 'local_bank' ? pmBankName.trim() : undefined,
+      accountNumber: pmType === 'local_bank' ? pmAccountNumber.trim() : undefined,
+      accountName: pmType === 'local_bank' ? pmAccountName.trim() : undefined,
+      appName: pmType === 'global_app' ? pmAppName.trim() : undefined,
+      handleOrEmail: pmType === 'global_app' ? pmHandle.trim() : undefined,
+      payUrl: pmType === 'global_app' && pmPayUrl.trim() ? pmPayUrl.trim() : undefined,
+      legalName: pmType === 'global_app' && pmLegalName.trim() ? pmLegalName.trim() : undefined,
+      country: pmType === 'global_app' && pmCountry.trim() ? pmCountry.trim() : undefined,
       createdAt: new Date().toISOString()
     };
-    const updated = [newBooking, ...activeBookings];
-    setActiveBookings(updated);
+
+    const updated = [...myPaymentMethods, newPm].slice(0, 5);
+    setMyPaymentMethods(updated);
+    localStorage.setItem('ama_comm_payment_methods', JSON.stringify(updated));
+
+    const uid = auth.currentUser?.uid || effectiveUserId;
+    if (auth.currentUser) {
+      try {
+        await updateDoc(doc(db, 'community_members', uid), {
+          sellerPaymentMethods: updated
+        });
+      } catch {}
+    }
+    fetch('/api/community/members', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: uid,
+        name: myDisplayName,
+        sellerPaymentMethods: updated
+      })
+    }).catch(() => {});
+
+    setIsPaymentMethodModalOpen(false);
+    setPmAccountNumber('');
+    setPmHandle('');
+    setPmPayUrl('');
+    setMarketplaceNotice('External payment method saved to your profile!');
+  };
+
+  const handleDeletePaymentMethod = async (pmId: string) => {
+    const updated = myPaymentMethods.filter(p => p.id !== pmId);
+    setMyPaymentMethods(updated);
+    localStorage.setItem('ama_comm_payment_methods', JSON.stringify(updated));
+
+    const uid = auth.currentUser?.uid || effectiveUserId;
+    if (auth.currentUser) {
+      try {
+        await updateDoc(doc(db, 'community_members', uid), {
+          sellerPaymentMethods: updated
+        });
+      } catch {}
+    }
+    fetch('/api/community/members', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: uid,
+        name: myDisplayName,
+        sellerPaymentMethods: updated
+      })
+    }).catch(() => {});
+  };
+
+  // KYC Verification Handler
+  const handleCompleteKyc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!kycLegalName.trim() || !kycLast4.trim()) return;
+    setIsSubmittingKyc(true);
+    setKycNotice('');
+
     try {
-      localStorage.setItem('ama_omugwo_bookings', JSON.stringify(updated));
-    } catch {}
-    setBookingSuccessMsg(`✅ Care request confirmed for ${caregiverItem.name}! Connection coordinates sent.`);
-    setTimeout(() => {
-      setSelectedCaregiverForBooking(null);
-      setBookingSuccessMsg('');
-    }, 3000);
+      const uid = auth.currentUser?.uid || effectiveUserId;
+      const kycData = {
+        idType: kycIdType,
+        idNumberLast4: kycLast4.trim().slice(0, 8),
+        legalName: kycLegalName.trim().slice(0, 80),
+        verifiedAt: new Date().toISOString()
+      };
+
+      setIsMyKycVerified(true);
+      localStorage.setItem('ama_comm_kyc_verified', 'true');
+
+      if (auth.currentUser) {
+        await updateDoc(doc(db, 'community_members', uid), {
+          isKycVerified: true,
+          kycData
+        });
+      }
+
+      await fetch('/api/community/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: uid,
+          name: myDisplayName,
+          phoneNumber: myPhoneNumber,
+          deviceId,
+          clientIp,
+          isKycVerified: true,
+          kycData
+        })
+      });
+
+      setKycNotice('KYC verification cleared! Verified Badge active, daily transaction limits lifted.');
+      setTimeout(() => {
+        setIsKycModalOpen(false);
+        setKycNotice('');
+      }, 1200);
+    } catch {
+      setIsMyKycVerified(true);
+      localStorage.setItem('ama_comm_kyc_verified', 'true');
+      setIsKycModalOpen(false);
+    } finally {
+      setIsSubmittingKyc(false);
+    }
+  };
+
+  // Lock Order Terms
+  const handleCreateLockedOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lockOrderTarget) return;
+    setLockOrderError('');
+    setIsLockingOrder(true);
+
+    try {
+      if (isLocallyBanned || marketplaceBans.some(b => (deviceId && b.targetDeviceId === deviceId) || b.targetUserId === effectiveUserId)) {
+        setLockOrderError('This device has been permanently banned from marketplace transactions for verified violations.');
+        return;
+      }
+
+      const userEmail = auth.currentUser?.email || localStorage.getItem('ama_comm_email') || '';
+      if (!userEmail) {
+        setLockOrderError('A verified email address is required to initiate marketplace orders. Please update your profile or sign in.');
+        return;
+      }
+
+      const amountNum = parseFloat(lockOrderAmount) || 0;
+      if (amountNum <= 0) {
+        setLockOrderError('Please enter a valid agreed price.');
+        return;
+      }
+
+      // Check unverified tier limits (max 3/day and <= £50 / ~$65 / ~₦95,000 equivalent)
+      if (!isMyKycVerified) {
+        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+        const myTodayOrders = marketplaceOrders.filter(
+          o => o.buyerId === effectiveUserId && new Date(o.createdAt).getTime() > oneDayAgo
+        );
+        if (myTodayOrders.length >= 3) {
+          setLockOrderError('Unverified Tier Limit: You may only initiate up to 3 transactions per day. Complete KYC verification for unlimited bookings.');
+          return;
+        }
+
+        const isOverLimit =
+          (lockOrderCurrency === 'GBP' && amountNum > 50) ||
+          (lockOrderCurrency === 'USD' && amountNum > 65) ||
+          (lockOrderCurrency === 'EUR' && amountNum > 60) ||
+          (lockOrderCurrency === 'NGN' && amountNum > 95000);
+
+        if (isOverLimit) {
+          setLockOrderError(`Unverified Tier Limit: Single transaction cannot exceed £50 equivalent (${lockOrderCurrency} ${amountNum}). Complete KYC verification to proceed.`);
+          return;
+        }
+      }
+
+      const providerMember = members.find(m => m.id === lockOrderTarget.ownerId);
+      const isProviderLevel2 = Boolean(
+        providerMember?.isKycVerified &&
+        ((providerMember?.completedInPersonDealsCount || 0) >= 5 || (providerMember?.providerLevel || 0) >= 2)
+      );
+
+      // Block remote shipping for unproven providers (Level 1)
+      if (lockOrderHandoverType === 'shipping' && !isProviderLevel2) {
+        setLockOrderError(
+          'Remote Shipping Blocked: This provider is Level 1 (Local Handover Only). Remote shipping requires KYC verification and 5+ completed in-person handovers.'
+        );
+        return;
+      }
+
+      let chosenPm: SellerPaymentMethod | undefined = providerMember?.sellerPaymentMethods?.find(p => p.id === lockOrderSelectedPmId);
+
+      if (!chosenPm && providerMember?.sellerPaymentMethods && providerMember.sellerPaymentMethods.length > 0) {
+        chosenPm = providerMember.sellerPaymentMethods[0];
+      }
+
+      if (!chosenPm) {
+        chosenPm = {
+          id: `pm-default-${Date.now()}`,
+          type: 'local_bank',
+          bankName: 'Provider Bank / Fintech on file',
+          accountName: lockOrderTarget.name,
+          accountNumber: 'Settle via confirmed details in chat',
+          createdAt: new Date().toISOString()
+        };
+      }
+
+      const randomDigits = Math.floor(1000 + Math.random() * 9000);
+      const orderCode = `ORD-${randomDigits}`;
+      const orderId = `order-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const now = new Date().toISOString();
+
+      const orderPayload: MarketplaceOrder = {
+        id: orderId,
+        orderCode,
+        listingId: lockOrderTarget.id,
+        itemTitle: lockOrderTarget.title,
+        category: lockOrderTarget.category,
+        itemKind: lockOrderTarget.listingKind || 'goods',
+        handoverType: lockOrderHandoverType,
+        sellerProviderLevel: isProviderLevel2 ? 2 : 1,
+        agreedAmount: amountNum,
+        currency: lockOrderCurrency,
+        isInternational: lockOrderIsIntl,
+        status: 'locked',
+
+        sellerId: lockOrderTarget.ownerId || 'provider-owner',
+        sellerName: lockOrderTarget.name,
+        sellerPhone: providerMember?.phoneNumber || '',
+        sellerEmail: providerMember?.email || '',
+        sellerDeviceId: providerMember?.deviceId || '',
+        sellerKycVerified: Boolean(providerMember?.isKycVerified),
+
+        buyerId: effectiveUserId,
+        buyerName: myDisplayName || parentName || 'Consumer',
+        buyerPhone: myPhoneNumber,
+        buyerEmail: userEmail,
+        buyerDeviceId: deviceId,
+        buyerKycVerified: isMyKycVerified,
+
+        lockedPaymentMethod: chosenPm,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'marketplace_orders', orderId), orderPayload);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, `marketplace_orders/${orderId}`);
+        }
+      }
+
+      const res = await fetch('/api/community/marketplace/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload)
+      });
+      const data = await res.json();
+      if (res.ok && data.order) {
+        setMarketplaceOrders(prev => [data.order, ...prev.filter(o => o.id !== data.order.id)]);
+        setLockOrderTarget(null);
+        setMarketplaceTypeFilter('orders');
+        setMarketplaceNotice(`Terms locked! Reference Code: ${orderCode}. Pay provider externally using this reference code, then submit transfer proof.`);
+      } else {
+        setLockOrderError(data.error || 'Failed to lock order terms.');
+      }
+    } catch (err: any) {
+      setLockOrderError(err.message || 'Error locking order.');
+    } finally {
+      setIsLockingOrder(false);
+    }
+  };
+
+  // Submit Structured Payment Proof
+  const handleSubmitPaymentProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrderForProof) return;
+    if (!proofTransactionId.trim()) {
+      setProofError('Official Transaction / Session ID is required to verify funds.');
+      return;
+    }
+
+    setIsSubmittingProof(true);
+    setProofError('');
+
+    try {
+      const now = new Date().toISOString();
+      const windowHours = selectedOrderForProof.isInternational ? 48 : 24;
+      const reviewDeadline = new Date(Date.now() + windowHours * 60 * 60 * 1000).toISOString();
+
+      const proofData = {
+        method: proofMethod,
+        amountPaid: parseFloat(proofAmount) || selectedOrderForProof.agreedAmount,
+        currency: selectedOrderForProof.currency,
+        paidTimestamp: now,
+        transactionId: proofTransactionId.trim(),
+        receiptProofUrl: proofReceiptDoc.trim() || undefined,
+        notes: proofNotes.trim() || undefined,
+        submittedAt: now
+      };
+
+      if (auth.currentUser) {
+        try {
+          await updateDoc(doc(db, 'marketplace_orders', selectedOrderForProof.id), {
+            status: 'proof_submitted',
+            paymentProof: proofData,
+            reviewDeadline,
+            updatedAt: now
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `marketplace_orders/${selectedOrderForProof.id}`);
+        }
+      }
+
+      const res = await fetch(`/api/community/marketplace/orders/${encodeURIComponent(selectedOrderForProof.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'submit_proof',
+          paymentProof: proofData
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.order) {
+        setMarketplaceOrders(prev => prev.map(o => (o.id === selectedOrderForProof.id ? data.order : o)));
+        setSelectedOrderForProof(null);
+        setProofTransactionId('');
+        setProofReceiptDoc('');
+        setProofNotes('');
+        setMarketplaceNotice(`Payment proof submitted! Provider has ${windowHours} hours to verify funds in their personal account.`);
+      } else {
+        setProofError(data.error || 'Failed to submit proof.');
+      }
+    } catch (err: any) {
+      setProofError(err.message || 'Error submitting proof.');
+    } finally {
+      setIsSubmittingProof(false);
+    }
+  };
+
+  // Provider Confirms Receipt
+  const handleConfirmPaymentReceived = async (order: MarketplaceOrder) => {
+    try {
+      const now = new Date().toISOString();
+      const isShipping = order.handoverType === 'shipping';
+      const newStatus = isShipping ? 'awaiting_dispatch' : 'completed';
+      const dispatchDeadline = isShipping ? new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString() : undefined;
+
+      if (auth.currentUser) {
+        try {
+          await updateDoc(doc(db, 'marketplace_orders', order.id), {
+            status: newStatus,
+            confirmedAt: now,
+            ...(dispatchDeadline ? { dispatchDeadline } : {}),
+            ...(newStatus === 'completed' ? { completedAt: now } : {}),
+            updatedAt: now
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `marketplace_orders/${order.id}`);
+        }
+      }
+
+      const res = await fetch(`/api/community/marketplace/orders/${encodeURIComponent(order.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'confirm_receipt' })
+      });
+      const data = await res.json();
+      if (res.ok && data.order) {
+        setMarketplaceOrders(prev => prev.map(o => (o.id === order.id ? data.order : o)));
+        if (isShipping) {
+          setMarketplaceNotice(`Payment confirmed for ${order.orderCode}! Provider must upload courier waybill & packed item photo within 48 hours.`);
+        } else {
+          setMarketplaceNotice(`Payment confirmed received for ${order.orderCode}! In-person handover completed successfully.`);
+        }
+      }
+    } catch (err: any) {
+      setMarketplaceNotice(`Error confirming receipt: ${err.message || 'Action failed'}`);
+    }
+  };
+
+  // Provider Uploads Courier Dispatch Proof (Mandatory sub-step for shipping deals)
+  const handleUploadShippingProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrderForShipping) return;
+    if (!shippingWaybillNumber.trim()) {
+      setShippingError('Trackable courier waybill or tracking number is required.');
+      return;
+    }
+
+    setIsSubmittingShipping(true);
+    setShippingError('');
+
+    try {
+      const now = new Date().toISOString();
+      const etaHoursNum = parseInt(shippingEtaHours, 10) || 72;
+      const deliveryEta = new Date(Date.now() + etaHoursNum * 60 * 60 * 1000).toISOString();
+
+      const proofObj = {
+        courierName: shippingCourierName,
+        waybillNumber: shippingWaybillNumber.trim(),
+        receiptDocUrl: shippingReceiptDoc.trim() || undefined,
+        packagePhotoUrl: shippingPackagePhoto.trim() || undefined,
+        notes: shippingNotes.trim() || undefined,
+        shippedAt: now
+      };
+
+      if (auth.currentUser) {
+        try {
+          await updateDoc(doc(db, 'marketplace_orders', selectedOrderForShipping.id), {
+            status: 'shipped',
+            shippingProof: proofObj,
+            shippedAt: now,
+            deliveryEta,
+            updatedAt: now
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `marketplace_orders/${selectedOrderForShipping.id}`);
+        }
+      }
+
+      const res = await fetch(`/api/community/marketplace/orders/${encodeURIComponent(selectedOrderForShipping.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'upload_shipping_proof',
+          shippingProof: proofObj,
+          deliveryEta
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.order) {
+        setMarketplaceOrders(prev => prev.map(o => (o.id === selectedOrderForShipping.id ? data.order : o)));
+        setSelectedOrderForShipping(null);
+        setShippingWaybillNumber('');
+        setShippingReceiptDoc('');
+        setShippingPackagePhoto('');
+        setShippingNotes('');
+        setMarketplaceNotice(`Courier dispatch proof uploaded! Package in transit with ${shippingCourierName} (Waybill: ${shippingWaybillNumber.trim()}).`);
+      } else {
+        setShippingError(data.error || 'Failed to upload shipping proof.');
+      }
+    } catch (err: any) {
+      setShippingError(err.message || 'Error uploading shipping proof.');
+    } finally {
+      setIsSubmittingShipping(false);
+    }
+  };
+
+  // Consumer Reports Non-Delivery (Mandatory evidence required)
+  const handleReportNonDelivery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrderForNonDelivery) return;
+    if (!nonDeliveryReason.trim()) {
+      setNonDeliveryError('Please describe the non-delivery reason.');
+      return;
+    }
+    if (!nonDeliveryEvidenceDoc.trim()) {
+      setNonDeliveryError('Mandatory Proof Required: Please attach an evidence link (courier tracking screenshot, cancellation slip, or unanswered chat screenshot).');
+      return;
+    }
+
+    setIsSubmittingNonDelivery(true);
+    setNonDeliveryError('');
+
+    try {
+      const now = new Date().toISOString();
+      const providerGraceDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+      const disputeEvidence = {
+        reason: nonDeliveryReason.trim(),
+        evidenceUrl: nonDeliveryEvidenceDoc.trim(),
+        notes: nonDeliveryNotes.trim() || undefined,
+        filedAt: now
+      };
+
+      if (auth.currentUser) {
+        try {
+          await updateDoc(doc(db, 'marketplace_orders', selectedOrderForNonDelivery.id), {
+            status: 'delivery_disputed',
+            deliveryDisputedAt: now,
+            deliveryDisputeEvidence: disputeEvidence,
+            providerGraceDeadline,
+            updatedAt: now
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `marketplace_orders/${selectedOrderForNonDelivery.id}`);
+        }
+      }
+
+      const res = await fetch(`/api/community/marketplace/orders/${encodeURIComponent(selectedOrderForNonDelivery.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'report_non_delivery',
+          deliveryDisputeEvidence: disputeEvidence
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.order) {
+        setMarketplaceOrders(prev => prev.map(o => (o.id === selectedOrderForNonDelivery.id ? data.order : o)));
+        setSelectedOrderForNonDelivery(null);
+        setNonDeliveryEvidenceDoc('');
+        setNonDeliveryNotes('');
+        setMarketplaceNotice('Non-delivery reported with evidence. Provider has 24 hours to upload courier delivery proof before storefront freeze.');
+      } else {
+        setNonDeliveryError(data.error || 'Failed to submit non-delivery report.');
+      }
+    } catch (err: any) {
+      setNonDeliveryError(err.message || 'Error reporting non-delivery.');
+    } finally {
+      setIsSubmittingNonDelivery(false);
+    }
+  };
+
+  // Provider 24-Hour Grace Window Response
+  const handleProviderGraceResponse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrderForGraceResponse) return;
+    if (!graceProofDoc.trim()) {
+      setGraceError('Official courier delivery proof / tracking slip document URL is required.');
+      return;
+    }
+
+    setIsSubmittingGraceResponse(true);
+    setGraceError('');
+
+    try {
+      const now = new Date().toISOString();
+      const autoCompleteDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
+      const responsePayload = {
+        responseType: graceResponseType,
+        proofUrl: graceProofDoc.trim(),
+        notes: graceNotes.trim() || undefined,
+        respondedAt: now
+      };
+
+      if (auth.currentUser) {
+        try {
+          await updateDoc(doc(db, 'marketplace_orders', selectedOrderForGraceResponse.id), {
+            status: 'courier_delivered_pending_consumer_review',
+            courierDeliveredAt: now,
+            providerDeliveryResponse: responsePayload,
+            autoCompleteDeadline,
+            updatedAt: now
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `marketplace_orders/${selectedOrderForGraceResponse.id}`);
+        }
+      }
+
+      const res = await fetch(`/api/community/marketplace/orders/${encodeURIComponent(selectedOrderForGraceResponse.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'provider_grace_response',
+          providerDeliveryResponse: responsePayload
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.order) {
+        setMarketplaceOrders(prev => prev.map(o => (o.id === selectedOrderForGraceResponse.id ? data.order : o)));
+        setSelectedOrderForGraceResponse(null);
+        setGraceProofDoc('');
+        setGraceNotes('');
+        setMarketplaceNotice('Delivery proof submitted! Consumer has 48 hours to confirm receipt or raise condition dispute before auto-completion.');
+      } else {
+        setGraceError(data.error || 'Failed to submit grace response.');
+      }
+    } catch (err: any) {
+      setGraceError(err.message || 'Error submitting grace response.');
+    } finally {
+      setIsSubmittingGraceResponse(false);
+    }
+  };
+
+  // Consumer Confirms Delivery Received
+  const handleConfirmDeliveryReceived = async (order: MarketplaceOrder) => {
+    try {
+      const now = new Date().toISOString();
+      if (auth.currentUser) {
+        try {
+          await updateDoc(doc(db, 'marketplace_orders', order.id), {
+            status: 'completed',
+            completedAt: now,
+            updatedAt: now
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `marketplace_orders/${order.id}`);
+        }
+      }
+
+      const res = await fetch(`/api/community/marketplace/orders/${encodeURIComponent(order.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'confirm_delivery_received' })
+      });
+      const data = await res.json();
+      if (res.ok && data.order) {
+        setMarketplaceOrders(prev => prev.map(o => (o.id === order.id ? data.order : o)));
+        setMarketplaceNotice(`Delivery confirmed received! Order ${order.orderCode} completed successfully.`);
+      }
+    } catch (err: any) {
+      setMarketplaceNotice(`Action failed: ${err.message || 'Could not confirm delivery'}`);
+    }
+  };
+
+  // Auto-Complete Delivery (48h Expired Override)
+  const handleAutoCompleteDelivery = async (order: MarketplaceOrder) => {
+    try {
+      const now = new Date().toISOString();
+      if (auth.currentUser) {
+        try {
+          await updateDoc(doc(db, 'marketplace_orders', order.id), {
+            status: 'completed',
+            completedAt: now,
+            updatedAt: now
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `marketplace_orders/${order.id}`);
+        }
+      }
+
+      const res = await fetch(`/api/community/marketplace/orders/${encodeURIComponent(order.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'auto_complete_delivery' })
+      });
+      const data = await res.json();
+      if (res.ok && data.order) {
+        setMarketplaceOrders(prev => prev.map(o => (o.id === order.id ? data.order : o)));
+        setMarketplaceNotice(`Order ${order.orderCode} auto-completed in Provider's favor after the 48-hour review window expired.`);
+      }
+    } catch (err: any) {
+      setMarketplaceNotice(`Action failed: ${err.message || 'Could not auto-complete'}`);
+    }
+  };
+
+  // Dispute Arbitration: Consumer Abuse Strikes vs Provider Default Freeze
+  const handleResolveDispute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrderForResolution) return;
+
+    setIsSubmittingResolution(true);
+    setResolutionError('');
+
+    try {
+      const now = new Date().toISOString();
+      const res = await fetch(`/api/community/marketplace/orders/${encodeURIComponent(selectedOrderForResolution.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'resolve_dispute',
+          resolution: resolutionType,
+          disputeNotes: resolutionNotes.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.order) {
+        setMarketplaceOrders(prev => prev.map(o => (o.id === selectedOrderForResolution.id ? data.order : o)));
+
+        // Sync local member states
+        if (resolutionType === 'consumer_false_claim') {
+          setMembers(prev =>
+            prev.map(m => {
+              if (m.id === selectedOrderForResolution.sellerId) {
+                return {
+                  ...m,
+                  isAccountFrozen: false,
+                  hasProviderProtectionBadge: true,
+                  completedInPersonDealsCount: (m.completedInPersonDealsCount || 0) + 1
+                };
+              }
+              if (m.id === selectedOrderForResolution.buyerId) {
+                const updatedStrikes = (m.disputeStrikes || 0) + 1;
+                return { ...m, disputeStrikes: updatedStrikes };
+              }
+              return m;
+            })
+          );
+          setMarketplaceNotice(
+            'Dispute resolved: Delivery verified authentic. Consumer penalized with dispute strike; Provider awarded Protected Provider Badge.'
+          );
+        } else {
+          setMembers(prev =>
+            prev.map(m => {
+              if (m.id === selectedOrderForResolution.sellerId) {
+                return { ...m, isAccountFrozen: true };
+              }
+              return m;
+            })
+          );
+          setMarketplaceNotice('Dispute resolved: Provider defaulted on delivery proof. Provider storefront frozen and listings hidden.');
+        }
+
+        setSelectedOrderForResolution(null);
+        setResolutionNotes('');
+      } else {
+        setResolutionError(data.error || 'Failed to resolve dispute.');
+      }
+    } catch (err: any) {
+      setResolutionError(err.message || 'Error resolving dispute.');
+    } finally {
+      setIsSubmittingResolution(false);
+    }
+  };
+
+  // Provider Denies Receipt with Mandatory Single-Day Statement Document
+  const handleDenyPaymentReceipt = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrderForDenial) return;
+    if (!denialStatementDoc.trim()) {
+      setDenialError('Uploading an official single-day bank/app statement showing no incoming transfer is mandatory.');
+      return;
+    }
+
+    setIsSubmittingDenial(true);
+    setDenialError('');
+
+    try {
+      const now = new Date().toISOString();
+      if (auth.currentUser) {
+        try {
+          await updateDoc(doc(db, 'marketplace_orders', selectedOrderForDenial.id), {
+            status: 'denied',
+            deniedAt: now,
+            denialReason: denialReasonText.trim(),
+            denialStatementUrl: denialStatementDoc.trim(),
+            updatedAt: now
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `marketplace_orders/${selectedOrderForDenial.id}`);
+        }
+      }
+
+      const res = await fetch(`/api/community/marketplace/orders/${encodeURIComponent(selectedOrderForDenial.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'deny_receipt',
+          denialReason: denialReasonText.trim(),
+          denialStatementUrl: denialStatementDoc.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.order) {
+        setMarketplaceOrders(prev => prev.map(o => (o.id === selectedOrderForDenial.id ? data.order : o)));
+        setSelectedOrderForDenial(null);
+        setDenialStatementDoc('');
+        setMarketplaceNotice('Receipt denied with official bank statement. Either party can download the Dispute Evidence Pack.');
+      } else {
+        setDenialError(data.error || 'Failed to record denial.');
+      }
+    } catch (err: any) {
+      setDenialError(err.message || 'Error recording denial.');
+    } finally {
+      setIsSubmittingDenial(false);
+    }
+  };
+
+  // Fraud Ban Action (Permanent account + Device ID block)
+  const handleBanFraudster = async (targetUserId: string, targetDeviceId: string, reason: string, orderId?: string) => {
+    const confirmed = window.confirm(
+      'Permanent Fraud Ban: This will permanently blacklist this user and their physical phone Device ID from all marketplace transactions. Proceed?'
+    );
+    if (!confirmed) return;
+
+    try {
+      const banRecord: MarketplaceBanRecord = {
+        id: `ban-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        targetUserId,
+        targetDeviceId,
+        reason,
+        evidenceOrderId: orderId,
+        bannedAt: new Date().toISOString(),
+        bannedBy: effectiveUserId
+      };
+
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'marketplace_bans', banRecord.id), banRecord);
+        } catch {}
+      }
+
+      await fetch('/api/community/marketplace/bans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(banRecord)
+      });
+
+      setMarketplaceBans(prev => [banRecord, ...prev]);
+
+      if (targetDeviceId === deviceId || targetUserId === effectiveUserId) {
+        markDeviceAsBanned(reason);
+        setIsLocallyBanned(true);
+      }
+
+      setMarketplaceNotice(`Fraud sanction applied: Account and device ${targetDeviceId.slice(0, 16)}... are permanently blocked.`);
+    } catch (err: any) {
+      setMarketplaceNotice(`Sanction error: ${err.message || 'Failed to file ban.'}`);
+    }
+  };
+
+  // Download PDF Dispute Evidence Pack
+  const handleDownloadDisputePack = (order: MarketplaceOrder) => {
+    const providerMember = members.find(m => m.id === order.sellerId);
+    const consumerMember = members.find(m => m.id === order.buyerId);
+
+    const relevantTranscript = chatMessages
+      .filter(m => m.senderId === order.buyerId || m.senderId === order.sellerId)
+      .map(m => ({
+        senderName: m.senderName,
+        senderRole: m.senderRole,
+        text: m.text,
+        timestamp: m.createdAt
+      }));
+
+    const pdfData: DisputePdfData = {
+      orderCode: order.orderCode,
+      orderId: order.id,
+      itemTitle: order.itemTitle,
+      category: order.category,
+      itemKind: order.itemKind,
+      handoverType: order.handoverType,
+      agreedAmount: order.agreedAmount,
+      currency: order.currency,
+      isInternational: order.isInternational,
+      orderCreatedAt: order.createdAt,
+      status: order.status,
+
+      sellerName: order.sellerName,
+      sellerPhone: order.sellerPhone || providerMember?.phoneNumber || 'Not Provided',
+      sellerEmail: order.sellerEmail || providerMember?.email || 'Not Provided',
+      sellerDeviceId: order.sellerDeviceId || providerMember?.deviceId || 'Unknown',
+      sellerKycVerified: order.sellerKycVerified,
+      sellerProviderLevel: order.sellerProviderLevel || providerMember?.providerLevel || 1,
+
+      buyerName: order.buyerName,
+      buyerPhone: order.buyerPhone || consumerMember?.phoneNumber || 'Not Provided',
+      buyerEmail: order.buyerEmail || consumerMember?.email || 'Not Provided',
+      buyerDeviceId: order.buyerDeviceId || consumerMember?.deviceId || 'Unknown',
+      buyerKycVerified: order.buyerKycVerified,
+
+      lockedPaymentMethod: order.lockedPaymentMethod,
+      paymentProof: order.paymentProof,
+      reviewDeadline: order.reviewDeadline,
+      confirmedAt: order.confirmedAt,
+      deniedAt: order.deniedAt,
+      denialReason: order.denialReason,
+      denialStatementUrl: order.denialStatementUrl,
+
+      shippingProof: order.shippingProof,
+      dispatchDeadline: order.dispatchDeadline,
+      shippedAt: order.shippedAt,
+      deliveryEta: order.deliveryEta,
+
+      deliveryDisputedAt: order.deliveryDisputedAt,
+      deliveryDisputeEvidence: order.deliveryDisputeEvidence,
+      providerGraceDeadline: order.providerGraceDeadline,
+      providerDeliveryResponse: order.providerDeliveryResponse,
+      courierDeliveredAt: order.courierDeliveredAt,
+      autoCompleteDeadline: order.autoCompleteDeadline,
+      completedAt: order.completedAt,
+      isProviderFrozen: order.isProviderFrozen || providerMember?.isAccountFrozen,
+      isConsumerStrikeApplied: order.isConsumerStrikeApplied,
+      providerProtectionAwarded: order.providerProtectionAwarded || providerMember?.hasProviderProtectionBadge,
+
+      chatTranscript: relevantTranscript
+    };
+
+    generateDisputeEvidencePdf(pdfData);
   };
 
   const isConnectedWith = (memberId: string) =>
@@ -1930,20 +3472,25 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         </div>
       )}
 
-      {/* TAB 4: CARE MARKETPLACE (OMUGWO CARE & FAMILY SERVICE ECOSYSTEM) */}
+      {/* TAB 4: CARE, GOODS & FREE GIFT MARKETPLACE */}
       {activeTab === 'omugwo' && (
         <div className="space-y-6">
           {/* Header */}
-          <div className="bg-gradient-to-r from-sky-900 to-sky-800 text-white rounded-[32px] p-6 sm:p-8 shadow-md relative overflow-hidden">
-            <div className="max-w-2xl space-y-2 relative z-10">
-              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-sky-400/20 text-sky-200 border border-sky-300/30 inline-block">
-                Comprehensive Childcare & Family Support Network
-              </span>
+          <div className="bg-gradient-to-br from-slate-900 via-sky-950 to-slate-900 text-white rounded-[32px] p-6 sm:p-8 shadow-md relative overflow-hidden">
+            <div className="max-w-3xl space-y-2.5 relative z-10">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-sky-400/20 text-sky-200 border border-sky-300/30">
+                  Village Care &amp; Goods Ecosystem
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-sky-100 border border-white/10">
+                  Verified Settlement &amp; Courier Cleared
+                </span>
+              </div>
               <h2 className="text-xl sm:text-2xl font-serif font-black text-sky-100">
-                Care & Family Service Marketplace
+                Care Services, Baby Goods &amp; Free Gifts Marketplace
               </h2>
-              <p className="text-xs sm:text-sm text-sky-100/90 leading-relaxed font-normal">
-                An open peer-to-peer and professional network connecting families with help across all childcare phases (from daily caregivers, night sitters, and doulas to financial planners, trust & estate advisors, career coaches, and postpartum mental health specialists). Anybody can register as a provider or post a care request!
+              <p className="text-xs sm:text-sm text-sky-100/85 leading-relaxed font-normal">
+                Discover local care providers, trade maternal &amp; baby goods, exchange free community gifts, and settle transactions safely with locked reference codes and trackable courier shipping.
               </p>
             </div>
             <div className="absolute right-4 bottom-2 text-7xl opacity-10 select-none pointer-events-none">
@@ -1951,9 +3498,243 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
             </div>
           </div>
 
-          {/* Category Filter & Action Bar */}
-          <div className="bg-white rounded-[32px] p-5 border border-gray-100 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          {/* Interactive Trust & Guidance Toolbar */}
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-gray-500 flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-sky-600" /> Trust &amp; Safety:
+              </span>
+              {[
+                { id: 'fraud', label: 'Anti-Fraud & Settlement Rules', icon: ShieldAlert },
+                { id: 'gifts', label: 'Free Gift Village Guide', icon: Gift },
+                { id: 'tiers', label: 'Provider Tiers (Level 1 vs Level 2 Courier)', icon: Truck }
+              ].map(item => {
+                const Icon = item.icon;
+                const isOpen = marketplaceSafetyTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setMarketplaceSafetyTab(isOpen ? 'none' : (item.id as any))}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                      isOpen
+                        ? 'bg-sky-900 text-white border-sky-900 shadow-2xs'
+                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isOpen ? 'text-sky-300' : 'text-gray-500'}`} />
+                    <span>{item.label}</span>
+                    <span className="text-[10px] font-black ml-0.5">{isOpen ? '▲' : '▼'}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Collapsible Guidance Drawer */}
+            <AnimatePresence>
+              {marketplaceSafetyTab !== 'none' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-4 sm:p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-3 text-xs text-slate-800 shadow-2xs relative">
+                    <button
+                      type="button"
+                      onClick={() => setMarketplaceSafetyTab('none')}
+                      className="absolute right-4 top-4 w-7 h-7 rounded-full bg-white text-gray-500 hover:text-gray-800 flex items-center justify-center border border-gray-200 cursor-pointer"
+                      title="Close guide"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+
+                    {marketplaceSafetyTab === 'fraud' && (
+                      <div className="space-y-2 pr-8">
+                        <div className="flex items-center gap-2">
+                          <ShieldAlert className="w-4 h-4 text-amber-600" />
+                          <h4 className="font-bold text-gray-900 text-sm">Anti-Fraud &amp; Zero-Tolerance Payment Rules</h4>
+                        </div>
+                        <p className="leading-relaxed text-gray-700">
+                          Never remit funds to unverified bank details sent in private chat or complete remote transactions without locking terms. Always lock agreed pricing into an official order (<strong className="text-gray-900 font-mono">ORD-XXXX</strong>) with attached immutable provider receiving details. Unverified consumers are limited to 3 daily orders below £50 equivalent. Submitting fake Transaction IDs or falsely claiming delivery failure triggers permanent device hardware ban.
+                        </p>
+                      </div>
+                    )}
+
+                    {marketplaceSafetyTab === 'gifts' && (
+                      <div className="space-y-2 pr-8">
+                        <div className="flex items-center gap-2">
+                          <Gift className="w-4 h-4 text-emerald-600" />
+                          <h4 className="font-bold text-gray-900 text-sm">Community Gift Exchange Guide</h4>
+                        </div>
+                        <p className="leading-relaxed text-gray-700">
+                          Community members can give or receive free baby gear, maternity supplies, and care support. Providers can mark listings as free gifts, and families can flag posted needs with &quot;Open to Free Gift&quot;. Claiming a gift enables direct chat to arrange local pickup or dispatch.
+                        </p>
+                      </div>
+                    )}
+
+                    {marketplaceSafetyTab === 'tiers' && (
+                      <div className="space-y-2 pr-8">
+                        <div className="flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-sky-700" />
+                          <h4 className="font-bold text-gray-900 text-sm">Provider Trust Tiers &amp; Remote Shipping Clearance</h4>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                          <div className="p-3 rounded-2xl bg-white border border-slate-200">
+                            <span className="font-black text-slate-900 text-xs block">Level 1 Provider (Local Handover Only)</span>
+                            <p className="text-[11px] text-slate-600 mt-1 leading-snug">
+                              New or unverified providers are restricted to in-person community handovers. Remote courier shipping is blocked until trust is established.
+                            </p>
+                          </div>
+                          <div className="p-3 rounded-2xl bg-white border border-sky-200">
+                            <span className="font-black text-sky-950 text-xs block">Level 2 Provider (Remote Shipping Cleared)</span>
+                            <p className="text-[11px] text-slate-600 mt-1 leading-snug">
+                              Unlocked after completing KYC verification and 5+ successful in-person handovers. Cleared to ship via trackable couriers (DHL, GIG Logistics, Royal Mail, FedEx, etc.) with 48h waybill upload enforcement.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* KYC Status & Provider Receiving Accounts Strip */}
+          <div className="bg-white rounded-3xl p-4 border border-gray-100 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2.5">
+              {isMyKycVerified ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100/90 text-emerald-900 font-black">
+                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                  <span>KYC Verified Badge Active • Unlimited Transactions</span>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3 py-1.5 rounded-full bg-amber-100 text-amber-900 font-bold flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Unverified Tier: Capped at 3 daily orders &lt; £50</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsKycModalOpen(true)}
+                    className="px-3 py-1 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-black uppercase text-[10px] tracking-wider border-none cursor-pointer"
+                  >
+                    Verify KYC (Get Badge)
+                  </button>
+                </div>
+              )}
+
+              {/* Provider Level indicator */}
+              {(() => {
+                const myMemberRec = members.find(m => m.id === effectiveUserId);
+                const isLevel2 = Boolean(
+                  isMyKycVerified &&
+                  ((myMemberRec?.completedInPersonDealsCount || 0) >= 5 || (myMemberRec?.providerLevel || 0) >= 2)
+                );
+                return (
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1 border ${
+                    isLevel2
+                      ? 'bg-sky-50 text-sky-900 border-sky-300'
+                      : 'bg-gray-100 text-gray-700 border-gray-200'
+                  }`}>
+                    <Truck className="w-3 h-3 text-sky-700" />
+                    <span>{isLevel2 ? 'Level 2: Remote Shipping Cleared' : 'Level 1: Local Handover Only'}</span>
+                  </span>
+                );
+              })()}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsPaymentMethodModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs flex items-center gap-1.5 border border-gray-200 cursor-pointer"
+              >
+                <CreditCard className="w-3.5 h-3.5 text-gray-600" />
+                <span>Provider Receiving Accounts ({myPaymentMethods.length}/5)</span>
+              </button>
+            </div>
+          </div>
+
+          {marketplaceNotice && (
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center justify-between gap-2">
+              <span>✓ {marketplaceNotice}</span>
+              <button
+                type="button"
+                onClick={() => setMarketplaceNotice('')}
+                className="text-emerald-700 bg-transparent border-none cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Type Filter, Category Filter & Action Bar */}
+          <div className="bg-white rounded-[32px] p-5 border border-gray-100 shadow-xs space-y-4">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: 'all', label: 'All Listings' },
+                  { id: 'services', label: 'Care Services' },
+                  { id: 'goods', label: 'Goods for Sale' },
+                  { id: 'needs', label: 'Posted Needs' },
+                  { id: 'gifts', label: 'Free Gifts' },
+                  {
+                    id: 'orders',
+                    label: `Locked Orders (${
+                      marketplaceOrders.filter(o => o.buyerId === effectiveUserId || o.sellerId === effectiveUserId).length
+                    })`
+                  }
+                ].map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setMarketplaceTypeFilter(t.id as any)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer border transition-all ${
+                      marketplaceTypeFilter === t.id
+                        ? 'bg-sky-700 text-white border-sky-700 shadow-2xs'
+                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProvListingKind('service');
+                    setProvOfferMode('paid');
+                    setProvCategory('Caregivers & Sitters');
+                    setProvRateInfo('$25/hr or Negotiable');
+                    setIsProviderRegisterModalOpen(true);
+                  }}
+                  className="px-3.5 py-2.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Post Service / Goods</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReqNeedKind('goods');
+                    setReqCategory('Baby Gear, Strollers & Nursery Goods');
+                    setReqAcceptsGift(true);
+                    setIsCareRequestModalOpen(true);
+                  }}
+                  className="px-3.5 py-2.5 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Post Need (Service / Goods)</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-1 border-t border-gray-100">
               <span className="text-xs font-black text-gray-500 uppercase tracking-wider shrink-0 flex items-center gap-1 pr-1">
                 <Filter className="w-3.5 h-3.5 text-gray-400" />
                 Category:
@@ -1961,10 +3742,11 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               {MARKETPLACE_CATEGORIES.map(cat => (
                 <button
                   key={cat}
+                  type="button"
                   onClick={() => setMarketplaceCategoryFilter(cat)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 cursor-pointer border transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold shrink-0 cursor-pointer border transition-all ${
                     marketplaceCategoryFilter === cat
-                      ? 'bg-sky-600 text-white border-sky-600 shadow-2xs'
+                      ? 'bg-gray-900 text-white border-gray-900'
                       : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                   }`}
                 >
@@ -1972,177 +3754,947 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 </button>
               ))}
             </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => setIsProviderRegisterModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Offer Services / Register</span>
-              </button>
-
-              <button
-                onClick={() => setIsCareRequestModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1"
-              >
-                <FileText className="w-4 h-4" />
-                <span>Post Care Need</span>
-              </button>
-            </div>
           </div>
 
-          {bookingSuccessMsg && (
-            <div className="px-4 py-3 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold animate-fadeIn">
-              {bookingSuccessMsg}
-            </div>
-          )}
-
-          {/* Active Family Care Requests */}
-          {marketplaceRequests.length > 0 && (
+          {/* Active Posted Needs (Services & Goods Needed) */}
+          {marketplaceTypeFilter !== 'services' && marketplaceTypeFilter !== 'goods' && marketplaceRequests.length > 0 && (
             <div className="bg-sky-50/70 border border-sky-200 rounded-[28px] p-5 space-y-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-sky-900 flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-sky-700" />
-                Active Family Care Needs & Open Requests ({marketplaceRequests.length})
+                Posted Community Needs (Goods &amp; Services Needed)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {marketplaceRequests.map(req => (
-                  <div key={req.id} className="bg-white rounded-2xl p-4 border border-sky-200 shadow-xs space-y-2 text-xs">
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="font-black text-gray-900">{req.title}</span>
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-sky-100 text-sky-900 shrink-0">
-                        {req.category}
-                      </span>
-                    </div>
-                    <p className="text-gray-700 leading-snug">{req.description}</p>
-                    <div className="text-[10px] text-gray-500 font-bold space-y-0.5 pt-1 border-t border-gray-100">
-                      <p>Family: {req.familyName} • Location: {req.location || 'Local'}</p>
-                      <p>Budget: {req.budget} • Schedule: {req.schedule}</p>
-                    </div>
-                    <button
-                      onClick={() => handleOpenDirectChat({ id: `req-${req.id}`, name: `${req.familyName} (Care Request)` })}
-                      className="w-full py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-[11px] border-none cursor-pointer"
-                    >
-                      Offer Help / Contact Family
-                    </button>
-                  </div>
-                ))}
+                {marketplaceRequests
+                  .filter(req => marketplaceCategoryFilter === 'All Listings' || req.category === marketplaceCategoryFilter)
+                  .filter(req => (marketplaceTypeFilter === 'gifts' ? req.acceptsGift !== false || req.fulfillmentStatus === 'Gifted' : true))
+                  .map(req => {
+                    const isGoodsNeed = req.needKind === 'goods' || GOODS_CATEGORIES.includes(req.category);
+                    const isGifted = req.fulfillmentStatus === 'Gifted';
+                    const isMyNeed = req.ownerId === effectiveUserId;
+
+                    return (
+                      <div key={req.id} className="bg-white rounded-2xl p-4 border border-sky-200 shadow-xs space-y-2.5 text-xs flex flex-col justify-between">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-1">
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${isGoodsNeed ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-sky-900'}`}>
+                                  {isGoodsNeed ? 'Goods Needed' : 'Service Needed'}
+                                </span>
+                                {isGifted ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-800">
+                                    ✓ Gifted by {req.giftedByName || 'Community Member'}
+                                  </span>
+                                ) : req.acceptsGift !== false && (
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    🎁 Open to Free Gift
+                                  </span>
+                                )}
+                              </div>
+                              <p className="font-black text-gray-900 leading-snug">{req.title}</p>
+                            </div>
+
+                            {isMyNeed && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteRequestListing(req.id)}
+                                className="p-1 rounded-lg text-gray-400 hover:text-red-600 bg-transparent border-none cursor-pointer shrink-0"
+                                title="Delete Need"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+
+                          <p className="text-gray-700 leading-snug">{req.description}</p>
+                          <div className="text-[10px] text-gray-500 font-bold space-y-0.5 pt-1 border-t border-gray-100">
+                            <p>Posted by: {req.familyName} • {req.category}</p>
+                            <p>Budget: {req.budget} • {req.schedule}{req.location ? ` • ${req.location}` : ''}</p>
+                          </div>
+                          {isGifted && req.giftNote && (
+                            <p className="text-[10px] bg-emerald-50 text-emerald-900 p-2 rounded-xl border border-emerald-200 font-medium">
+                              🎁 Gift Note: {req.giftNote}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDirectChat({ id: `req-${req.id}`, name: `${req.familyName} (Need)` })}
+                            className="flex-1 py-1.5 px-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-[11px] border-none cursor-pointer"
+                          >
+                            Chat / Offer
+                          </button>
+                          {!isGifted && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenGiftModal('give_to_need', { need: req })}
+                              className="py-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] border-none cursor-pointer flex items-center gap-1"
+                            >
+                              <Gift className="w-3 h-3" />
+                              <span>Give as Free Gift</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           )}
 
-          {/* Service Providers & Vetted Caregivers Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* User-registered Marketplace Providers */}
-            {marketplaceProviders
-              .filter(p => marketplaceCategoryFilter === 'All Services' || p.category === marketplaceCategoryFilter)
-              .map(prov => (
-                <div
-                  key={prov.id}
-                  className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm flex flex-col justify-between gap-5 transition-all hover:shadow-md"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-base sm:text-lg font-black text-gray-900">
-                          {prov.name}
-                        </h3>
-                        <p className="text-xs font-bold text-sky-800">
-                          {prov.title} • {prov.category}
-                        </p>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        {prov.rateInfo}
-                      </span>
-                    </div>
+          {/* Marketplace Listings Grid: Services, Goods for Sale, Free Gift Provisions & Vetted Caregivers */}
+          {marketplaceTypeFilter !== 'needs' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {marketplaceProviders
+                .filter(p => marketplaceCategoryFilter === 'All Listings' || p.category === marketplaceCategoryFilter)
+                .filter(p => {
+                  const provMember = members.find(m => m.id === p.ownerId);
+                  if (provMember?.isAccountFrozen && p.ownerId !== effectiveUserId) {
+                    return false;
+                  }
+                  const isGoods = p.listingKind === 'goods' || GOODS_CATEGORIES.includes(p.category);
+                  const isGift = p.offerMode === 'gift';
+                  if (marketplaceTypeFilter === 'services') return !isGoods;
+                  if (marketplaceTypeFilter === 'goods') return isGoods;
+                  if (marketplaceTypeFilter === 'gifts') return isGift;
+                  return true;
+                })
+                .map(prov => {
+                  const isGoods = prov.listingKind === 'goods' || GOODS_CATEGORIES.includes(prov.category);
+                  const isGift = prov.offerMode === 'gift';
+                  const isClaimed = isGift && prov.itemStatus === 'Claimed';
+                  const isMine = prov.ownerId === effectiveUserId;
+                  const provMember = members.find(m => m.id === prov.ownerId);
+                  const isProvLevel2 = Boolean(
+                    provMember?.isKycVerified &&
+                    ((provMember?.completedInPersonDealsCount || 0) >= 5 || (provMember?.providerLevel || 0) >= 2)
+                  );
+                  const isAccountFrozen = Boolean(provMember?.isAccountFrozen);
 
-                    <p className="text-xs text-gray-700 leading-relaxed font-medium">
-                      {prov.bio}
-                    </p>
-
-                    <div className="flex flex-wrap gap-2 text-[11px] text-gray-500 font-bold">
-                      <span>Experience: {prov.experienceYears} Years</span>
-                      <span>•</span>
-                      <span>Location: {prov.location}</span>
-                      <span>•</span>
-                      <span>Availability: {prov.availability}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
-                    <button
-                      onClick={() => setSelectedCaregiverForBooking(prov)}
-                      className="flex-1 py-2.5 rounded-2xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer"
+                  return (
+                    <div
+                      key={prov.id}
+                      className={`bg-white rounded-[32px] p-6 border shadow-sm flex flex-col justify-between gap-5 transition-all hover:shadow-md ${
+                        isAccountFrozen
+                          ? 'border-red-300 opacity-80'
+                          : isGift
+                          ? 'border-emerald-200'
+                          : 'border-gray-100'
+                      }`}
                     >
-                      Book / Request Service
-                    </button>
-                    <button
-                      onClick={() => handleOpenDirectChat(prov)}
-                      className="px-4 py-2.5 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold border-none cursor-pointer"
-                    >
-                      Chat
-                    </button>
-                  </div>
-                </div>
-              ))}
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase flex items-center gap-1 ${
+                                isGoods ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-sky-900'
+                              }`}>
+                                {isGoods ? <Package className="w-3 h-3" /> : <HeartHandshake className="w-3 h-3" />}
+                                <span>{isGoods ? 'Goods Listing' : 'Care Service'}</span>
+                              </span>
+                              {isGift && (
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                  isClaimed ? 'bg-gray-200 text-gray-700' : 'bg-emerald-600 text-white'
+                                }`}>
+                                  {isClaimed ? `Claimed by ${prov.claimedByName || 'Member'}` : '🎁 Free Gift'}
+                                </span>
+                              )}
+                            </div>
+                            <h3 className="text-base sm:text-lg font-black text-gray-900">
+                              {prov.title}
+                            </h3>
+                            <p className="text-xs font-bold text-sky-800">
+                              Provider: {prov.name} • {prov.category}
+                            </p>
+                          </div>
 
-            {/* Initial Vetted Caregivers */}
-            {INITIAL_VETTED_CAREGIVERS
-              .filter(c => {
-                if (marketplaceCategoryFilter === 'All Services') return true;
-                if (marketplaceCategoryFilter === 'Caregivers & Sitters' || marketplaceCategoryFilter === 'Doulas & Night Care') return true;
-                return false;
-              })
-              .map(caregiver => (
-                <div
-                  key={caregiver.id}
-                  className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm flex flex-col justify-between gap-5 transition-all hover:shadow-md"
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-base sm:text-lg font-black text-gray-900">
-                            {caregiver.name}
-                          </h3>
-                          <span className="text-xs text-gray-400 font-semibold">({caregiver.ageGroup})</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase border ${
+                              isGift
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : 'bg-sky-50 text-sky-800 border-sky-200'
+                            }`}>
+                              {isGift ? 'Free Gift' : prov.rateInfo}
+                            </span>
+                            {isMine && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteProviderListing(prov.id)}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 bg-transparent border-none cursor-pointer"
+                                title="Delete listing"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-xs font-bold text-sky-700 mt-0.5">
-                          {caregiver.title}
+
+                        <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                          {prov.bio}
                         </p>
+
+                        <div className="flex flex-wrap gap-2 text-[11px] text-gray-500 font-bold">
+                          {isGoods ? (
+                            <span>Condition: {prov.condition || 'Good'}</span>
+                          ) : (
+                            <span>Experience: {prov.experienceYears} Years</span>
+                          )}
+                          <span>•</span>
+                          <span>Location: {prov.location || 'Local'}</span>
+                          <span>•</span>
+                          <span>Availability: {prov.availability}</span>
+                        </div>
+
+                        <div className={`flex items-center justify-between text-xs font-bold px-3.5 py-2 rounded-2xl border ${
+                          isGift
+                            ? 'text-emerald-900 bg-emerald-50 border-emerald-200/80'
+                            : 'text-sky-900 bg-sky-50 border-sky-200/80'
+                        }`}>
+                          <span>{isGift ? 'Community Gift Status:' : 'Listed Price (Negotiate in Chat):'}</span>
+                          <span className="font-black">
+                            {isGift ? (isClaimed ? 'Claimed' : 'Available Free') : (prov.rateInfo || 'Negotiate directly')}
+                          </span>
+                        </div>
+
+                        {/* Provider Trust Badges */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          {provMember?.isKycVerified ? (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase flex items-center gap-1">
+                              <ShieldCheck className="w-3 h-3 text-emerald-700" />
+                              <span>KYC Verified Provider</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold">
+                              Unverified Tier
+                            </span>
+                          )}
+
+                          {isProvLevel2 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-black flex items-center gap-1">
+                              <Truck className="w-3 h-3 text-sky-700" />
+                              <span>Level 2: Trackable Courier Cleared</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+                              Level 1: Local Handover Only
+                            </span>
+                          )}
+
+                          {provMember?.hasProviderProtectionBadge && (
+                            <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-black uppercase flex items-center gap-1 border border-indigo-200">
+                              <Award className="w-3 h-3 text-indigo-700" />
+                              <span>Protected Provider</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {isAccountFrozen && (
+                          <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-1.5">
+                            <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+                            <span>Storefront Frozen: Non-delivery dispute resolution pending.</span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-1 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-200 shrink-0">
-                        <Star className="w-3.5 h-3.5 text-sky-500 fill-sky-500" />
-                        <span className="text-xs font-black text-sky-900">{caregiver.rating}</span>
-                        <span className="text-[10px] font-medium text-gray-500">({caregiver.reviewCount})</span>
+                      <div className="pt-3 border-t border-gray-100 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDirectChat(prov)}
+                          className="flex-1 py-2.5 px-3 rounded-2xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>{isGift ? 'Chat with Giver' : 'Chat to Negotiate'}</span>
+                        </button>
+
+                        {!isGift && (
+                          <button
+                            type="button"
+                            disabled={isAccountFrozen}
+                            onClick={() => {
+                              if (isAccountFrozen) return;
+                              setLockOrderTarget(prov);
+                              const match = prov.rateInfo.match(/\d+[\d,]*/);
+                              setLockOrderAmount(match ? match[0].replace(/,/g, '') : '');
+                              setLockOrderHandoverType(isProvLevel2 ? 'shipping' : 'in_person');
+                              if (provMember?.sellerPaymentMethods && provMember.sellerPaymentMethods.length > 0) {
+                                setLockOrderSelectedPmId(provMember.sellerPaymentMethods[0].id);
+                              }
+                            }}
+                            className="py-2.5 px-3.5 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Lock Order &amp; Pay</span>
+                          </button>
+                        )}
+
+                        {isGift && !isClaimed && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenGiftModal('receive_provision', { provision: prov })}
+                            className="py-2.5 px-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Gift className="w-3.5 h-3.5" />
+                            <span>Receive Free Gift</span>
+                          </button>
+                        )}
                       </div>
                     </div>
+                  );
+                })}
 
-                    <p className="text-xs text-gray-700 leading-relaxed font-medium">
-                      {caregiver.bio}
-                    </p>
-
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-600" /> Verified
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-800 border border-sky-200 flex items-center gap-1">
-                        <Check className="w-3 h-3 text-sky-600" /> Background Checked
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
-                    <button
-                      onClick={() => setSelectedCaregiverForBooking(caregiver)}
-                      className="flex-1 py-2.5 rounded-2xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer"
+              {(marketplaceTypeFilter === 'all' || marketplaceTypeFilter === 'services') &&
+                INITIAL_VETTED_CAREGIVERS
+                  .filter(c => {
+                    if (marketplaceCategoryFilter === 'All Listings') return true;
+                    if (marketplaceCategoryFilter === 'Caregivers & Sitters' || marketplaceCategoryFilter === 'Doulas & Night Care') return true;
+                    return false;
+                  })
+                  .map(caregiver => (
+                    <div
+                      key={caregiver.id}
+                      className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm flex flex-col justify-between gap-5 transition-all hover:shadow-md"
                     >
-                      Schedule Caregiver
-                    </button>
-                  </div>
-                </div>
-              ))}
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-base sm:text-lg font-black text-gray-900">
+                                {caregiver.name}
+                              </h3>
+                              <span className="text-xs text-gray-400 font-semibold">({caregiver.ageGroup})</span>
+                            </div>
+                            <p className="text-xs font-bold text-sky-700 mt-0.5">
+                              {caregiver.title}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-1 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-200 shrink-0">
+                            <Star className="w-3.5 h-3.5 text-sky-500 fill-sky-500" />
+                            <span className="text-xs font-black text-sky-900">{caregiver.rating}</span>
+                            <span className="text-[10px] font-medium text-gray-500">({caregiver.reviewCount})</span>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                          {caregiver.bio}
+                        </p>
+
+                        <div className="flex items-center justify-between text-xs font-bold text-sky-900 bg-sky-50 px-3.5 py-2 rounded-2xl border border-sky-200/80">
+                          <span>Listed Rate (Negotiable in Chat):</span>
+                          <span className="text-primary font-black">₦{caregiver.dailyRateNGN?.toLocaleString()} / Day</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDirectChat({ id: caregiver.id, name: caregiver.name })}
+                          className="flex-1 py-2.5 px-3 rounded-2xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>Chat to Negotiate</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+            </div>
+          )}
+
+          {/* Locked Orders & External Payment Verification Ledger */}
+          <div className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-sky-700 flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5" />
+                  Official Transaction &amp; Escrow Verification Ledger
+                </span>
+                <h3 className="text-base sm:text-lg font-serif font-black text-gray-900 mt-0.5">
+                  Locked Marketplace Orders &amp; Payment Verifications ({
+                    marketplaceOrders.filter(o => o.buyerId === effectiveUserId || o.sellerId === effectiveUserId).length
+                  })
+                </h3>
+                <p className="text-xs text-gray-600 font-medium leading-relaxed">
+                  Agreed terms with immutable external banking instructions, consumer transfer proof, trackable courier waybill verification, and official dispute evidence packs.
+                </p>
+              </div>
+            </div>
+
+            {marketplaceOrders.filter(o => o.buyerId === effectiveUserId || o.sellerId === effectiveUserId).length === 0 ? (
+              <div className="p-8 rounded-2xl bg-gray-50 border border-dashed border-gray-200 text-center space-y-2">
+                <Lock className="w-7 h-7 text-gray-400 mx-auto" />
+                <p className="text-xs font-bold text-gray-700">No locked orders recorded yet</p>
+                <p className="text-[11px] text-gray-500 max-w-md mx-auto leading-relaxed">
+                  When purchasing goods or hiring services, tap &quot;Lock Order &amp; Pay&quot; on any listing to freeze terms into an immutable reference code (<strong className="text-gray-700">ORD-XXXX</strong>) before sending external payments.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {marketplaceOrders
+                  .filter(o => o.buyerId === effectiveUserId || o.sellerId === effectiveUserId)
+                  .map(order => {
+                    const isConsumer = order.buyerId === effectiveUserId;
+                    const isProvider = order.sellerId === effectiveUserId;
+                    const pm = order.lockedPaymentMethod;
+                    const timer = getTimerRemaining(order.reviewDeadline, 'Verification Window Closed', 'left to verify');
+                    const graceTimer = getTimerRemaining(order.providerGraceDeadline, '24h Grace Window Closed (Freeze Active)', 'left in grace window');
+                    const reviewTimer = getTimerRemaining(order.autoCompleteDeadline, '48h Review Expired (Auto-Complete Ready)', 'left before auto-complete');
+                    const dispatchTimer = getTimerRemaining(order.dispatchDeadline, '48h Dispatch Deadline Expired', 'left to upload waybill');
+                    const copyKey = `order-pm-${order.id}`;
+                    const waybillCopyKey = `order-wb-${order.id}`;
+
+                    const providerMem = members.find(m => m.id === order.sellerId);
+                    const consumerMem = members.find(m => m.id === order.buyerId);
+
+                    return (
+                      <div
+                        key={order.id}
+                        className="p-5 sm:p-6 rounded-3xl bg-gray-50/70 border border-gray-200 space-y-4 text-xs transition-all hover:bg-gray-50"
+                      >
+                        {/* Order Top Bar */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-gray-200/80 pb-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono font-black text-xs sm:text-sm bg-gray-900 text-white px-2.5 py-1 rounded-xl">
+                              {order.orderCode}
+                            </span>
+                            <span className="font-bold text-gray-900 text-sm">
+                              {order.itemTitle}
+                            </span>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase px-2 py-0.5 rounded-full bg-gray-200/60">
+                              {order.category}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 ${
+                              order.handoverType === 'shipping'
+                                ? 'bg-sky-100 text-sky-800 border border-sky-300'
+                                : 'bg-slate-200 text-slate-800'
+                            }`}>
+                              {order.handoverType === 'shipping' ? <Truck className="w-3 h-3" /> : null}
+                              <span>{order.handoverType === 'shipping' ? 'Trackable Courier' : 'In-Person Handover'}</span>
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase border ${
+                              order.status === 'completed' || order.status === 'confirmed'
+                                ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                : order.status === 'delivery_disputed'
+                                ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                : order.status === 'courier_delivered_pending_consumer_review'
+                                ? 'bg-indigo-100 text-indigo-900 border-indigo-300'
+                                : order.status === 'shipped'
+                                ? 'bg-sky-100 text-sky-900 border-sky-300'
+                                : order.status === 'awaiting_dispatch'
+                                ? 'bg-orange-100 text-orange-900 border-orange-300'
+                                : order.status === 'denied'
+                                ? 'bg-red-100 text-red-900 border-red-300'
+                                : order.status === 'proof_submitted'
+                                ? 'bg-blue-100 text-blue-900 border-blue-300'
+                                : 'bg-gray-100 text-gray-900 border-gray-300'
+                            }`}>
+                              {order.status === 'completed' || order.status === 'confirmed'
+                                ? '✓ Completed'
+                                : order.status === 'delivery_disputed'
+                                ? '⚠️ Non-Delivery Reported'
+                                : order.status === 'courier_delivered_pending_consumer_review'
+                                ? '📬 Courier Delivered (Consumer Review)'
+                                : order.status === 'shipped'
+                                ? '🚚 Shipped / In Transit'
+                                : order.status === 'awaiting_dispatch'
+                                ? '📦 Awaiting Dispatch Proof (48h)'
+                                : order.status === 'denied'
+                                ? '⚠️ Receipt Denied'
+                                : order.status === 'proof_submitted'
+                                ? '⏳ Provider Verification Open'
+                                : '🔒 Locked / Awaiting Proof'}
+                            </span>
+                            <span className="font-black text-sm text-gray-900">
+                              {order.currency} {order.agreedAmount.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Registered Parties Info */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] bg-white p-3.5 rounded-2xl border border-gray-200/70">
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-gray-400 block">Provider / Recipient</span>
+                            <p className="font-black text-gray-900 flex items-center gap-1.5 flex-wrap">
+                              <span>{order.sellerName}</span>
+                              {order.sellerKycVerified && <span className="text-emerald-700 font-bold">✓ KYC Verified</span>}
+                              {providerMem?.hasProviderProtectionBadge && (
+                                <span className="text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded text-[10px] font-black flex items-center gap-0.5 border border-indigo-200">
+                                  <Award className="w-2.5 h-2.5" /> Protected Provider
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-gray-500">Phone: {order.sellerPhone || 'Registered in app'}</p>
+                            {order.sellerProviderLevel && (
+                              <p className="text-[10px] text-sky-800 font-bold">
+                                {order.sellerProviderLevel >= 2 ? 'Level 2: Remote Shipping Cleared' : 'Level 1: Local Handover'}
+                              </p>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-gray-400 block">Consumer / Remitter</span>
+                            <p className="font-black text-gray-900 flex items-center gap-1.5 flex-wrap">
+                              <span>{order.buyerName}</span>
+                              {order.buyerKycVerified && <span className="text-emerald-700 font-bold">✓ KYC Verified</span>}
+                              {(consumerMem?.disputeStrikes || 0) > 0 && (
+                                <span className="text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded text-[10px] font-black border border-amber-200">
+                                  ⚠️ Strike Count: {consumerMem?.disputeStrikes}
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-gray-500">Phone: {order.buyerPhone || 'Registered in app'}</p>
+                          </div>
+                        </div>
+
+                        {/* Immutably Locked Payment Instructions */}
+                        <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-3.5 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1">
+                              <Lock className="w-3 h-3 text-amber-700" />
+                              Locked Provider Receiving Account (Immutability Lock Active)
+                            </span>
+                            <span className="text-[10px] font-bold text-amber-800">
+                              {order.isInternational ? '48h International Settlement' : '24h Local Banking'}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                            <div className="space-y-0.5 text-xs text-amber-950 font-medium">
+                              {pm?.type === 'local_bank' ? (
+                                <>
+                                  <p><strong>Bank/Fintech:</strong> {pm.bankName || 'Local Bank'}</p>
+                                  <p><strong>Account Name:</strong> {pm.accountName || order.sellerName}</p>
+                                  <p className="font-mono text-sm font-black text-gray-900">
+                                    <strong>Account Number:</strong> {pm.accountNumber}
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <p><strong>App/Platform:</strong> {pm?.appName || 'P2P Platform'}</p>
+                                  <p><strong>Handle/Email/Phone:</strong> {pm?.handleOrEmail}</p>
+                                  {pm?.legalName && <p><strong>Legal Name &amp; Country:</strong> {pm.legalName} ({pm.country || 'International'})</p>}
+                                </>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleCopyText(
+                                  pm?.type === 'local_bank'
+                                    ? `${pm.bankName} - ${pm.accountNumber} (${pm.accountName})`
+                                    : `${pm?.appName}: ${pm?.handleOrEmail}`,
+                                  copyKey
+                                )}
+                                className="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-gray-800 font-bold text-xs border border-amber-300 flex items-center gap-1 cursor-pointer shadow-2xs"
+                              >
+                                {copiedKey === copyKey ? (
+                                  <>
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span className="text-emerald-700 font-bold">Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5 text-gray-500" />
+                                    <span>Copy Details</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {pm?.payUrl && (
+                                <a
+                                  href={pm.payUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1 no-underline shadow-2xs"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  <span>Open {pm.appName} to Pay</span>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Consumer Submitted Proof Details */}
+                        {order.paymentProof && (
+                          <div className="bg-white rounded-2xl p-3.5 border border-gray-200 space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2">
+                              <span className="text-[10px] font-black uppercase text-gray-500">
+                                Consumer Submitted Proof ({order.paymentProof.method})
+                              </span>
+                              {order.status === 'proof_submitted' && (
+                                <div className="flex items-center gap-1 text-[11px] font-black text-sky-800 bg-sky-50 px-2 py-0.5 rounded-md">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{timer.text}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                              <div>
+                                <span className="text-gray-500">Transaction / Session ID:</span>
+                                <p className="font-mono font-black text-xs text-gray-900 mt-0.5">
+                                  {order.paymentProof.transactionId}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Amount &amp; Timestamp:</span>
+                                <p className="font-bold text-gray-800">
+                                  {order.currency} {order.paymentProof.amountPaid} • {new Date(order.paymentProof.paidTimestamp).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+
+                            {order.paymentProof.receiptProofUrl && (
+                              <div className="pt-1 text-[11px] text-gray-600 flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <a
+                                  href={order.paymentProof.receiptProofUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sky-700 underline font-semibold"
+                                >
+                                  View Bank Payment Statement / Receipt
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Awaiting Dispatch (Mandatory 48-hour Provider Window) */}
+                        {order.status === 'awaiting_dispatch' && (
+                          <div className="p-3.5 rounded-2xl bg-orange-50 border border-orange-200 space-y-1.5 text-orange-950">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold flex items-center gap-1 text-orange-800">
+                                <Truck className="w-4 h-4 text-orange-600" />
+                                Mandatory 48-Hour Courier Dispatch Proof
+                              </span>
+                              <span className="text-[11px] font-black bg-orange-200/80 text-orange-950 px-2 py-0.5 rounded">
+                                {dispatchTimer.text}
+                              </span>
+                            </div>
+                            <p className="text-[11px] leading-relaxed">
+                              Provider confirmed funds! To complete dispatch, Provider must upload the official courier waybill tracking number, receipt, and package photo before deadline.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Courier Shipping Details (When Shipped or In Transit) */}
+                        {order.shippingProof && (
+                          <div className="bg-sky-50/70 border border-sky-200 rounded-2xl p-3.5 space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sky-200/60 pb-2">
+                              <span className="text-[10px] font-black uppercase text-sky-900 flex items-center gap-1">
+                                <Truck className="w-3.5 h-3.5 text-sky-700" />
+                                Courier Dispatch Confirmed ({order.shippingProof.courierName})
+                              </span>
+                              {order.deliveryEta && (
+                                <span className="text-[10px] font-bold text-sky-800 bg-white px-2 py-0.5 rounded border border-sky-200">
+                                  ETA: {new Date(order.deliveryEta).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                              <div>
+                                <span className="text-gray-500">Waybill / Tracking Number:</span>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="font-mono font-black text-xs text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-200">
+                                    {order.shippingProof.waybillNumber}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyText(order.shippingProof?.waybillNumber || '', waybillCopyKey)}
+                                    className="p-1 rounded bg-white hover:bg-gray-100 text-gray-600 border border-gray-200 cursor-pointer"
+                                    title="Copy Waybill"
+                                  >
+                                    {copiedKey === waybillCopyKey ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="space-y-1">
+                                {order.shippingProof.packagePhotoUrl && (
+                                  <p>
+                                    <a
+                                      href={order.shippingProof.packagePhotoUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sky-700 underline font-semibold flex items-center gap-1"
+                                    >
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                      <span>View Packed Item Photo</span>
+                                    </a>
+                                  </p>
+                                )}
+                                {order.shippingProof.receiptDocUrl && (
+                                  <p>
+                                    <a
+                                      href={order.shippingProof.receiptDocUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sky-700 underline font-semibold flex items-center gap-1"
+                                    >
+                                      <ExternalLink className="w-3 h-3 text-sky-600" />
+                                      <span>View Waybill Receipt Document</span>
+                                    </a>
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Non-Delivery Disputed & 24h Provider Grace Window */}
+                        {order.status === 'delivery_disputed' && (
+                          <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 space-y-2 text-amber-950">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 pb-2">
+                              <span className="font-black text-xs flex items-center gap-1 text-amber-800">
+                                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                                Non-Delivery Reported • 24-Hour Provider Grace Window Active
+                              </span>
+                              <span className="text-[11px] font-black bg-amber-200 text-amber-950 px-2 py-0.5 rounded">
+                                {graceTimer.text}
+                              </span>
+                            </div>
+
+                            <p className="text-[11px] leading-relaxed">
+                              Consumer reported non-delivery. Provider has 24 hours to upload verifiable courier tracking proof showing delivery before the storefront is automatically frozen.
+                            </p>
+
+                            {order.deliveryDisputeEvidence && (
+                              <div className="p-2.5 rounded-xl bg-white border border-amber-200 text-[11px] space-y-1">
+                                <p><strong>Consumer Reason:</strong> {order.deliveryDisputeEvidence.reason}</p>
+                                {order.deliveryDisputeEvidence.evidenceUrl && (
+                                  <p>
+                                    <a
+                                      href={order.deliveryDisputeEvidence.evidenceUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sky-700 underline font-semibold"
+                                    >
+                                      View Attached Evidence Document / Screenshot
+                                    </a>
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Courier Delivered / Pending Consumer Review (48h Window) */}
+                        {order.status === 'courier_delivered_pending_consumer_review' && (
+                          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 space-y-2 text-indigo-950">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-200 pb-2">
+                              <span className="font-black text-xs flex items-center gap-1 text-indigo-800">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                Delivery Proof Uploaded • 48-Hour Consumer Confirmation Window
+                              </span>
+                              <span className="text-[11px] font-black bg-indigo-200 text-indigo-950 px-2 py-0.5 rounded">
+                                {reviewTimer.text}
+                              </span>
+                            </div>
+
+                            <p className="text-[11px] leading-relaxed">
+                              Provider submitted delivery confirmation. Consumer has 48 hours to inspect package and confirm receipt or report condition discrepancy. If ignored, the system auto-completes the transaction.
+                            </p>
+
+                            {order.providerDeliveryResponse?.proofUrl && (
+                              <p className="text-[11px]">
+                                <a
+                                  href={order.providerDeliveryResponse.proofUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-indigo-800 underline font-bold"
+                                >
+                                  View Provider&apos;s Official Courier Delivery Slip
+                                </a>
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Denial Record If Denied */}
+                        {order.status === 'denied' && (
+                          <div className="bg-red-50 border border-red-200 rounded-2xl p-3.5 space-y-1 text-red-950">
+                            <p className="font-black text-xs flex items-center gap-1 text-red-700">
+                              <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+                              Official Denial Recorded by Provider
+                            </p>
+                            <p className="text-[11px] leading-relaxed">
+                              <strong>Denial Reason:</strong> {order.denialReason || 'Statement uploaded showing no incoming transfer on record.'}
+                            </p>
+                            {order.denialStatementUrl && (
+                              <p className="text-[10px] text-red-800 pt-0.5">
+                                Single-day official bank/app statement has been uploaded for fraud inspection.
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Order Action Buttons */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-200/80">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* Consumer action: Submit Proof */}
+                            {isConsumer && order.status === 'locked' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderForProof(order);
+                                  setProofAmount(String(order.agreedAmount));
+                                  setProofMethod(pm?.type === 'local_bank' ? 'Bank Transfer' : (pm?.appName || 'P2P App'));
+                                }}
+                                className="px-4 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-black text-xs uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Submit Payment Proof</span>
+                              </button>
+                            )}
+
+                            {/* Consumer action: Confirm Delivery Received or Report Non-Delivery */}
+                            {isConsumer && (order.status === 'shipped' || order.status === 'courier_delivered_pending_consumer_review') && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleConfirmDeliveryReceived(order)}
+                                  className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Confirm Delivery Received</span>
+                                </button>
+
+                                {order.status === 'shipped' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedOrderForNonDelivery(order)}
+                                    className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                                  >
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    <span>Report Non-Delivery</span>
+                                  </button>
+                                )}
+                              </>
+                            )}
+
+                            {/* Provider actions: Confirm or Deny Funds */}
+                            {isProvider && order.status === 'proof_submitted' && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleConfirmPaymentReceived(order)}
+                                  className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Confirm Funds Received</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedOrderForDenial(order)}
+                                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                                >
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                  <span>Deny Receipt (Attach Statement)</span>
+                                </button>
+                              </>
+                            )}
+
+                            {/* Provider action: Upload Shipping Proof */}
+                            {isProvider && order.status === 'awaiting_dispatch' && (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedOrderForShipping(order)}
+                                className="px-4 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-black text-xs uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                              >
+                                <Truck className="w-3.5 h-3.5" />
+                                <span>Upload Courier Dispatch Proof</span>
+                              </button>
+                            )}
+
+                            {/* Provider action: 24h Grace Response */}
+                            {isProvider && order.status === 'delivery_disputed' && (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedOrderForGraceResponse(order)}
+                                className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Submit Delivery Proof (Grace Window)</span>
+                              </button>
+                            )}
+
+                            {/* Auto-Complete Override (48h Expired) */}
+                            {order.status === 'courier_delivered_pending_consumer_review' && reviewTimer.isExpired && (
+                              <button
+                                type="button"
+                                onClick={() => handleAutoCompleteDelivery(order)}
+                                className="px-3.5 py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-black text-xs uppercase tracking-wider border-none cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Auto-Complete Order (48h Expired)</span>
+                              </button>
+                            )}
+
+                            {/* Dispute Arbitration / Strike resolution */}
+                            {(order.status === 'delivery_disputed' ||
+                              order.status === 'courier_delivered_pending_consumer_review' ||
+                              order.status === 'denied') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderForResolution(order);
+                                  setResolutionType('consumer_false_claim');
+                                  setResolutionNotes('');
+                                }}
+                                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs flex items-center gap-1 border-none cursor-pointer shadow-2xs"
+                              >
+                                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                                <span>Dispute Arbitration / Strikes</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 ml-auto">
+                            {/* Download PDF Dispute Evidence Pack */}
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadDisputePack(order)}
+                              className="px-3.5 py-2 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs flex items-center gap-1.5 border-none cursor-pointer shadow-2xs"
+                              title="Download official dispute evidence pack"
+                            >
+                              <FileDown className="w-3.5 h-3.5 text-sky-400" />
+                              <span>Download Dispute Evidence Pack (PDF)</span>
+                            </button>
+
+                            {/* Fraud Report & Ban */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const targetId = isConsumer ? order.sellerId : order.buyerId;
+                                const targetDevId = isConsumer ? (order.sellerDeviceId || 'unknown-device') : (order.buyerDeviceId || 'unknown-device');
+                                const roleText = isConsumer ? 'Provider' : 'Consumer';
+                                handleBanFraudster(
+                                  targetId,
+                                  targetDevId,
+                                  `Verified fraud claim in order ${order.orderCode} by ${roleText}`,
+                                  order.id
+                                );
+                              }}
+                              className="p-2 rounded-xl text-red-600 hover:bg-red-100 bg-red-50 border border-red-200 cursor-pointer"
+                              title="Report verified fraud and black-list phone device hardware"
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2271,7 +4823,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         )}
       </AnimatePresence>
 
-      {/* MODAL: Offer Services / Register as Marketplace Provider */}
+      {/* MODAL: Post Service, Goods for Sale, or Free Gift Provision */}
       <AnimatePresence>
         {isProviderRegisterModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
@@ -2284,10 +4836,10 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-widest text-sky-700">
-                    Care Marketplace Provider
+                    Care, Goods &amp; Free Gift Marketplace
                   </span>
                   <h2 className="text-xl font-serif font-black text-gray-900">
-                    Register as a Service Provider
+                    Post Service, Goods for Sale, or Free Gift
                   </h2>
                 </div>
                 <button
@@ -2298,27 +4850,66 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 </button>
               </div>
 
+              {specialistError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold">
+                  {specialistError}
+                </div>
+              )}
+
               <form onSubmit={handleRegisterProvider} className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProvListingKind('service');
+                      if (GOODS_CATEGORIES.includes(provCategory)) {
+                        setProvCategory('Caregivers & Sitters');
+                      }
+                    }}
+                    className={`py-2 px-3 rounded-xl font-bold border cursor-pointer ${
+                      provListingKind === 'service' ? 'bg-sky-700 text-white border-sky-700' : 'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}
+                  >
+                    Care / Service
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProvListingKind('goods');
+                      if (!GOODS_CATEGORIES.includes(provCategory)) {
+                        setProvCategory(GOODS_CATEGORIES[0]);
+                      }
+                    }}
+                    className={`py-2 px-3 rounded-xl font-bold border cursor-pointer ${
+                      provListingKind === 'goods' ? 'bg-amber-600 text-white border-amber-600' : 'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}
+                  >
+                    Baby / Family Goods
+                  </button>
+                </div>
+
                 <div>
-                  <label className="font-bold text-gray-700 block mb-1">Your Name / Organization *</label>
+                  <label className="font-bold text-gray-700 block mb-1">Your Name / Shop Name *</label>
                   <input
                     type="text"
                     required
                     value={provName}
                     onChange={e => setProvName(e.target.value)}
-                    placeholder="e.g. Mary Okon / Bloom Financial Advisors"
+                    placeholder="e.g. Mary Okon / Chidinma Mom Circle"
                     className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-gray-700 block mb-1">Service Title *</label>
+                  <label className="font-bold text-gray-700 block mb-1">
+                    {provListingKind === 'goods' ? 'Item Name / Title *' : 'Service Title *'}
+                  </label>
                   <input
                     type="text"
                     required
                     value={provTitle}
                     onChange={e => setProvTitle(e.target.value)}
-                    placeholder="e.g. Postpartum Doula & Night Caregiver / Estate & Family Trust Planner"
+                    placeholder={provListingKind === 'goods' ? 'e.g. Graco Stroller + Infant Car Seat / Newborn Clothes Pack' : 'e.g. Postpartum Doula & Night Caregiver'}
                     className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
                   />
                 </div>
@@ -2330,41 +4921,100 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     onChange={e => setProvCategory(e.target.value)}
                     className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
                   >
-                    {MARKETPLACE_CATEGORIES.filter(c => c !== 'All Services').map(c => (
+                    {(provListingKind === 'goods' ? GOODS_CATEGORIES : SERVICE_CATEGORIES).map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
+                  {provListingKind === 'goods' ? (
+                    <div>
+                      <label className="font-bold text-gray-700 block mb-1">Item Condition</label>
+                      <select
+                        value={provCondition}
+                        onChange={e => setProvCondition(e.target.value)}
+                        className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                      >
+                        <option value="Brand New">Brand New</option>
+                        <option value="Gently Used">Gently Used</option>
+                        <option value="Pre-loved / Clean">Pre-loved / Clean</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="font-bold text-gray-700 block mb-1">Years of Experience</label>
+                      <input
+                        type="number"
+                        value={provExpYears}
+                        onChange={e => setProvExpYears(e.target.value)}
+                        className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
+                      />
+                    </div>
+                  )}
                   <div>
-                    <label className="font-bold text-gray-700 block mb-1">Years of Experience</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold text-gray-700 text-xs">
+                        {provOfferMode === 'gift' ? 'Offer Type' : 'Asking Price / Rate'}
+                      </label>
+                      <label className="inline-flex items-center gap-1 cursor-pointer text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 hover:bg-emerald-100 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={provOfferMode === 'gift'}
+                          onChange={e => {
+                            const isGift = e.target.checked;
+                            setProvOfferMode(isGift ? 'gift' : 'paid');
+                            if (isGift) {
+                              setProvRateInfo('Free Gift (No Cost)');
+                            } else {
+                              setProvRateInfo('Negotiable in Chat');
+                            }
+                          }}
+                          className="rounded text-emerald-600 focus:ring-0 cursor-pointer w-3 h-3"
+                        />
+                        <span>🎁 Free Gift</span>
+                      </label>
+                    </div>
                     <input
-                      type="number"
-                      value={provExpYears}
-                      onChange={e => setProvExpYears(e.target.value)}
+                      type="text"
+                      value={provOfferMode === 'gift' ? 'Free Gift (No Cost)' : provRateInfo}
+                      disabled={provOfferMode === 'gift'}
+                      onChange={e => setProvRateInfo(e.target.value)}
+                      placeholder="e.g. ₦35,000 or $25/hr (Negotiable)"
+                      className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold disabled:opacity-75 disabled:bg-emerald-50/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">City / Location</label>
+                    <input
+                      type="text"
+                      value={provLocation}
+                      onChange={e => setProvLocation(e.target.value)}
                       className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
                     />
                   </div>
                   <div>
-                    <label className="font-bold text-gray-700 block mb-1">Rate / Fee Structure</label>
+                    <label className="font-bold text-gray-700 block mb-1">Pickup / Schedule Availability</label>
                     <input
                       type="text"
-                      value={provRateInfo}
-                      onChange={e => setProvRateInfo(e.target.value)}
-                      placeholder="e.g. $25/hr or NGN rates"
+                      value={provAvailability}
+                      onChange={e => setProvAvailability(e.target.value)}
                       className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="font-bold text-gray-700 block mb-1">Services & Bio Description</label>
+                  <label className="font-bold text-gray-700 block mb-1">Description *</label>
                   <textarea
                     rows={3}
+                    required
                     value={provBio}
                     onChange={e => setProvBio(e.target.value)}
-                    placeholder="Describe what services you offer to families..."
+                    placeholder={provListingKind === 'goods' ? 'Describe item details, age range, size, or pickup instructions...' : 'Describe the service you offer to families...'}
                     className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium resize-none"
                   />
                 </div>
@@ -2380,9 +5030,11 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmittingProvider}
-                    className="px-5 py-2 rounded-xl bg-sky-700 text-white font-black uppercase border-none cursor-pointer shadow-md"
+                    className={`px-5 py-2 rounded-xl text-white font-black uppercase border-none cursor-pointer shadow-md ${
+                      provOfferMode === 'gift' ? 'bg-emerald-600' : 'bg-sky-700'
+                    }`}
                   >
-                    {isSubmittingProvider ? 'Publishing...' : 'List Provider Service'}
+                    {isSubmittingProvider ? 'Publishing...' : provOfferMode === 'gift' ? 'Publish Free Gift' : 'Publish Listing'}
                   </button>
                 </div>
               </form>
@@ -2391,7 +5043,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         )}
       </AnimatePresence>
 
-      {/* MODAL: Post a Care Request / Need Help */}
+      {/* MODAL: Post a Service or Goods Need */}
       <AnimatePresence>
         {isCareRequestModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
@@ -2404,10 +5056,10 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-widest text-sky-700">
-                    Family Care Request
+                    Community Need Request
                   </span>
                   <h2 className="text-xl font-serif font-black text-gray-900">
-                    Post a Family Need or Care Request
+                    Post Goods or Service You Need
                   </h2>
                 </div>
                 <button
@@ -2418,9 +5070,46 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 </button>
               </div>
 
+              {specialistError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold">
+                  {specialistError}
+                </div>
+              )}
+
               <form onSubmit={handlePostCareRequest} className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReqNeedKind('goods');
+                      if (!GOODS_CATEGORIES.includes(reqCategory)) {
+                        setReqCategory(GOODS_CATEGORIES[0]);
+                      }
+                    }}
+                    className={`py-2 px-3 rounded-xl font-bold border cursor-pointer ${
+                      reqNeedKind === 'goods' ? 'bg-amber-600 text-white border-amber-600' : 'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}
+                  >
+                    Goods Needed
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReqNeedKind('service');
+                      if (GOODS_CATEGORIES.includes(reqCategory)) {
+                        setReqCategory('Caregivers & Sitters');
+                      }
+                    }}
+                    className={`py-2 px-3 rounded-xl font-bold border cursor-pointer ${
+                      reqNeedKind === 'service' ? 'bg-sky-700 text-white border-sky-700' : 'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}
+                  >
+                    Service Needed
+                  </button>
+                </div>
+
                 <div>
-                  <label className="font-bold text-gray-700 block mb-1">Family Name *</label>
+                  <label className="font-bold text-gray-700 block mb-1">Your / Family Name *</label>
                   <input
                     type="text"
                     required
@@ -2437,32 +5126,32 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     onChange={e => setReqCategory(e.target.value)}
                     className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
                   >
-                    {MARKETPLACE_CATEGORIES.filter(c => c !== 'All Services').map(c => (
+                    {(reqNeedKind === 'goods' ? GOODS_CATEGORIES : SERVICE_CATEGORIES).map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="font-bold text-gray-700 block mb-1">Request Title *</label>
+                  <label className="font-bold text-gray-700 block mb-1">Need Title *</label>
                   <input
                     type="text"
                     required
                     value={reqTitle}
                     onChange={e => setReqTitle(e.target.value)}
-                    placeholder="e.g. Seeking Night Nanny for 2 weeks / Need Family Trust Attorney"
+                    placeholder={reqNeedKind === 'goods' ? 'e.g. Need Newborn Crib, Breast Pump, or Size 1 Diapers' : 'e.g. Seeking Night Nanny for 2 weeks'}
                     className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-gray-700 block mb-1">Description & Requirements *</label>
+                  <label className="font-bold text-gray-700 block mb-1">Description &amp; Requirements *</label>
                   <textarea
                     rows={3}
                     required
                     value={reqDescription}
                     onChange={e => setReqDescription(e.target.value)}
-                    placeholder="Describe what help you need and when..."
+                    placeholder="Describe the item or help you need and your timing..."
                     className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium resize-none"
                   />
                 </div>
@@ -2488,6 +5177,15 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   </div>
                 </div>
 
+                <label className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={reqAcceptsGift}
+                    onChange={e => setReqAcceptsGift(e.target.checked)}
+                  />
+                  <span>Open to receiving this good or service as a Free Gift from a community member</span>
+                </label>
+
                 <div className="flex justify-end gap-2 pt-2">
                   <button
                     type="button"
@@ -2501,7 +5199,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     disabled={isSubmittingRequest}
                     className="px-5 py-2 rounded-xl bg-gray-900 text-white font-black uppercase border-none cursor-pointer shadow-md"
                   >
-                    {isSubmittingRequest ? 'Posting...' : 'Publish Care Need'}
+                    {isSubmittingRequest ? 'Posting...' : 'Publish Need'}
                   </button>
                 </div>
               </form>
@@ -2510,91 +5208,90 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         )}
       </AnimatePresence>
 
-      {/* MODAL: Book / Request Caregiver Modal */}
+      {/* MODAL: Give Free Gift onto a Posted Need OR Receive a Free Gift Provision */}
       <AnimatePresence>
-        {selectedCaregiverForBooking && (
+        {giftModalContext && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full space-y-5 border border-gray-100 shadow-2xl text-left"
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-5 border border-emerald-200 shadow-2xl text-left"
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-sky-700">
-                    Care Request Form
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                    Free Goods &amp; Services Gift Exchange
                   </span>
                   <h3 className="text-xl font-serif font-black text-gray-900 mt-0.5">
-                    Schedule {selectedCaregiverForBooking.name}
+                    {giftModalContext.mode === 'give_to_need'
+                      ? `Give Free Gift to ${giftModalContext.targetNeed?.familyName}`
+                      : `Receive Free Gift from ${giftModalContext.targetProvision?.name}`}
                   </h3>
-                  <p className="text-xs text-gray-500 font-medium">
-                    {selectedCaregiverForBooking.title} • {selectedCaregiverForBooking.location || userLocation}
+                  <p className="text-xs text-gray-500 font-medium mt-0.5">
+                    {giftModalContext.targetNeed?.title || giftModalContext.targetProvision?.title}
                   </p>
                 </div>
                 <button
-                  onClick={() => setSelectedCaregiverForBooking(null)}
+                  type="button"
+                  onClick={() => setGiftModalContext(null)}
                   className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 border-none cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={e => { e.preventDefault(); handleBookCaregiver(selectedCaregiverForBooking); }} className="space-y-4 text-xs">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Select Schedule Type
-                  </label>
-                  <select
-                    value={bookingScheduleType}
-                    onChange={e => setBookingScheduleType(e.target.value as any)}
-                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-sky-600"
-                  >
-                    <option value="Daily">Daily Support</option>
-                    <option value="Weekend">Weekend Support</option>
-                    <option value="Live-In">Live-In Support (1 to 4 Weeks)</option>
-                    <option value="Nurse/Paediatrician Consultation">Consultation & Planning</option>
-                  </select>
+              {giftError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold">
+                  {giftError}
                 </div>
+              )}
 
+              <form onSubmit={handleSubmitGiftAction} className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Preferred Start Date
-                  </label>
+                  <label className="block font-bold text-gray-700 mb-1">Your Display Name *</label>
                   <input
-                    type="date"
-                    value={bookingDate}
-                    onChange={e => setBookingDate(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-sky-600"
+                    type="text"
+                    required
+                    value={giftActorName}
+                    onChange={e => setGiftActorName(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 font-semibold text-gray-800 outline-none focus:border-emerald-600"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Care Notes & Special Instructions
+                  <label className="block font-bold text-gray-700 mb-1">
+                    {giftModalContext.mode === 'give_to_need'
+                      ? 'Message about the free good or service you are gifting *'
+                      : 'Pickup / Delivery / Gratitude Note *'}
                   </label>
                   <textarea
                     rows={3}
-                    value={bookingDietNotes}
-                    onChange={e => setBookingDietNotes(e.target.value)}
-                    placeholder="Specific instructions or requirements for your family..."
-                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-medium text-gray-800 outline-none focus:border-sky-600 resize-none"
+                    required
+                    value={giftNoteInput}
+                    onChange={e => setGiftNoteInput(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 font-medium text-gray-800 outline-none focus:border-emerald-600 resize-none"
                   />
                 </div>
 
                 <div className="flex items-center gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedCaregiverForBooking(null)}
+                    onClick={() => setGiftModalContext(null)}
                     className="flex-1 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold border-none cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 rounded-2xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer shadow-md"
+                    disabled={isSubmittingGift}
+                    className="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
                   >
-                    Confirm Request
+                    {isSubmittingGift
+                      ? 'Confirming...'
+                      : giftModalContext.mode === 'give_to_need'
+                      ? 'Confirm Free Gift'
+                      : 'Claim Free Gift'}
                   </button>
                 </div>
               </form>
@@ -2611,7 +5308,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full border border-gray-100 shadow-2xl space-y-5 text-left"
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-gray-100 shadow-2xl space-y-5 text-left"
             >
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div>
@@ -2619,7 +5316,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     Peer Network Profile
                   </span>
                   <h2 className="text-xl font-serif font-black text-gray-900">
-                    Your Parent & Provider Profile
+                    Your Parent &amp; Provider Profile
                   </h2>
                 </div>
                 <button
@@ -2628,6 +5325,42 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 >
                   <X className="w-4 h-4" />
                 </button>
+              </div>
+
+              {/* Identity & Device Trust Status Bar */}
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-gray-500">
+                    Identity Status
+                  </span>
+                  {isMyKycVerified ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                      <ShieldCheck className="w-3.5 h-3.5" /> KYC Verified Badge
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                        Unverified Tier (Max £50/order, 3/day)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileModalOpen(false);
+                          setIsKycModalOpen(true);
+                        }}
+                        className="text-[10px] font-black text-white bg-amber-700 hover:bg-amber-800 px-2 py-0.5 rounded-lg border-none cursor-pointer"
+                      >
+                        Verify Now
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-gray-500 font-medium pt-1 border-t border-gray-200/70">
+                  <span>Hardware Device Fingerprint:</span>
+                  <code className="font-mono text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
+                    {deviceId ? `${deviceId.slice(0, 16)}...` : 'Detecting...'}
+                  </code>
+                </div>
               </div>
 
               <form onSubmit={handleSaveMemberProfile} className="space-y-4 text-xs">
@@ -2642,6 +5375,23 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     onChange={e => setMyDisplayName(e.target.value)}
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold text-gray-900"
                   />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
+                    Phone Number (Required for Marketplace Orders) *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={myPhoneNumber}
+                    onChange={e => setMyPhoneNumber(e.target.value)}
+                    placeholder="+44 7123 456789 or +234 801 234 5678"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-gray-900"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    Used to securely bind and lock order receipts. Never shared publicly on forums.
+                  </p>
                 </div>
 
                 <div>
@@ -2676,7 +5426,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
 
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
-                    Short Bio & How You Connect
+                    Short Bio &amp; How You Connect
                   </label>
                   <textarea
                     rows={3}
@@ -2707,6 +5457,1528 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     className="px-6 py-2.5 rounded-2xl bg-emerald-600 text-white text-xs font-black uppercase tracking-wider shadow-md border-none cursor-pointer"
                   >
                     {isSavingProfile ? 'Saving...' : 'Save & Publish Profile'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Order Terms Locking & Reference Code Generation */}
+      <AnimatePresence>
+        {lockOrderTarget && (() => {
+          const providerMember = members.find(m => m.id === lockOrderTarget.ownerId);
+          const isProviderLevel2 = Boolean(
+            providerMember?.isKycVerified &&
+            ((providerMember?.completedInPersonDealsCount || 0) >= 5 || (providerMember?.providerLevel || 0) >= 2)
+          );
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-sky-100 shadow-2xl space-y-5 text-left"
+              >
+                <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-sky-700">
+                        Escrow Terms &amp; Anti-Fraud Lock
+                      </span>
+                      <h2 className="text-xl font-serif font-black text-gray-900">
+                        Lock Order Terms
+                      </h2>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLockOrderTarget(null);
+                      setLockOrderError('');
+                    }}
+                    className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Item & Provider Card */}
+                <div className="p-4 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-sky-800">
+                        {lockOrderTarget.category} • {lockOrderTarget.listingKind === 'goods' ? 'Goods' : 'Care Service'}
+                      </span>
+                      <h3 className="text-sm font-black text-gray-900 mt-0.5">{lockOrderTarget.title}</h3>
+                    </div>
+                    <span className="text-xs font-black text-sky-900 bg-white px-2.5 py-1 rounded-xl border border-sky-200">
+                      {lockOrderTarget.rateInfo}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-semibold text-gray-700 pt-1 border-t border-sky-200/60">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span>Provider: <strong>{lockOrderTarget.name}</strong></span>
+                      {providerMember?.isKycVerified ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                          <ShieldCheck className="w-3 h-3" /> Verified Provider
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                          Unverified Provider
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                      isProviderLevel2 ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-700'
+                    }`}>
+                      {isProviderLevel2 ? 'Level 2 Cleared' : 'Level 1 Local'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Handover & Fulfillment Mode Selection */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-gray-700 block text-xs">Handover &amp; Delivery Method *</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setLockOrderHandoverType('in_person')}
+                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                        lockOrderHandoverType === 'in_person'
+                          ? 'bg-sky-50 border-sky-600 ring-1 ring-sky-600 shadow-2xs'
+                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="font-black text-gray-900 text-xs">
+                        🤝 Local In-Person Handover
+                      </div>
+                      <p className="text-[10px] text-gray-500 mt-1 leading-snug">
+                        Direct face-to-face meeting in local area. Settle and inspect items together.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!isProviderLevel2}
+                      onClick={() => {
+                        if (isProviderLevel2) setLockOrderHandoverType('shipping');
+                      }}
+                      className={`p-3 rounded-2xl border text-left transition-all ${
+                        !isProviderLevel2
+                          ? 'bg-gray-50/70 border-gray-200 opacity-60 cursor-not-allowed'
+                          : lockOrderHandoverType === 'shipping'
+                          ? 'bg-sky-50 border-sky-600 ring-1 ring-sky-600 shadow-2xs cursor-pointer'
+                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100 cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1 font-black text-gray-900 text-xs">
+                        <Truck className="w-3.5 h-3.5 text-sky-700" />
+                        <span>📦 Trackable Courier Dispatch</span>
+                      </div>
+                      <p className="text-[10px] text-gray-500 mt-1 leading-snug">
+                        {isProviderLevel2
+                          ? 'Waybill tracking, 48h dispatch proof, & delivery window enforcement.'
+                          : '🔒 Requires Level 2 Provider (KYC + 5 in-person handovers).'}
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 font-medium">
+                  <strong>🔒 Immutability Lock:</strong> Locking agreed terms generates a unique payment reference (e.g. <code>ORD-8492</code>) and captures an unalterable snapshot of the provider&apos;s verified bank/app details. You then pay externally using that reference code.
+                </div>
+
+                {!isMyKycVerified && (
+                  <div className="p-3 bg-amber-50/80 border border-amber-300 rounded-2xl text-[11px] text-amber-800 space-y-1">
+                    <div className="font-bold flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" /> Unverified Consumer Restriction
+                    </div>
+                    <div>
+                      Max limit: <strong>£50 equivalent (~$65 USD / ~€60 EUR / ~₦95,000 NGN)</strong> per transaction, maximum 3 transactions per day.
+                    </div>
+                  </div>
+                )}
+
+                {lockOrderError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold">
+                    {lockOrderError}
+                  </div>
+                )}
+
+                <form onSubmit={handleCreateLockedOrder} className="space-y-4 text-xs">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <label className="font-bold text-gray-700 block mb-1">Agreed Total Price *</label>
+                      <input
+                        type="number"
+                        step="any"
+                        required
+                        value={lockOrderAmount}
+                        onChange={e => setLockOrderAmount(e.target.value)}
+                        placeholder="e.g. 35"
+                        className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-black text-sm text-gray-900 outline-none focus:border-sky-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-gray-700 block mb-1">Currency *</label>
+                      <select
+                        value={lockOrderCurrency}
+                        onChange={e => setLockOrderCurrency(e.target.value)}
+                        className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-bold text-xs text-gray-900 outline-none focus:border-sky-600"
+                      >
+                        <option value="GBP">GBP (£)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="NGN">NGN (₦)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <label className="flex items-start gap-2.5 p-3 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={lockOrderIsIntl}
+                      onChange={e => setLockOrderIsIntl(e.target.checked)}
+                      className="mt-0.5 rounded text-sky-600 focus:ring-0 w-4 h-4"
+                    />
+                    <div>
+                      <div className="font-bold text-gray-900">International / Cross-Border Transfer</div>
+                      <div className="text-[10px] text-gray-500 font-medium mt-0.5">
+                        Extends provider funds verification window to <strong>48 hours</strong> (vs 24 hours local) for international bank clearing.
+                      </div>
+                    </div>
+                  </label>
+
+                  {/* Provider Payment Method Choice */}
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1.5">
+                      Select Provider Receiving Account / Handle *
+                    </label>
+                    {(() => {
+                      const pms = providerMember?.sellerPaymentMethods || [];
+                      if (pms.length === 0) {
+                        return (
+                          <div className="p-3 bg-gray-50 border border-dashed border-gray-300 rounded-2xl text-[11px] text-gray-600">
+                            Provider has default settlement registered on file. The locked order will record their verified name and phone.
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="space-y-2">
+                          {pms.map(pm => (
+                            <label
+                              key={pm.id}
+                              className={`flex items-start gap-2.5 p-3 rounded-2xl border cursor-pointer transition-all ${
+                                (lockOrderSelectedPmId || pms[0].id) === pm.id
+                                  ? 'bg-sky-50/80 border-sky-400 shadow-xs'
+                                  : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="provider_pm_choice"
+                                value={pm.id}
+                                checked={(lockOrderSelectedPmId || pms[0].id) === pm.id}
+                                onChange={() => setLockOrderSelectedPmId(pm.id)}
+                                className="mt-1 text-sky-600 focus:ring-0"
+                              />
+                              <div className="text-xs">
+                                {pm.type === 'local_bank' ? (
+                                  <>
+                                    <div className="font-black text-gray-900">{pm.bankName} • {pm.accountNumber}</div>
+                                    <div className="text-[11px] text-gray-600">Account Name: <strong>{pm.accountName}</strong></div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="font-black text-gray-900">{pm.appName} • {pm.handleOrEmail}</div>
+                                    {pm.payUrl && <div className="text-[10px] text-sky-700 break-all">{pm.payUrl}</div>}
+                                    {pm.legalName && <div className="text-[11px] text-gray-600">Legal: {pm.legalName} ({pm.country})</div>}
+                                  </>
+                                )}
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLockOrderTarget(null);
+                        setLockOrderError('');
+                      }}
+                      className="px-4 py-2.5 rounded-2xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isLockingOrder}
+                      className="px-6 py-2.5 rounded-2xl bg-sky-700 hover:bg-sky-800 text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
+                    >
+                      {isLockingOrder ? 'Locking Terms...' : 'Lock Terms & Generate Code'}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          );
+        })()}
+      </AnimatePresence>
+
+      {/* MODAL: Submit Structured Payment Proof */}
+      <AnimatePresence>
+        {selectedOrderForProof && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-indigo-100 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-700">
+                      Payment Verification
+                    </span>
+                    <h2 className="text-xl font-serif font-black text-gray-900">
+                      Submit Payment Proof
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrderForProof(null);
+                    setProofError('');
+                  }}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Order Reference Box */}
+              <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-black text-indigo-900 bg-white px-2.5 py-1 rounded-xl border border-indigo-200">
+                    {selectedOrderForProof.orderCode}
+                  </span>
+                  <span className="text-sm font-black text-indigo-950">
+                    {selectedOrderForProof.currency} {selectedOrderForProof.agreedAmount}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-700">
+                  Item: <strong>{selectedOrderForProof.itemTitle}</strong>
+                </div>
+                <div className="text-xs text-gray-700">
+                  Provider: <strong>{selectedOrderForProof.sellerName}</strong>
+                </div>
+                {selectedOrderForProof.lockedPaymentMethod && (
+                  <div className="text-[11px] text-indigo-900 pt-2 border-t border-indigo-200/60">
+                    Paid To:{' '}
+                    <strong>
+                      {selectedOrderForProof.lockedPaymentMethod.bankName || selectedOrderForProof.lockedPaymentMethod.appName}
+                    </strong>{' '}
+                    (
+                    {selectedOrderForProof.lockedPaymentMethod.accountNumber ||
+                      selectedOrderForProof.lockedPaymentMethod.handleOrEmail}
+                    )
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl text-[11px] text-indigo-900 font-medium flex items-start gap-2">
+                <Clock className="w-4 h-4 shrink-0 text-indigo-700 mt-0.5" />
+                <span>
+                  Submitting proof triggers a <strong>{selectedOrderForProof.isInternational ? '48-hour' : '24-hour'}</strong> window for the provider to verify funds in their personal account and confirm or deny receipt with evidence.
+                </span>
+              </div>
+
+              {proofError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold">
+                  {proofError}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitPaymentProof} className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">Payment Method Used *</label>
+                    <select
+                      value={proofMethod}
+                      onChange={e => setProofMethod(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-bold text-gray-900"
+                    >
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="OPay">OPay</option>
+                      <option value="PalmPay">PalmPay</option>
+                      <option value="Kuda">Kuda</option>
+                      <option value="GTBank">GTBank</option>
+                      <option value="Barclays">Barclays</option>
+                      <option value="Revolut">Revolut</option>
+                      <option value="PayPal">PayPal</option>
+                      <option value="Wise">Wise</option>
+                      <option value="Venmo">Venmo</option>
+                      <option value="Cash App">Cash App</option>
+                      <option value="Payoneer">Payoneer</option>
+                      <option value="Other">Other Fintech/Bank</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">Exact Amount Sent *</label>
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      value={proofAmount || selectedOrderForProof.agreedAmount}
+                      onChange={e => setProofAmount(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-black text-gray-900"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">
+                    Official Transaction / Session ID *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={proofTransactionId}
+                    onChange={e => setProofTransactionId(e.target.value)}
+                    placeholder="e.g. 0000132408221045239841 or PAY-98234-X"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-mono font-bold text-gray-900 outline-none focus:border-indigo-600"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    Enter the exact transaction reference from your bank app. Submitting a fake Transaction ID results in a permanent device hardware ban.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">
+                    Receipt / Transfer Statement Document Link (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    value={proofReceiptDoc}
+                    onChange={e => setProofReceiptDoc(e.target.value)}
+                    placeholder="https://... cloud or image link to payment receipt / statement"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Consumer Notes / Remarks</label>
+                  <textarea
+                    rows={2}
+                    value={proofNotes}
+                    onChange={e => setProofNotes(e.target.value)}
+                    placeholder="e.g. Sent from John Okon account ending in 4102 at 2:30 PM..."
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-800 resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOrderForProof(null);
+                      setProofError('');
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingProof}
+                    className="px-6 py-2.5 rounded-2xl bg-indigo-700 hover:bg-indigo-800 text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    {isSubmittingProof ? 'Submitting...' : 'Confirm & Start Provider Verification'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Provider Denial with Mandatory Single-Day Statement */}
+      <AnimatePresence>
+        {selectedOrderForDenial && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-red-200 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-red-50 text-red-700 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-red-700">
+                      Fraud Prevention &amp; Dispute
+                    </span>
+                    <h2 className="text-xl font-serif font-black text-gray-900">
+                      Deny Payment Receipt
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrderForDenial(null);
+                    setDenialError('');
+                  }}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Order Info */}
+              <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-2xl space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-black text-gray-900">{selectedOrderForDenial.orderCode}</span>
+                  <span className="font-black text-red-700">
+                    {selectedOrderForDenial.currency} {selectedOrderForDenial.agreedAmount}
+                  </span>
+                </div>
+                <div>Consumer: <strong>{selectedOrderForDenial.buyerName}</strong></div>
+                <div>
+                  Submitted Transaction ID:{' '}
+                  <code className="font-mono bg-white px-2 py-0.5 rounded border border-gray-200 text-red-800 font-bold">
+                    {selectedOrderForDenial.paymentProof?.transactionId || 'None'}
+                  </code>
+                </div>
+              </div>
+
+              {/* Strict Fraud Warning */}
+              <div className="p-4 bg-red-50 border border-red-200 rounded-2xl space-y-2 text-xs text-red-900">
+                <div className="font-black flex items-center gap-1.5 uppercase text-[11px] tracking-wider text-red-800">
+                  <Ban className="w-4 h-4 text-red-700" /> Mandatory Evidence &amp; Anti-Perjury Rules
+                </div>
+                <p className="text-[11px] leading-relaxed">
+                  To prevent fraudulent denials, you <strong>must upload an official single-day PDF or banking statement link</strong> showing no incoming credit with that Transaction ID on that date.
+                </p>
+                <ul className="list-disc list-inside text-[10px] space-y-1 text-red-800 font-medium">
+                  <li>If funds actually arrived and you lied: <strong>Permanent account &amp; phone Device ID ban</strong>.</li>
+                  <li>If consumer submitted a fake Transaction ID: <strong>Consumer is permanently banned</strong>.</li>
+                  <li>If it is a banking network clearing delay: Download the <strong>Dispute Evidence Pack</strong> to settle with providers.</li>
+                </ul>
+              </div>
+
+              {denialError && (
+                <div className="p-3 bg-red-100 border border-red-300 rounded-2xl text-red-800 text-xs font-bold">
+                  {denialError}
+                </div>
+              )}
+
+              <form onSubmit={handleDenyPaymentReceipt} className="space-y-4 text-xs">
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">
+                    Official Single-Day Bank / App Statement URL *
+                  </label>
+                  <input
+                    type="url"
+                    required
+                    value={denialStatementDoc}
+                    onChange={e => setDenialStatementDoc(e.target.value)}
+                    placeholder="https://... link to official single-day statement PDF showing zero credit"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-900 outline-none focus:border-red-600"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    Upload your single-day bank statement export (PDF or verified image) to Cloud/Drive and paste the document URL.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Denial Explanation *</label>
+                  <textarea
+                    rows={2}
+                    required
+                    value={denialReasonText}
+                    onChange={e => setDenialReasonText(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-800 resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOrderForDenial(null);
+                      setDenialError('');
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingDenial}
+                    className="px-6 py-2.5 rounded-2xl bg-red-700 hover:bg-red-800 text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    {isSubmittingDenial ? 'Recording Denial...' : 'Confirm Denial & Upload Evidence'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Provider Courier Dispatch Proof Upload (Mandatory sub-step for Shipped Deals) */}
+      <AnimatePresence>
+        {selectedOrderForShipping && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-sky-100 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-sky-700">
+                      Mandatory Shipping Sub-Step
+                    </span>
+                    <h2 className="text-xl font-serif font-black text-gray-900">
+                      Upload Dispatch Proof &amp; Waybill
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrderForShipping(null);
+                    setShippingError('');
+                  }}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Order Reference Box */}
+              <div className="p-3.5 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-black text-sky-950">{selectedOrderForShipping.orderCode}</span>
+                  <span className="font-black text-sky-900">
+                    {selectedOrderForShipping.currency} {selectedOrderForShipping.agreedAmount}
+                  </span>
+                </div>
+                <div>Item: <strong>{selectedOrderForShipping.itemTitle}</strong></div>
+                <div>Consumer: <strong>{selectedOrderForShipping.buyerName}</strong></div>
+              </div>
+
+              {/* Warning to use trackable couriers */}
+              <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl text-[11px] text-amber-900 space-y-1">
+                <div className="font-black flex items-center gap-1.5 text-amber-950">
+                  <ShieldAlert className="w-4 h-4 text-amber-700" /> Trackable Courier Requirement
+                </div>
+                <p className="leading-relaxed">
+                  Always use trackable, signature-required couriers (e.g., DHL Express, GIG Logistics, Royal Mail, FedEx, Uber Package). Regular untracked postal mail does not qualify as dispatch proof in dispute arbitrations.
+                </p>
+              </div>
+
+              {shippingError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold">
+                  {shippingError}
+                </div>
+              )}
+
+              <form onSubmit={handleUploadShippingProof} className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">Courier Company *</label>
+                    <select
+                      value={shippingCourierName}
+                      onChange={e => setShippingCourierName(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-bold text-gray-900"
+                    >
+                      <option value="DHL Express">DHL Express</option>
+                      <option value="GIG Logistics">GIG Logistics</option>
+                      <option value="Royal Mail (Tracked)">Royal Mail (Tracked)</option>
+                      <option value="FedEx">FedEx</option>
+                      <option value="UPS">UPS</option>
+                      <option value="Uber Package / Courier">Uber Package</option>
+                      <option value="Sendy">Sendy</option>
+                      <option value="Other Trackable Courier">Other Trackable Courier</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">Estimated Delivery ETA *</label>
+                    <select
+                      value={shippingEtaHours}
+                      onChange={e => setShippingEtaHours(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-bold text-gray-900"
+                    >
+                      <option value="24">Within 24 Hours (Same Day/Next Day)</option>
+                      <option value="48">Within 48 Hours (2 Days)</option>
+                      <option value="72">Within 72 Hours (3 Days)</option>
+                      <option value="120">Within 5 Days (Standard Remote)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">
+                    Waybill / Tracking Number *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={shippingWaybillNumber}
+                    onChange={e => setShippingWaybillNumber(e.target.value)}
+                    placeholder="e.g. DHL-982348123 or GIG-LAG-78213"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-mono font-bold text-gray-900 outline-none focus:border-sky-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">
+                    Photo of Packed Item URL (Recommended)
+                  </label>
+                  <input
+                    type="url"
+                    value={shippingPackagePhoto}
+                    onChange={e => setShippingPackagePhoto(e.target.value)}
+                    placeholder="https://... cloud or image link of packed item"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">
+                    Courier Waybill Receipt Document URL (Recommended)
+                  </label>
+                  <input
+                    type="url"
+                    value={shippingReceiptDoc}
+                    onChange={e => setShippingReceiptDoc(e.target.value)}
+                    placeholder="https://... cloud link to waybill receipt slip / PDF"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Dispatch Notes for Consumer</label>
+                  <textarea
+                    rows={2}
+                    value={shippingNotes}
+                    onChange={e => setShippingNotes(e.target.value)}
+                    placeholder="e.g. Handed over to GIG driver at 11am; rider phone number provided..."
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-800 resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOrderForShipping(null);
+                      setShippingError('');
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingShipping}
+                    className="px-6 py-2.5 rounded-2xl bg-sky-700 hover:bg-sky-800 text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    {isSubmittingShipping ? 'Uploading Proof...' : 'Confirm Dispatch & Upload Waybill'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Consumer Report Non-Delivery (Mandatory Evidence Required) */}
+      <AnimatePresence>
+        {selectedOrderForNonDelivery && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-amber-300 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+                      Dispute Investigation
+                    </span>
+                    <h2 className="text-xl font-serif font-black text-gray-900">
+                      Report Non-Delivery
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrderForNonDelivery(null);
+                    setNonDeliveryError('');
+                  }}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Order Info */}
+              <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-1 text-xs text-amber-950">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-black">{selectedOrderForNonDelivery.orderCode}</span>
+                  <span className="font-bold">
+                    Provider: {selectedOrderForNonDelivery.sellerName}
+                  </span>
+                </div>
+                <div>Waybill: <code>{selectedOrderForNonDelivery.shippingProof?.waybillNumber || 'None'}</code></div>
+              </div>
+
+              {/* Mandatory Proof Requirement Banner */}
+              <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl space-y-1.5 text-xs text-red-950">
+                <div className="font-black flex items-center gap-1.5 text-red-800 uppercase text-[10px] tracking-wider">
+                  <ShieldAlert className="w-3.5 h-3.5 text-red-600" /> Evidence Attachment Mandatory
+                </div>
+                <p className="text-[11px] leading-relaxed">
+                  To prevent fraudulent freezes, you <strong>must attach evidence</strong> (e.g. unfulfilled courier tracking screenshot, rider cancellation, or unanswered chat screenshot past ETA). Filing false claims triggers <strong>Strike 1 warning</strong> or <strong>Strike 2 permanent Device ID ban</strong>.
+                </p>
+              </div>
+
+              {nonDeliveryError && (
+                <div className="p-3 bg-red-100 border border-red-300 rounded-2xl text-red-800 text-xs font-bold">
+                  {nonDeliveryError}
+                </div>
+              )}
+
+              <form onSubmit={handleReportNonDelivery} className="space-y-4 text-xs">
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Reason for Non-Delivery Report *</label>
+                  <select
+                    value={nonDeliveryReason}
+                    onChange={e => setNonDeliveryReason(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-bold text-gray-900"
+                  >
+                    <option value="Courier tracking unfulfilled past ETA deadline">Courier tracking unfulfilled past ETA deadline</option>
+                    <option value="Courier tracking number is invalid or not registered">Courier tracking number is invalid or not registered</option>
+                    <option value="Rider cancelled dispatch and provider is unresponsive">Rider cancelled dispatch and provider is unresponsive</option>
+                    <option value="Package marked delivered to wrong address/recipient">Package marked delivered to wrong address/recipient</option>
+                    <option value="Other verified dispatch failure">Other verified dispatch failure</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">
+                    Proof Document / Screenshot URL *
+                  </label>
+                  <input
+                    type="url"
+                    required
+                    value={nonDeliveryEvidenceDoc}
+                    onChange={e => setNonDeliveryEvidenceDoc(e.target.value)}
+                    placeholder="https://... cloud or image link showing courier status or cancellation"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-900 outline-none focus:border-amber-600"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    Upload your courier tracking screenshot or chat transcript screenshot and paste the URL.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Explanation Notes</label>
+                  <textarea
+                    rows={2}
+                    value={nonDeliveryNotes}
+                    onChange={e => setNonDeliveryNotes(e.target.value)}
+                    placeholder="e.g. Contacted GIG logistics and they confirmed the package was never handed over..."
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-800 resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOrderForNonDelivery(null);
+                      setNonDeliveryError('');
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingNonDelivery}
+                    className="px-6 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    {isSubmittingNonDelivery ? 'Filing Report...' : 'File Non-Delivery Report'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Provider 24-Hour Grace Window Delivery Proof */}
+      <AnimatePresence>
+        {selectedOrderForGraceResponse && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-emerald-200 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                      24-Hour Provider Grace Window
+                    </span>
+                    <h2 className="text-xl font-serif font-black text-gray-900">
+                      Submit Delivery Confirmation
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrderForGraceResponse(null);
+                    setGraceError('');
+                  }}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-[11px] text-emerald-950 space-y-1">
+                <p>
+                  Order <strong>{selectedOrderForGraceResponse.orderCode}</strong> has an active non-delivery report.
+                </p>
+                <p className="leading-relaxed">
+                  Upload an official courier delivery slip or recipient signature photo to prove delivery and initiate the 48-hour consumer confirmation window.
+                </p>
+              </div>
+
+              {graceError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold">
+                  {graceError}
+                </div>
+              )}
+
+              <form onSubmit={handleProviderGraceResponse} className="space-y-4 text-xs">
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Proof Document Type *</label>
+                  <select
+                    value={graceResponseType}
+                    onChange={e => setGraceResponseType(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-bold text-gray-900"
+                  >
+                    <option value="Official Courier Tracking Confirmation">Official Courier Tracking Delivered Confirmation</option>
+                    <option value="Courier Delivery Slip with Recipient Signature">Courier Delivery Slip with Recipient Signature</option>
+                    <option value="Photo of Handover at Recipient Address">Photo of Handover at Recipient Address</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">
+                    Official Delivery Proof Document / Image URL *
+                  </label>
+                  <input
+                    type="url"
+                    required
+                    value={graceProofDoc}
+                    onChange={e => setGraceProofDoc(e.target.value)}
+                    placeholder="https://... cloud or image link to courier delivered tracking slip"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-900 outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Explanation Notes</label>
+                  <textarea
+                    rows={2}
+                    value={graceNotes}
+                    onChange={e => setGraceNotes(e.target.value)}
+                    placeholder="e.g. Courier delivered to recipient building security guard at 2:15pm..."
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-800 resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOrderForGraceResponse(null);
+                      setGraceError('');
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingGraceResponse}
+                    className="px-6 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    {isSubmittingGraceResponse ? 'Submitting...' : 'Submit Official Delivery Proof'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Dispute Arbitration & Strikes Resolution */}
+      <AnimatePresence>
+        {selectedOrderForResolution && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-slate-300 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center shrink-0">
+                    <ShieldAlert className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+                      Dispute Arbitration &amp; Strikes
+                    </span>
+                    <h2 className="text-xl font-serif font-black text-gray-900">
+                      Arbitrate Marketplace Dispute
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrderForResolution(null);
+                    setResolutionError('');
+                  }}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-1">
+                <p>Order: <strong>{selectedOrderForResolution.orderCode}</strong> • {selectedOrderForResolution.itemTitle}</p>
+                <p>Provider: <strong>{selectedOrderForResolution.sellerName}</strong></p>
+                <p>Consumer: <strong>{selectedOrderForResolution.buyerName}</strong></p>
+              </div>
+
+              {resolutionError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold">
+                  {resolutionError}
+                </div>
+              )}
+
+              <form onSubmit={handleResolveDispute} className="space-y-4 text-xs">
+                <div className="space-y-2">
+                  <label className="font-bold text-gray-700 block">Select Arbitration Ruling *</label>
+
+                  <label className="flex items-start gap-2.5 p-3 rounded-2xl border cursor-pointer bg-emerald-50/70 border-emerald-300">
+                    <input
+                      type="radio"
+                      name="arbitration_ruling"
+                      value="consumer_false_claim"
+                      checked={resolutionType === 'consumer_false_claim'}
+                      onChange={() => setResolutionType('consumer_false_claim')}
+                      className="mt-1 text-emerald-600 focus:ring-0"
+                    />
+                    <div>
+                      <div className="font-black text-emerald-950">
+                        Rule in Provider&apos;s Favor (Consumer False Claim Strike)
+                      </div>
+                      <p className="text-[11px] text-emerald-900 mt-0.5 leading-snug">
+                        Delivery proof is verified authentic. Consumer is issued a dispute strike (Strike 1 warning, or Strike 2 permanent device ban). Any freeze on Provider is lifted, and Provider is awarded the <strong>Protected Provider Badge</strong>.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 p-3 rounded-2xl border cursor-pointer bg-red-50/70 border-red-300">
+                    <input
+                      type="radio"
+                      name="arbitration_ruling"
+                      value="provider_default"
+                      checked={resolutionType === 'provider_default'}
+                      onChange={() => setResolutionType('provider_default')}
+                      className="mt-1 text-red-600 focus:ring-0"
+                    />
+                    <div>
+                      <div className="font-black text-red-950">
+                        Rule in Consumer&apos;s Favor (Provider Default / Freeze Storefront)
+                      </div>
+                      <p className="text-[11px] text-red-900 mt-0.5 leading-snug">
+                        Provider defaulted on valid delivery proof past the grace period. Provider storefront is frozen and all listings are hidden from marketplace searches.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Arbitration Notes / Ruling Reason</label>
+                  <textarea
+                    rows={2}
+                    value={resolutionNotes}
+                    onChange={e => setResolutionNotes(e.target.value)}
+                    placeholder="e.g. Courier tracking confirms delivered to consumer unit 4B on May 12..."
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-800 resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOrderForResolution(null);
+                      setResolutionError('');
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingResolution}
+                    className="px-6 py-2.5 rounded-2xl bg-slate-900 hover:bg-black text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    {isSubmittingResolution ? 'Executing Ruling...' : 'Enforce Arbitration Ruling'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Manage External Payment Methods (Up to 5) */}
+      <AnimatePresence>
+        {isPaymentMethodModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-emerald-100 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                      External P2P &amp; Bank Settlement
+                    </span>
+                    <h2 className="text-xl font-serif font-black text-gray-900">
+                      Receiving Accounts ({myPaymentMethods.length}/5)
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPaymentMethodModalOpen(false);
+                    setPmError('');
+                  }}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Saved Methods List */}
+              <div className="space-y-2">
+                <div className="text-[10px] font-black uppercase tracking-wider text-gray-500">
+                  Your Saved Verified Accounts ({myPaymentMethods.length}/5)
+                </div>
+                {myPaymentMethods.length === 0 ? (
+                  <div className="p-4 bg-gray-50 border border-dashed border-gray-200 rounded-2xl text-center text-xs text-gray-500">
+                    No receiving methods saved yet. Add your bank or payment app details below.
+                  </div>
+                ) : (
+                  myPaymentMethods.map(pm => (
+                    <div
+                      key={pm.id}
+                      className="p-3 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="font-black text-gray-900">
+                          {pm.type === 'local_bank' ? `${pm.bankName} • ${pm.accountNumber}` : `${pm.appName} • ${pm.handleOrEmail}`}
+                        </div>
+                        <div className="text-[11px] text-gray-600">
+                          {pm.type === 'local_bank'
+                            ? `Account Name: ${pm.accountName}`
+                            : pm.legalName
+                            ? `Legal: ${pm.legalName} (${pm.country})`
+                            : pm.payUrl || 'Direct P2P Handle'}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePaymentMethod(pm.id)}
+                        className="w-8 h-8 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center border-none cursor-pointer shrink-0"
+                        title="Delete method"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Add New Method Form (if < 5) */}
+              {myPaymentMethods.length < 5 ? (
+                <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl space-y-3">
+                  <div className="text-xs font-black text-emerald-950 uppercase tracking-wider">
+                    Add New Receiving Account
+                  </div>
+
+                  {pmError && (
+                    <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold">
+                      {pmError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSavePaymentMethod} className="space-y-3 text-xs">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPmType('local_bank')}
+                        className={`py-2 px-3 rounded-xl font-bold border cursor-pointer ${
+                          pmType === 'local_bank'
+                            ? 'bg-emerald-700 text-white border-emerald-700'
+                            : 'bg-white text-gray-700 border-gray-200'
+                        }`}
+                      >
+                        Local Bank / Fintech
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPmType('global_app')}
+                        className={`py-2 px-3 rounded-xl font-bold border cursor-pointer ${
+                          pmType === 'global_app'
+                            ? 'bg-emerald-700 text-white border-emerald-700'
+                            : 'bg-white text-gray-700 border-gray-200'
+                        }`}
+                      >
+                        Global / P2P App
+                      </button>
+                    </div>
+
+                    {pmType === 'local_bank' ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="font-bold text-gray-700 block mb-1">Bank / App Name *</label>
+                            <input
+                              type="text"
+                              required
+                              value={pmBankName}
+                              onChange={e => setPmBankName(e.target.value)}
+                              placeholder="OPay, PalmPay, Barclays, GTBank..."
+                              className="w-full p-2.5 rounded-xl bg-white border border-gray-200 font-semibold text-gray-900"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-bold text-gray-700 block mb-1">Account Number *</label>
+                            <input
+                              type="text"
+                              required
+                              value={pmAccountNumber}
+                              onChange={e => setPmAccountNumber(e.target.value)}
+                              placeholder="e.g. 8012345678 or 20394821"
+                              className="w-full p-2.5 rounded-xl bg-white border border-gray-200 font-mono font-bold text-gray-900"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="font-bold text-gray-700 block mb-1">Account Holder Legal Name *</label>
+                          <input
+                            type="text"
+                            required
+                            value={pmAccountName}
+                            onChange={e => setPmAccountName(e.target.value)}
+                            placeholder="Exact name on bank account"
+                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 font-semibold text-gray-900"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="font-bold text-gray-700 block mb-1">App / Platform *</label>
+                            <select
+                              value={pmAppName}
+                              onChange={e => setPmAppName(e.target.value)}
+                              className="w-full p-2.5 rounded-xl bg-white border border-gray-200 font-bold text-gray-900"
+                            >
+                              <option value="PayPal">PayPal</option>
+                              <option value="Wise">Wise</option>
+                              <option value="Venmo">Venmo</option>
+                              <option value="Cash App">Cash App</option>
+                              <option value="Revolut">Revolut</option>
+                              <option value="Payoneer">Payoneer</option>
+                              <option value="Remitly">Remitly</option>
+                              <option value="Zelle">Zelle</option>
+                              <option value="Other">Other P2P</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="font-bold text-gray-700 block mb-1">Handle / Email / Phone *</label>
+                            <input
+                              type="text"
+                              required
+                              value={pmHandle}
+                              onChange={e => setPmHandle(e.target.value)}
+                              placeholder="@handle or user@email.com"
+                              className="w-full p-2.5 rounded-xl bg-white border border-gray-200 font-semibold text-gray-900"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="font-bold text-gray-700 block mb-1">Direct Pay Link (Optional)</label>
+                          <input
+                            type="url"
+                            value={pmPayUrl}
+                            onChange={e => setPmPayUrl(e.target.value)}
+                            placeholder="e.g. https://paypal.me/yourname"
+                            className="w-full p-2.5 rounded-xl bg-white border border-gray-200 font-semibold text-gray-900"
+                          />
+                        </div>
+                        {pmAppName.toLowerCase().includes('payoneer') && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="font-bold text-gray-700 block mb-1">Legal Name *</label>
+                              <input
+                                type="text"
+                                required
+                                value={pmLegalName}
+                                onChange={e => setPmLegalName(e.target.value)}
+                                placeholder="Payoneer Legal Name"
+                                className="w-full p-2.5 rounded-xl bg-white border border-gray-200 font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="font-bold text-gray-700 block mb-1">Country *</label>
+                              <input
+                                type="text"
+                                required
+                                value={pmCountry}
+                                onChange={e => setPmCountry(e.target.value)}
+                                className="w-full p-2.5 rounded-xl bg-white border border-gray-200 font-semibold"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-xs"
+                    >
+                      Save Receiving Account
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs text-gray-600 text-center font-bold">
+                  Maximum of 5 verified external receiving methods reached. Delete an existing method to add a new one.
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentMethodModalOpen(false)}
+                  className="px-5 py-2.5 rounded-2xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: KYC Identity Verification */}
+      <AnimatePresence>
+        {isKycModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-emerald-100 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                      Identity &amp; Anti-Fraud
+                    </span>
+                    <h2 className="text-xl font-serif font-black text-gray-900">
+                      KYC Verification
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsKycModalOpen(false);
+                    setKycNotice('');
+                  }}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Benefits */}
+              <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-1.5 text-xs text-emerald-950">
+                <div className="font-black text-emerald-900 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> What Verification Unlocks:
+                </div>
+                <ul className="list-disc list-inside space-y-0.5 text-[11px] text-emerald-900 font-medium">
+                  <li><strong>Verified Badge</strong> displayed on your profile and marketplace listings.</li>
+                  <li>Lifts the <strong>£50 transaction limit</strong> and daily booking caps.</li>
+                  <li>Builds trust for high-value caregiver bookings and family goods.</li>
+                </ul>
+              </div>
+
+              {kycNotice && (
+                <div className="p-3 bg-emerald-100 border border-emerald-300 rounded-2xl text-emerald-900 text-xs font-bold">
+                  ✓ {kycNotice}
+                </div>
+              )}
+
+              <form onSubmit={handleCompleteKyc} className="space-y-4 text-xs">
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Legal Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={kycLegalName}
+                    onChange={e => setKycLegalName(e.target.value)}
+                    placeholder="Must match government ID and bank account name"
+                    className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold text-gray-900"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">ID Document Type *</label>
+                    <select
+                      value={kycIdType}
+                      onChange={e => setKycIdType(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-bold text-gray-900"
+                    >
+                      <option value="National ID (NIN / SSN / National Card)">National ID (NIN / SSN)</option>
+                      <option value="International Passport">International Passport</option>
+                      <option value="Driver's License">Driver&apos;s License</option>
+                      <option value="Voter's Card">Voter&apos;s Card</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">ID Number (Last 4 Digits) *</label>
+                    <input
+                      type="text"
+                      maxLength={8}
+                      required
+                      value={kycLast4}
+                      onChange={e => setKycLast4(e.target.value)}
+                      placeholder="e.g. 8492"
+                      className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-mono font-bold text-gray-900"
+                    />
+                  </div>
+                </div>
+
+                {/* Device Hardware Fingerprint */}
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] text-gray-600 space-y-1">
+                  <div className="flex items-center justify-between font-bold text-gray-800">
+                    <span>Cryptographic Device Binding</span>
+                    <span className="text-emerald-700 font-black">Active</span>
+                  </div>
+                  <div className="font-mono text-[10px] text-gray-500 break-all">
+                    {deviceId || 'Detecting hardware fingerprint...'}
+                  </div>
+                  <p className="text-[10px] text-gray-400">
+                    Your phone&apos;s hardware signature is bound to this profile to prevent banned scammers from creating fresh accounts on the same device.
+                  </p>
+                </div>
+
+                <label className="flex items-start gap-2 p-3 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
+                  <input type="checkbox" required className="mt-0.5 rounded text-emerald-600 focus:ring-0 w-4 h-4" />
+                  <span className="text-[11px] text-gray-700 font-medium">
+                    I attest under penalty of permanent hardware blacklisting that these details are authentic and match my personal banking information.
+                  </span>
+                </label>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsKycModalOpen(false);
+                      setKycNotice('');
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingKyc}
+                    className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    {isSubmittingKyc ? 'Verifying...' : 'Submit & Unlock Verified Badge'}
                   </button>
                 </div>
               </form>

@@ -36,26 +36,14 @@ export interface VettedCaregiver {
   bio: string;
 }
 
-export interface OmugwoShiftState {
-  caregiverName: string;
-  caregiverRole: string;
-  startedAt: string;
-  status: 'On Duty' | 'Standby';
-  focusNote: string;
-  isDelegatedRemWindow: boolean;
-  delegationEndsAt: string | null;
-  delegatedBy: string;
-}
-
-export interface ShiftHandoverNote {
+export interface CaregiverShiftEntry {
   id: string;
+  caregiverId: string;
   caregiverName: string;
-  caregiverRole: string;
-  receivingPerson: string;
-  summary: string;
-  babyMood: string;
-  feedsLoggedSummary: string;
-  sleepLoggedSummary: string;
+  startTime: string;
+  endTime: string;
+  handedOverTo: string;
+  notes?: string;
   createdAt: string;
 }
 
@@ -89,20 +77,6 @@ export interface GenerationalCaptureEntry {
   detectedMoment: string;
   caregiverName: string;
   aiConfidence: number;
-  createdAt: string;
-}
-
-export interface OmugwoBookingEntry {
-  id: string;
-  caregiverId: string;
-  caregiverName: string;
-  serviceType: string;
-  bookingMode: 'Daily' | 'Weekend' | 'Live-In' | 'Wellness Consultation';
-  startDate: string;
-  timeSlot: string;
-  parentName: string;
-  specialRequests: string;
-  status: 'Confirmed' | 'Scheduled';
   createdAt: string;
 }
 
