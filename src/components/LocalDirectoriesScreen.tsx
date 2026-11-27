@@ -612,7 +612,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
                     Postpartum Caregivers, Doulas & Family Services
                   </h2>
                   <p className="text-xs text-gray-600 leading-relaxed max-w-2xl">
-                    Browse verified local postpartum clinics and agencies on the map below, or visit the Community Care, Goods &amp; Free Gifts Marketplace to chat directly with providers, list or request baby goods and care services, negotiate fees privately, or give and receive Free Gifts. Ama Baby does not process marketplace payments or checkout.
+                    Browse local postpartum clinics and agencies on the map below, or visit the Community Care, Goods &amp; Free Gifts Marketplace to chat directly with providers, list or request baby goods and care services, negotiate fees privately, or give and receive Free Gifts. Ama Baby does not process marketplace payments or checkout.
                   </p>
                 </div>
 
@@ -664,7 +664,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                        {currentCatMeta.emoji} Verified via Google Maps
+                        {currentCatMeta.emoji} Listed on Google Maps
                       </span>
                       <h3 className="text-base sm:text-lg font-serif font-black text-gray-900 mt-1">
                         {selectedPlace.name}
@@ -779,7 +779,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
                 ) : (
                   <p className="text-xs text-gray-500 py-4 text-center">
                     {isLoadingPlaces
-                      ? 'Fetching verified providers near you...'
+                      ? 'Fetching nearby providers...'
                       : placesError || 'See AI Maps Grounding results below for this area.'}
                   </p>
                 )}
@@ -796,7 +796,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5">
-                    {isOfflineDirectoryActive ? 'Verified Maternal & Infant Care Directory' : 'Gemini Google Maps Grounding'}
+                    {isOfflineDirectoryActive ? 'Regional Maternal & Infant Care Directory' : 'Gemini Google Maps Grounding'}
                   </span>
                   <h2 className="text-lg font-serif font-black text-gray-900">
                     Local {currentCatMeta.label} Guide - {currentLoc.name}
@@ -817,7 +817,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
             {isOfflineDirectoryActive && (
               <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-gray-800 text-xs flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                <span>Showing verified regional medical facilities and maternal health directory listings with direct Google Maps routes.</span>
+                <span>Showing regional medical facilities and maternal health directory listings with direct Google Maps routes.</span>
               </div>
             )}
 
@@ -840,7 +840,7 @@ export const LocalDirectoriesScreen: React.FC<LocalDirectoriesScreenProps> = ({
                 {groundedMapLinks.length > 0 && (
                   <div className="space-y-3">
                     <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">
-                      Verified Google Maps Grounding Sources ({groundedMapLinks.length})
+                      Google Maps Grounding Sources ({groundedMapLinks.length})
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {groundedMapLinks.map((link, idx) => (

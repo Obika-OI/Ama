@@ -33,7 +33,7 @@ interface VoiceAssistantProps {
   pageTitle?: string;
   pageContentSummary?: string;
   isOnboarded?: boolean;
-  authStatus?: 'signed_in' | 'anonymous' | 'signed_out';
+  authStatus?: 'signed_in' | 'guest' | 'signed_out';
   parentName?: string;
   userRole?: string;
   onNavigate?: (screen: string) => void;
@@ -160,7 +160,7 @@ const PAGE_AWARENESS_PRESETS: Record<string, PageAwarenessPreset> = {
   },
   community: {
     greeting: (babyName, _isOnboarded, authStatus) =>
-      `Welcome to the Ama Baby Community! Join parent forums, chat live with mothers, post or browse Care Services and Baby Goods for sale, share what you need, or give and receive Free Gifts. ${authStatus !== 'signed_in' ? 'Register with Email/Password, Google, or Anonymous Sign-In from onboarding so you can post and participate safely!' : `Ask me anything about posting or finding care, goods, or free gifts for ${babyName}!`}`,
+      `Welcome to the Ama Baby Community! Join parent forums, chat live with mothers, post or browse Care Services and Baby Goods for sale, share what you need, or give and receive Free Gifts. ${authStatus !== 'signed_in' ? 'Register with Email/Password, Google, or Guest Sign-In from onboarding so you can post and participate safely!' : `Ask me anything about posting or finding care, goods, or free gifts for ${babyName}!`}`,
     chips: () => [
       `How do Goods & Free Gifts work?`,
       `Where do parents view Caregiver Shift records?`,
@@ -266,8 +266,6 @@ const PAGE_AWARENESS_PRESETS: Record<string, PageAwarenessPreset> = {
   }
 };
 
-const FREE_AI_QUERY_LIMIT = 5;
-
 export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   babyName = 'Baby',
   babyAge = '6 Months',
@@ -292,7 +290,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   pageTitle = 'Dashboard',
   pageContentSummary = '',
   isOnboarded = true,
-  authStatus = 'anonymous',
+  authStatus = 'guest',
   parentName = 'Parent',
   userRole = 'admin',
   onNavigate,
@@ -322,13 +320,6 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
   const resolvedPageTitle = pageTitle || SCREEN_LABELS[activeScreen] || 'Ama Baby';
   const currentPreset = PAGE_AWARENESS_PRESETS[activeScreen] || DEFAULT_PAGE_PRESET;
-
-  // Free trial AI queries state
-  const [aiQueryCount, setAiQueryCount] = useState<number>(() => {
-    return parseInt(localStorage.getItem('ama_ai_query_count') || '0', 10);
-  });
-  
-  const remainingQueries = isPremium ? Infinity : Math.max(0, FREE_AI_QUERY_LIMIT - aiQueryCount);
 
   const buildWelcomeMessage = (): ChatMessage => ({
     id: 'welcome',
@@ -538,7 +529,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
       recognitionRef.current = recognition;
     }
-  }, [babyName, babyAge, stage, lastFeedStr, lastSleepStr, lastDiaperStr, aiQueryCount, isPremium, selectedImage, researchMode, activeScreen, authStatus, isOnboarded]);
+  }, [babyName, babyAge, stage, lastFeedStr, lastSleepStr, lastDiaperStr, selectedImage, researchMode, activeScreen, authStatus, isOnboarded]);
 
   // Wake-word recognition setup (Always-on 'Hey Ogoo' listener)
   useEffect(() => {
@@ -742,7 +733,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     if (action.type === 'open_subscription' && onOpenSubscriptionModal) {
       return {
         inlineAction: {
-          label: 'View Ama Premium Plans',
+          label: 'View Open Access Info',
           type: 'open_subscription'
         }
       };
@@ -841,22 +832,6 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       lower.includes(" ml") ||
       lower.includes("fed ");
 
-    // Check Free Trial Query Limit
-    if (!isPremium && !isDirectLoggingIntent && aiQueryCount >= FREE_AI_QUERY_LIMIT) {
-      const paywallMsg: ChatMessage = {
-        id: `a-${Date.now()}`,
-        sender: 'assistant',
-        text: `🔒 Free Trial AI Limit Reached (${FREE_AI_QUERY_LIMIT}/${FREE_AI_QUERY_LIMIT} queries used).\n\nUpgrade to Ama Premium to unlock unlimited Ogoo AI multimodal image analysis, Google Search child health research grounding, and continuous voice recognition.`,
-        isPaywall: true,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, paywallMsg]);
-      if (talkBackEnabled) {
-        speakText("Free trial query limit reached. Please upgrade to Ama Premium for unlimited AI queries.");
-      }
-      return;
-    }
-
     setIsProcessing(true);
 
     try {
@@ -898,13 +873,6 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       const data = await response.json();
 
       const actionMeta = data.actionToTrigger ? executeTriggeredAction(data.actionToTrigger) : {};
-
-      // Increment AI query count if not premium
-      if (!isPremium && !isDirectLoggingIntent) {
-        const newCount = aiQueryCount + 1;
-        setAiQueryCount(newCount);
-        localStorage.setItem('ama_ai_query_count', newCount.toString());
-      }
 
       const assistantMsg: ChatMessage = {
         id: `a-${Date.now()}`,
@@ -1033,15 +1001,6 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                   <div>
                     <h3 className="font-serif font-black text-base sm:text-lg flex items-center gap-2 text-white">
                       Ogoo
-                      {isPremium ? (
-                        <span className="bg-white/20 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                          <Crown className="w-2.5 h-2.5 text-white" /> PRO
-                        </span>
-                      ) : (
-                        <span className="bg-white/20 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full">
-                          {remainingQueries > 0 ? `${remainingQueries} Free Qs` : 'Limit Reached'}
-                        </span>
-                      )}
                     </h3>
                     <p className="text-[11px] text-sky-100 font-medium flex items-center gap-1.5">
                       <span>Caring for <strong>{babyName}</strong> ({babyAge})</span>
@@ -1306,7 +1265,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                         <div className="mt-3 pt-2.5 border-t border-gray-100 bg-sky-50/60 -mx-1 px-2.5 py-2 rounded-xl">
                           <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary mb-1.5">
                             <Globe className="w-3 h-3 text-primary" />
-                            <span>Verified References:</span>
+                            <span>Reference Sources:</span>
                           </div>
                           <div className="flex flex-wrap gap-1.5">
                             {msg.references.map((ref, i) => (
@@ -1333,19 +1292,6 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                           <ShieldCheck className="w-3 h-3 text-sky-600 shrink-0 mt-0.5" />
                           <span><strong>Ogoo Tip:</strong> {msg.proactiveInsight}</span>
                         </div>
-                      )}
-
-                      {msg.isPaywall && onOpenSubscriptionModal && (
-                        <button
-                          onClick={() => {
-                            setIsOpen(false);
-                            onOpenSubscriptionModal();
-                          }}
-                          className="mt-3 w-full py-2 px-3 bg-primary hover:bg-accent text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer border-none shadow-xs"
-                        >
-                          <Crown className="w-3.5 h-3.5 text-white" />
-                          <span>Upgrade to Ama Premium</span>
-                        </button>
                       )}
 
                       <span
@@ -1444,7 +1390,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
               {/* Disclaimer */}
               <div className="px-4 py-1.5 bg-gray-50 border-t border-gray-100 text-[9px] text-gray-500 text-center leading-tight">
-                ⚠️ <strong>Disclaimer:</strong> Ogoo is an AI assistant and provides suggestions for informational purposes only. AI can make mistakes and does not diagnose any medical condition. For health concerns, always consult a certified medical doctor.
+                ⚠️ <strong>Disclaimer:</strong> Ogoo is an AI assistant and provides suggestions for informational purposes only. AI can make mistakes and does not diagnose any medical condition. For health concerns, always consult a qualified healthcare provider.
               </div>
 
               {/* Input Area with Multimodal Upload, Voice, & Send */}

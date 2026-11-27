@@ -35,7 +35,7 @@ export const RICH_FOOD_ARTICLES: Record<string, FoodArticle> = {
   },
   honey: {
     intro: "Honey is a thick, golden syrup made by honeybees from the nectar of flowers. It has been used for thousands of years as a natural sweetener. However, despite its natural origin, it is one of the most dangerous foods you can give to a baby who has not yet reached their first birthday.",
-    benefitsOrRisks: "The primary danger in honey is a type of germ called Clostridium botulinum. These germs live in soil and dust and often find their way into honey. In adults and older children, the digestive system is strong enough to move these germs through the body without any harm. But a baby's digestive system is immature and very sensitive. In a baby's tummy, these germs can grow and produce a powerful poison that attacks the baby's nerves. This condition is called infant botulism. It causes the baby's muscles to become very weak and floppy, makes it difficult for them to swallow, and can stop them from being able to breathe on their own.",
+    benefitsOrRisks: "The primary concern with honey for babies under one year is naturally occurring spores that live in soil and dust and can find their way into honey. In adults and older children, the digestive system moves these spores through without harm. However, an infant's immature digestive system cannot handle them safely yet, which is why pediatric guidance recommends avoiding honey completely until after the first birthday.",
     howToChooseAndWash: "There is no way to wash or clean honey to make it safe for a baby. Even honey that is sold as organic, raw, or high quality still contains these dangerous germs. You should keep all honey containers tightly sealed and stored in a high kitchen cabinet where your children cannot reach them. When you are out at restaurants or visiting friends, always ask if there is honey in the food before letting your baby have a taste.",
     safetyChecklist: [
       "Keep all types of honey (whether raw, processed, or local) away from babies under twelve months old.",
@@ -47,11 +47,11 @@ export const RICH_FOOD_ARTICLES: Record<string, FoodArticle> = {
     faqs: [
       {
         q: "Is honey safe if it has been boiled or baked in a cake?",
-        a: "No. The germs in honey are very tough and can survive the high heat of boiling and baking. Even if the honey is cooked, it can still cause botulism in your baby. Wait until they are one year old before giving them any food made with honey."
+        a: "No. These heat-resistant spores can survive the high temperatures of boiling and baking, so cooked or baked honey is still unsafe before age one. Wait until they are one year old before giving any food made with honey."
       },
       {
-        q: "What is the very first sign of botulism I should look for?",
-        a: "Constipation (not being able to poo) is usually the first sign. If this is followed by your baby looking very tired, having a weak suck, or acting like a 'rag doll' with no muscle strength, seek emergency medical help immediately."
+        q: "What signs should I watch for if my baby accidentally tastes honey?",
+        a: "Watch for unusual constipation, extreme drowsiness, weak feeding or crying, or limp muscle tone, and contact a qualified healthcare provider promptly if any of these appear."
       }
     ]
   },
@@ -162,7 +162,7 @@ export const RICH_FOOD_ARTICLES: Record<string, FoodArticle> = {
       },
       {
         q: "Is honey or maple syrup a better choice than white sugar?",
-        a: "No. Honey is strictly dangerous for babies under one year due to botulism. Maple syrup and other 'natural' sugars still cause tooth decay and should be avoided to help your baby develop a healthy palate."
+        a: "No. Honey should never be given to babies under one year, and maple syrup or other 'natural' sugars still contribute to tooth decay and should be avoided to help your baby develop healthy taste preferences."
       }
     ]
   },

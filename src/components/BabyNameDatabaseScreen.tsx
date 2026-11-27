@@ -559,7 +559,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
         const count = Array.isArray(data.discovered) ? data.discovered.length : 0;
         setDiscoveryNotice(
           count > 0
-            ? `Added ${count} verified global baby names matching your criteria to the database.`
+            ? `Added ${count} global baby names matching your criteria to the database.`
             : 'All matching names for this query are now displayed below.'
         );
       }
@@ -598,7 +598,7 @@ export const BabyNameDatabaseScreen: React.FC<BabyNameDatabaseScreenProps> = ({
                   Global Baby Name Encyclopedia
                 </span>
                 <span className="text-[10px] font-bold text-gray-500 bg-white px-2.5 py-0.5 rounded-full border border-gray-100">
-                  {namesList.length} Verified Names • A-Z
+                  {namesList.length} Listed Names • A-Z
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-serif font-black text-gray-900 mt-1">

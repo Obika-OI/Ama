@@ -27,7 +27,7 @@ export const DiaperAnalyzer: React.FC<DiaperAnalyzerProps> = ({ onAnalyze }) => 
           Analyze this diaper stool image.
           Return ONLY valid JSON with no markdown block formatting.
           Fields needed:
-          - stoolType (number 1-7 based on Bristol Stool Scale, where 1 is hard lumps, 4 is normal, 7 is watery)
+          - stoolType (number 1-7 based on a 1-7 consistency scale, where 1 is hard lumps, 4 is soft/normal, 7 is watery)
           - color (string, e.g., "Yellow", "Brown", "Green", "Red", "Black")
           - concerns (string: list any flagged observations like hydration or digestion notes based on general infant care guidelines. If none, say "Normal stool")
         `;

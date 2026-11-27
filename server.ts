@@ -34,12 +34,11 @@ app.use((req, res, next) => {
       return;
     }
 
-    const isWebhook = req.path === "/api/paystack/webhook";
     const secFetchSite = req.headers["sec-fetch-site"];
     const origin = req.headers["origin"] as string | undefined;
     const host = req.headers["host"];
 
-    if (!isWebhook && secFetchSite === "cross-site" && origin) {
+    if (secFetchSite === "cross-site" && origin) {
       try {
         const originUrl = new URL(origin);
         if (host && originUrl.host !== host) {
@@ -271,7 +270,7 @@ function extractAndParseJson<T = any>(rawText: string, fallback: T | null = null
 // API ROUTES
 // ============================================================================
 
-// Explicit ads.txt serving for guaranteed Google AdSense crawl discovery
+// Explicit ads.txt serving for Google AdSense crawl discovery
 app.get("/ads.txt", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "text/plain");
   res.send("google.com, pub-5528750606185925, DIRECT, f08c47fec0942fa0");
@@ -290,190 +289,28 @@ app.get("/sitemap.xml", (req: Request, res: Response) => {
 });
 
 
-import crypto from 'crypto';
-
-// Paystack Payment Integration
-const PAYSTACK_BASE_URL = 'https://api.paystack.co';
-
-const PAYSTACK_PLANS: Record<string, { name: string; amountKobo: number; amountUSD: number; amountGBP: number; interval?: string }> = {
-  price_monthly: {
-    name: 'Ama Premium - Monthly Pro',
-    amountKobo: 450000, // ₦4,500 NGN (in kobo)
-    amountUSD: 500,     // $5.00 USD (in cents)
-    amountGBP: 400,     // £4.00 GBP (in pence)
-    interval: 'monthly'
-  },
-  price_annual: {
-    name: 'Ama Premium - Annual Elite (45% OFF)',
-    amountKobo: 2950000, // ₦29,500 NGN (in kobo)
-    amountUSD: 3500,     // $35.00 USD (in cents)
-    amountGBP: 2800,     // £28.00 GBP (in pence)
-    interval: 'annually'
-  },
-  price_prepaid: {
-    name: 'Ama Premium - 3-Month Prepaid Pass',
-    amountKobo: 950000, // ₦9,500 NGN (in kobo)
-    amountUSD: 1200,    // $12.00 USD (in cents)
-    amountGBP: 1000     // £10.00 GBP (in pence)
-  }
-};
-
-// Get Paystack Public Key Config
+// Subscriptions & paywalls are disabled; keep legacy billing endpoints as safe open-access stubs
 app.get("/api/paystack/config", (_req: Request, res: Response) => {
-  const publicKey = process.env.PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_live_d2b967eddda456841f504b85549767fc33cc9fd4";
-  res.json({ publicKey });
+  res.json({ publicKey: null, openAccess: true });
 });
 
-// Initialize Paystack Transaction
-app.post(["/api/paystack/initialize", "/api/checkout"], async (req: Request, res: Response) => {
-  try {
-    const { priceId, email, currency = 'NGN' } = req.body;
-    const planInfo = PAYSTACK_PLANS[priceId] || PAYSTACK_PLANS.price_monthly;
-    const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
-    const appUrl = process.env.APP_URL || "http://localhost:3000";
-    const customerEmail = email || "parent@ama-care.app";
-    const reference = `pstk_${priceId || 'premium'}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    
-    const curr = (currency || 'NGN').toString().toUpperCase();
-    let amount = planInfo.amountKobo;
-    if (curr === 'USD') {
-      amount = planInfo.amountUSD;
-    } else if (curr === 'GBP') {
-      amount = planInfo.amountGBP;
-    }
-
-    // If Paystack Secret Key is provided, initiate transaction with Paystack API
-    if (paystackSecretKey && !paystackSecretKey.includes('sk_test_...')) {
-      try {
-        const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${paystackSecretKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: customerEmail,
-            amount: amount,
-            currency: currency.toUpperCase(),
-            reference: reference,
-            callback_url: `${appUrl}?paystack_ref=${reference}&price_id=${priceId}`,
-            metadata: {
-              priceId,
-              planName: planInfo.name,
-              custom_fields: [
-                {
-                  display_name: "Plan Name",
-                  variable_name: "plan_name",
-                  value: planInfo.name
-                },
-                {
-                  display_name: "Customer Email",
-                  variable_name: "customer_email",
-                  value: customerEmail
-                }
-              ]
-            }
-          })
-        });
-
-        const data = await response.json();
-        if (data.status && data.data?.authorization_url) {
-          return res.json({
-            url: data.data.authorization_url,
-            access_code: data.data.access_code,
-            reference: data.data.reference
-          });
-        }
-      } catch (e) {
-        console.warn("Paystack direct initialization fallback:", e);
-      }
-    }
-
-    // Default Client Public Key Checkout Mode (No Secret Key needed!)
-    const clientSuccessUrl = `${appUrl}?paystack_success=true&reference=${reference}&price_id=${priceId}`;
-    return res.json({
-      url: clientSuccessUrl,
-      reference,
-      status: 'success',
-      message: "Paystack Public Key Checkout Mode active"
-    });
-  } catch (err: any) {
-    console.error("Paystack Initialize Error:", err.message);
-    res.status(500).json({ error: err.message || "Paystack transaction failed" });
-  }
+app.post(["/api/paystack/initialize", "/api/checkout"], (_req: Request, res: Response) => {
+  res.status(410).json({
+    error: "Subscriptions and paywalls are disabled. All features are freely available.",
+    openAccess: true
+  });
 });
 
-// Verify Paystack Transaction (Zero Secret Key Needed!)
-app.get("/api/paystack/verify/:reference", async (req: Request, res: Response) => {
-  try {
-    const refParam = req.params.reference;
-    const reference = Array.isArray(refParam) ? refParam[0] : (refParam || '');
-    const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
-
-    if (!reference) {
-      return res.status(400).json({ error: "Transaction reference is required" });
-    }
-
-    if (paystackSecretKey && !paystackSecretKey.includes('sk_test_...')) {
-      try {
-        const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/verify/${encodeURIComponent(reference)}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${paystackSecretKey}`
-          }
-        });
-        const data = await response.json();
-        if (data.status && data.data?.status === 'success') {
-          return res.json({
-            status: 'success',
-            verified: true,
-            plan: data.data.metadata?.priceId || 'premium',
-            amount: data.data.amount,
-            customer: data.data.customer,
-            reference: data.data.reference
-          });
-        }
-      } catch (e) {
-        console.warn("Paystack secret key verify fallback:", e);
-      }
-    }
-
-    // Instant verification for Paystack Client Public Key transactions
-    return res.json({
-      status: 'success',
-      verified: true,
-      plan: reference.includes('annual') ? 'price_annual' : reference.includes('prepaid') ? 'price_prepaid' : 'price_monthly',
-      reference,
-      message: 'Transaction successfully verified via Paystack Inline Client Public Gateway!'
-    });
-  } catch (err: any) {
-    console.error("Paystack Verification Error:", err.message);
-    res.status(500).json({ error: err.message || "Verification failed" });
-  }
+app.get("/api/paystack/verify/:reference", (_req: Request, res: Response) => {
+  res.status(410).json({
+    verified: false,
+    openAccess: true,
+    message: "Subscriptions and paywalls are disabled."
+  });
 });
 
-// Paystack Webhook Handler
-app.post("/api/paystack/webhook", (req: Request, res: Response) => {
-  try {
-    const secret = process.env.PAYSTACK_SECRET_KEY;
-    const signature = req.headers['x-paystack-signature'] as string;
-
-    if (secret && signature) {
-      const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
-      if (hash !== signature) {
-        return res.status(401).send("Invalid webhook signature");
-      }
-    }
-
-    const event = req.body;
-    console.log(`[Paystack Webhook] Received event: ${event?.event}`, event?.data?.reference);
-    
-    // Webhook event processing: charge.success, subscription.create, etc.
-    res.sendStatus(200);
-  } catch (err: any) {
-    console.error("Paystack Webhook Error:", err);
-    res.sendStatus(500);
-  }
+app.post("/api/paystack/webhook", (_req: Request, res: Response) => {
+  res.sendStatus(410);
 });
 
 app.get("/api/health", (req: Request, res: Response) => {
@@ -1266,7 +1103,7 @@ function getHeuristicResponse(
   const lowerMsg = (message || "").toLowerCase();
   const activeScreen = appContext?.activeScreen || "home";
   const pageTitle = appContext?.pageTitle || "Dashboard";
-  const authStatus = appContext?.authStatus || "anonymous";
+  const authStatus = appContext?.authStatus || "guest";
   const isOnboarded = appContext?.isOnboarded !== false;
   let replyText = "";
   let actionToTrigger: any = null;
@@ -1575,7 +1412,7 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
       pageTitle = "Dashboard",
       pageContentSummary = "",
       isOnboarded = true,
-      authStatus = "anonymous",
+      authStatus = "guest",
       userRole = "admin",
       parentName = "Parent"
     } = req.body;
@@ -1697,9 +1534,9 @@ app.post("/api/ai/genai-assistant", async (req: Request, res: Response) => {
 You are Ogoo (pronounced phonetically like "Augur"), an exceptionally intelligent, deeply knowledgeable, and empathetic parenting companion inside the Ama Baby app. You possess world-class knowledge in infant care, developmental milestones, sleep patterns, healthy infant nutrition (BLW & purees), lactation support, practical safety, AND complete mastery of every feature, screen, and registration step inside Ama Baby.
 
 KNOWLEDGE BASE & GUIDELINES:
-- Grounded in gold-standard evidence-based wellness guidance from the American Academy of Pediatrics (AAP), World Health Organization (WHO), Centers for Disease Control and Prevention (CDC), National Health Service (NHS), and Mayo Clinic.
+- Informed by general educational infant care and parenting resources from public child-health organizations, shared for informational support only and not a substitute for qualified medical care.
 - Extensive knowledge of age-specific wake windows, nap transitions, daily sleep rhythms, solid food readiness, top allergen exposure timelines, infant stool consistency observations, and teething timelines.
-- Immediate awareness of practical first aid protocols for infant choking, rescue breathing, fever monitoring, dehydration signs, and allergic reaction signs.
+- Awareness of practical emergency response steps and when to encourage parents to contact a healthcare professional or local emergency services for choking, breathing difficulty, fever, dehydration, or allergic reactions.
 
 CRITICAL LANGUAGE SIMPLICITY MANDATE (FOR ALL MOTHERS & CAREGIVERS):
 - You MUST ALWAYS speak in extremely simple, plain, easy-to-understand everyday words that any mother or caregiver, including first-time mothers, can easily understand.
@@ -1719,8 +1556,8 @@ CURRENT PAGE & ACCOUNT AWARENESS:
 - Active Page Title: ${pageTitle}
 - What is currently on the user's screen: ${pageContentSummary || 'Ama Baby main care workspace'}
 - Parent / Caregiver Name: ${parentName} (Role: ${userRole})
-- First-Time Setup (Onboarding) Complete: ${isOnboarded ? 'Yes' : 'Not yet (user still needs to finish Welcome Setup: Parent Name, 18+ Guardian DOB, Baby Name, Baby DOB)'}
-- Account Registration Status: ${authStatus === 'signed_in' ? 'Signed in with personal Email or Google account (cloud sync active)' : authStatus === 'anonymous' ? 'Temporary guest session — guide them kindly to tap "Sign In / Register" to link Email/Password or Google Sign-In so data never gets lost and Community/Baby Name additions work!' : 'Signed out — encourage tapping "Sign In / Register" to save progress.'}
+- First-Time Setup (Onboarding) Complete: ${isOnboarded ? 'Yes' : 'Not yet (user still needs to finish Welcome Setup: Your Name and Baby Profile or Village Join Code)'}
+- Account Registration Status: ${authStatus === 'signed_in' ? 'Signed in with personal Email or Google account (cloud sync active)' : authStatus === 'guest' ? 'Temporary guest session — guide them kindly to tap "Sign In / Register" to link Email/Password or Google Sign-In so data never gets lost and Community/Baby Name additions work!' : 'Signed out — encourage tapping "Sign In / Register" to save progress.'}
 
 COMPLETE AMA BABY APP MAP (Answer questions about ANY part of the app):
 - landing: Public Welcome page introducing Ama Baby with Get Started, Blog, User Guide, Safety Guide.
@@ -1737,7 +1574,7 @@ COMPLETE AMA BABY APP MAP (Answer questions about ANY part of the app):
 - mother-care: Mother Care / Postpartum Wellness space for tracking maternal nourishment & hydration (omugwo logs), recovery checklists, and mom wellness tips.
 - monitor: Live Baby Monitor (crib camera/audio station paired with parent viewer via Village room code).
 - reminders & notifications: Care alarm scheduler and notification center.
-- settings: Manage Baby & Guardian profile, upgrade/sign in to personal Email/Google account, Village Mode sync/QR code, privacy & audit logs, or Ama Premium subscription.
+- settings: Manage Baby & Caregiver profile, upgrade/sign in to personal Email/Google account, Village Mode sync/QR code, and data preferences.
 - user-guide & safety-guide: Step-by-step App User Guide and Infant Safety & First Aid Guide.
 - blog & blog-article: Evidence-backed parenting articles on nutrition, sleep, and baby development.
 
@@ -1796,7 +1633,6 @@ If the user wants to log care OR asks to register/sign in OR wants to visit/open
 - Log Sleep/Nap: {"type": "log_sleep", "durationMinutes": number}
 - Log Diaper: {"type": "log_diaper", "diaperType": "wet"|"dirty"|"clean"}
 - Open Registration / Sign In Modal: {"type": "open_auth"}
-- Open Premium Subscription Modal: {"type": "open_subscription"}
 - Open Another App Screen: {"type": "navigate", "targetScreen": "home"|"feeding"|"sleep"|"cry-analyzer"|"recipes"|"ai-meal-planner"|"journal"|"activities"|"community"|"local-directories"|"baby-names"|"mother-care"|"monitor"|"settings"|"reminders"|"notifications"|"user-guide"|"safety-guide"|"blog"}
 
 PROACTIVE CARE INSIGHT:
@@ -1951,7 +1787,7 @@ app.post("/api/ai/ogoo-proactive-insights", async (req: Request, res: Response) 
       activeScreen = "home",
       pageTitle = "Dashboard",
       isOnboarded = true,
-      authStatus = "anonymous"
+      authStatus = "guest"
     } = req.body;
 
     const insights: any[] = [];
@@ -2411,7 +2247,7 @@ app.post("/api/ai/diaper-analyzer", async (req: Request, res: Response) => {
           contents: {
             parts: [
               {
-                text: "You are an infant care AI assistant. Analyze this diaper stool image. Return ONLY valid JSON with no markdown block formatting. Fields needed: stoolType (number 1-7 based on Bristol Stool Scale), color (string, e.g., 'Yellow', 'Brown', 'Green', 'Red', 'Black'), concerns (string: list any flagged observations like hydration or digestion notes)."
+                text: "You are an infant care informational AI assistant. Describe this diaper stool image for parent logging only (not medical diagnosis). Return ONLY valid JSON with no markdown block formatting. Fields needed: stoolType (number 1-7 representing general stool consistency from watery to firm), color (string, e.g., 'Yellow', 'Brown', 'Green', 'Red', 'Black'), concerns (string: general visual hydration or digestion notes, recommending pediatric guidance for unusual colors)."
               },
               {
                 inlineData: {
@@ -2531,6 +2367,21 @@ interface CommunityChatMessage {
   senderLocation?: string;
   text: string;
   createdAt: string;
+}
+
+interface CommunityRoom {
+  id: string;
+  name: string;
+  topic: string;
+  description: string;
+  creatorId: string;
+  creatorName: string;
+  creatorRole: string;
+  inviteCode?: string;
+  memberIds: string[];
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface IndependentSpecialist {
@@ -2709,6 +2560,7 @@ interface PersistentAppStore {
   communityPosts: CommunityPost[];
   communityMembers: CommunityMember[];
   communityConnections: { id: string; fromId: string; toId: string; createdAt: string }[];
+  communityRooms: CommunityRoom[];
   communityMessages: CommunityChatMessage[];
   communitySpecialists: IndependentSpecialist[];
   marketplaceProviders: MarketplaceProvider[];
@@ -2763,6 +2615,7 @@ function loadPersistentStore(): PersistentAppStore {
         communityPosts: Array.isArray(parsed.communityPosts) ? parsed.communityPosts : [],
         communityMembers: Array.isArray(parsed.communityMembers) ? parsed.communityMembers : [],
         communityConnections: Array.isArray(parsed.communityConnections) ? parsed.communityConnections : [],
+        communityRooms: Array.isArray(parsed.communityRooms) ? parsed.communityRooms : [],
         communityMessages: Array.isArray(parsed.communityMessages) ? parsed.communityMessages : [],
         communitySpecialists: Array.isArray(parsed.communitySpecialists) ? parsed.communitySpecialists : [],
         marketplaceProviders: Array.isArray(parsed.marketplaceProviders) ? parsed.marketplaceProviders : [],
@@ -2788,6 +2641,7 @@ function loadPersistentStore(): PersistentAppStore {
     communityPosts: [],
     communityMembers: [],
     communityConnections: [],
+    communityRooms: [],
     communityMessages: [],
     communitySpecialists: [],
     marketplaceProviders: [],
@@ -2833,7 +2687,7 @@ function createRateLimiter(options: { maxRequests: number; windowMs: number; sco
       req.body?.userId ||
       req.headers["x-forwarded-for"] ||
       req.ip ||
-      "anonymous"
+      "guest"
     ).slice(0, 128);
 
     const bucketKey = `${options.scope}:${userKey}`;
@@ -3000,6 +2854,7 @@ app.get("/api/community/state", (req: Request, res: Response) => {
     posts: liveStore.communityPosts,
     members: liveStore.communityMembers,
     connections: liveStore.communityConnections,
+    rooms: liveStore.communityRooms,
     messages: liveStore.communityMessages,
     specialists: liveStore.communitySpecialists,
     marketplaceProviders: liveStore.marketplaceProviders,
@@ -3188,7 +3043,7 @@ app.post("/api/community/members", (req: Request, res: Response) => {
       b => b.targetUserId === memberId || (deviceId && b.targetDeviceId === deviceId)
     );
     if (isBanned) {
-      return res.status(403).json({ error: "This device and account have been permanently banned from the marketplace for verified fraud or violations." });
+      return res.status(403).json({ error: "This account and browser session have been restricted from marketplace orders due to a policy violation." });
     }
 
     const memberRecord: CommunityMember = {
@@ -3288,6 +3143,116 @@ app.post("/api/community/chat", chatRateLimiter, async (req: Request, res: Respo
 
     const roomMessages = liveStore.communityMessages.filter(m => m.roomId === msg.roomId);
     return res.json({ message: msg, messages: roomMessages });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/community/rooms", (req: Request, res: Response) => {
+  return res.json({ rooms: liveStore.communityRooms });
+});
+
+app.post("/api/community/rooms", postRateLimiter, async (req: Request, res: Response) => {
+  try {
+    const {
+      id,
+      name,
+      topic = "General Parenting",
+      description,
+      creatorId,
+      creatorName = "Parent",
+      creatorRole = "Parent"
+    } = req.body;
+
+    const cleanName = String(name || "").trim().slice(0, 80);
+    const cleanDesc = String(description || "").trim().slice(0, 300);
+    if (cleanName.length < 2 || !cleanDesc) {
+      return res.status(400).json({ error: "Room name (at least 2 characters) and description are required." });
+    }
+
+    const mod = await moderateCommunityContent(`${cleanName}\n\n${cleanDesc}`, "chat");
+    if (!mod.allowed) {
+      return res.status(422).json({ error: mod.reason, category: mod.category });
+    }
+
+    const now = new Date().toISOString();
+    const safeCreatorId = String(creatorId || "anon").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 128) || "anon";
+    const roomId = String(id || `room-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`)
+      .replace(/[^a-zA-Z0-9_-]/g, "")
+      .slice(0, 128);
+
+    const newRoom: CommunityRoom = {
+      id: roomId,
+      name: cleanName,
+      topic: String(topic || "General Parenting").trim().slice(0, 60),
+      description: cleanDesc,
+      creatorId: safeCreatorId,
+      creatorName: String(creatorName || "Parent").trim().slice(0, 80),
+      creatorRole: String(creatorRole || "Parent").trim().slice(0, 80),
+      memberIds: [safeCreatorId],
+      isPublic: true,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    liveStore.communityRooms.unshift(newRoom);
+    savePersistentStore(liveStore);
+    return res.json({ room: newRoom, rooms: liveStore.communityRooms });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/community/rooms/:roomId/join", (req: Request, res: Response) => {
+  try {
+    const room = liveStore.communityRooms.find(r => r.id === req.params.roomId);
+    if (!room) {
+      return res.status(404).json({ error: "Room not found." });
+    }
+    const memberId = String(req.body?.userId || "anon").trim().slice(0, 128);
+    if (!room.memberIds.includes(memberId) && room.memberIds.length < 200) {
+      room.memberIds.push(memberId);
+      room.updatedAt = new Date().toISOString();
+      savePersistentStore(liveStore);
+    }
+    return res.json({ room, rooms: liveStore.communityRooms });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/community/rooms/:roomId/leave", (req: Request, res: Response) => {
+  try {
+    const room = liveStore.communityRooms.find(r => r.id === req.params.roomId);
+    if (!room) {
+      return res.status(404).json({ error: "Room not found." });
+    }
+    const memberId = String(req.body?.userId || "anon").trim().slice(0, 128);
+    if (room.creatorId === memberId) {
+      return res.status(400).json({ error: "Room creator cannot leave; delete the room instead." });
+    }
+    room.memberIds = room.memberIds.filter(id => id !== memberId);
+    room.updatedAt = new Date().toISOString();
+    savePersistentStore(liveStore);
+    return res.json({ room, rooms: liveStore.communityRooms });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/community/rooms/:roomId", (req: Request, res: Response) => {
+  try {
+    const idx = liveStore.communityRooms.findIndex(r => r.id === req.params.roomId);
+    if (idx === -1) {
+      return res.status(404).json({ error: "Room not found." });
+    }
+    const requesterId = String(req.query?.userId || req.body?.userId || "").trim();
+    if (requesterId && liveStore.communityRooms[idx].creatorId !== requesterId) {
+      return res.status(403).json({ error: "Only the room creator can delete this room." });
+    }
+    liveStore.communityRooms.splice(idx, 1);
+    savePersistentStore(liveStore);
+    return res.json({ rooms: liveStore.communityRooms });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
@@ -3504,7 +3469,7 @@ app.post("/api/community/marketplace/gifts", postRateLimiter, async (req: Reques
   }
 });
 
-// --- 5C. MARKETPLACE ORDERS, FRAUD BANS & EXTERNAL ESCROW VERIFICATION ---
+// --- 5C. MARKETPLACE ORDERS, POLICY RESTRICTIONS & PEER HANDOVER TRACKING ---
 app.get("/api/community/marketplace/orders", (req: Request, res: Response) => {
   const userId = req.query.userId ? String(req.query.userId) : null;
   const userOrders = userId
@@ -3553,15 +3518,15 @@ app.post("/api/community/marketplace/orders", postRateLimiter, async (req: Reque
         (sellerDeviceId && b.targetDeviceId === sellerDeviceId)
     );
     if (isBanned) {
-      return res.status(403).json({ error: "One of the participating accounts or devices is permanently banned from marketplace transactions." });
+      return res.status(403).json({ error: "One of the participating accounts or sessions has been restricted from marketplace orders." });
     }
 
     const sellerMember = liveStore.communityMembers.find(m => m.id === sellerId);
     if (sellerMember?.isAccountFrozen) {
-      return res.status(403).json({ error: "This Provider account is temporarily frozen due to an unresolved non-delivery dispute." });
+      return res.status(403).json({ error: "This Provider account is temporarily paused pending resolution of an open delivery dispute." });
     }
 
-    // 2. Block Remote Shipping for Unproven Providers (Level 1: Local Only, Level 2: Remote Shipping Cleared)
+    // 2. Require Level 2 Profile Confirmation & Handover History for Remote Shipping
     const isLevel2Provider = Boolean(
       (sellerMember?.isKycVerified || sellerKycVerified) &&
       ((sellerMember?.completedInPersonDealsCount || 0) >= 5 || (sellerMember?.providerLevel || sellerProviderLevel || 1) >= 2)
@@ -3569,11 +3534,11 @@ app.post("/api/community/marketplace/orders", postRateLimiter, async (req: Reque
 
     if (handoverType === "shipping" && !isLevel2Provider) {
       return res.status(403).json({
-        error: "Level 2 Provider Required: Remote shipping is blocked for unproven providers. Providers must complete KYC verification and 5+ successful in-person handovers before offering remote courier delivery."
+        error: "Level 2 Provider Required: Level 1 providers are limited to in-person handovers. Providers must complete profile confirmation and 5+ completed in-person handovers before offering remote courier delivery."
       });
     }
 
-    // 3. Unverified Tier Limits Check (Max 3 orders/day below ~£50 / $65 / ₦95,000 equivalent)
+    // 3. Standard Tier Limits Check (Max 3 orders/day below ~£50 / $65 / ₦95,000 equivalent)
     if (!buyerKycVerified) {
       const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
       const recentBuyerOrders = liveStore.marketplaceOrders.filter(
@@ -3581,7 +3546,7 @@ app.post("/api/community/marketplace/orders", postRateLimiter, async (req: Reque
       );
       if (recentBuyerOrders.length >= 3) {
         return res.status(400).json({
-          error: "Unverified limit exceeded: You may only initiate up to 3 transactions per day. Complete KYC verification for unlimited bookings and orders."
+          error: "Standard Tier limit exceeded: You may initiate up to 3 orders per day. Complete profile confirmation for higher booking and order limits."
         });
       }
 
@@ -3595,7 +3560,7 @@ app.post("/api/community/marketplace/orders", postRateLimiter, async (req: Reque
 
       if (isOverLimit) {
         return res.status(400).json({
-          error: `Unverified limit exceeded: Single transaction amount (${currency} ${numericAmount}) exceeds the £50 equivalent limit for unverified accounts. Complete KYC verification to proceed.`
+          error: `Standard Tier limit exceeded: Single order amount (${currency} ${numericAmount}) exceeds the £50 equivalent limit for Standard Tier accounts. Complete profile confirmation to proceed.`
         });
       }
     }
@@ -3768,7 +3733,7 @@ app.patch("/api/community/marketplace/orders/:orderId", async (req: Request, res
       }
     } else if (action === "resolve_dispute") {
       if (resolution === "consumer_false_claim") {
-        // Consumer strike system: 1st warning strike, 2nd permanent ban
+        // Consumer strike system: 1st warning note, 2nd marketplace restriction
         const buyerMem = liveStore.communityMembers.find(m => m.id === order.buyerId);
         const currentStrikes = (buyerMem?.disputeStrikes || 0) + 1;
         if (buyerMem) {
@@ -3781,14 +3746,14 @@ app.patch("/api/community/marketplace/orders/:orderId", async (req: Request, res
             targetUserId: buyerMem.id,
             targetUserName: buyerMem.name,
             targetDeviceId: buyerMem.deviceId || order.buyerDeviceId || "",
-            reason: "2nd False Non-Delivery Claim / Dispute Abuse (Permanent Device & Phone Ban)",
+            reason: "2nd Unsubstantiated Non-Delivery Dispute (Marketplace Restriction)",
             evidenceOrderId: order.id,
             bannedAt: now,
             bannedBy: "system_admin"
           });
         }
 
-        // Wipe any negative impact from Provider, grant Protected Provider Badge
+        // Clear any pause from Provider, grant Community Trust Badge
         const providerMem = liveStore.communityMembers.find(m => m.id === order.sellerId);
         if (providerMem) {
           providerMem.isAccountFrozen = false;
@@ -3801,32 +3766,32 @@ app.patch("/api/community/marketplace/orders/:orderId", async (req: Request, res
         order.isConsumerStrikeApplied = true;
         order.providerProtectionAwarded = true;
         order.isProviderFrozen = false;
-        order.disputeNotes = "Dispute resolved: Delivery verified authentic. Consumer penalized with dispute strike; Provider awarded Protected Provider Badge.";
+        order.disputeNotes = "Dispute resolved: Delivery record confirmed. Consumer issued a dispute note; Provider awarded Community Trust Badge.";
       } else if (resolution === "provider_default") {
-        // Freeze Provider account and hide listings
+        // Pause Provider account and hide listings
         const providerMem = liveStore.communityMembers.find(m => m.id === order.sellerId);
         if (providerMem) {
           providerMem.isAccountFrozen = true;
         }
         order.status = "cancelled";
         order.isProviderFrozen = true;
-        order.disputeNotes = "Dispute resolved: Provider failed to provide delivery proof past grace period. Provider storefront frozen.";
+        order.disputeNotes = "Dispute resolved: Provider did not supply delivery details within the grace period. Provider storefront paused.";
       }
       order.updatedAt = now;
     } else if (action === "deny_receipt") {
       if (!denialStatementUrl) {
         return res.status(400).json({
-          error: "To deny receipt, an official single-day bank statement PDF or document showing no incoming transfer is required."
+          error: "To deny receipt, a single-day statement PDF or document showing no incoming transfer is required."
         });
       }
       order.status = "denied";
       order.deniedAt = now;
-      order.denialReason = String(denialReason || "Bank statement attached showing no matching credit.").slice(0, 500);
+      order.denialReason = String(denialReason || "Statement attached showing no matching credit.").slice(0, 500);
       order.denialStatementUrl = String(denialStatementUrl).slice(0, 2048);
       order.updatedAt = now;
-    } else if (action === "report_fraud") {
+    } else if (action === "report_fraud" || action === "report_dispute") {
       order.status = "delivery_disputed";
-      order.disputeNotes = String(disputeNotes || "Reported for dispute investigation.").slice(0, 1000);
+      order.disputeNotes = String(disputeNotes || "Reported for community dispute review.").slice(0, 1000);
       order.updatedAt = now;
     } else {
       return res.status(400).json({ error: "Invalid order action." });
@@ -3848,7 +3813,7 @@ app.post("/api/community/marketplace/bans", async (req: Request, res: Response) 
     const { targetUserId, targetUserName = "User", targetDeviceId, targetIp = "", reason, evidenceOrderId, bannedBy } = req.body;
 
     if (!targetUserId || !targetDeviceId || !reason) {
-      return res.status(400).json({ error: "Target user ID, device hardware ID, and clear fraud reason are required." });
+      return res.status(400).json({ error: "Target user ID, session ID, and clear restriction reason are required." });
     }
 
     const banId = `ban-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -3891,11 +3856,11 @@ function getCuratedDirectoryData(
   const locLower = (locationName || "").toLowerCase();
   const cat = (category || "hospitals").toLowerCase();
 
-  // Curated facilities for top regional hubs with verified details & direct Maps URLs
+  // Curated local directory entries with direct Maps search links
   if (locLower.includes("port harcourt") || locLower.includes("rivers")) {
     if (cat === "caregivers") {
       return {
-        summaryMarkdown: `### Verified Postpartum, Doula & Omugwo Care in Port Harcourt\n\n• **Rivers Postpartum & Omugwo Caregivers Guild**\n  *Location:* Old GRA & Trans-Amadi, Port Harcourt\n  *Specialties:* Vetted traditional Omugwo caregivers, postpartum hot herbal compress, newborn massage, maternal pepper soup and nutritional pap preparation, day & live-in care.\n\n• **Royal Doulas & Newborn Home Support**\n  *Location:* GRA Phase 2, Port Harcourt\n  *Specialties:* Certified birth & postpartum doulas, night nurse support, lactation guidance, and maternal emotional wellness.\n\n• **Precious Bloom Maternal & Infant Home Care**\n  *Location:* Peter Odili Road, Trans-Amadi, Port Harcourt\n  *Specialties:* Infant cord care, pediatric nurse check-ins, postpartum sitz baths, and structured handover logging for new families.\n\n💡 *Parent Tip:* In Port Harcourt, book postpartum caregivers at least 4–6 weeks prior to your estimated delivery date. Ensure background screening and recent medical clearances (Hepatitis B, TB, and HIV) are verified.`,
+        summaryMarkdown: `### Local Postpartum, Doula & Omugwo Care in Port Harcourt\n\n• **Rivers Postpartum & Omugwo Caregivers Guild**\n  *Location:* Old GRA & Trans-Amadi, Port Harcourt\n  *Specialties:* Traditional Omugwo caregivers, postpartum warm compresses, newborn massage, maternal pepper soup and nutritional pap preparation, day & live-in care.\n\n• **Royal Doulas & Newborn Home Support**\n  *Location:* GRA Phase 2, Port Harcourt\n  *Specialties:* Birth & postpartum doulas, night support, lactation guidance, and maternal emotional wellness.\n\n• **Precious Bloom Maternal & Infant Home Care**\n  *Location:* Peter Odili Road, Trans-Amadi, Port Harcourt\n  *Specialties:* Infant cord care, pediatric nurse check-ins, postpartum sitz baths, and structured handover logging for new families.\n\n💡 *Parent Tip:* In Port Harcourt, arrange postpartum support early prior to your estimated delivery date. Request personal references and check qualifications directly with any provider you contact.`,
         groundedPlaces: [
           {
             title: "Rivers Postpartum & Omugwo Caregivers Guild (Old GRA)",
@@ -3905,12 +3870,12 @@ function getCuratedDirectoryData(
           {
             title: "Royal Doulas & Newborn Home Support (GRA Phase 2)",
             uri: "https://www.google.com/maps/search/?api=1&query=Royal+Doulas+GRA+Phase+2+Port+Harcourt",
-            reviewSnippets: ["Exceptional overnight newborn care and breastfeeding support for recovering mothers."]
+            reviewSnippets: ["Overnight newborn care and breastfeeding support for recovering mothers."]
           },
           {
             title: "Precious Bloom Maternal & Infant Home Care (Peter Odili)",
             uri: "https://www.google.com/maps/search/?api=1&query=Precious+Bloom+Maternal+Peter+Odili+Road+Port+Harcourt",
-            reviewSnippets: ["Professional maternal home nursing and gentle infant massage support."]
+            reviewSnippets: ["Maternal home nursing and gentle infant massage support."]
           }
         ]
       };
@@ -3918,7 +3883,7 @@ function getCuratedDirectoryData(
 
     if (cat === "lactation") {
       return {
-        summaryMarkdown: `### Verified Lactation Consultants & Breastfeeding Support in Port Harcourt\n\n• **RSUTH Maternal Nutrition & Lactation Clinic**\n  *Location:* Harley Street, Old GRA, Port Harcourt\n  *Services:* IBCLC guidance, latch correction, tongue-tie (ankyloglossia) assessment, low milk supply evaluation, and mastitis triage.\n\n• **The Bridge Clinic Postnatal Center**\n  *Location:* Plot 41C Stadium Road, Port Harcourt\n  *Services:* Infant suck-swallow coordination, breast pump fitting, safe milk storage counseling, and return-to-work lactation planning.\n\n• **Mother & Baby Wellness Haven**\n  *Location:* Trans-Amadi Commercial Layout, Port Harcourt\n  *Services:* Gentle latch coaching, nipple wound care, relactation assistance, and donor milk safety education.\n\n💡 *Parent Tip:* RSUTH and major clinics offer dedicated morning lactation triage from 8:00 AM to 1:00 PM. Bring your baby hungry (30–45 mins before normal feed time) so the specialist can observe an active latch.`,
+        summaryMarkdown: `### Local Lactation Consultants & Breastfeeding Support in Port Harcourt\n\n• **RSUTH Maternal Nutrition & Lactation Clinic**\n  *Location:* Harley Street, Old GRA, Port Harcourt\n  *Services:* IBCLC guidance, latch coaching, tongue-tie evaluation, milk supply evaluation, and breast comfort support.\n\n• **The Bridge Clinic Postnatal Center**\n  *Location:* Plot 41C Stadium Road, Port Harcourt\n  *Services:* Infant feeding coordination, breast pump fitting, safe milk storage education, and return-to-work lactation planning.\n\n• **Mother & Baby Wellness Haven**\n  *Location:* Trans-Amadi Commercial Layout, Port Harcourt\n  *Services:* Gentle latch coaching, nipple care guidance, relactation assistance, and feeding education.\n\n💡 *Parent Tip:* RSUTH and major clinics often host morning lactation clinic hours from 8:00 AM to 1:00 PM. Call ahead to confirm appointment times before visiting.`,
         groundedPlaces: [
           {
             title: "RSUTH Maternal Nutrition & Lactation Clinic (Old GRA)",
@@ -3941,22 +3906,22 @@ function getCuratedDirectoryData(
 
     if (cat === "pharmacies") {
       return {
-        summaryMarkdown: `### Certified Pharmacies & Infant Health Dispensaries in Port Harcourt\n\n• **HealthPlus Pharmacy — GRA Phase 2**\n  *Location:* 12 Tombia Street, GRA Phase 2, Port Harcourt\n  *Inventory:* Pediatric oral suspensions, sterile saline nasal drops, infant paracetamol, colic relief, digital thermometers, and hypoallergenic infant formula.\n\n• **Medplus Pharmacy — Stadium Road**\n  *Location:* 48 Stadium Road, near Ken Saro-Wiwa Polytechnic Road, Port Harcourt\n  *Inventory:* Cold-chain vaccines, maternal postnatal multivitamins, breast pumps, sterilizing tablets, and diaper care ointments.\n\n• **Alpha Pharmacy & Pediatric Dispensary**\n  *Location:* Aba Road, Garrison Junction, Port Harcourt\n  *Inventory:* 24/7 emergency prescription dispensary, pediatric rehydration salts, infant nebulizers, and specialized infant nutritional supplements.\n\n💡 *Parent Tip:* Always check the batch number and NAFDAC registration on infant syrups. For refrigerated medications (like probiotics or specific antibiotics), request an ice pack for transit in hot weather.`,
+        summaryMarkdown: `### Community & Retail Pharmacies in Port Harcourt\n\n• **HealthPlus Pharmacy — GRA Phase 2**\n  *Location:* 12 Tombia Street, GRA Phase 2, Port Harcourt\n  *Inventory:* Pediatric oral suspensions, sterile saline nasal drops, infant thermometers, and infant nutrition supplies.\n\n• **Medplus Pharmacy — Stadium Road**\n  *Location:* 48 Stadium Road, near Ken Saro-Wiwa Polytechnic Road, Port Harcourt\n  *Inventory:* Maternal postnatal multivitamins, breast pumps, sterilizing supplies, and diaper care ointments.\n\n• **Alpha Pharmacy & Pediatric Dispensary**\n  *Location:* Aba Road, Garrison Junction, Port Harcourt\n  *Inventory:* Extended-hours prescription dispensary, oral rehydration salts, and infant nutritional supplements.\n\n💡 *Parent Tip:* Always check the batch number and regulatory registration on infant products and consult a licensed pharmacist or pediatrician before giving any medication.`,
         groundedPlaces: [
           {
             title: "HealthPlus Pharmacy (Tombia Street, GRA Phase 2)",
             uri: "https://www.google.com/maps/search/?api=1&query=HealthPlus+Pharmacy+Tombia+Street+GRA+Phase+2+Port+Harcourt",
-            reviewSnippets: ["Well-stocked with authentic pediatric syrups and mother care supplies."]
+            reviewSnippets: ["Well-stocked with pediatric care essentials and mother care supplies."]
           },
           {
             title: "Medplus Pharmacy (Stadium Road, Port Harcourt)",
             uri: "https://www.google.com/maps/search/?api=1&query=Medplus+Pharmacy+Stadium+Road+Port+Harcourt",
-            reviewSnippets: ["Helpful pharmacists who explain pediatric dosage calculations clearly."]
+            reviewSnippets: ["Helpful pharmacists who explain product label instructions clearly."]
           },
           {
             title: "Alpha Pharmacy & Pediatric Dispensary (Aba Road)",
             uri: "https://www.google.com/maps/search/?api=1&query=Alpha+Pharmacy+Aba+Road+Port+Harcourt",
-            reviewSnippets: ["Reliable 24-hour dispensary for urgent infant medications."]
+            reviewSnippets: ["Extended-hours dispensary for urgent infant pharmacy needs."]
           }
         ]
       };
@@ -3964,27 +3929,27 @@ function getCuratedDirectoryData(
 
     // Default: Hospitals & Healthcare
     return {
-      summaryMarkdown: `### Verified Maternity Hospitals & Pediatric Centers in Port Harcourt\n\n• **Rivers State University Teaching Hospital (RSUTH)**\n  *Location:* 6–8 Harley Street, Old GRA, Port Harcourt\n  *Specialties:* 24/7 Neonatal Intensive Care Unit (NICU), pediatric emergency room, maternal delivery suites, kangaroo mother care, and certified pediatricians.\n\n• **University of Port Harcourt Teaching Hospital (UPTH)**\n  *Location:* East-West Road, Choba, Port Harcourt\n  *Specialties:* Apex tertiary pediatric hospital, emergency neonatal surgery, pediatric cardiology, phototherapy for newborn jaundice, and round-the-clock emergency blood bank.\n\n• **Prime Medical Consultants Hospital**\n  *Location:* 10 Birabi Street, New GRA, Port Harcourt\n  *Specialties:* Comprehensive private maternity care, dedicated newborn nursery, pediatric outpatient consultations, and scheduled immunizations.\n\n• **Spring Rose Specialist Hospital & Pediatric Clinic**\n  *Location:* 14 Trans-Amadi / D-Line, Port Harcourt\n  *Specialties:* Well-baby clinic, infant vaccination schedules, pediatric triage, and postpartum maternal recovery care.\n\n💡 *Parent Tip:* For pediatric emergency admissions at UPTH or RSUTH, carry your baby's immunisation yellow card and hospital delivery summary. Keep baby bundled in light breathable cotton to prevent overheating.`,
+      summaryMarkdown: `### Local Maternity Hospitals & Pediatric Centers in Port Harcourt\n\n• **Rivers State University Teaching Hospital (RSUTH)**\n  *Location:* 6–8 Harley Street, Old GRA, Port Harcourt\n  *Specialties:* 24/7 Neonatal Intensive Care Unit (NICU), pediatric urgent care, maternal delivery suites, kangaroo mother care, and pediatricians.\n\n• **University of Port Harcourt Teaching Hospital (UPTH)**\n  *Location:* East-West Road, Choba, Port Harcourt\n  *Specialties:* Tertiary pediatric hospital, neonatal surgery, pediatric cardiology, phototherapy for newborn jaundice, and emergency services.\n\n• **Prime Medical Consultants Hospital**\n  *Location:* 10 Birabi Street, New GRA, Port Harcourt\n  *Specialties:* Private maternity care, newborn nursery, pediatric outpatient consultations, and scheduled immunizations.\n\n• **Spring Rose Specialist Hospital & Pediatric Clinic**\n  *Location:* 14 Trans-Amadi / D-Line, Port Harcourt\n  *Specialties:* Well-baby clinic, infant vaccination schedules, pediatric intake, and postpartum maternal recovery care.\n\n💡 *Parent Tip:* For hospital visits at UPTH or RSUTH, bring your baby's immunization record card and hospital delivery summary, and confirm clinic hours before traveling.`,
       groundedPlaces: [
         {
           title: "Rivers State University Teaching Hospital (RSUTH) — Old GRA",
           uri: "https://www.google.com/maps/search/?api=1&query=Rivers+State+University+Teaching+Hospital+Harley+Street+Port+Harcourt",
-          reviewSnippets: ["24-hour maternal emergency unit with experienced neonatal nurses."]
+          reviewSnippets: ["24-hour maternal unit with experienced neonatal nurses."]
         },
         {
           title: "University of Port Harcourt Teaching Hospital (UPTH) — Choba",
           uri: "https://www.google.com/maps/search/?api=1&query=University+of+Port+Harcourt+Teaching+Hospital+East-West+Road+Port+Harcourt",
-          reviewSnippets: ["Advanced pediatric intensive care and comprehensive child emergency center."]
+          reviewSnippets: ["Tertiary pediatric intensive care and child emergency center."]
         },
         {
           title: "Prime Medical Consultants Hospital — New GRA",
           uri: "https://www.google.com/maps/search/?api=1&query=Prime+Medical+Consultants+Hospital+10+Birabi+Street+Port+Harcourt",
-          reviewSnippets: ["Modern maternity wing, calm delivery rooms, and very attentive doctors."]
+          reviewSnippets: ["Modern maternity wing, calm delivery rooms, and attentive clinicians."]
         },
         {
           title: "Spring Rose Specialist Hospital — D-Line",
           uri: "https://www.google.com/maps/search/?api=1&query=Spring+Rose+Hospital+D-Line+Port+Harcourt",
-          reviewSnippets: ["Quick pediatric turnaround and clean, family-friendly facilities."]
+          reviewSnippets: ["Family-friendly pediatric outpatient facilities."]
         }
       ]
     };
@@ -3993,27 +3958,27 @@ function getCuratedDirectoryData(
   // Curated facilities for Lagos
   if (locLower.includes("lagos") || locLower.includes("ikeja") || locLower.includes("lekki") || locLower.includes("victoria island")) {
     return {
-      summaryMarkdown: `### Verified Maternity, Pediatric & Healthcare Centers in Lagos\n\n• **Lagos University Teaching Hospital (LUTH) — Idi-Araba**\n  *Location:* Ishaga Road, Idi-Araba, Surulere, Lagos\n  *Specialties:* Level-3 Neonatal Intensive Care Unit (NICU), pediatric cardiology, emergency infant triage, and maternal high-dependency units.\n\n• **Island Maternity Hospital & Neonatal Complex**\n  *Location:* Campbell Street, Lagos Island\n  *Specialties:* Dedicated maternal and neonatal hospital, 24/7 delivery services, specialized kangaroo mother care, and postpartum wards.\n\n• **Reddington Hospital — Mother & Child Specialty Center**\n  *Location:* Idowu Martins Street, Victoria Island, Lagos\n  *Specialties:* Private pediatric suites, neonatal ventilators, breastfeeding support, and internationally accredited maternal health facilities.\n\n• **Lagoon Hospital — Maternal & Pediatric Center**\n  *Location:* Marine Road, Apapa & Bourdillon Road, Ikoyi, Lagos\n  *Specialties:* Well-baby clinics, child immunizations, newborn hearing screenings, and 24-hour pediatric emergency.\n\n💡 *Parent Tip:* Lagos traffic can delay urgent transit; familiarize yourself with the closest 24/7 pediatric facility in your local government area (LGA) before emergencies arise.`,
+      summaryMarkdown: `### Local Maternity, Pediatric & Healthcare Centers in Lagos\n\n• **Lagos University Teaching Hospital (LUTH) — Idi-Araba**\n  *Location:* Ishaga Road, Idi-Araba, Surulere, Lagos\n  *Specialties:* Level-3 Neonatal Intensive Care Unit (NICU), pediatric cardiology, urgent infant care, and maternal high-dependency units.\n\n• **Island Maternity Hospital & Neonatal Complex**\n  *Location:* Campbell Street, Lagos Island\n  *Specialties:* Dedicated maternal and neonatal hospital, 24/7 delivery services, kangaroo mother care, and postpartum wards.\n\n• **Reddington Hospital — Mother & Child Specialty Center**\n  *Location:* Idowu Martins Street, Victoria Island, Lagos\n  *Specialties:* Private pediatric suites, neonatal support, breastfeeding guidance, and maternal health facilities.\n\n• **Lagoon Hospital — Maternal & Pediatric Center**\n  *Location:* Marine Road, Apapa & Bourdillon Road, Ikoyi, Lagos\n  *Specialties:* Well-baby clinics, child immunizations, newborn hearing screenings, and 24-hour pediatric emergency.\n\n💡 *Parent Tip:* Lagos traffic can delay urgent transit; note the closest 24/7 pediatric facility in your local area and confirm hours directly.`,
       groundedPlaces: [
         {
           title: "Lagos University Teaching Hospital (LUTH) — Idi-Araba",
           uri: "https://www.google.com/maps/search/?api=1&query=Lagos+University+Teaching+Hospital+Idi-Araba+Lagos",
-          reviewSnippets: ["Premier tertiary pediatric referral center with advanced neonatal intensive care."]
+          reviewSnippets: ["Tertiary pediatric referral center with neonatal intensive care."]
         },
         {
           title: "Island Maternity Hospital — Lagos Island",
           uri: "https://www.google.com/maps/search/?api=1&query=Island+Maternity+Hospital+Campbell+Street+Lagos",
-          reviewSnippets: ["Historic, high-capacity maternal and newborn care hospital."]
+          reviewSnippets: ["Long-standing maternal and newborn care hospital."]
         },
         {
           title: "Reddington Hospital Mother & Child Center — Victoria Island",
           uri: "https://www.google.com/maps/search/?api=1&query=Reddington+Hospital+Victoria+Island+Lagos",
-          reviewSnippets: ["Top-tier pediatric specialist care and warm, reassuring nursing staff."]
+          reviewSnippets: ["Pediatric specialist care and warm nursing staff."]
         },
         {
           title: "Lagoon Hospital Ikoyi — Bourdillon Road",
           uri: "https://www.google.com/maps/search/?api=1&query=Lagoon+Hospital+Bourdillon+Road+Ikoyi+Lagos",
-          reviewSnippets: ["Spotless facilities, rapid pediatric triage, and dedicated postpartum care."]
+          reviewSnippets: ["Clean facilities, pediatric intake, and dedicated postpartum care."]
         }
       ]
     };
@@ -4022,22 +3987,22 @@ function getCuratedDirectoryData(
   // Curated facilities for Abuja
   if (locLower.includes("abuja") || locLower.includes("fct") || locLower.includes("garki") || locLower.includes("wuse")) {
     return {
-      summaryMarkdown: `### Verified Maternity, Pediatric & Healthcare Centers in Abuja (FCT)\n\n• **National Hospital Abuja — Department of Pediatrics & NICU**\n  *Location:* Plot 132 Central Business District, Abuja\n  *Specialties:* Comprehensive neonatal intensive care, pediatric surgery, 24-hour child emergency triage, and infant incubator facilities.\n\n• **Garki Hospital — Maternal & Child Health Wing**\n  *Location:* Tafawa Balewa Way, Area 8, Garki, Abuja\n  *Specialties:* Public-private partnership healthcare, prompt pediatrician consultations, immunization clinics, and postnatal recovery.\n\n• **Nizamiye Hospital — Pediatric Emergency & Maternity Care**\n  *Location:* Life Camp, Abuja\n  *Specialties:* Advanced pediatric intensive care unit (PICU), neonatal incubator care, and family-centered maternal care.\n\n• **Limi Children's Hospital**\n  *Location:* Central Business District, Abuja\n  *Specialties:* Exclusively focused on child and infant healthcare, pediatric sub-specialties, allergy clinics, and well-baby monitoring.\n\n💡 *Parent Tip:* National Hospital and Limi Children's Hospital maintain on-call pediatric emergency registrars 24 hours daily. Carry your baby's immunisation record booklet on every hospital visit.`,
+      summaryMarkdown: `### Local Maternity, Pediatric & Healthcare Centers in Abuja (FCT)\n\n• **National Hospital Abuja — Department of Pediatrics & NICU**\n  *Location:* Plot 132 Central Business District, Abuja\n  *Specialties:* Neonatal intensive care, pediatric surgery, 24-hour child urgent intake, and infant incubator facilities.\n\n• **Garki Hospital — Maternal & Child Health Wing**\n  *Location:* Tafawa Balewa Way, Area 8, Garki, Abuja\n  *Specialties:* Maternal & child healthcare, pediatrician consultations, immunization clinics, and postnatal recovery.\n\n• **Nizamiye Hospital — Pediatric & Maternity Care**\n  *Location:* Life Camp, Abuja\n  *Specialties:* Pediatric intensive care unit (PICU), neonatal incubator care, and family-centered maternal care.\n\n• **Limi Children's Hospital**\n  *Location:* Central Business District, Abuja\n  *Specialties:* Child and infant healthcare, pediatric sub-specialties, allergy clinics, and well-baby monitoring.\n\n💡 *Parent Tip:* Carry your baby's immunization record booklet on every hospital visit and call ahead to confirm appointment availability.`,
       groundedPlaces: [
         {
           title: "National Hospital Abuja — Central Business District",
           uri: "https://www.google.com/maps/search/?api=1&query=National+Hospital+Abuja+Central+Business+District",
-          reviewSnippets: ["Comprehensive tertiary neonatal care unit and dedicated pediatric doctors."]
+          reviewSnippets: ["Tertiary neonatal care unit and pediatric specialists."]
         },
         {
           title: "Garki Hospital — Area 8, Garki, Abuja",
           uri: "https://www.google.com/maps/search/?api=1&query=Garki+Hospital+Area+8+Garki+Abuja",
-          reviewSnippets: ["Efficient outpatient pediatric flow and clean maternity wards."]
+          reviewSnippets: ["Outpatient pediatric flow and maternity wards."]
         },
         {
           title: "Limi Children's Hospital — CBD Abuja",
           uri: "https://www.google.com/maps/search/?api=1&query=Limi+Childrens+Hospital+Abuja",
-          reviewSnippets: ["Child-friendly environment with specialized pediatric consultants."]
+          reviewSnippets: ["Child-friendly environment with pediatric consultants."]
         }
       ]
     };
@@ -4057,22 +4022,22 @@ function getCuratedDirectoryData(
       : "Maternity Hospitals & Pediatric Centers";
 
   return {
-    summaryMarkdown: `### Verified ${catLabel} in ${cleanCity}\n\n• **Regional Tertiary & Pediatric Emergency Hospital**\n  *Location:* Central District, ${cleanCity}\n  *Key Services:* 24/7 infant emergency admissions, neonatal intensive care unit (NICU), phototherapy, pediatric on-call specialists, and maternity labor suites.\n\n• **Community Child & Family Health Center**\n  *Location:* Metro Area, ${cleanCity}\n  *Key Services:* Well-child wellness checks, national infant immunization schedules, developmental milestone screenings, and lactation coaching.\n\n• **Specialist Maternal & Newborn Care Clinic**\n  *Location:* Accessible transit corridor, ${cleanCity}\n  *Key Services:* Post-cesarean and natural birth recovery care, newborn umbilical cord management, postpartum depression screening, and nutritional guidance.\n\n💡 *Parent Practical Checklist:*\n1. Keep emergency contacts (nearest pediatric ER, primary pediatrician, and poison control / ambulance) saved on all caregivers' phones.\n2. Always travel with your baby's vaccination card, a pre-measured feeding supply, extra burp cloths, and a comfortable swaddle.\n3. Tap any verified Google Maps link below to open live turn-by-turn driving directions.`,
+    summaryMarkdown: `### Local ${catLabel} in ${cleanCity}\n\n• **Regional Tertiary & Pediatric Hospital**\n  *Location:* Central District, ${cleanCity}\n  *Key Services:* 24/7 infant urgent admissions, neonatal intensive care unit (NICU), phototherapy, pediatric on-call specialists, and maternity labor suites.\n\n• **Community Child & Family Health Center**\n  *Location:* Metro Area, ${cleanCity}\n  *Key Services:* Well-child wellness checks, infant immunization schedules, developmental milestone screenings, and lactation coaching.\n\n• **Maternal & Newborn Care Clinic**\n  *Location:* Accessible transit corridor, ${cleanCity}\n  *Key Services:* Post-cesarean and vaginal birth recovery care, newborn umbilical cord guidance, postpartum mood screening, and nutritional support.\n\n💡 *Parent Practical Checklist:*\n1. Keep local emergency contacts (nearest pediatric ER, primary pediatrician, and local emergency number) saved on all caregivers' phones.\n2. Bring your baby's immunization card, feeding supplies, extra burp cloths, and a comfortable swaddle.\n3. Tap any Google Maps link below to check live hours, contact details, and driving directions directly.`,
     groundedPlaces: [
       {
         title: `Pediatric Emergency & Maternity Centers near ${cleanCity}`,
         uri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("children pediatric emergency hospital in " + cleanCity)}`,
-        reviewSnippets: ["Verified 24/7 pediatric emergency, infant triage, and maternity facilities."]
+        reviewSnippets: ["Search local 24/7 pediatric urgent care and maternity facilities on Google Maps."]
       },
       {
         title: `Pediatricians & Child Health Clinics in ${cleanCity}`,
         uri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("pediatrician child health clinic in " + cleanCity)}`,
-        reviewSnippets: ["Recommended well-baby clinics, child immunizations, and developmental health specialists."]
+        reviewSnippets: ["Explore nearby well-baby clinics, child immunizations, and pediatric practices."]
       },
       {
         title: `Postnatal & Lactation Care Providers near ${cleanCity}`,
         uri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("lactation consultant postpartum care in " + cleanCity)}`,
-        reviewSnippets: ["Certified IBCLC lactation counselors, postpartum recovery nurses, and maternal wellness centers."]
+        reviewSnippets: ["Find lactation counselors, postpartum support nurses, and maternal wellness centers."]
       }
     ]
   };
@@ -4093,7 +4058,7 @@ app.post("/api/directories/search", async (req: Request, res: Response) => {
       healthcare: "pediatricians, family healthcare clinics, immunization centers, and child health clinics",
       lactation: "lactation consultants, breastfeeding support clinics, maternal nursing centers, and postnatal care providers",
       caregivers: "postpartum home care agencies, maternity nurses, doulas, postnatal mother and baby care centers, and newborn care specialists",
-      pharmacies: "certified pharmacies, infant health dispensaries, and maternal care pharmacies"
+      pharmacies: "licensed community pharmacies, infant care dispensaries, and maternal care pharmacies"
     };
 
     const targetDesc = categoryDescriptions[String(category)] || categoryDescriptions.hospitals;
@@ -4101,9 +4066,9 @@ app.post("/api/directories/search", async (req: Request, res: Response) => {
       ? `${query} (${targetDesc})`
       : targetDesc;
 
-    const prompt = `Find real, verified ${searchFocus} in and around ${locationName} (near coordinates ${lat}, ${lng}).
+    const prompt = `Find real, active ${searchFocus} in and around ${locationName} (near coordinates ${lat}, ${lng}).
 For each provider or facility found via Google Maps, summarize:
-- Official Name & Specialty
+- Facility Name & Specialty
 - Street Address / Neighborhood
 - Key maternal, lactation, or pediatric services offered
 - Useful tips for parents visiting with an infant.`;
@@ -4164,12 +4129,12 @@ For each provider or facility found via Google Maps, summarize:
           errMsg.includes("RESOURCE_EXHAUSTED");
 
         console.warn(
-          `[LocalDirectories Notice] Google Maps Grounding unavailable (${errStatus || 'quota/network limit'}). Serving high-availability verified local directory data for ${locationName}.`
+          `[LocalDirectories Notice] Google Maps Grounding unavailable (${errStatus || 'quota/network limit'}). Serving curated local directory data for ${locationName}.`
         );
       }
     }
 
-    // High-availability guarantee: If live Maps Grounding was skipped or returned empty, populate with curated verified data
+    // Fallback: If live Maps Grounding was skipped or returned empty, populate with curated regional data
     if (!summaryMarkdown || groundedPlaces.length === 0) {
       const fallback = getCuratedDirectoryData(String(category), String(query), String(locationName), Number(lat), Number(lng));
       summaryMarkdown = summaryMarkdown || fallback.summaryMarkdown;
@@ -4395,13 +4360,13 @@ app.get("/api/omugwo/state", (_req: Request, res: Response) => {
   res.json(liveStore.omugwo);
 });
 
-// Grandma Mode Voice-Activated AI Logging ("The baby has just slept", "The baby drank 3 oz")
+// Granny Mode Voice-Activated AI Logging ("The baby has just slept", "The baby drank 3 oz")
 app.post("/api/omugwo/voice-log", async (req: Request, res: Response) => {
   try {
     const {
       transcript,
       babyName = "Baby",
-      caregiverName = "Grandma"
+      caregiverName = "Granny"
     } = req.body;
 
     if (!transcript || !String(transcript).trim()) {
@@ -4423,8 +4388,8 @@ app.post("/api/omugwo/voice-log", async (req: Request, res: Response) => {
     } | null = null;
 
     if (ai) {
-      const prompt = `You are the Voice-Activated AI Logger for "Grandma Mode" in Ama Baby Care.
-A family member (${caregiverName}) just pressed the microphone button and said:
+      const prompt = `You are the Voice-Activated AI Logger for "Granny Mode" in Ama Baby Care.
+A Granny or trusted family caregiver (${caregiverName}) just pressed the microphone button and said:
 "${cleanTranscript}"
 
 Parse what happened with ${babyName} (or the mother) into a structured JSON object so the app can automatically log it into the baby's feeding, sleep, diaper, bath/massage, or observation records.
@@ -4447,7 +4412,7 @@ Return ONLY a valid JSON object matching this exact schema:
   "durationMinutes": 45,
   "diaperType": "wet" | "dirty" | "both",
   "summaryText": "Clear 1-sentence log note including who logged it",
-  "spokenConfirmation": "Warm, respectful 1-sentence confirmation spoken back to Grandma (e.g. 'Thank you Mama! I have logged that ${babyName} drank 3 ounces of milk.')"
+  "spokenConfirmation": "Warm, respectful, gender-neutral 1-sentence confirmation spoken back to the caregiver (e.g. 'Thank you ${caregiverName}! I have logged that ${babyName} drank 3 ounces of milk.')"
 }`;
 
       try {
@@ -4641,8 +4606,8 @@ Return ONLY a valid JSON object matching this exact schema:
 app.post("/api/omugwo/wisdom", (req: Request, res: Response) => {
   try {
     const {
-      authorName = "Grandma",
-      authorRelation = "Maternal Grandmother",
+      authorName = "Granny",
+      authorRelation = "Granny",
       category = "Blessing / Prayer",
       title,
       content,
@@ -4685,7 +4650,7 @@ app.post("/api/omugwo/capture", async (req: Request, res: Response) => {
   try {
     const {
       imageDataUrl,
-      caregiverName = "Grandma",
+      caregiverName = "Granny",
       babyName = "Baby",
       customCaption = ""
     } = req.body;
@@ -4713,7 +4678,7 @@ Identify the emotional bonding posture or soothing moment (e.g. cradling, skin-t
 
 Return ONLY a valid JSON object with these exact keys:
 {
-  "detectedMoment": "Short label of the posture/moment (e.g. 'Grandmother Cradling & Soothing Hold')",
+  "detectedMoment": "Short label of the posture/moment (e.g. 'Granny Cradling & Soothing Hold')",
   "caption": "Heartfelt 1-2 sentence keepsake caption celebrating the bond between ${caregiverName} and ${babyName}",
   "aiConfidence": 96
 }`;
@@ -4771,7 +4736,7 @@ Return ONLY a valid JSON object with these exact keys:
   }
 });
 
-// Register a Vetted Postpartum Caregiver / Midwife / Doula into the Marketplace
+// Register a Community Postpartum Caregiver / Midwife / Doula Profile
 app.post("/api/omugwo/caregivers", (req: Request, res: Response) => {
   try {
     const {
@@ -4809,20 +4774,20 @@ app.post("/api/omugwo/caregivers", (req: Request, res: Response) => {
         : [
             "Traditional Postpartum Recovery Meals (Pepper Soup, Pap)",
             "Newborn Bathing & Therapeutic Infant Massage",
-            "4-Hour REM Sleep Relief Monitoring for Mom"
+            "Rest Relief Support for Mom"
           ],
       vettingStatus: {
-        identityVerified: true,
-        backgroundCheckCleared: true,
+        identityVerified: false,
+        backgroundCheckCleared: false,
         healthVetting: {
-          verifiedHealthStatus: true,
+          verifiedHealthStatus: false,
           lastScreenedDate: new Date().toISOString().split("T")[0]
         },
         certifications: Array.isArray(certifications) && certifications.length > 0
           ? certifications.map(String)
-          : ["Identity & Background Verified", "Comprehensive Health Vetting Cleared", "Newborn Safe Care & Cultural Competency"]
+          : ["Self-Registered Caregiver Profile", "Cultural & Postpartum Care Focus"]
       },
-      bio: String(bio || "Trained postpartum caregiver supporting new mothers and infants with warm traditional recovery care and modern safety standards.").trim()
+      bio: String(bio || "Postpartum caregiver supporting new mothers and infants with warm traditional recovery care and modern safety awareness.").trim()
     };
 
     liveStore.omugwo.caregivers.unshift(newCaregiver);

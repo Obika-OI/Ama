@@ -41,18 +41,117 @@ service cloud.firestore {
         && data.updatedAt.size() <= 64;
     }
 
+    function isVillageOwner(token) {
+      return isSignedIn() && isValidId(token)
+        && exists(/databases/$(database)/documents/villages/$(token))
+        && get(/databases/$(database)/documents/villages/$(token)).data.ownerId == request.auth.uid;
+    }
+
+    function getVillageMember(token) {
+      return get(/databases/$(database)/documents/villages/$(token)/members/$(request.auth.uid)).data;
+    }
+
+    function isActiveVillageMember(token) {
+      return isSignedIn() && isValidId(token) && (
+        isVillageOwner(token) || (
+          exists(/databases/$(database)/documents/villages/$(token)/members/$(request.auth.uid))
+          && getVillageMember(token).status == 'active'
+          && getVillageMember(token).accessType in ['admin', 'family', 'nanny']
+        )
+      );
+    }
+
+    function isVillageRole(token, roles) {
+      return isSignedIn() && isValidId(token) && (
+        isVillageOwner(token) || (
+          exists(/databases/$(database)/documents/villages/$(token)/members/$(request.auth.uid))
+          && getVillageMember(token).status == 'active'
+          && getVillageMember(token).accessType in roles
+        )
+      );
+    }
+
     function isValidVillageSync(data) {
-      return data.keys().hasAll(['villageToken', 'ownerId', 'encryptedPayload', 'updatedAt'])
-        && data.keys().hasOnly(['villageToken', 'ownerId', 'babyName', 'encryptedPayload', 'updatedBy', 'updatedAt'])
+      return data.keys().hasAll(['villageToken', 'ownerId', 'updatedAt'])
+        && data.keys().hasOnly(['villageToken', 'ownerId', 'babyName', 'babyDob', 'babyAge', 'activeBabyId', 'babyProfiles', 'fluidTarget', 'allergenMatrix', 'vaccineSchedule', 'encryptedPayload', 'updatedBy', 'updatedAt'])
         && isValidId(data.villageToken)
         && data.ownerId is string
         && data.ownerId.size() <= 128
-        && data.encryptedPayload is string
-        && data.encryptedPayload.size() < 1048576
         && data.updatedAt is string
         && data.updatedAt.size() <= 64
         && (!('babyName' in data) || (data.babyName is string && data.babyName.size() <= 80))
+        && (!('babyDob' in data) || (data.babyDob is string && data.babyDob.size() <= 32))
+        && (!('babyAge' in data) || (data.babyAge is string && data.babyAge.size() <= 40))
+        && (!('activeBabyId' in data) || (data.activeBabyId is string && data.activeBabyId.size() <= 80))
+        && (!('babyProfiles' in data) || (data.babyProfiles is list && data.babyProfiles.size() <= 10))
+        && (!('fluidTarget' in data) || (data.fluidTarget is number && data.fluidTarget >= 0 && data.fluidTarget <= 5000))
+        && (!('allergenMatrix' in data) || (data.allergenMatrix is list && data.allergenMatrix.size() <= 50))
+        && (!('vaccineSchedule' in data) || (data.vaccineSchedule is list && data.vaccineSchedule.size() <= 80))
+        && (!('encryptedPayload' in data) || (data.encryptedPayload is string && data.encryptedPayload.size() < 1048576))
         && (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy.size() <= 128));
+    }
+
+    function isValidVillageMember(data, villageToken, memberId) {
+      return data.keys().hasAll(['id', 'uid', 'villageToken', 'villageOwnerId', 'displayName', 'accessType', 'status', 'joinedAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'uid', 'villageToken', 'villageOwnerId', 'displayName', 'accessType', 'status', 'familyViewerUids', 'joinedAt', 'updatedAt'])
+        && data.id == memberId
+        && data.uid == memberId
+        && isValidId(data.id)
+        && data.villageToken == villageToken
+        && isValidId(data.villageOwnerId)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80
+        && data.accessType in ['admin', 'family', 'nanny']
+        && data.status in ['active', 'revoked']
+        && (!('familyViewerUids' in data) || (data.familyViewerUids is list && data.familyViewerUids.size() <= 25 && (data.familyViewerUids.size() == 0 || data.familyViewerUids[0] is string)))
+        && data.joinedAt is string && data.joinedAt.size() >= 1 && data.joinedAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 64;
+    }
+
+    function isValidVillageBabyLog(data, villageToken, logId) {
+      return data.keys().hasAll(['id', 'villageToken', 'villageOwnerId', 'logType', 'authorId', 'authorName', 'authorRole', 'timestamp', 'viewerUids', 'payload', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'villageToken', 'villageOwnerId', 'babyId', 'logType', 'authorId', 'authorName', 'authorRole', 'date', 'timestamp', 'viewerUids', 'payload', 'createdAt', 'updatedAt'])
+        && data.id == logId
+        && isValidId(data.id)
+        && data.villageToken == villageToken
+        && isValidId(data.villageOwnerId)
+        && isValidId(data.authorId)
+        && (!('babyId' in data) || (data.babyId is string && data.babyId.size() <= 80))
+        && data.logType in ['meal', 'milk_feed', 'sleep', 'diaper', 'growth', 'mood', 'observation', 'hygiene', 'sunlight', 'teething', 'milestone', 'quest', 'reading', 'activity', 'hydration', 'schedule', 'vaccine', 'reminder', 'memory', 'recipe', 'caregiver_shift']
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80
+        && data.authorRole in ['admin', 'family', 'nanny']
+        && (!('date' in data) || (data.date is string && data.date.size() <= 64))
+        && data.timestamp is string && data.timestamp.size() >= 1 && data.timestamp.size() <= 64
+        && data.viewerUids is list && data.viewerUids.size() <= 25 && (data.viewerUids.size() == 0 || data.viewerUids[0] is string)
+        && data.payload is map && data.payload.keys().size() <= 40
+        && data.createdAt is string && data.createdAt.size() >= 1 && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 64;
+    }
+
+    function isValidVillageFamilyDiary(data, villageToken, entryId) {
+      return data.keys().hasAll(['id', 'villageToken', 'villageOwnerId', 'authorId', 'authorName', 'familyUids', 'timestamp', 'payload', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'villageToken', 'villageOwnerId', 'authorId', 'authorName', 'familyUids', 'date', 'timestamp', 'payload', 'createdAt', 'updatedAt'])
+        && data.id == entryId
+        && isValidId(data.id)
+        && data.villageToken == villageToken
+        && isValidId(data.villageOwnerId)
+        && isValidId(data.authorId)
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80
+        && data.familyUids is list && data.familyUids.size() <= 25 && (data.familyUids.size() == 0 || data.familyUids[0] is string)
+        && (!('date' in data) || (data.date is string && data.date.size() <= 64))
+        && data.timestamp is string && data.timestamp.size() >= 1 && data.timestamp.size() <= 64
+        && data.payload is map && data.payload.keys().size() <= 40
+        && data.createdAt is string && data.createdAt.size() >= 1 && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 64;
+    }
+
+    function isValidVillageStateBundle(data, villageToken) {
+      return data.keys().hasAll(['villageToken', 'villageOwnerId', 'payload', 'updatedBy', 'updatedAt'])
+        && data.keys().hasOnly(['villageToken', 'villageOwnerId', 'payload', 'updatedBy', 'updatedAt'])
+        && data.villageToken == villageToken
+        && isValidId(data.villageOwnerId)
+        && isValidId(data.updatedBy)
+        && data.payload is map && data.payload.keys().size() <= 40
+        && data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 64;
     }
 
     function isValidMonitor(data) {
@@ -291,7 +390,7 @@ service cloud.firestore {
 
     function isValidCaregiverShift(data) {
       return data.keys().hasAll(['id', 'caregiverId', 'caregiverName', 'startTime', 'endTime', 'handedOverTo', 'createdAt'])
-        && data.keys().hasOnly(['id', 'caregiverId', 'caregiverName', 'startTime', 'endTime', 'handedOverTo', 'notes', 'villageToken', 'villageOwnerId', 'createdAt'])
+        && data.keys().hasOnly(['id', 'caregiverId', 'caregiverName', 'startTime', 'endTime', 'handedOverTo', 'notes', 'villageToken', 'villageOwnerId', 'viewerUids', 'createdAt'])
         && isValidId(data.id)
         && isValidId(data.caregiverId)
         && data.caregiverName is string && data.caregiverName.size() >= 1 && data.caregiverName.size() <= 80
@@ -301,7 +400,25 @@ service cloud.firestore {
         && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
         && (!('villageToken' in data) || isValidId(data.villageToken))
         && (!('villageOwnerId' in data) || isValidId(data.villageOwnerId))
+        && (!('viewerUids' in data) || (data.viewerUids is list && data.viewerUids.size() <= 25 && (data.viewerUids.size() == 0 || data.viewerUids[0] is string)))
         && data.createdAt is string && data.createdAt.size() >= 1 && data.createdAt.size() <= 64;
+    }
+
+    function isValidCommunityRoom(data) {
+      return data.keys().hasAll(['id', 'name', 'topic', 'description', 'creatorId', 'creatorName', 'creatorRole', 'memberIds', 'isPublic', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'name', 'topic', 'description', 'creatorId', 'creatorName', 'creatorRole', 'inviteCode', 'memberIds', 'isPublic', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 80
+        && data.topic is string && data.topic.size() >= 1 && data.topic.size() <= 60
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 300
+        && isValidId(data.creatorId)
+        && data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 80
+        && data.creatorRole is string && data.creatorRole.size() >= 1 && data.creatorRole.size() <= 80
+        && (!('inviteCode' in data) || (data.inviteCode is string && data.inviteCode.size() <= 16))
+        && data.memberIds is list && data.memberIds.size() >= 1 && data.memberIds.size() <= 200 && data.memberIds[0] is string
+        && data.isPublic == true
+        && data.createdAt is string && data.createdAt.size() >= 1 && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 64;
     }
 
     // 4. Collection Rules
@@ -313,15 +430,131 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isOwner(userId) && isValidId(userId);
     }
 
-    // Cloud Multi-Device Sync ("Village Mode") — Token-gated, no list scraping
+    // Cloud Multi-Device Sync ("Village Mode") — Token-gated, role-governed, no list scraping
     match /villages/{villageToken} {
       allow get: if isSignedIn() && isValidId(villageToken);
-      allow create: if isSignedIn() && isValidId(villageToken) && isValidVillageSync(incoming()) && incoming().ownerId == request.auth.uid;
+      allow list: if false;
+      allow create: if isSignedIn() && isValidId(villageToken) && isValidVillageSync(incoming())
+        && incoming().ownerId == request.auth.uid
+        && incoming().villageToken == villageToken;
       allow update: if isSignedIn() && isValidId(villageToken) && isValidVillageSync(incoming())
         && incoming().ownerId == existing().ownerId
         && incoming().villageToken == existing().villageToken
-        && incoming().diff(existing()).affectedKeys().hasOnly(['encryptedPayload', 'updatedAt', 'updatedBy', 'babyName']);
+        && (existing().ownerId == request.auth.uid || isVillageRole(villageToken, ['admin', 'family']))
+        && incoming().diff(existing()).affectedKeys().hasOnly(['babyName', 'babyDob', 'babyAge', 'activeBabyId', 'babyProfiles', 'fluidTarget', 'allergenMatrix', 'vaccineSchedule', 'encryptedPayload', 'updatedAt', 'updatedBy']);
       allow delete: if isSignedIn() && isValidId(villageToken) && existing().ownerId == request.auth.uid;
+
+      // Role-Based Village Members Directory
+      match /members/{memberId} {
+        allow get: if isSignedIn() && isValidId(villageToken) && isValidId(memberId)
+          && (memberId == request.auth.uid || isVillageOwner(villageToken) || isActiveVillageMember(villageToken));
+        allow list: if isSignedIn() && isValidId(villageToken)
+          && (resource.data.villageOwnerId == request.auth.uid
+            || resource.data.uid == request.auth.uid
+            || ('familyViewerUids' in resource.data && request.auth.uid in resource.data.familyViewerUids));
+        allow create: if isSignedIn() && isValidId(villageToken) && isValidId(memberId)
+          && isValidVillageMember(incoming(), villageToken, memberId)
+          && exists(/databases/$(database)/documents/villages/$(villageToken))
+          && incoming().villageOwnerId == get(/databases/$(database)/documents/villages/$(villageToken)).data.ownerId
+          && (
+            isVillageOwner(villageToken) || (
+              memberId == request.auth.uid
+              && incoming().accessType in ['family', 'nanny']
+              && incoming().status == 'active'
+            )
+          );
+        allow update: if isSignedIn() && isValidId(villageToken) && isValidId(memberId)
+          && isValidVillageMember(incoming(), villageToken, memberId)
+          && incoming().id == existing().id
+          && incoming().uid == existing().uid
+          && incoming().villageToken == existing().villageToken
+          && incoming().villageOwnerId == existing().villageOwnerId
+          && incoming().joinedAt == existing().joinedAt
+          && (
+            (isVillageOwner(villageToken) && incoming().diff(existing()).affectedKeys().hasOnly(['accessType', 'status', 'displayName', 'familyViewerUids', 'updatedAt'])) ||
+            (memberId == request.auth.uid && existing().status == 'active'
+              && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt']))
+          );
+        allow delete: if isSignedIn() && isValidId(villageToken) && isValidId(memberId) && isVillageOwner(villageToken);
+      }
+
+      // Dynamic Baby Care Logs Subcollection (Feeds, Sleep, Diapers, Growth, Moods, Routines, Milestones)
+      match /logs/{logId} {
+        allow get: if isSignedIn() && isValidId(villageToken) && isValidId(logId) && isActiveVillageMember(villageToken);
+        allow list: if isSignedIn() && isValidId(villageToken)
+          && (resource.data.villageOwnerId == request.auth.uid
+            || resource.data.authorId == request.auth.uid
+            || request.auth.uid in resource.data.viewerUids);
+        allow create: if isSignedIn() && isValidId(villageToken) && isValidId(logId)
+          && isValidVillageBabyLog(incoming(), villageToken, logId)
+          && incoming().authorId == request.auth.uid
+          && isActiveVillageMember(villageToken)
+          && (isVillageRole(villageToken, ['admin', 'family']) || !(incoming().logType in ['growth', 'milestone', 'vaccine']));
+        allow update: if isSignedIn() && isValidId(villageToken) && isValidId(logId)
+          && isValidVillageBabyLog(incoming(), villageToken, logId)
+          && incoming().id == existing().id
+          && incoming().villageToken == existing().villageToken
+          && incoming().villageOwnerId == existing().villageOwnerId
+          && incoming().authorId == existing().authorId
+          && incoming().logType == existing().logType
+          && incoming().createdAt == existing().createdAt
+          && isActiveVillageMember(villageToken)
+          && (
+            isVillageRole(villageToken, ['admin', 'family']) ||
+            (existing().authorId == request.auth.uid && !(existing().logType in ['growth', 'milestone', 'vaccine']))
+          );
+        allow delete: if isSignedIn() && isValidId(villageToken) && isValidId(logId)
+          && isActiveVillageMember(villageToken)
+          && (
+            isVillageRole(villageToken, ['admin', 'family']) ||
+            (existing().authorId == request.auth.uid && !(existing().logType in ['growth', 'milestone', 'vaccine']))
+          );
+      }
+
+      // Shared Care Logs Catch-up Snapshot (Single Doc 'latest', readable by all active village members)
+      match /shared_logs/{docId} {
+        allow get: if isSignedIn() && isValidId(villageToken) && docId == 'latest' && isActiveVillageMember(villageToken);
+        allow list: if false;
+        allow create, update: if isSignedIn() && isValidId(villageToken) && docId == 'latest'
+          && isValidVillageStateBundle(incoming(), villageToken)
+          && incoming().updatedBy == request.auth.uid
+          && isVillageRole(villageToken, ['admin', 'family']);
+        allow delete: if isSignedIn() && isValidId(villageToken) && isVillageOwner(villageToken);
+      }
+
+      // Shielded Family Diary Entries (Parent & Family Circle ONLY — Blocked for Nanny)
+      match /family_diary/{entryId} {
+        allow get: if isSignedIn() && isValidId(villageToken) && isValidId(entryId) && isVillageRole(villageToken, ['admin', 'family']);
+        allow list: if isSignedIn() && isValidId(villageToken)
+          && (resource.data.villageOwnerId == request.auth.uid
+            || resource.data.authorId == request.auth.uid
+            || request.auth.uid in resource.data.familyUids);
+        allow create: if isSignedIn() && isValidId(villageToken) && isValidId(entryId)
+          && isValidVillageFamilyDiary(incoming(), villageToken, entryId)
+          && incoming().authorId == request.auth.uid
+          && isVillageRole(villageToken, ['admin', 'family']);
+        allow update: if isSignedIn() && isValidId(villageToken) && isValidId(entryId)
+          && isValidVillageFamilyDiary(incoming(), villageToken, entryId)
+          && incoming().id == existing().id
+          && incoming().villageToken == existing().villageToken
+          && incoming().villageOwnerId == existing().villageOwnerId
+          && incoming().authorId == existing().authorId
+          && incoming().createdAt == existing().createdAt
+          && isVillageRole(villageToken, ['admin', 'family']);
+        allow delete: if isSignedIn() && isValidId(villageToken) && isValidId(entryId)
+          && isVillageRole(villageToken, ['admin', 'family']);
+      }
+
+      // Shielded Family State Catch-up Snapshot (Single Doc 'latest', Parent & Family Circle ONLY)
+      match /family_state/{docId} {
+        allow get: if isSignedIn() && isValidId(villageToken) && docId == 'latest' && isVillageRole(villageToken, ['admin', 'family']);
+        allow list: if false;
+        allow create, update: if isSignedIn() && isValidId(villageToken) && docId == 'latest'
+          && isValidVillageStateBundle(incoming(), villageToken)
+          && incoming().updatedBy == request.auth.uid
+          && isVillageRole(villageToken, ['admin', 'family']);
+        allow delete: if isSignedIn() && isValidId(villageToken) && isVillageOwner(villageToken);
+      }
     }
 
     // Baby Monitor WebRTC Signaling
@@ -353,6 +586,40 @@ service cloud.firestore {
           (incoming().diff(existing()).affectedKeys().hasOnly(['replies', 'upvotes', 'updatedAt']))
         );
       allow delete: if isSignedIn() && isValidId(postId) && existing().authorId == request.auth.uid;
+    }
+
+    // Community Custom Live Rooms
+    match /community_rooms/{roomId} {
+      allow get: if isSignedIn() && isValidId(roomId) && existing().isPublic == true;
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow create: if isSignedIn() && isValidId(roomId) && isValidCommunityRoom(incoming())
+        && incoming().id == roomId
+        && incoming().creatorId == request.auth.uid
+        && request.auth.uid in incoming().memberIds;
+      allow update: if isSignedIn() && isValidId(roomId) && isValidCommunityRoom(incoming())
+        && incoming().id == existing().id
+        && incoming().creatorId == existing().creatorId
+        && incoming().creatorName == existing().creatorName
+        && incoming().creatorRole == existing().creatorRole
+        && (!('inviteCode' in existing()) || incoming().inviteCode == existing().inviteCode)
+        && incoming().isPublic == existing().isPublic
+        && incoming().createdAt == existing().createdAt
+        && (
+          (existing().creatorId == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'topic', 'description', 'updatedAt'])) ||
+          (incoming().diff(existing()).affectedKeys().hasOnly(['memberIds', 'updatedAt']) && (
+            (!(request.auth.uid in existing().memberIds)
+              && request.auth.uid in incoming().memberIds
+              && incoming().memberIds.toSet().difference(existing().memberIds.toSet()).hasOnly([request.auth.uid])
+              && existing().memberIds.toSet().difference(incoming().memberIds.toSet()).size() == 0) ||
+            (request.auth.uid in existing().memberIds
+              && !(request.auth.uid in incoming().memberIds)
+              && existing().creatorId != request.auth.uid
+              && existing().memberIds.toSet().difference(incoming().memberIds.toSet()).hasOnly([request.auth.uid])
+              && incoming().memberIds.toSet().difference(existing().memberIds.toSet()).size() == 0)
+          ))
+        );
+      allow delete: if isSignedIn() && isValidId(roomId) && existing().creatorId == request.auth.uid;
     }
 
     // Community Live Chat Messages
@@ -507,19 +774,26 @@ service cloud.firestore {
     // Caregiver & Nanny Shift & Handover Records
     match /caregiver_shifts/{shiftId} {
       allow get: if isSignedIn() && isValidId(shiftId)
-        && (existing().caregiverId == request.auth.uid || existing().villageOwnerId == request.auth.uid);
+        && (existing().caregiverId == request.auth.uid
+          || existing().villageOwnerId == request.auth.uid
+          || ('viewerUids' in existing() && request.auth.uid in existing().viewerUids)
+          || ('villageToken' in existing() && isValidId(existing().villageToken) && isVillageRole(existing().villageToken, ['admin', 'family'])));
       allow list: if isSignedIn()
-        && (resource.data.caregiverId == request.auth.uid || resource.data.villageOwnerId == request.auth.uid);
+        && (resource.data.caregiverId == request.auth.uid
+          || resource.data.villageOwnerId == request.auth.uid
+          || ('viewerUids' in resource.data && request.auth.uid in resource.data.viewerUids));
       allow create: if isSignedIn() && isValidId(shiftId) && isValidCaregiverShift(incoming())
         && incoming().caregiverId == request.auth.uid
         && incoming().id == shiftId;
       allow update: if isSignedIn() && isValidId(shiftId) && isValidCaregiverShift(incoming())
-        && existing().caregiverId == request.auth.uid
         && incoming().caregiverId == existing().caregiverId
         && incoming().id == existing().id
         && incoming().createdAt == existing().createdAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['startTime', 'endTime', 'handedOverTo', 'notes', 'caregiverName']);
-      allow delete: if isSignedIn() && isValidId(shiftId) && existing().caregiverId == request.auth.uid;
+        && (
+          (existing().caregiverId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['startTime', 'endTime', 'handedOverTo', 'notes', 'caregiverName', 'viewerUids'])) ||
+          (existing().villageOwnerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['viewerUids']))
+        );
+      allow delete: if isSignedIn() && isValidId(shiftId) && (existing().caregiverId == request.auth.uid || existing().villageOwnerId == request.auth.uid);
     }
   }
 }

@@ -185,10 +185,190 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({
   const [activeSection, setActiveSection] = useState<'recovery' | 'nutrition' | 'mental' | 'mobility'>('recovery');
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
 
-  // 4-7-8 Guided Breathing & Diaphragmatic Calming Tool State
+  // Guided Postpartum Breathing & Mobility Calibration Routines
+  interface BreathingRoutine {
+    id: string;
+    emoji: string;
+    title: string;
+    badge: string;
+    focusTag: string;
+    inhaleSec: number;
+    holdSec: number;
+    exhaleSec: number;
+    description: string;
+    step1Title: string;
+    step1Detail: string;
+    step2Title: string;
+    step2Detail: string;
+    step3Title: string;
+    step3Detail: string;
+  }
+
+  const BREATHING_ROUTINES: BreathingRoutine[] = [
+    {
+      id: 'calming-478',
+      emoji: '🌬️',
+      title: '4-7-8 Diaphragmatic Postpartum Breathing & Calming',
+      badge: 'Relaxation & Grounding Resource',
+      focusTag: 'Cortisol Reset',
+      inhaleSec: 4,
+      holdSec: 7,
+      exhaleSec: 8,
+      description: 'Restorative nervous-system down-regulation to soothe exhaustion, ease tension, and prepare for sleep.',
+      step1Title: 'Inhale gently through nose for 4 seconds:',
+      step1Detail: 'Feel your lower ribcage and abdomen naturally expand without tensing shoulders.',
+      step2Title: 'Hold breath comfortably for 7 seconds:',
+      step2Detail: 'Oxygenates maternal bloodstream and lowers circulating adrenalin and cortisol.',
+      step3Title: 'Slow woosh exhale through mouth for 8 seconds:',
+      step3Detail: 'Activates parasympathetic vagus nerve response for immediate exhaustion relief.'
+    },
+    {
+      id: 'diaphragmatic-ribcage',
+      emoji: '🌬️',
+      title: 'Diaphragmatic Ribcage Breathing',
+      badge: 'Mobility & Breath Sync',
+      focusTag: '360° Rib Expansion',
+      inhaleSec: 4,
+      holdSec: 2,
+      exhaleSec: 6,
+      description: 'Sit comfortably upright. Inhale deeply expanding the 360-degree lower ribs and relaxing the pelvic floor. Gently exhale, letting the pelvic floor naturally recoil. Practice 5 minutes daily.',
+      step1Title: '360° Ribcage Inhale (4 seconds):',
+      step1Detail: 'Breathe wide into the sides and back of your lower ribs while softening the belly and pelvic floor.',
+      step2Title: 'Soft Expansion Pause (2 seconds):',
+      step2Detail: 'Hold gently at the top of the breath without clenching your jaw, neck, or shoulders.',
+      step3Title: 'Gentle Pelvic Recoil Exhale (6 seconds):',
+      step3Detail: 'Purse lips softly and exhale slowly, allowing the pelvic floor to lift naturally upward.'
+    },
+    {
+      id: 'transverse-ab',
+      emoji: '🧘‍♀️',
+      title: 'Transverse Abdominal Engagement',
+      badge: 'Deep Core Reconnection',
+      focusTag: 'Diastasis Safe',
+      inhaleSec: 4,
+      holdSec: 2,
+      exhaleSec: 6,
+      description: 'On a gentle exhale, draw the lower belly slightly inward toward the spine as if zipping a gentle corset. Do not hold your breath. Ideal for safe recovery with diastasis recti.',
+      step1Title: 'Relaxed Belly Inhale (4 seconds):',
+      step1Detail: 'Let your lower abdomen and pelvic floor completely soften and lengthen as air fills your ribs.',
+      step2Title: 'Alignment Check (2 seconds):',
+      step2Detail: 'Stack ribs over pelvis and keep your tailbone neutral before engaging deep core muscles.',
+      step3Title: 'Corset Zip Exhale (6 seconds):',
+      step3Detail: 'Exhale steadily from bottom to top, gently hugging hip bones inward toward midline.'
+    },
+    {
+      id: 'pelvic-tilts',
+      emoji: '🦴',
+      title: 'Pelvic Tilts & Neutral Spine Alignment',
+      badge: 'Postural Reset',
+      focusTag: 'Lower Back Relief',
+      inhaleSec: 4,
+      holdSec: 3,
+      exhaleSec: 6,
+      description: 'Lie supine with knees bent or stand against a wall. Gently rock the pelvis backward to flatten the lower back on exhale, releasing pregnancy swayback and lumbar compression.',
+      step1Title: 'Neutral Arch Inhale (4 seconds):',
+      step1Detail: 'Let the pelvis tip slightly forward to feel a small, comfortable natural curve under your lower back.',
+      step2Title: 'Pause & Soften Hips (3 seconds):',
+      step2Detail: 'Relax glutes and hip flexors while keeping both shoulder blades resting flat.',
+      step3Title: 'Imprint Spine Exhale (6 seconds):',
+      step3Detail: 'Exhale slowly while tilting pubic bone toward ribs, lengthening the lower back against the mat.'
+    },
+    {
+      id: 'heel-slides',
+      emoji: '🦵',
+      title: 'Supine Heel Slides & Core Stabilization',
+      badge: 'Low-Load Core Control',
+      focusTag: 'C-Section & Vaginal Safe',
+      inhaleSec: 4,
+      holdSec: 2,
+      exhaleSec: 5,
+      description: 'With knees bent on the floor, slowly slide one heel out during a steady exhale without letting ribs flare or back arch. Builds controlled stability without abdominal coning.',
+      step1Title: 'Prepare & Lengthen Inhale (4 seconds):',
+      step1Detail: 'Breathe into lower ribs with both feet planted hip-width apart and torso completely relaxed.',
+      step2Title: 'Core Anchor Pause (2 seconds):',
+      step2Detail: 'Rest hands lightly on hip bones to monitor that the pelvis stays level and still.',
+      step3Title: 'Heel Slide Out Exhale (5 seconds):',
+      step3Detail: 'Engage lower belly gently and slide one heel out along the floor, then draw it back smoothly.'
+    },
+    {
+      id: 'cat-cow-flow',
+      emoji: '🐈',
+      title: 'Cat-Cow Thoracic & Pelvic Flow',
+      badge: 'Spine & Milk-Flow Mobility',
+      focusTag: 'Rib & Spine Mobility',
+      inhaleSec: 5,
+      holdSec: 2,
+      exhaleSec: 6,
+      description: 'On hands and knees (with folded towel under wrists/knees if needed), alternate gentle chest opening and rounded spine stretches synchronized to long breath cycles.',
+      step1Title: 'Cow Pose Opening Inhale (5 seconds):',
+      step1Detail: 'Soften belly downward, lift sternum forward, and spread sit-bones wide to release pelvic tension.',
+      step2Title: 'Gentle Crown Lift (2 seconds):',
+      step2Detail: 'Hold the open chest position gently without crunching the back of your neck.',
+      step3Title: 'Cat Rounding Exhale (6 seconds):',
+      step3Detail: 'Press palms softly into mat, tuck tailbone under, and breathe stretch into upper shoulder blades.'
+    },
+    {
+      id: 'glute-bridge',
+      emoji: '🌉',
+      title: 'Supported Glute Bridge & Pelvic Floor Lift',
+      badge: 'Posterior Chain Support',
+      focusTag: 'Hip & Pelvic Support',
+      inhaleSec: 4,
+      holdSec: 3,
+      exhaleSec: 6,
+      description: 'Press gently through heels to lift hips only a few inches on exhale while squeezing a soft pillow between knees. Supports weakened postpartum glutes and sacroiliac joints.',
+      step1Title: 'Grounded Floor Inhale (4 seconds):',
+      step1Detail: 'Relax tailbone on the floor and soften thighs and pelvic floor completely.',
+      step2Title: 'Top-of-Bridge Hold (3 seconds):',
+      step2Detail: 'During the hold or peak lift, keep ribs down in line with hips without overarching.',
+      step3Title: 'Lift & Lower Control Exhale (6 seconds):',
+      step3Detail: 'Exhale while lifting hips softly via glutes, then lower vertebra by vertebra on next breath.'
+    },
+    {
+      id: 'flat-walking',
+      emoji: '🚶‍♀️',
+      title: 'Progressive Flat-Surface Walking',
+      badge: 'Gradual Endurance',
+      focusTag: 'Circulation & Mood',
+      inhaleSec: 4,
+      holdSec: 1,
+      exhaleSec: 5,
+      description: 'Begin with 10 minutes of gentle, leisurely strolls on flat ground. Stop immediately if lochia flow increases or changes back to bright red, which indicates excess exertion.',
+      step1Title: '4-Step Nasal Inhale (4 seconds):',
+      step1Detail: 'Match your inhale smoothly across 4 relaxed footsteps while keeping posture tall and ribcage stacked.',
+      step2Title: 'Natural Stride Transition (1 second):',
+      step2Detail: 'Keep arms swinging gently by your sides—avoid gripping stroller handles with hunched shoulders.',
+      step3Title: '5-Step Steady Exhale (5 seconds):',
+      step3Detail: 'Release breath steadily over 5 steps, checking that pelvic pressure feels light and supported.'
+    },
+    {
+      id: 'nursing-ergonomics',
+      emoji: '💆‍♀️',
+      title: 'Nursing Ergonomics & Upper Back Release',
+      badge: 'Neck & Shoulder Decompression',
+      focusTag: 'Feeding Posture',
+      inhaleSec: 4,
+      holdSec: 3,
+      exhaleSec: 7,
+      description: 'Always bring baby up to the breast/bottle using firm pillows rather than hunching down. Perform gentle chin tucks and shoulder blade squeezes to counteract postural neck strain.',
+      step1Title: 'Chest Expansion Inhale (4 seconds):',
+      step1Detail: 'Sit tall against chair support and draw shoulders down away from ears while opening collarbones.',
+      step2Title: 'Chin Tuck & Blade Squeeze (3 seconds):',
+      step2Detail: 'Gently glide chin backward and press shoulder blades lightly together behind your heart.',
+      step3Title: 'Long Jaw-Relaxing Exhale (7 seconds):',
+      step3Detail: 'Drop tension from temples, jaw, and trapezius muscles during a slow 7-second exhale.'
+    }
+  ];
+
+  const MOBILITY_CARDS = BREATHING_ROUTINES.filter((r) => r.id !== 'calming-478');
+  const breathVisualizerRef = React.useRef<HTMLDivElement | null>(null);
+  const [selectedBreathId, setSelectedBreathId] = useState<string>('calming-478');
+  const activeRoutine = BREATHING_ROUTINES.find((r) => r.id === selectedBreathId) || BREATHING_ROUTINES[0];
+
+  // Guided Breathing & Diaphragmatic Calming Tool State
   const [breathingActive, setBreathingActive] = useState(false);
-  const [breathingPhase, setBreathingPhase] = useState<'Inhale (4s)' | 'Hold (7s)' | 'Exhale (8s)'>('Inhale (4s)');
-  const [breathTimer, setBreathTimer] = useState(4);
+  const [breathingPhase, setBreathingPhase] = useState<'Inhale' | 'Hold' | 'Exhale'>('Inhale');
+  const [breathTimer, setBreathTimer] = useState(activeRoutine.inhaleSec);
   const [completedCycles, setCompletedCycles] = useState(0);
 
   React.useEffect(() => {
@@ -196,31 +376,49 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({
     const interval = setInterval(() => {
       setBreathTimer((prev) => {
         if (prev > 1) return prev - 1;
-        if (breathingPhase.startsWith('Inhale')) {
-          setBreathingPhase('Hold (7s)');
-          return 7;
-        } else if (breathingPhase.startsWith('Hold')) {
-          setBreathingPhase('Exhale (8s)');
-          return 8;
+        if (breathingPhase === 'Inhale') {
+          if (activeRoutine.holdSec > 0) {
+            setBreathingPhase('Hold');
+            return activeRoutine.holdSec;
+          }
+          setBreathingPhase('Exhale');
+          return activeRoutine.exhaleSec;
+        } else if (breathingPhase === 'Hold') {
+          setBreathingPhase('Exhale');
+          return activeRoutine.exhaleSec;
         } else {
-          setBreathingPhase('Inhale (4s)');
+          setBreathingPhase('Inhale');
           setCompletedCycles((c) => c + 1);
-          return 4;
+          return activeRoutine.inhaleSec;
         }
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [breathingActive, breathingPhase]);
+  }, [breathingActive, breathingPhase, activeRoutine.inhaleSec, activeRoutine.holdSec, activeRoutine.exhaleSec]);
+
+  const selectBreathingRoutine = (routineId: string, autoStart = true) => {
+    const next = BREATHING_ROUTINES.find((r) => r.id === routineId) || BREATHING_ROUTINES[0];
+    setSelectedBreathId(next.id);
+    setBreathingPhase('Inhale');
+    setBreathTimer(next.inhaleSec);
+    setCompletedCycles(0);
+    setBreathingActive(autoStart);
+    if (autoStart) {
+      setTimeout(() => {
+        breathVisualizerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 60);
+    }
+  };
 
   const toggleBreathing = () => {
     if (breathingActive) {
       setBreathingActive(false);
-      setBreathingPhase('Inhale (4s)');
-      setBreathTimer(4);
+      setBreathingPhase('Inhale');
+      setBreathTimer(activeRoutine.inhaleSec);
     } else {
+      setBreathingPhase('Inhale');
+      setBreathTimer(activeRoutine.inhaleSec);
       setBreathingActive(true);
-      setBreathingPhase('Inhale (4s)');
-      setBreathTimer(4);
     }
   };
 
@@ -349,7 +547,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({
     {
       title: 'Cesarean Incision Vigilance',
       badge: 'Surgical Healing',
-      desc: 'Keep the surgical site clean and completely dry. Wear high-waisted breathable cotton underwear. Avoid heavy lifting greater than your baby.',
+      desc: 'Keep the surgical site clean and dry. Wear high-waisted breathable cotton underwear. Avoid heavy lifting greater than your baby.',
       icon: <Activity className="w-5 h-5 text-primary" />
     },
     {
@@ -376,16 +574,16 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({
 
   const mentalHealthAssessments = [
     {
-      title: 'Baby Blues vs. PPD',
-      desc: 'Mild emotional volatility, tears, and fatigue are common in the first 10-14 days due to hormonal shifts. If sadness, anxiety, or detachment lasts beyond two weeks, professional screening is essential.'
+      title: 'Baby Blues vs. Ongoing Strain',
+      desc: 'Mild emotional shifts, tears, and fatigue are common in the first 10-14 days as hormones adjust. If sadness, worry, or detachment lasts beyond two weeks, reaching out to a healthcare provider for support is important.'
     },
     {
       title: 'Consolidated Sleep Blocks',
-      desc: 'Human brain restoration requires at least one 4-hour block of uninterrupted sleep in a 24-hour cycle. Coordinate with your partner or caregiver for one designated bottle or soothing shift.'
+      desc: 'Restorative rest often includes at least one 4-hour block of uninterrupted sleep in a 24-hour cycle. Coordinate with your partner or family circle for one designated bottle or soothing shift.'
     },
     {
-      title: 'Anxiety & Intrusive Thoughts',
-      desc: 'Hypervigilance and scary intrusive thoughts can be distressing symptoms of postpartum anxiety (PPA). Discussing these thoughts with a healthcare provider helps disarm fear and initiate support.'
+      title: 'Worry & Intrusive Thoughts',
+      desc: 'Heightened vigilance and unsettling intrusive thoughts can happen after welcoming a baby. Sharing these thoughts with a healthcare provider helps bring reassurance and practical support.'
     }
   ];
 
@@ -428,16 +626,16 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/30 rounded-full -mr-28 -mt-28 blur-3xl pointer-events-none" />
         </section>
 
-        {/* Clinical Red Flags Warning Banner */}
+        {/* Wellness Warning Banner */}
         <div className="bg-white/95 backdrop-blur-xs p-5 sm:p-6 rounded-[32px] border border-sky-200 shadow-xl shadow-card/10 space-y-3">
           <div className="flex items-center gap-2 text-sky-700">
             <AlertTriangle className="w-5 h-5 shrink-0" />
             <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider">
-              Postpartum Wellness Red Flags: Contact Your Care Provider
+              When to Contact Your Healthcare Provider
             </h3>
           </div>
           <p className="text-xs text-gray-600 leading-relaxed">
-            The fourth trimester carries unique physiological shifts. Seek immediate evaluation if you experience any of the following:
+            The fourth trimester brings major physical changes. Reach out for prompt medical evaluation if you experience any of the following:
           </p>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-700 list-none p-0 m-0">
             {redFlags.map((flag, idx) => (
@@ -498,14 +696,14 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({
 
           <div className="space-y-2 text-xs text-gray-600 leading-relaxed font-medium">
             <p>
-              Evidence in fourth-trimester medicine confirms that consolidated sleep of at least 4 uninterrupted hours is essential to reset cortisol levels, promote perineal and cesarean cellular repair, and protect against postpartum depression (PPD).
+              Getting a consolidated 4-hour block of uninterrupted rest helps lower fatigue, supports physical recovery, and nurtures emotional balance during the fourth trimester.
             </p>
             <div className="p-3 bg-sky-50/70 rounded-2xl border border-sky-100 flex items-center justify-between flex-wrap gap-2">
               <span className="text-[11px] font-bold text-sky-950 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>
                   {remainingRemTime
-                    ? `🛌 Mom is Resting (${remainingRemTime}) • Dedicated 4-Hour REM Sleep Recovery Active`
+                    ? `🛌 Mom is Resting (${remainingRemTime}) • Dedicated 4-Hour Consolidated Rest Active`
                     : "Consolidated Rest Ready • Tap to begin Mom's 4-hour recovery window"}
                 </span>
               </span>
@@ -513,19 +711,36 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({
           </div>
         </div>
 
-        {/* Maternal Relaxation Resources & Guided 4-7-8 Breathing Visualizer */}
-        <div className="bg-gradient-to-br from-sky-50 via-white to-sky-50/60 p-6 sm:p-7 rounded-[36px] border border-sky-100 shadow-xl shadow-card/10 space-y-4 text-left">
+        {/* Maternal Relaxation Resources & Dynamic Guided Breathing Visualizer */}
+        <div
+          ref={breathVisualizerRef}
+          className="bg-gradient-to-br from-sky-50 via-white to-sky-50/60 p-6 sm:p-7 rounded-[36px] border border-sky-100 shadow-xl shadow-card/10 space-y-4 text-left"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-100/80 pb-4">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-primary/20">
                 <Wind className="w-6 h-6 animate-pulse" />
               </div>
               <div>
-                <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  Relaxation & Grounding Resource
-                </span>
-                <h3 className="text-lg sm:text-xl font-serif font-black text-gray-900 mt-0.5">
-                  4-7-8 Diaphragmatic Postpartum Breathing & Calming
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                    {activeRoutine.badge}
+                  </span>
+                  <span className="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800">
+                    {activeRoutine.inhaleSec}-{activeRoutine.holdSec}-{activeRoutine.exhaleSec} Cadence
+                  </span>
+                  {selectedBreathId !== 'calming-478' && (
+                    <button
+                      type="button"
+                      onClick={() => selectBreathingRoutine('calming-478', false)}
+                      className="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 cursor-pointer"
+                    >
+                      Reset to 4-7-8 Calming
+                    </button>
+                  )}
+                </div>
+                <h3 className="text-lg sm:text-xl font-serif font-black text-gray-900 mt-1">
+                  {activeRoutine.title}
                 </h3>
               </div>
             </div>
@@ -542,12 +757,12 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({
               {breathingActive ? (
                 <>
                   <Pause className="w-4 h-4" />
-                  <span>Pause Relaxation</span>
+                  <span>Pause Breathing</span>
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4" />
-                  <span>Start 4-7-8 Guided Breath</span>
+                  <span>Start {activeRoutine.inhaleSec}-{activeRoutine.holdSec}-{activeRoutine.exhaleSec} Guided Breath</span>
                 </>
               )}
             </button>
@@ -557,40 +772,49 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({
             {/* Visualizer Circle */}
             <div className="flex flex-col items-center justify-center p-6 bg-white rounded-3xl border border-sky-100 shadow-sm text-center">
               <div className={`w-28 h-28 rounded-full flex flex-col items-center justify-center border-4 transition-all duration-1000 ${
-                breathingPhase.startsWith('Inhale')
+                breathingPhase === 'Inhale'
                   ? 'border-primary bg-sky-50 scale-110 shadow-lg shadow-sky-200'
-                  : breathingPhase.startsWith('Hold')
+                  : breathingPhase === 'Hold'
                   ? 'border-sky-400 bg-sky-50 scale-105'
                   : 'border-emerald-500 bg-emerald-50 scale-95'
               }`}>
                 <span className="text-2xl font-black text-gray-900">{breathTimer}s</span>
                 <span className="text-[10px] font-black uppercase tracking-wider text-primary mt-0.5">
-                  {breathingPhase.split(' ')[0]}
+                  {breathingPhase}
                 </span>
               </div>
               <p className="text-[11px] font-bold text-gray-500 mt-3">
                 Completed Cycles: <span className="text-primary font-black">{completedCycles}</span>
               </p>
+              <p className="text-[10px] font-bold text-sky-700 mt-1">
+                {activeRoutine.focusTag}
+              </p>
             </div>
 
-            {/* Instruction Steps */}
+            {/* Dynamic Instruction Steps for Active Routine */}
             <div className="md:col-span-2 space-y-2.5 text-xs text-gray-700 leading-relaxed font-medium">
-              <div className="p-3 bg-white rounded-2xl border border-sky-100 flex items-start gap-2.5">
+              <div className={`p-3 rounded-2xl border flex items-start gap-2.5 transition-colors ${
+                breathingActive && breathingPhase === 'Inhale' ? 'bg-sky-50 border-primary/40 shadow-xs' : 'bg-white border-sky-100'
+              }`}>
                 <span className="w-6 h-6 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0">1</span>
                 <div>
-                  <strong className="text-gray-900">Inhale gently through nose for 4 seconds:</strong> Feel your lower ribcage and abdomen naturally expand without tensing shoulders.
+                  <strong className="text-gray-900">{activeRoutine.step1Title}</strong> {activeRoutine.step1Detail}
                 </div>
               </div>
-              <div className="p-3 bg-white rounded-2xl border border-sky-100 flex items-start gap-2.5">
+              <div className={`p-3 rounded-2xl border flex items-start gap-2.5 transition-colors ${
+                breathingActive && breathingPhase === 'Hold' ? 'bg-sky-50 border-sky-400 shadow-xs' : 'bg-white border-sky-100'
+              }`}>
                 <span className="w-6 h-6 rounded-xl bg-sky-500/10 text-sky-700 font-black text-xs flex items-center justify-center shrink-0">2</span>
                 <div>
-                  <strong className="text-gray-900">Hold breath comfortably for 7 seconds:</strong> Oxygenates maternal bloodstream and lowers circulating adrenalin and cortisol.
+                  <strong className="text-gray-900">{activeRoutine.step2Title}</strong> {activeRoutine.step2Detail}
                 </div>
               </div>
-              <div className="p-3 bg-white rounded-2xl border border-sky-100 flex items-start gap-2.5">
+              <div className={`p-3 rounded-2xl border flex items-start gap-2.5 transition-colors ${
+                breathingActive && breathingPhase === 'Exhale' ? 'bg-emerald-50 border-emerald-400 shadow-xs' : 'bg-white border-sky-100'
+              }`}>
                 <span className="w-6 h-6 rounded-xl bg-emerald-500/10 text-emerald-700 font-black text-xs flex items-center justify-center shrink-0">3</span>
                 <div>
-                  <strong className="text-gray-900">Slow woosh exhale through mouth for 8 seconds:</strong> Activates parasympathetic vagus nerve response for immediate exhaustion relief.
+                  <strong className="text-gray-900">{activeRoutine.step3Title}</strong> {activeRoutine.step3Detail}
                 </div>
               </div>
             </div>
@@ -602,7 +826,7 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({
           {[
             { id: 'recovery', label: 'Physical Recovery', icon: <Activity className="w-4 h-4" /> },
             { id: 'nutrition', label: 'Maternal Nutrition', icon: <Utensils className="w-4 h-4" /> },
-            { id: 'mental', label: 'Mental Wellness (EPDS)', icon: <Brain className="w-4 h-4" /> },
+            { id: 'mental', label: 'Emotional Check-In', icon: <Brain className="w-4 h-4" /> },
             { id: 'mobility', label: 'Core & Mobility', icon: <Zap className="w-4 h-4" /> }
           ].map((tab) => (
             <button
@@ -842,48 +1066,67 @@ export const MotherCareScreen: React.FC<MotherCareScreenProps> = ({
               exit={{ opacity: 0, y: -10 }}
               className="bg-white/90 backdrop-blur-xs p-6 sm:p-8 rounded-[36px] border border-white shadow-xl shadow-card/10 space-y-6"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">
-                  <Zap className="w-6 h-6" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shrink-0">
+                    <Zap className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-serif font-black text-gray-900">Gentle Fourth-Trimester Mobility</h3>
+                    <p className="text-xs text-gray-500 font-medium">
+                      Reconnecting breath and pelvic alignment before resuming full workouts — tap any routine to sync the Breathing Timer above
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-serif font-black text-gray-900">Gentle Fourth-Trimester Mobility</h3>
-                  <p className="text-xs text-gray-500 font-medium">Reconnecting breath and pelvic alignment before resuming full workouts</p>
-                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 self-start sm:self-center shrink-0">
+                  {MOBILITY_CARDS.length} Guided Routines
+                </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                <div className="p-5 rounded-2xl bg-card/40 border border-white space-y-2">
-                  <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-lg shadow-2xs">🌬️</div>
-                  <h4 className="text-sm font-black text-gray-900">Diaphragmatic Ribcage Breathing</h4>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Sit comfortably upright. Inhale deeply expanding the 360-degree lower ribs and relaxing the pelvic floor. Gently exhale, letting the pelvic floor naturally recoil. Practice 5 minutes daily.
-                  </p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-card/40 border border-white space-y-2">
-                  <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-lg shadow-2xs">🧘‍♀️</div>
-                  <h4 className="text-sm font-black text-gray-900">Transverse Abdominal Engagement</h4>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    On a gentle exhale, draw the lower belly slightly inward toward the spine as if zipping a gentle corset. Do not hold your breath. Ideal for safe recovery with diastasis recti.
-                  </p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-card/40 border border-white space-y-2">
-                  <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-lg shadow-2xs">🚶‍♀️</div>
-                  <h4 className="text-sm font-black text-gray-900">Progressive Flat-Surface Walking</h4>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Begin with 10 minutes of gentle, leisurely strolls on flat ground. Stop immediately if lochia flow increases or changes back to bright red, which indicates excess exertion.
-                  </p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-card/40 border border-white space-y-2">
-                  <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-lg shadow-2xs">💆‍♀️</div>
-                  <h4 className="text-sm font-black text-gray-900">Nursing Ergonomics & Upper Back Release</h4>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Always bring baby up to the breast/bottle using firm pillows rather than hunching down. Perform gentle chin tucks and shoulder blade squeezes to counteract postural neck strain.
-                  </p>
-                </div>
+                {MOBILITY_CARDS.map((card) => {
+                  const isSelected = selectedBreathId === card.id;
+                  return (
+                    <button
+                      key={card.id}
+                      type="button"
+                      onClick={() => selectBreathingRoutine(card.id, true)}
+                      className={`p-5 rounded-2xl border-2 text-left transition-all cursor-pointer space-y-2.5 flex flex-col justify-between group ${
+                        isSelected
+                          ? 'bg-sky-50/90 border-primary shadow-md ring-2 ring-primary/15'
+                          : 'bg-card/40 border-white hover:border-primary/40 hover:bg-sky-50/30 shadow-xs'
+                      }`}
+                    >
+                      <div className="space-y-2 w-full">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-lg shadow-2xs shrink-0">
+                            {card.emoji}
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white text-gray-700 border border-gray-200">
+                              {card.inhaleSec}-{card.holdSec}-{card.exhaleSec}s Breath
+                            </span>
+                            <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                              isSelected ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
+                            }`}>
+                              {isSelected ? 'Active in Timer' : 'Tap to Guide'}
+                            </span>
+                          </div>
+                        </div>
+                        <h4 className="text-sm font-black text-gray-900 group-hover:text-primary transition-colors">
+                          {card.title}
+                        </h4>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          {card.description}
+                        </p>
+                      </div>
+                      <div className="pt-2 border-t border-gray-200/60 w-full flex items-center justify-between text-[10px] font-bold text-primary">
+                        <span>{card.focusTag}</span>
+                        <span>Load into Breathing Timer →</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </motion.div>
           )}

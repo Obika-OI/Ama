@@ -257,7 +257,7 @@ export const RemindersScreen: React.FC<RemindersScreenProps> = ({
       setNotifications(prev => [
         {
           id: `dose-logged-${Date.now()}`,
-          title: `Logged PRN Dose: ${log.dosage}`,
+          title: `Logged Entry: ${log.dosage}`,
           time: 'Just now',
           read: false
         },
@@ -289,7 +289,7 @@ export const RemindersScreen: React.FC<RemindersScreenProps> = ({
       setNotifications(prev => [
         {
           id: `dose-taken-${Date.now()}`,
-          title: `Completed dose for "${reminder.title}"`,
+          title: `Completed reminder for "${reminder.title}"`,
           time: 'Just now',
           read: false
         },

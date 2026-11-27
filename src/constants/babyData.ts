@@ -82,7 +82,7 @@ export const COMMON_INGREDIENTS = [
     icon: '💧',
     category: 'Strict Moderation',
     warning: '⚠️ WATER INTOXICATION RISK: Babies under 6 months must not be given water as it can dilute their tiny bodies\' electrolytes, leading to seizures or brain swelling. They get all necessary hydration from breast milk or formula.',
-    prep6m: '❌ No water allowed. 100% hydration comes from milk sessions.',
+    prep6m: '❌ No water allowed. All hydration comes from milk sessions.',
     prep10m: '⚠️ Limit to 2-4 oz (60-120ml) per 24 hours. Offer only with meals to practice cup drinking.',
     prep12m: '✅ Safe to offer regularly with meals. Milk remains the primary nutrient source.'
   },
@@ -92,7 +92,7 @@ export const COMMON_INGREDIENTS = [
     color: 'slate',
     icon: '🍯',
     category: 'Strict Avoidance',
-    warning: '⚠️ INFANT BOTULISM RISK: Never give honey to infants under 12 months. Clostridium botulinum spores can produce fatal neurotoxins in immature digestive tracts.',
+    warning: '⚠️ HONEY PRECAUTION (UNDER 12 MONTHS): Never give honey to infants under 12 months because naturally occurring spores cannot be safely handled by immature infant digestion.',
     prep6m: '❌ Strictly prohibited. Do not add to purees, teas, pacifiers, or baked goods.',
     prep10m: '❌ Strictly prohibited until 1st birthday.',
     prep12m: '✅ Safe to introduce pasteurized honey in moderation.'
@@ -220,7 +220,7 @@ export const COMMON_INGREDIENTS = [
   },
   {
     id: 'eggs',
-    name: 'Cooked Eggs (Allergen cleared)',
+    name: 'Cooked Eggs (Once Introduced)',
     color: 'emerald',
     icon: '🥚',
     category: 'Top Allergen & Choline Powerhouse',

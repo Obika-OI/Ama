@@ -33,7 +33,7 @@ export const BlogScreen: React.FC<BlogScreenProps> = ({
     robots: 'index, follow',
     ogType: 'website',
     ogTitle: 'Blog | Ama Care',
-    ogDescription: 'Helpful, research-grounded guidance for modern parents. Wake windows, starting solids, fever triage, and sensory milestones.',
+    ogDescription: 'Helpful, research-grounded guidance for modern parents. Wake windows, starting solids, fever observations, and sensory milestones.',
     canonicalUrl: `${window.location.origin}${window.location.pathname}#blog`
   });
 
@@ -113,22 +113,22 @@ export const BlogScreen: React.FC<BlogScreenProps> = ({
           </h2>
 
           <p className="text-sm sm:text-base text-gray-600 leading-relaxed font-normal">
-            Clear, actionable guidance on newborn sleep, infant nutrition, early allergen introduction, fever triage, and developmental milestones.
+            Clear, actionable guidance on newborn sleep, infant nutrition, early allergen introduction, fever observations, and developmental milestones.
           </p>
 
-          {/* Witty and Rich Blog Intro (at least 320 Words) */}
+          {/* Resourceful Blog Intro */}
           <div className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm space-y-4 text-slate-600 text-sm leading-relaxed text-left mt-6">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-black uppercase tracking-wider">
               💡 Our Resourceful Writing Philosophy
             </span>
             <p>
-              Welcome to our open-access parenting blog. This repository of articles is curated with absolute logic, curiosity, and caution to serve as a reliable companion for mothers living in suburban and rural environments, such as Oyigbo in Rivers State, Nigeria. We understand that typical digital journals are written for parents who can easily afford imported formulas, premium pre-packaged baby food, and private specialist appointments. Our blog is different. We focus on the actual economic constraints faced by families on tight budgets who need practical, low-cost guidance to raise robust, healthy children using resources found directly in their local communities.
+              Welcome to our open-access parenting blog. This repository of articles is curated with practical care to serve as a reliable companion for mothers living in suburban and rural environments, such as Oyigbo in Rivers State, Nigeria. We understand that typical digital journals are written for parents who can easily afford imported formulas, premium pre-packaged baby food, and private specialist appointments. Our blog is different. We focus on real household constraints faced by families on tight budgets who need practical, low-cost guidance to raise healthy children using resources found in their local communities.
             </p>
             <p>
-              Our articles focus heavily on utilizing cheap local grains like millet, sorghum, and soybeans to build complete protein weaning diets. We teach families how to roast and prepare shelf-stable Tom Brown flours, eliminating the need for electricity or expensive food storage setups. We also discuss how to logically identify food allergy rashes and manage common infant intolerances at home without spending money on premium diagnostic clinics. By translating pediatric nutrition guidelines into simple, accessible instructions, we empower mothers to make informed, cautious dietary choices using the agricultural wealth available in their local markets.
+              Our articles focus heavily on utilizing affordable local grains like millet, sorghum, and soybeans to build protein-rich weaning diets. We teach families how to roast and prepare shelf-stable Tom Brown flours, eliminating the need for electricity or expensive food storage setups. We also explain how to track food exposure notes and common sensitivity signs so families can discuss clear observations with their community clinic. By translating child nutrition guidelines into simple instructions, we empower mothers to make informed dietary choices using the agricultural wealth available in their local markets.
             </p>
             <p>
-              To maintain the highest level of trust and data dignity, reading our articles requires no personal registration, online account creation, or email sign-ups. Your browsing patterns stay completely private, secured within our local device sandbox. We never employ third-party behavioral analytics, background tracking pixels, or ad networks that target your reading history. Ama is committed to providing a clean, ad-friendly, and highly supportive digital space where mothers can find verified child care information with complete peace of mind.
+              To respect your household privacy, reading our articles requires no personal registration, online account creation, or email sign-ups. Your browsing stays private in your local browser storage, with helpful child care information designed for everyday family support.
             </p>
           </div>
         </section>
@@ -326,7 +326,7 @@ export const BlogScreen: React.FC<BlogScreenProps> = ({
             <span>Health & Pediatric Educational Notice</span>
           </div>
           <p>
-            Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace doctor or substitute professional healthcare advice, diagnosis, or treatment. Always seek the advice of your pediatrician or qualified physician with any questions regarding infant medical conditions.
+            Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace or substitute professional healthcare advice, diagnosis, or treatment. Always seek the advice of your pediatrician or qualified physician with any questions regarding infant medical conditions.
           </p>
         </div>
       

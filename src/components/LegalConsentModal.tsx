@@ -57,7 +57,7 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
               <div className="flex items-start gap-3">
                 <Lock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  <strong className="text-gray-800 font-bold">Freemium & Private:</strong> Core tracking is free (supported by standard Google AdSense). Your private health and infant care records are never sold.
+                  <strong className="text-gray-800 font-bold">Free & Private:</strong> Core tracking is free (supported by standard Google AdSense). Your private health and infant care records are never sold.
                 </p>
               </div>
               <div className="flex items-start gap-3">
@@ -212,14 +212,13 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                     </section>
 
                     <section className="space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm">2. Freemium Tier & Google AdSense Disclosures</h4>
+                      <h4 className="font-bold text-gray-900 text-sm">2. Free Access & Google AdSense Disclosures</h4>
                       <p>
-                        To ensure essential infant tracking, solid food guides, and growth tracking tools remain free for all families, our Freemium tier incorporates standard Google AdSense advertising.
+                        To help keep essential infant tracking, solid food guides, and growth logs free for all families, the app may display standard Google AdSense advertising.
                       </p>
                       <ul className="list-disc pl-5 space-y-1 text-gray-600">
-                        <li><strong>Ad Cookies & Identifiers:</strong> Third-party vendors, including Google, may use cookies or device identifiers to serve non-intrusive ads on the Freemium tier. Users can manage or opt out of personalized ads via Google Ad Settings.</li>
-                        <li><strong>Health & Meal Data Never Shared:</strong> We strictly protect your child's data. Your baby's meal logs, diaper observations, sleep times, weight records, and photos are never sold, rented, or shared with advertisers or third-party data brokers.</li>
-                        <li><strong>Ad-Free Experience:</strong> Subscribing to Ama Pro instantly removes all Google AdSense advertisements.</li>
+                        <li><strong>Ad Cookies & Identifiers:</strong> Third-party vendors, including Google, may use cookies or device identifiers to serve non-intrusive ads. Users can manage or opt out of personalized ads via Google Ad Settings.</li>
+                        <li><strong>Health & Meal Data Never Shared:</strong> Your baby's meal logs, diaper observations, sleep times, weight records, and photos are never sold, rented, or shared with advertisers or third-party data brokers.</li>
                       </ul>
                     </section>
 
@@ -237,9 +236,9 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                     </section>
 
                     <section className="space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm">4. Data Ownership & Complete Purge</h4>
+                      <h4 className="font-bold text-gray-900 text-sm">4. Data Ownership & Record Deletion</h4>
                       <p>
-                        You retain 100% ownership of all records. You may export your audit log at any time and may trigger a permanent purge of all local and cloud data via Settings.
+                        You retain full ownership of all records. You may export your care activity log at any time and delete stored local or cloud records via Settings.
                       </p>
                     </section>
                   </>
@@ -260,7 +259,7 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                     </section>
 
                     <section className="space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm">3. Clinical Medical Disclaimer : AI Does Not Diagnose</h4>
+                      <h4 className="font-bold text-gray-900 text-sm">3. Educational & Informational Disclaimer : AI Does Not Diagnose</h4>
                       <p>
                         Ama Baby, including the <strong>Ogoo AI Care Assistant</strong>, Baby Cry Acoustic Analyzer, and meal planning tools, is designed solely for educational, organizational, comforting, and routine care tracking purposes.
                       </p>
@@ -270,9 +269,9 @@ export const LegalConsentModal: React.FC<LegalConsentModalProps> = ({
                     </section>
 
                     <section className="space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm">4. Freemium Plan & Premium Subscriptions</h4>
+                      <h4 className="font-bold text-gray-900 text-sm">4. Open Access & Usage Notice</h4>
                       <p>
-                        Ama offers a <strong>Freemium Plan</strong> providing free access to core feeding, diaper, sleep, and immunization tracking (ad-supported). The <strong>Ama Premium / Pro Subscription</strong> removes all advertising and unlocks unlimited Ogoo AI queries, acoustic cry analysis, and advanced health summary PDF exports. Subscriptions can be managed or cancelled at any time via Paystack checkout.
+                        Ama Baby currently provides free, open access to feeding, diaper, sleep, immunization, meal planning, and cry-soothing support tools with optional local data export.
                       </p>
                     </section>
 

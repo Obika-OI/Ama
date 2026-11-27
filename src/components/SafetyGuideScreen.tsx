@@ -35,7 +35,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
 }) => {
   useSEO({
     title: 'Infant Safety Hub & Emergency Guide | Ama Baby',
-    description: 'Practical first aid guidelines for infant airway choking, Heimlich maneuver, fever observations, safe sleep, and household babyproofing.',
+    description: 'Practical first aid guidelines for infant choking airway support, fever observations, safe sleep, and household babyproofing.',
     canonicalUrl: 'https://amababycare.com/#safety-guide'
   });
 
@@ -177,8 +177,8 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
           </button>
         </section>
 
-        {/* SECTION 1: Learn the Heimlich Maneuver for Infants (Displayed Directly on Page) */}
-        <section id="heimlich-guide" className="bg-white rounded-[2.5rem] border border-sky-100 p-6 sm:p-10 space-y-8 shadow-sm">
+        {/* SECTION 1: Infant Choking & Airway Support (Displayed Directly on Page) */}
+        <section id="choking-guide" className="bg-white rounded-[2.5rem] border border-sky-100 p-6 sm:p-10 space-y-8 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-6">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shadow-xs shrink-0">
@@ -327,7 +327,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
                   <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-xl shadow-sm">🧤</div>
                   <h5 className="font-black text-emerald-900 text-base">Social Distancing for Infants</h5>
                   <p className="text-xs text-emerald-800 leading-relaxed font-medium">
-                    During peak illness seasons, limit the baby's exposure to crowded indoor spaces. Request that visitors do not kiss the baby's face or hands, as this is a direct route for virus transmission. Politely ask anyone with even minor symptoms (a 'tickle' in the throat or 'slight' sniffle) to postpone their visit until they are 100% recovered.
+                    During peak illness seasons, limit the baby's exposure to crowded indoor spaces. Request that visitors do not kiss the baby's face or hands, as this is a direct route for virus transmission. Politely ask anyone with even minor symptoms (a 'tickle' in the throat or 'slight' sniffle) to postpone their visit until they are fully recovered.
                   </p>
                 </div>
 
@@ -422,7 +422,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
               </div>
             </div>
             <span className="px-4 py-1.5 rounded-full bg-sky-50 text-sky-700 text-[11px] font-bold border border-sky-100 w-fit">
-              SIDS Risk Reduction Guide
+              Safe Sleep Checklist
             </span>
           </div>
 
@@ -462,7 +462,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
               { 
                 key: 'smoke', 
                 title: 'Smoke-Free Environment', 
-                desc: 'Keep your home and car 100% smoke-free. Exposure to secondhand smoke significantly increases the risk of SIDS. Ensure that no one smokes anywhere near the baby, and be aware of third-hand smoke (residue on clothes and skin) which can also be harmful.' 
+                desc: 'Keep your home and car smoke-free. Exposure to secondhand smoke can harm developing lungs and sleep safety. Ensure that no one smokes anywhere near the baby, and wash hands or change outer layers after smoking.' 
               }
             ].map(item => (
               <div
@@ -540,7 +540,7 @@ export const SafetyGuideScreen: React.FC<SafetyGuideScreenProps> = ({
               { 
                 key: 'medsLocked', 
                 title: 'Secure Storage for Toxins', 
-                desc: 'Store all medications, vitamins, cleaning products, laundry pods, and pesticides in high cabinets secured with child-safe latches. Never refer to medicine as "candy" to encourage a child to take it; always use accurate terminology and dose according to provider instructions.' 
+                desc: 'Store all medications, vitamins, cleaning products, laundry pods, and pesticides in high cabinets secured with child-safe latches. Never refer to medicine as "candy" to encourage a child to take it; always use accurate names and follow healthcare provider or product label instructions.' 
               },
               { 
                 key: 'outletCovers', 

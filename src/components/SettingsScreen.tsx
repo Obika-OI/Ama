@@ -10,6 +10,16 @@ import { auth, db, FirebaseUser, model, handleFirestoreError, OperationType } fr
 import { encryptString, decryptString, processCloudData } from '../utils/helpers';
 import { DEFAULT_VACCINE_SCHEDULE } from '../constants/babyData';
 import { GlobalLocation, GlobalLocationPickerModal, POPULAR_GLOBAL_LOCATIONS } from './GlobalLocationPickerModal';
+import {
+  VillageMemberRecord,
+  VillageRole,
+  VillageConnectionEntry,
+  extractVillageInviteFromInput,
+  ensureVillageToken,
+  ensureVillageConnection,
+  pushSharedLogsSnapshot,
+  updateVillageHubMetadata
+} from '../utils/villageSync';
 
 export const SettingsScreen = ({
   onBack,
@@ -37,7 +47,16 @@ export const SettingsScreen = ({
   isOnline,
   addAuditLog,
   userRole,
-  setUserRole
+  setUserRole,
+  villageMembers = [],
+  activeVillageToken,
+  villageOwnerId = '',
+  villageConnections = [],
+  onSwitchVillage,
+  onCreateOwnBabyHub,
+  onRemoveVillageConnection,
+  onConnectVillageToken,
+  onChangeMemberAccess
 }: {
   onBack: () => void;
   onNavigate?: (screen: string) => void;
@@ -66,6 +85,15 @@ export const SettingsScreen = ({
   addAuditLog: (action: string, details: string, category: 'SECURITY' | 'DATA_ACCESS' | 'HEALTH_RECORD' | 'ACCOUNT') => void;
   userRole: 'admin' | 'family' | 'nanny';
   setUserRole: React.Dispatch<React.SetStateAction<'admin' | 'family' | 'nanny'>>;
+  villageMembers?: VillageMemberRecord[];
+  activeVillageToken?: string;
+  villageOwnerId?: string;
+  villageConnections?: VillageConnectionEntry[];
+  onSwitchVillage?: (token: string) => void;
+  onCreateOwnBabyHub?: (params: { babyName: string; babyDob: string; babyAge: string }) => void;
+  onRemoveVillageConnection?: (token: string) => void;
+  onConnectVillageToken?: (token: string, role?: VillageRole, hintBabyName?: string, initialData?: any) => void;
+  onChangeMemberAccess?: (targetUid: string, accessType?: VillageRole, status?: 'active' | 'revoked') => Promise<void> | void;
 }) => {
   const [successMsg, setSuccessMsg] = useState('');
   const [searchLogQuery, setSearchLogQuery] = useState('');
@@ -78,11 +106,30 @@ export const SettingsScreen = ({
   // Multi-Device Sync & Village Invite states
   const [syncKeyInput, setSyncKeyInput] = useState('');
   const [activeSyncToken, setActiveSyncToken] = useState(() => {
-    return localStorage.getItem('ama_village_sync_token') || `VILLAGE-${babyName?.toUpperCase() || 'CARE'}-NANNY-8821`;
+    const stored = activeVillageToken || localStorage.getItem('ama_village_sync_token') || '';
+    if (stored) return stored;
+    return userRole === 'admin' ? ensureVillageToken(babyName, auth.currentUser?.uid) : '';
   });
   const [isCreatingSync, setIsCreatingSync] = useState(false);
   const [isRestoringSync, setIsRestoringSync] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [qrInviteRole, setQrInviteRole] = useState<'family' | 'nanny'>('nanny');
+  const [updatingMemberUid, setUpdatingMemberUid] = useState<string | null>(null);
+  const [newOwnBabyName, setNewOwnBabyName] = useState('');
+  const [newOwnBabyDob, setNewOwnBabyDob] = useState('');
+
+  const isViewingRemoteHub = Boolean(
+    activeVillageToken &&
+    villageOwnerId &&
+    currentUser?.uid &&
+    villageOwnerId !== currentUser.uid
+  );
+
+  React.useEffect(() => {
+    if (activeVillageToken !== undefined && activeVillageToken !== activeSyncToken) {
+      setActiveSyncToken(activeVillageToken);
+    }
+  }, [activeVillageToken]);
 
   // Global Location Settings State
   const [globalLoc, setGlobalLoc] = useState<GlobalLocation>(() => {
@@ -94,8 +141,9 @@ export const SettingsScreen = ({
   });
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
 
-  const getSyncLink = () => {
-    return `${window.location.origin}${window.location.pathname}#role=nanny&village=${activeSyncToken}&baby=${encodeURIComponent(babyName || 'Baby')}`;
+  const getSyncLink = (role: 'family' | 'nanny' = qrInviteRole) => {
+    const token = activeSyncToken || activeVillageToken || ensureVillageToken(babyName, auth.currentUser?.uid);
+    return `${window.location.origin}${window.location.pathname}#role=${role}&village=${token}&baby=${encodeURIComponent(babyName || 'Baby')}`;
   };
 
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -332,7 +380,7 @@ export const SettingsScreen = ({
         babyAge: babyAge || 'Not Set',
         parentName: parentName || 'Parent',
         exportDate: new Date().toISOString(),
-        complianceNotice: 'GDPR Article 20, COPPA & CCPA Data Portability Compliant Care Ledger',
+        exportNote: 'Personal Care Data Export (JSON)',
         logs: {
           sleep_logs: sleeps,
           feeding_logs: feeds,
@@ -355,8 +403,8 @@ export const SettingsScreen = ({
       URL.revokeObjectURL(url);
 
       addAuditLog(
-        'Data Ledger Exported (JSON)',
-        `GDPR Article 20 Compliant export completed: downloaded complete JSON care ledger containing sleeps, feeds, diapers, and growth records.`,
+        'Data Exported (JSON)',
+        `Downloaded personal JSON care export containing sleeps, feeds, diapers, and growth records.`,
         'DATA_ACCESS'
       );
       setSuccessMsg('🎉 Complete Care Ledger downloaded successfully as JSON!');
@@ -438,8 +486,8 @@ export const SettingsScreen = ({
       URL.revokeObjectURL(url);
 
       addAuditLog(
-        'Data Ledger Exported (CSV)',
-        `GDPR Article 20 Compliant export completed: generated and downloaded CSV care spreadsheet ledger with consolidated tables.`,
+        'Data Exported (CSV)',
+        `Generated and downloaded personal CSV care spreadsheet with consolidated tables.`,
         'DATA_ACCESS'
       );
       setSuccessMsg('🎉 Care spreadsheet ledger downloaded successfully as CSV!');
@@ -467,76 +515,166 @@ export const SettingsScreen = ({
   const [migrationSuccess, setMigrationSuccess] = useState(false);
   const [tempMigratedData, setTempMigratedData] = useState<{ sleeps: any[]; feeds: any[]; diapers: any[]; growths: any[] } | null>(null);
 
-  const handleCreateCloudBackupAndInvite = async () => {
-    if (!isPremium) {
-      setIsSubscriptionModalOpen(true);
-      setSuccessMsg('Single User Mode Active: Multi-Device Village Sync & Caregiver Invites require Ama Premium. Upgrade via Paystack.');
-      setTimeout(() => setSuccessMsg(''), 4500);
-      return;
+  const buildVillageBackupPayloads = (inviteRole: 'family' | 'nanny') => {
+    const readArr = (key: string) => {
+      try {
+        const v = JSON.parse(localStorage.getItem(key) || '[]');
+        return Array.isArray(v) ? v : [];
+      } catch {
+        return [];
+      }
+    };
+    const readObj = (key: string) => {
+      try {
+        const v = JSON.parse(localStorage.getItem(key) || '{}');
+        return v && typeof v === 'object' ? v : {};
+      } catch {
+        return {};
+      }
+    };
+
+    const sleepLogs = readArr('sleep_logs');
+    const feedingLogs = readArr('local_feeding_logs');
+    const diaperLogs = readArr('diaperLogs');
+    const growthLogs = readArr('growthLogs');
+    const loggedMeals = readArr('loggedMeals');
+    const loggedMoods = readArr('loggedMoods');
+    const allObs = readArr('observationLogs');
+    const publicObservations = allObs.filter((o: any) => o?.type !== 'diary' || o?.isPublic || o?.authorRole === 'nanny');
+    const allergenMatrix = readArr('allergenMatrix');
+    const vaccineSchedule = readArr('vaccine_schedule');
+
+    const backupData = {
+      babyName,
+      babyDob,
+      babyAge,
+      parentName,
+      parentDob,
+      userRole: inviteRole,
+      sleepLogs,
+      feedingLogs,
+      diaperLogs,
+      growthLogs,
+      loggedMeals,
+      loggedMoods,
+      allergenMatrix,
+      vaccineSchedule,
+      timestamp: new Date().toISOString()
+    };
+
+    const sharedSnapshot = {
+      loggedMeals,
+      feedingLogs,
+      sleepLogs,
+      diaperLogs,
+      growthLogs,
+      loggedMoods,
+      publicObservations,
+      activities: readArr('activities'),
+      fluidMl: parseInt(localStorage.getItem('fluidMl') || '0', 10) || 0,
+      hygieneLog: readObj('hygiene_log'),
+      sunlightToday: parseInt(localStorage.getItem('sun_today') || '0', 10) || 0,
+      teethingMap: readObj('teething_map'),
+      checkedMilestones: readArr('child_milestones'),
+      questTimeToday: parseFloat(localStorage.getItem('quest_today') || '0') || 0,
+      questLogs: readArr('quest_logs'),
+      readingLogs: readArr('reading_logs'),
+      scheduledMeals: readArr('scheduledMeals'),
+      scheduledActivities: readArr('scheduledActivities'),
+      scheduledMeds: readArr('scheduledMeds'),
+      reminders: readArr('reminders'),
+      memories: readArr('memories'),
+      personalRecipes: readArr('personalRecipes'),
+      weeklyPlan: readObj('weeklyPlan'),
+      groceryChecked: readArr('groceryChecked')
+    };
+
+    return { backupData, sharedSnapshot };
+  };
+
+  const publishVillageSyncSnapshot = async (inviteRole: 'family' | 'nanny') => {
+    const tokenToUse = activeVillageToken || activeSyncToken || ensureVillageToken(babyName, auth.currentUser?.uid);
+    const { backupData, sharedSnapshot } = buildVillageBackupPayloads(inviteRole);
+    const encryptedPayload = encryptString(JSON.stringify(backupData));
+
+    // Also push server fallback backup so links resolve immediately even before auth completes
+    const serverBackupPromise = fetch('/api/sync/backup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ syncKey: tokenToUse, data: backupData })
+    }).catch(() => null);
+
+    if (auth.currentUser) {
+      await ensureVillageConnection({
+        villageToken: tokenToUse,
+        user: auth.currentUser,
+        displayName: parentName || auth.currentUser.displayName || 'Primary Parent',
+        requestedRole: 'admin',
+        allowCreateIfMissing: true,
+        babyName,
+        babyDob,
+        babyAge
+      });
+      await updateVillageHubMetadata({
+        villageToken: tokenToUse,
+        userId: auth.currentUser.uid,
+        role: 'admin',
+        updates: {
+          babyName,
+          babyDob,
+          babyAge,
+          encryptedPayload
+        }
+      });
+      await pushSharedLogsSnapshot({
+        villageToken: tokenToUse,
+        villageOwnerId: auth.currentUser.uid,
+        userId: auth.currentUser.uid,
+        role: 'admin',
+        payload: sharedSnapshot
+      }).catch(() => {});
+      await serverBackupPromise;
+
+      setActiveSyncToken(tokenToUse);
+      localStorage.setItem('ama_village_sync_token', tokenToUse);
+      localStorage.setItem('ama_village_owner_id', auth.currentUser.uid);
+      onConnectVillageToken?.(tokenToUse, 'admin');
+      return { tokenToUse, mode: 'firestore' as const };
     }
+
+    const res = await serverBackupPromise;
+    if (!res || !res.ok) throw new Error('Server response error');
+    setActiveSyncToken(tokenToUse);
+    localStorage.setItem('ama_village_sync_token', tokenToUse);
+    return { tokenToUse, mode: 'server' as const };
+  };
+
+  const handleCreateCloudBackupAndInvite = async (inviteRole: 'family' | 'nanny' = 'nanny') => {
     if (userRole !== 'admin') {
       setSuccessMsg('Only Primary Parent (Admin) can generate multi-device sync snapshots or caregiver invites.');
       setTimeout(() => setSuccessMsg(''), 3500);
       return;
     }
     setIsCreatingSync(true);
+    setQrInviteRole(inviteRole);
     try {
-      const cleanBaby = (babyName || 'BABY').replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || 'BABY';
-      const generatedToken = `VILLAGE_${cleanBaby}_${Date.now().toString(36).slice(-5).toUpperCase()}`;
-      const backupData = {
-        babyName,
-        babyDob,
-        babyAge,
-        parentName,
-        parentDob,
-        userRole: 'nanny',
-        sleepLogs: JSON.parse(localStorage.getItem('sleep_logs') || '[]'),
-        feedingLogs: JSON.parse(localStorage.getItem('local_feeding_logs') || '[]'),
-        diaperLogs: JSON.parse(localStorage.getItem('diaperLogs') || '[]'),
-        growthLogs: JSON.parse(localStorage.getItem('growthLogs') || '[]'),
-        allergenMatrix: JSON.parse(localStorage.getItem('allergenMatrix') || '[]'),
-        vaccineSchedule: JSON.parse(localStorage.getItem('vaccine_schedule') || '[]'),
-        timestamp: new Date().toISOString()
-      };
+      const { tokenToUse, mode } = await publishVillageSyncSnapshot(inviteRole);
+      const inviteUrl = `${window.location.origin}${window.location.pathname}#role=${inviteRole}&village=${tokenToUse}&baby=${encodeURIComponent(babyName || 'Baby')}`;
+      navigator.clipboard?.writeText(inviteUrl).catch(() => {});
 
-      const encryptedPayload = encryptString(JSON.stringify(backupData));
-
-      if (auth.currentUser) {
-        try {
-          await setDoc(doc(db, 'villages', generatedToken), {
-            villageToken: generatedToken,
-            ownerId: auth.currentUser.uid,
-            babyName: (babyName || 'Baby').slice(0, 80),
-            encryptedPayload,
-            updatedBy: auth.currentUser.uid,
-            updatedAt: new Date().toISOString()
-          });
-        } catch (err) {
-          handleFirestoreError(err, OperationType.CREATE, `villages/${generatedToken}`);
-        }
-        setActiveSyncToken(generatedToken);
-        localStorage.setItem('ama_village_sync_token', generatedToken);
-        localStorage.setItem('ama_village_owner_id', auth.currentUser.uid);
-        const inviteUrl = `${window.location.origin}${window.location.pathname}#role=nanny&village=${generatedToken}&baby=${encodeURIComponent(babyName || 'Baby')}`;
-        navigator.clipboard.writeText(inviteUrl);
-        setSuccessMsg('Multi-Device Village Cloud Sync created in Firestore and invite link copied to clipboard!');
-        addAuditLog('Village Cloud Sync Created', `Encrypted Firestore Village snapshot created with token: ${generatedToken}`, 'SECURITY');
+      if (mode === 'firestore') {
+        setSuccessMsg(
+          inviteRole === 'family'
+            ? 'Family Circle invite link copied & Village Cloud Sync active!'
+            : 'Nanny / Caregiver invite link copied & Village Cloud Sync active!'
+        );
+        addAuditLog('Village Cloud Sync Updated', `Firestore Village snapshot shared for ${inviteRole} (${tokenToUse})`, 'SECURITY');
       } else {
-        const res = await fetch('/api/sync/backup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ syncKey: generatedToken, data: backupData })
-        });
-        if (!res.ok) throw new Error('Server response error');
-        setActiveSyncToken(generatedToken);
-        localStorage.setItem('ama_village_sync_token', generatedToken);
-        const inviteUrl = `${window.location.origin}${window.location.pathname}#role=nanny&village=${generatedToken}&baby=${encodeURIComponent(babyName || 'Baby')}`;
-        navigator.clipboard.writeText(inviteUrl);
-        setSuccessMsg('Multi-Device Sync Snapshot created and Village Caregiver Invite Link copied to clipboard!');
-        addAuditLog('Caregiver Invite Link Generated', `Multi-device sync snapshot created with token: ${generatedToken}`, 'SECURITY');
+        setSuccessMsg('Village Invite Link copied! Sign in to enable live multi-device Firestore sync.');
+        addAuditLog('Caregiver Invite Link Generated', `Multi-device sync snapshot created with token: ${tokenToUse}`, 'SECURITY');
       }
-    } catch (err) {
-      setSuccessMsg('Sign in with a personal account to activate Firestore Village Cloud Sync.');
+    } catch {
+      setSuccessMsg('Sign in with an account to activate live Firestore Village Cloud Sync.');
     } finally {
       setIsCreatingSync(false);
       setTimeout(() => setSuccessMsg(''), 4500);
@@ -544,25 +682,62 @@ export const SettingsScreen = ({
   };
 
   const handleRestoreFromSyncKey = async () => {
-    const token = syncKeyInput.trim();
-    if (!token) return;
+    const rawInput = syncKeyInput.trim();
+    if (!rawInput) return;
+    const parsed = extractVillageInviteFromInput(rawInput);
+    const token = parsed.villageToken;
+    if (!token) {
+      setSuccessMsg('Please paste a valid Village invite link or token (letters, numbers, underscores, or hyphens).');
+      setTimeout(() => setSuccessMsg(''), 4000);
+      return;
+    }
+    const requestedInviteRole: VillageRole = parsed.role || (userRole === 'admin' ? 'family' : userRole);
+
     setIsRestoringSync(true);
     try {
       let restoredData: any = null;
+      let foundInFirestore = false;
 
-      // 1. Try Firestore villages/{token} first
-      if (auth.currentUser && /^[a-zA-Z0-9_-]+$/.test(token)) {
+      // 1. Try Firestore villages/{token} + shared_logs/latest first when signed in
+      if (auth.currentUser) {
         try {
           const villageSnap = await getDoc(doc(db, 'villages', token));
           if (villageSnap.exists()) {
+            foundInFirestore = true;
             const raw = villageSnap.data();
             if (typeof raw.ownerId === 'string' && raw.ownerId) {
               localStorage.setItem('ama_village_owner_id', raw.ownerId);
             }
             if (raw.encryptedPayload) {
-              const decrypted = decryptString(raw.encryptedPayload);
-              restoredData = JSON.parse(decrypted);
+              try {
+                const decrypted = decryptString(raw.encryptedPayload);
+                restoredData = JSON.parse(decrypted);
+              } catch {}
             }
+            if (!restoredData) {
+              restoredData = {
+                babyName: raw.babyName,
+                babyDob: raw.babyDob,
+                babyAge: raw.babyAge,
+                allergenMatrix: raw.allergenMatrix,
+                vaccineSchedule: raw.vaccineSchedule
+              };
+            }
+            // Register as member first so shared_logs/latest read is permitted by security rules
+            await ensureVillageConnection({
+              villageToken: token,
+              user: auth.currentUser,
+              displayName: parentName || auth.currentUser.displayName || 'Caregiver',
+              requestedRole: requestedInviteRole,
+              allowCreateIfMissing: false
+            });
+            try {
+              const sharedSnap = await getDoc(doc(db, 'villages', token, 'shared_logs', 'latest'));
+              if (sharedSnap.exists()) {
+                const sp = sharedSnap.data()?.payload || {};
+                restoredData = { ...restoredData, ...sp };
+              }
+            } catch {}
           }
         } catch (err) {
           console.warn('Firestore village lookup failed, trying API fallback:', err);
@@ -578,35 +753,31 @@ export const SettingsScreen = ({
         }
       }
 
-      if (restoredData) {
-        localStorage.setItem('ama_village_sync_token', token);
+      if (restoredData || foundInFirestore) {
+        const resolvedBaby = restoredData?.babyName || parsed.babyName || 'Baby';
         setActiveSyncToken(token);
-        if (restoredData.babyName) {
-          setBabyName(restoredData.babyName);
-          localStorage.setItem('babyName', restoredData.babyName);
+        onConnectVillageToken?.(token, requestedInviteRole, resolvedBaby, restoredData);
+        if (!auth.currentUser) {
+          setSuccessMsg(`Loaded ${resolvedBaby}'s Village snapshot! Sign in to connect live Firestore updates.`);
+          onOpenAuthModal?.();
+        } else {
+          setSuccessMsg(`Connected to ${resolvedBaby}'s Village Care Hub! Live Firestore sync active.`);
         }
-        if (restoredData.babyDob) {
-          setBabyDob(restoredData.babyDob);
-          localStorage.setItem('babyDob', restoredData.babyDob);
-        }
-        if (Array.isArray(restoredData.sleepLogs)) localStorage.setItem('sleep_logs', JSON.stringify(restoredData.sleepLogs));
-        if (Array.isArray(restoredData.feedingLogs)) localStorage.setItem('local_feeding_logs', JSON.stringify(restoredData.feedingLogs));
-        if (Array.isArray(restoredData.diaperLogs)) localStorage.setItem('diaperLogs', JSON.stringify(restoredData.diaperLogs));
-        if (Array.isArray(restoredData.growthLogs)) localStorage.setItem('growthLogs', JSON.stringify(restoredData.growthLogs));
-        if (Array.isArray(restoredData.allergenMatrix)) localStorage.setItem('allergenMatrix', JSON.stringify(restoredData.allergenMatrix));
-        if (Array.isArray(restoredData.vaccineSchedule)) localStorage.setItem('vaccine_schedule', JSON.stringify(restoredData.vaccineSchedule));
-
-        setSuccessMsg(`Synced with Village Care Hub! Connected to ${restoredData.babyName || 'Baby'}'s cloud care journal.`);
-        addAuditLog('Multi-Device Sync Restored', `Caregiver connected to Firestore Village token: ${token}`, 'DATA_ACCESS');
+        addAuditLog('Multi-Device Sync Restored', `Connected to Village token: ${token}`, 'DATA_ACCESS');
         setSyncKeyInput('');
+      } else if (!auth.currentUser) {
+        setActiveSyncToken(token);
+        onConnectVillageToken?.(token, requestedInviteRole, parsed.babyName || undefined);
+        setSuccessMsg('Village link saved! Please sign in to finish connecting to the live Firestore Village hub.');
+        onOpenAuthModal?.();
       } else {
-        setSuccessMsg('Village token not found. Double-check the token or ensure the primary parent created a cloud snapshot.');
+        setSuccessMsg('Village hub not found. Double-check the link/token or ask the Primary Parent to sign in and re-copy their invite link.');
       }
-    } catch (err) {
+    } catch {
       setSuccessMsg('Could not connect to Village Cloud Sync. Please check your connection and sign-in status.');
     } finally {
       setIsRestoringSync(false);
-      setTimeout(() => setSuccessMsg(''), 4500);
+      setTimeout(() => setSuccessMsg(''), 5000);
     }
   };
 
@@ -651,25 +822,25 @@ export const SettingsScreen = ({
 
   const handleLoadActiveTelemetryPayload = () => {
     const statePayload = {
-      workspaceId: currentUser?.uid || 'guest_sandbox_id',
+      workspaceId: currentUser?.uid || 'guest_session_id',
       babyName: babyName || 'Baby',
       parentName: parentName || 'Parent',
-      verifiedAgeDob: parentDob || 'Not Set',
-      securityCompliance: "AES_256_SANDBOX",
+      adultAgeDob: parentDob || 'Not Set',
+      storageMode: "LOCAL_OBFUSCATED",
       thirdPartyTrackingBlocked: zeroThirdPartyTracking,
       timestamp: new Date().toISOString()
     };
     const enc = encryptString(JSON.stringify(statePayload));
     setDecrypterInput(enc);
     handleDecrypt(enc);
-    addAuditLog('Decrypter Session Run', 'Active state telemetry payload encrypted and loaded into live decrypter tool.', 'DATA_ACCESS');
+    addAuditLog('Decoder Session Run', 'Active local state payload encoded and loaded into preview decoder.', 'DATA_ACCESS');
   };
 
   const handleCopyLogs = () => {
     const logsText = JSON.stringify(auditLogs, null, 2);
     navigator.clipboard.writeText(logsText);
-    setSuccessMsg('Immutable Audit Logs copied to clipboard as secure JSON!');
-    addAuditLog('Audit Log Downloaded', 'Audit ledger compiled, encrypted signature stamped, and downloaded to user session.', 'SECURITY');
+    setSuccessMsg('Local care activity logs copied to clipboard as JSON!');
+    addAuditLog('Activity Log Copied', 'Local activity log compiled and copied to clipboard.', 'SECURITY');
     setTimeout(() => setSuccessMsg(''), 4000);
   };
 
@@ -680,7 +851,8 @@ export const SettingsScreen = ({
       addAuditLog('Account Purged', 'User completely requested account deletion. All cloud and local records purged.', 'ACCOUNT');
     } catch (err) {
       console.error(err);
-      alert("Purge failed. Standard account security mandates a re-login. Please sign out and sign in again before deletion.");
+      setSuccessMsg('Purge failed. Standard account security mandates a recent login. Please sign out and sign in again before deletion.');
+      setTimeout(() => setSuccessMsg(''), 5000);
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
@@ -740,7 +912,7 @@ export const SettingsScreen = ({
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
               : 'bg-amber-50 text-amber-800 border border-amber-200'
           }`}>
-            {currentUser && !currentUser.isAnonymous ? 'Personal Account' : 'Guest / Anonymous'}
+            {currentUser && !currentUser.isAnonymous ? 'Personal Account' : 'Guest Session'}
           </span>
         </div>
 
@@ -784,45 +956,6 @@ export const SettingsScreen = ({
               </button>
             )}
           </div>
-        </div>
-      </section>
-
-      {/* Paystack Subscription & Plan Management */}
-      <section className="bg-card p-6 sm:p-7 rounded-[36px] shadow-sm border border-white space-y-5 text-left">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl shadow-xs">
-              👑
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-gray-800">Ama Premium & Billing</h2>
-              <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Secured via Paystack</p>
-            </div>
-          </div>
-          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-            isPremium 
-              ? 'bg-primary/10 text-primary border border-primary/20' 
-              : 'bg-gray-100 text-gray-600 border border-gray-200'
-          }`}>
-            {isPremium ? 'Active Pro Member' : 'Free Tier'}
-          </span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white/80 border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="space-y-1">
-            <p className="text-xs font-bold text-gray-800">
-              {isPremium ? 'All AI features and health summary exports are fully unlocked.' : 'Upgrade to unlock Acoustic Cry Analysis, AI Meal Plans & PDF exports.'}
-            </p>
-            <p className="text-[10px] text-gray-500 font-medium">
-              Accepts Verve, Visa, Mastercard, Bank Transfer, USSD & Apple Pay via Paystack.
-            </p>
-          </div>
-          <button
-            onClick={() => setIsSubscriptionModalOpen(true)}
-            className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border-none shadow-xs shrink-0"
-          >
-            {isPremium ? 'Change / Renew Plan' : 'Upgrade with Paystack'}
-          </button>
         </div>
       </section>
 
@@ -992,7 +1125,7 @@ export const SettingsScreen = ({
         </p>
         
         <p className="text-[10px] text-gray-400 leading-relaxed bg-slate-50 p-3 rounded-xl border border-gray-100 italic">
-          🔒 Private Sandbox Guarantee: File parsing and data merging are executed entirely on your own local device. We never transmit your child's data to any remote servers, maintaining absolute data privacy.
+          🔒 Local-First Processing: File parsing and data merging run locally inside your browser before saving to your active workspace.
         </p>
 
         {migrationError && (
@@ -1082,17 +1215,17 @@ export const SettingsScreen = ({
             📁
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-800">Legal Data Portability & Export Ledger</h2>
-            <p className="text-[9px] text-primary font-bold uppercase tracking-wider">GDPR Article 20 & COPPA Compliant</p>
+            <h2 className="text-sm font-bold text-gray-800">Personal Care Data Export (JSON/CSV)</h2>
+            <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Offline Browser Packaging</p>
           </div>
         </div>
 
         <p className="text-xs text-gray-500 leading-relaxed">
-          Under data protection regulations, infant trackers are legally required under data protection rules to let you download your care logs at any time. Ama provides instant, 1-click tools to compile and export your complete child care records fully offline.
+          Download your child care records at any time. Ama provides instant 1-click tools to compile and export your care logs directly from your browser.
         </p>
 
         <p className="text-[10px] text-gray-400 leading-relaxed bg-slate-50 p-3 rounded-xl border border-gray-100 italic">
-          🔒 Absolute Sovereignty: Your data is packaged, formatted, and downloaded entirely inside your browser cache. Zero bytes of your records are uploaded to our servers or processed by third parties.
+          🔒 Local Export Processing: Export files are packaged and formatted locally in your browser prior to download.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1138,11 +1271,144 @@ export const SettingsScreen = ({
           "It takes a village to raise a child." Assign distinct security roles to grandparents, family members, babysitters, and au pairs to keep private diaries and administrative settings shielded while enabling coordinated care.
         </p>
 
+        {/* Multi-Baby & Multi-Role Connected Hubs Directory */}
+        <div className="bg-emerald-50/60 p-5 rounded-3xl border border-emerald-200/80 space-y-4 text-left">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="text-xs font-black text-emerald-950 uppercase tracking-wider">
+                My Babies &amp; Connected Villages ({villageConnections.length})
+              </h3>
+              <p className="text-[11px] text-emerald-800 mt-0.5">
+                Be a Parent (Admin) for your own child and a Granny or Caregiver for other babies—each baby&apos;s logs stay cleanly separated.
+              </p>
+            </div>
+          </div>
+
+          {villageConnections.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {villageConnections.map((conn) => {
+                const isActive = conn.villageToken === activeVillageToken;
+                return (
+                  <div
+                    key={conn.villageToken}
+                    className={`p-3.5 rounded-2xl border-2 flex items-center justify-between gap-2 transition-all ${
+                      isActive
+                        ? 'bg-white border-emerald-600 shadow-xs'
+                        : 'bg-white/80 border-emerald-100 hover:border-emerald-300'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSwitchVillage?.(conn.villageToken);
+                        setSuccessMsg(`Switched active care hub to ${conn.babyName || 'Baby'}.`);
+                        setTimeout(() => setSuccessMsg(''), 3000);
+                      }}
+                      className="flex-1 min-w-0 text-left bg-transparent border-none cursor-pointer p-0"
+                    >
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs font-black text-gray-900 truncate">
+                          {conn.isOwnChild ? '👶' : '🏘️'} {conn.babyName || 'Baby'}
+                        </span>
+                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
+                          conn.role === 'admin'
+                            ? 'bg-primary/15 text-primary'
+                            : conn.role === 'family'
+                              ? 'bg-sky-100 text-sky-900'
+                              : 'bg-slate-200 text-slate-800'
+                        }`}>
+                          {conn.role === 'admin' ? 'Parent' : conn.role === 'family' ? 'Family' : 'Caregiver'}
+                        </span>
+                        {isActive && (
+                          <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-600 text-white">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-500 font-mono truncate mt-0.5">
+                        {conn.babyAge || 'Care Hub'}
+                      </p>
+                    </button>
+                    {!isActive && onRemoveVillageConnection && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveVillageConnection(conn.villageToken)}
+                        className="px-2 py-1 rounded-lg bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-700 text-[10px] font-bold border-none cursor-pointer shrink-0"
+                        title="Remove from saved hubs"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {onCreateOwnBabyHub && (
+            <div className="p-3.5 rounded-2xl bg-white border border-emerald-200/80 space-y-2.5">
+              <p className="text-[11px] font-black text-gray-900">
+                + Add Your Own Child Hub (Parent / Admin)
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  value={newOwnBabyName}
+                  onChange={(e) => setNewOwnBabyName(e.target.value)}
+                  placeholder="Baby's name (e.g. Zuri)"
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 outline-none focus:border-primary"
+                />
+                <input
+                  type="date"
+                  value={newOwnBabyDob}
+                  onChange={(e) => setNewOwnBabyDob(e.target.value)}
+                  className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newOwnBabyName.trim()) {
+                      setSuccessMsg('Please enter your baby’s name to create your Parent hub.');
+                      setTimeout(() => setSuccessMsg(''), 3000);
+                      return;
+                    }
+                    const calcAge = newOwnBabyDob ? calculateBabyAge(newOwnBabyDob) : 'Newborn';
+                    onCreateOwnBabyHub({
+                      babyName: newOwnBabyName.trim(),
+                      babyDob: newOwnBabyDob,
+                      babyAge: calcAge || 'Newborn'
+                    });
+                    setNewOwnBabyName('');
+                    setNewOwnBabyDob('');
+                    setSuccessMsg('Created & switched to your own Parent (Admin) Child Hub!');
+                    setTimeout(() => setSuccessMsg(''), 3500);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-[11px] font-black uppercase tracking-wider border-none cursor-pointer shrink-0"
+                >
+                  Create Hub
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* 3 Interactive Role Selection Cards */}
+        {isViewingRemoteHub && (
+          <p className="text-[11px] font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-3.5 py-2.5 rounded-2xl text-left">
+            You are viewing {babyName}&apos;s joined Village as{' '}
+            <strong>{userRole === 'family' ? 'Granny / Family Circle' : userRole === 'nanny' ? 'Caregiver / Nanny' : 'Parent'}</strong>.
+            Your permissions here are managed by the child&apos;s Primary Parent.
+          </p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
           {/* Admin Role */}
           <div
             onClick={() => {
+              if (isViewingRemoteHub) {
+                setSuccessMsg('Only the Primary Parent of this joined hub can change your access level.');
+                setTimeout(() => setSuccessMsg(''), 3500);
+                return;
+              }
               setUserRole('admin');
               localStorage.setItem('ama_user_role', 'admin');
               setSuccessMsg('Active role switched to 👑 Parent (Admin)');
@@ -1180,10 +1446,15 @@ export const SettingsScreen = ({
           {/* Family Circle Role */}
           <div
             onClick={() => {
+              if (isViewingRemoteHub) {
+                setSuccessMsg('Only the Primary Parent of this joined hub can change your access level.');
+                setTimeout(() => setSuccessMsg(''), 3500);
+                return;
+              }
               setUserRole('family');
               localStorage.setItem('ama_user_role', 'family');
-              setSuccessMsg('Active role switched to 👵 Family Member (Grandma Mode Auto-Activated)');
-              addAuditLog('Village Role Switched', 'User switched role to Family Member (Grandma Mode)', 'SECURITY');
+              setSuccessMsg('Active role switched to 🏡 Family Member (Granny Mode Auto-Activated)');
+              addAuditLog('Village Role Switched', 'User switched role to Family Member (Granny Mode)', 'SECURITY');
               setTimeout(() => setSuccessMsg(''), 3500);
             }}
             className={`p-4 rounded-3xl border-2 transition-all cursor-pointer relative flex flex-col justify-between text-left space-y-3 ${
@@ -1193,30 +1464,35 @@ export const SettingsScreen = ({
             }`}
           >
             <div className="flex items-start justify-between">
-              <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-lg">
-                👵
+              <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-base">
+                🏡
               </div>
               <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full ${
                 userRole === 'family' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
               }`}>
-                {userRole === 'family' ? 'Grandma Mode Active' : 'Grandma / Elder'}
+                {userRole === 'family' ? 'Granny Mode Active' : 'Granny'}
               </span>
             </div>
             <div>
-              <h3 className="text-xs font-black text-gray-800">Family Member (Grandma / Elder)</h3>
+              <h3 className="text-xs font-black text-gray-800">Family Member (Granny)</h3>
               <p className="text-[11px] text-gray-500 leading-normal mt-1">
-                Visiting grandparents, aunts, or elders. Automatically activates Grandma Mode: simplified high-contrast view, one-touch care buttons, voice-activated logging, locked video monitor, and voice blessings.
+                Visiting grandparents, relatives, or trusted family members. Automatically activates Granny Mode: simplified high-contrast view, one-touch care buttons, voice-activated logging, locked video monitor, and voice blessings.
               </p>
             </div>
             <div className="text-[9px] font-bold text-primary flex items-center gap-1 pt-1 border-t border-primary/10">
               <CheckCircle2 className="w-3 h-3 text-primary" />
-              <span>Grandma Mode Auto-Enabled</span>
+              <span>Granny Mode Auto-Enabled</span>
             </div>
           </div>
 
           {/* Nanny / Caregiver Role */}
           <div
             onClick={() => {
+              if (isViewingRemoteHub) {
+                setSuccessMsg('Only the Primary Parent of this joined hub can change your access level.');
+                setTimeout(() => setSuccessMsg(''), 3500);
+                return;
+              }
               setUserRole('nanny');
               localStorage.setItem('ama_user_role', 'nanny');
               setSuccessMsg('Active role switched to 🧸 Caregiver / Nanny (Write & Record Enabled)');
@@ -1283,30 +1559,50 @@ export const SettingsScreen = ({
 
               <div className="space-y-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-2xs">
                 <div className="flex flex-col gap-3">
-                  <button
-                    onClick={handleCreateCloudBackupAndInvite}
-                    disabled={isCreatingSync}
-                    className="w-full py-4 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-primary/95 transition-all shadow-md shadow-primary/20 border-none cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    {isCreatingSync ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
-                    <span>{isCreatingSync ? 'Generating...' : 'Copy Village Invite Link'}</span>
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => handleCreateCloudBackupAndInvite('family')}
+                      disabled={isCreatingSync || userRole !== 'admin'}
+                      className="w-full py-3.5 px-3 bg-primary text-white text-[11px] font-black uppercase tracking-wider rounded-2xl hover:bg-primary/95 transition-all shadow-md shadow-primary/20 border-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      {isCreatingSync && qrInviteRole === 'family' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>Copy Family Invite Link</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCreateCloudBackupAndInvite('nanny')}
+                      disabled={isCreatingSync || userRole !== 'admin'}
+                      className="w-full py-3.5 px-3 bg-slate-900 text-white text-[11px] font-black uppercase tracking-wider rounded-2xl hover:bg-black transition-all shadow-sm border-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      {isCreatingSync && qrInviteRole === 'nanny' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>Copy Nanny Invite Link</span>
+                    </button>
+                  </div>
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setIsQrModalOpen(!isQrModalOpen)}
+                      type="button"
+                      onClick={() => {
+                        const nextOpen = !isQrModalOpen;
+                        setIsQrModalOpen(nextOpen);
+                        if (nextOpen && userRole === 'admin') {
+                          publishVillageSyncSnapshot(qrInviteRole).catch(() => {});
+                        }
+                      }}
                       className="flex-1 py-3 bg-gray-50 text-gray-700 text-[10px] font-black uppercase tracking-wider rounded-xl hover:bg-gray-100 border border-gray-200 transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <QrCode className="w-4 h-4" />
                       <span>{isQrModalOpen ? 'Hide QR' : 'Show Share QR'}</span>
                     </button>
                     <div className="flex-[2] bg-slate-50 px-4 py-3 rounded-xl border border-gray-100 flex items-center justify-between">
-                      <code className="font-mono text-[10px] font-bold text-gray-500 truncate max-w-[120px]">
-                        {activeSyncToken}
+                      <code className="font-mono text-[10px] font-bold text-gray-500 truncate max-w-[140px]">
+                        {activeSyncToken || 'Not connected'}
                       </code>
                       <button 
+                        type="button"
                         onClick={() => {
-                          navigator.clipboard.writeText(activeSyncToken);
+                          navigator.clipboard?.writeText(activeSyncToken).catch(() => {});
                           setSuccessMsg('Token copied!');
                           setTimeout(() => setSuccessMsg(''), 2000);
                         }}
@@ -1326,15 +1622,31 @@ export const SettingsScreen = ({
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden pt-4 flex flex-col items-center gap-3 border-t border-gray-50 mt-2"
                     >
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setQrInviteRole('family')}
+                          className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border-none cursor-pointer ${qrInviteRole === 'family' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'}`}
+                        >
+                          Family QR
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setQrInviteRole('nanny')}
+                          className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border-none cursor-pointer ${qrInviteRole === 'nanny' ? 'bg-slate-900 text-white' : 'bg-gray-100 text-gray-600'}`}
+                        >
+                          Nanny QR
+                        </button>
+                      </div>
                       <div className="bg-white p-4 rounded-2xl shadow-inner border border-gray-50">
                         <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(getSyncLink())}`}
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(getSyncLink(qrInviteRole))}`}
                           alt="Sync QR Code"
                           className="w-32 h-32 mix-blend-multiply"
                         />
                       </div>
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">
-                        Scan to Join {babyName || 'Baby'}'s Village
+                        Scan to Join {babyName || 'Baby'}'s Village ({qrInviteRole === 'family' ? 'Family Circle' : 'Caregiver / Nanny'})
                       </p>
                     </motion.div>
                   )}
@@ -1350,18 +1662,18 @@ export const SettingsScreen = ({
                   Join an Existing Village
                 </h4>
                 <p className="text-xs text-gray-500 leading-relaxed font-medium">
-                  Received a token or link from a partner? Paste the Village Token below to mirror the care journal on this device and start collaborating.
+                  Received a token or invite link from a parent? Paste it below to connect your device live to that baby&apos;s Firestore logs.
                 </p>
               </div>
 
-              <div className="space-y-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-2xs h-full">
+              <div className="space-y-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-2xs">
                 <div className="space-y-3">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Input Shared Token</label>
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Input Shared Token or Link</label>
                   <input
                     type="text"
                     value={syncKeyInput}
                     onChange={(e) => setSyncKeyInput(e.target.value)}
-                    placeholder="e.g. VILLAGE-LEO-NANNY-8821"
+                    placeholder="e.g. VILLAGE_LEO_... or invite URL"
                     className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-4 py-4 text-xs font-mono font-bold text-gray-800 focus:outline-none focus:border-primary transition-colors placeholder:text-gray-300"
                   />
                   <button
@@ -1377,6 +1689,118 @@ export const SettingsScreen = ({
               </div>
             </div>
           </div>
+
+          {/* Connected Village Members Directory & Dynamic Access Controls */}
+          {villageMembers.length > 0 && (
+            <div className="bg-white p-5 rounded-3xl border border-gray-100 space-y-3 text-left">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span>Connected Village Members ({villageMembers.length})</span>
+                </h4>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  Live Firestore Access Control
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {villageMembers.map((member) => {
+                  const isSelf = currentUser?.uid === member.uid;
+                  const isOwner = member.villageOwnerId === member.uid;
+                  const isBusy = updatingMemberUid === member.uid;
+
+                  return (
+                    <div
+                      key={member.uid}
+                      className="p-3.5 rounded-2xl bg-slate-50/80 border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-black text-gray-900">
+                            {member.displayName || 'Village Member'}
+                            {isSelf ? ' (You)' : ''}
+                          </span>
+                          <span
+                            className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              member.status === 'revoked'
+                                ? 'bg-red-100 text-red-700'
+                                : member.accessType === 'admin'
+                                  ? 'bg-primary/15 text-primary'
+                                  : member.accessType === 'family'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-sky-100 text-sky-800'
+                            }`}
+                          >
+                            {member.status === 'revoked'
+                              ? 'Revoked'
+                              : member.accessType === 'admin'
+                                ? 'Parent (Admin)'
+                                : member.accessType === 'family'
+                                  ? 'Family Circle'
+                                  : 'Caregiver / Nanny'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-gray-500">
+                          Joined {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : 'recently'}
+                        </p>
+                      </div>
+
+                      {userRole === 'admin' && !isOwner && onChangeMemberAccess && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <select
+                            disabled={isBusy}
+                            value={member.accessType}
+                            onChange={async (e) => {
+                              const nextRole = e.target.value as VillageRole;
+                              setUpdatingMemberUid(member.uid);
+                              try {
+                                await onChangeMemberAccess(member.uid, nextRole, member.status);
+                                setSuccessMsg(`Updated ${member.displayName}'s access to ${nextRole}.`);
+                                setTimeout(() => setSuccessMsg(''), 3000);
+                              } finally {
+                                setUpdatingMemberUid(null);
+                              }
+                            }}
+                            className="bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-gray-800 focus:outline-none"
+                          >
+                            <option value="admin">Parent (Admin)</option>
+                            <option value="family">Family Circle</option>
+                            <option value="nanny">Caregiver / Nanny</option>
+                          </select>
+                          <button
+                            type="button"
+                            disabled={isBusy}
+                            onClick={async () => {
+                              const nextStatus = member.status === 'revoked' ? 'active' : 'revoked';
+                              setUpdatingMemberUid(member.uid);
+                              try {
+                                await onChangeMemberAccess(member.uid, member.accessType, nextStatus);
+                                setSuccessMsg(
+                                  nextStatus === 'revoked'
+                                    ? `Revoked access for ${member.displayName}.`
+                                    : `Restored access for ${member.displayName}.`
+                                );
+                                setTimeout(() => setSuccessMsg(''), 3000);
+                              } finally {
+                                setUpdatingMemberUid(null);
+                              }
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-none cursor-pointer transition-colors ${
+                              member.status === 'revoked'
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                : 'bg-red-50 text-red-700 hover:bg-red-100'
+                            }`}
+                          >
+                            {member.status === 'revoked' ? 'Restore' : 'Revoke'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Role Permissions Matrix */}
@@ -1491,7 +1915,7 @@ export const SettingsScreen = ({
           <div className="flex items-center justify-between bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100">
             <div>
               <p className="text-[10px] font-black text-primary uppercase tracking-widest pl-1 mb-1">
-                Verified Adult DOB Gate
+                Adult Age Confirmation (18+)
               </p>
               <p className="text-xs font-bold text-gray-800 pl-1">
                 {parentDob ? new Date(parentDob).toLocaleDateString() : 'Not Set'}
@@ -1499,40 +1923,40 @@ export const SettingsScreen = ({
             </div>
             <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase bg-primary/10 text-primary">
               <UserCheck className="w-3 h-3" />
-              <span>Verified Adult</span>
+              <span>Adult Confirmed</span>
             </span>
           </div>
           <p className="text-[9px] text-gray-400 pl-1 leading-normal mt-2">
-            Verified parent or guardian status ensures authorized access to child profile features.
+            Self-confirmed adult parent or guardian status for child profile access.
           </p>
         </div>
       </section>
 
-      {/* Encryption & Cryptographic Decrypter */}
+      {/* Local Obfuscation Preview */}
       <section className="bg-card p-6 rounded-[36px] shadow-sm border border-white space-y-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl">
             🔑
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-800">Symmetric Cryptography Sandbox</h2>
-            <p className="text-[9px] text-primary font-bold uppercase tracking-wider">At-Rest Obfuscated DB</p>
+            <h2 className="text-sm font-bold text-gray-800">Local Obfuscation Preview</h2>
+            <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Lightweight Local Encoding</p>
           </div>
         </div>
 
         <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider">
-              Cryptographic Cipher Engine:
+              Encoding Format:
             </p>
             <span className="text-[9px] font-mono text-gray-400">XOR-BASE64</span>
           </div>
           <p className="text-[10px] text-gray-400 leading-normal">
-            Your telemetry and log payloads are securely obfuscated using key <code className="font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-600">AmaBabyCareSecureKey_v1</code> at-rest prior to cloud storage, enforcing that firestore rules only expose raw keys with encrypted data.
+            Your synced snapshot payloads use lightweight local obfuscation (not strong cryptography) prior to transport and Firestore storage, alongside Firebase security rules.
           </p>
         </div>
 
-        {/* Interactive Decrypter tool */}
+        {/* Interactive Decoder tool */}
         {userRole === 'admin' ? (
           <div className="space-y-3">
             <div className="flex justify-between items-center pl-1">
@@ -1543,7 +1967,7 @@ export const SettingsScreen = ({
                 onClick={handleLoadActiveTelemetryPayload}
                 className="text-[9px] font-black uppercase text-primary border border-solid border-primary/20 px-2.5 py-1 rounded-full hover:bg-primary/5 cursor-pointer bg-white transition-colors"
               >
-                Load Encrypted Session Telemetry
+                Load Encoded Session Snapshot
               </button>
             </div>
 
@@ -1553,14 +1977,14 @@ export const SettingsScreen = ({
                 setDecrypterInput(e.target.value);
                 handleDecrypt(e.target.value);
               }}
-              placeholder="Paste encrypted base64 payload here (starts with enc_)..."
+              placeholder="Paste encoded base64 payload here (starts with enc_)..."
               className="w-full bg-gray-50 border border-solid border-gray-100 rounded-2xl p-3 text-[10px] font-mono text-gray-700 h-20 placeholder-gray-400 focus:outline-none focus:border-primary transition-all resize-none"
             />
 
             {decrypterOutput && (
               <div className="space-y-1">
                 <span className="text-[9px] font-black text-primary uppercase tracking-widest pl-1 block">
-                  Decrypted Output Plaintext:
+                  Decoded Output Plaintext:
                 </span>
                 <pre className="w-full bg-gray-900 border border-solid border-gray-900 rounded-2xl p-3 text-[10px] font-mono text-sky-300 overflow-x-auto h-28 leading-normal">
                   {decrypterOutput}
@@ -1574,14 +1998,14 @@ export const SettingsScreen = ({
               <Lock className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-xs font-bold text-gray-700">Live Cryptography Decoder Restricted</p>
-              <p className="text-[10px] text-gray-400">Raw cryptographic decryption and session inspection is restricted to the Primary Parent (Admin).</p>
+              <p className="text-xs font-bold text-gray-700">Live Decoder Restricted</p>
+              <p className="text-[10px] text-gray-400">Session payload inspection is restricted to the Primary Parent (Admin).</p>
             </div>
           </div>
         )}
       </section>
 
-      {/* Audit Logs Ledger */}
+      {/* Local Care Activity Log */}
       <section className="bg-card p-6 rounded-[36px] shadow-sm border border-white space-y-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -1589,8 +2013,8 @@ export const SettingsScreen = ({
               📋
             </div>
             <div>
-              <h2 className="text-sm font-bold text-gray-800">Immutable Audit Ledger</h2>
-              <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Telemetry Logs</p>
+              <h2 className="text-sm font-bold text-gray-800">Local Care Activity Log</h2>
+              <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Session Activity</p>
             </div>
           </div>
           <button 
@@ -1757,13 +2181,13 @@ export const SettingsScreen = ({
             ⚠️
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-800">Irreversible Account Purge</h2>
-            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Guideline 5.1.1 compliant</p>
+            <h2 className="text-sm font-bold text-gray-800">Permanent Account Deletion</h2>
+            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Account Control</p>
           </div>
         </div>
 
         <p className="text-[10px] text-gray-600 leading-normal">
-          In strict compliance with privacy standards and account ownership, you have the right to request <strong>complete, permanent erasure of your account and all telemetry data logs</strong>. This action purges all local storage and destroys cloud backups with zero data residue.
+          You can request <strong>permanent erasure of your account and saved care logs</strong> at any time. This clears local browser storage and deletes your cloud account records.
         </p>
 
         {userRole === 'admin' ? (

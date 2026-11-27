@@ -191,7 +191,7 @@ export const ContactScreen: React.FC<ContactScreenProps> = ({ onBack, onNavigate
             {/* Privacy Promise Card */}
             <div className="p-6 bg-slate-900 rounded-[2rem] text-white text-xs leading-relaxed space-y-2">
               <span className="text-emerald-400 font-bold block uppercase tracking-wider text-[10px]">
-                User Privacy Guarantee
+                Our Privacy Commitment
               </span>
               <p className="text-slate-300">
                 Your contact details are used strictly to reply to your inquiry. We never share, sell, or rent your email address or family notes.

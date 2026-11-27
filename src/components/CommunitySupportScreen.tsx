@@ -43,7 +43,9 @@ import {
   CreditCard,
   AlertTriangle,
   Ban,
-  Truck
+  Truck,
+  Hash,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSEO } from '../utils/seo';
@@ -256,6 +258,21 @@ export interface CommunityChatMessageItem {
   createdAt: string;
 }
 
+export interface CommunityRoomItem {
+  id: string;
+  name: string;
+  topic: string;
+  description: string;
+  creatorId: string;
+  creatorName: string;
+  creatorRole: string;
+  inviteCode?: string;
+  memberIds: string[];
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface IndependentSpecialist {
   id: string;
   name: string;
@@ -390,6 +407,17 @@ const CHAT_ROOMS = [
   { id: 'sleep-wake-windows', name: '# Night Feeds & Sleep Lounge', desc: '2 AM check-ins, wake windows & gentle soothing' }
 ];
 
+const ROOM_TOPICS = [
+  'General Parenting',
+  'Sleep & Night Feeds',
+  'Lactation & Feeding',
+  'Weaning & Nutrition',
+  'Special Needs & Therapy',
+  'Local Meetups & Playdates',
+  'Mental Health & Postpartum',
+  'Career, Finance & Legal'
+];
+
 const GOODS_CATEGORIES = [
   'Baby Gear, Strollers & Nursery Goods',
   'Diapers, Feeding & Baby Clothing',
@@ -463,6 +491,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   const [posts, setPosts] = useState<CommunityPostItem[]>([]);
   const [members, setMembers] = useState<CommunityMemberItem[]>([]);
   const [connections, setConnections] = useState<{ id: string; fromId: string; toId: string; createdAt: string }[]>([]);
+  const [communityRooms, setCommunityRooms] = useState<CommunityRoomItem[]>([]);
   const [chatMessages, setChatMessages] = useState<CommunityChatMessageItem[]>([]);
   const [specialists, setSpecialists] = useState<IndependentSpecialist[]>([]);
   const [marketplaceProviders, setMarketplaceProviders] = useState<MarketplaceProvider[]>([]);
@@ -576,6 +605,15 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   // Safety & Guidance Drawer state ('none' | 'fraud' | 'gifts' | 'tiers')
   const [marketplaceSafetyTab, setMarketplaceSafetyTab] = useState<'none' | 'fraud' | 'gifts' | 'tiers'>('none');
 
+  // Restriction Confirmation Modal State (replaces window.confirm)
+  const [pendingRestrictionTarget, setPendingRestrictionTarget] = useState<{
+    targetUserId: string;
+    targetDeviceId: string;
+    reason: string;
+    orderId?: string;
+  } | null>(null);
+  const [isApplyingRestriction, setIsApplyingRestriction] = useState(false);
+
   // Copy Feedback
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -614,9 +652,20 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSavedNotice, setProfileSavedNotice] = useState('');
 
-  // Chat state
+  // Chat & Custom Live Rooms state
+  const [roomDirectoryTab, setRoomDirectoryTab] = useState<'official' | 'member'>('official');
   const [activeRoomId, setActiveRoomId] = useState('general-parenting');
   const [customDmRoom, setCustomDmRoom] = useState<{ id: string; name: string } | null>(null);
+  const [roomSearchQuery, setRoomSearchQuery] = useState('');
+  const [isCreateRoomModalOpen, setIsCreateRoomModalOpen] = useState(false);
+  const [newRoomName, setNewRoomName] = useState('');
+  const [newRoomTopic, setNewRoomTopic] = useState('General Parenting');
+  const [newRoomDescription, setNewRoomDescription] = useState('');
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [roomActionError, setRoomActionError] = useState('');
+  const [roomActionNotice, setRoomActionNotice] = useState('');
+  const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
+  const [confirmDeleteRoomId, setConfirmDeleteRoomId] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [isSendingChat, setIsSendingChat] = useState(false);
   const [chatError, setChatError] = useState('');
@@ -718,6 +767,9 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
           }
         }
         if (Array.isArray(data.connections)) setConnections(data.connections);
+        if (Array.isArray(data.rooms)) {
+          setCommunityRooms(prev => (prev.length > 0 ? prev : data.rooms));
+        }
         if (Array.isArray(data.messages)) {
           setChatMessages(prev => (prev.length > 0 ? prev : data.messages));
         }
@@ -791,12 +843,27 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
       }
     );
 
+    const unsubRooms = onSnapshot(
+      query(collection(db, 'community_rooms'), where('isPublic', '==', true), limit(100)),
+      (snap) => {
+        const fsRooms: CommunityRoomItem[] = snap.docs
+          .map(d => d.data() as CommunityRoomItem)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setCommunityRooms(fsRooms);
+      },
+      (err) => {
+        try {
+          handleFirestoreError(err, OperationType.LIST, 'community_rooms');
+        } catch {}
+      }
+    );
+
     const unsubMessages = onSnapshot(
       query(collection(db, 'community_messages'), where('isPublic', '==', true), limit(250)),
       (snap) => {
         const fsMsgs: CommunityChatMessageItem[] = snap.docs
           .map(d => d.data() as CommunityChatMessageItem)
-          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(a.createdAt).getTime());
         if (fsMsgs.length > 0) {
           setChatMessages(fsMsgs);
         }
@@ -916,7 +983,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         );
         if (isMeBanned) {
           setIsLocallyBanned(true);
-          markDeviceAsBanned('Banned by platform audit for fraudulent activity');
+          markDeviceAsBanned('Marketplace access restricted after policy review');
         }
       },
       (err) => {
@@ -928,6 +995,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
 
     return () => {
       unsubPosts();
+      unsubRooms();
       unsubMessages();
       unsubMembers();
       unsubProviders();
@@ -937,6 +1005,27 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
       unsubBans();
     };
   }, [auth.currentUser?.uid, deviceId, effectiveUserId]);
+
+  // Open specific room if linked via URL (?screen=community&room=... or #community?room=...)
+  useEffect(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      let linkedRoomId = searchParams.get('room');
+      if (!linkedRoomId && window.location.hash.includes('room=')) {
+        const hashQuery = window.location.hash.split(/[?&]/).find(part => part.startsWith('room='));
+        if (hashQuery) {
+          linkedRoomId = decodeURIComponent(hashQuery.replace('room=', ''));
+        }
+      }
+      if (linkedRoomId) {
+        setActiveTab('chat');
+        setActiveRoomId(linkedRoomId);
+        if (!CHAT_ROOMS.some(r => r.id === linkedRoomId)) {
+          setRoomDirectoryTab('member');
+        }
+      }
+    } catch {}
+  }, []);
 
   // Filtered Forum Posts
   const filteredPosts = useMemo(() => {
@@ -994,6 +1083,30 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     );
     return members.filter(m => connectedMemberIds.has(m.id));
   }, [connections, members, effectiveUserId]);
+
+  const filteredCommunityRooms = useMemo(() => {
+    const q = roomSearchQuery.trim().toLowerCase();
+    return communityRooms
+      .filter(room => {
+        if (!q) return true;
+        return (
+          room.name.toLowerCase().includes(q) ||
+          room.topic.toLowerCase().includes(q) ||
+          room.description.toLowerCase().includes(q) ||
+          room.creatorName.toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => {
+        const aJoined = a.memberIds.includes(effectiveUserId) ? 1 : 0;
+        const bJoined = b.memberIds.includes(effectiveUserId) ? 1 : 0;
+        if (aJoined !== bJoined) return bJoined - aJoined;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+  }, [communityRooms, roomSearchQuery, effectiveUserId]);
+
+  const activeCustomRoom = useMemo(() => {
+    return communityRooms.find(r => r.id === activeRoomId) || null;
+  }, [communityRooms, activeRoomId]);
 
   const currentRoomMessages = useMemo(() => {
     return chatMessages.filter(m => m.roomId === activeRoomId);
@@ -1306,6 +1419,224 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     setActiveTab('chat');
   };
 
+  const handleJoinRoom = async (room: CommunityRoomItem) => {
+    setRoomActionError('');
+    const uid = auth.currentUser?.uid || effectiveUserId;
+    setActiveRoomId(room.id);
+
+    if (room.memberIds.includes(uid)) {
+      return;
+    }
+    if (room.memberIds.length >= 200) {
+      setRoomActionError('This room has reached the maximum capacity of 200 members.');
+      return;
+    }
+
+    setJoiningRoomId(room.id);
+    try {
+      const updatedMembers = [...room.memberIds, uid];
+      const now = new Date().toISOString();
+      if (auth.currentUser) {
+        try {
+          await updateDoc(doc(db, 'community_rooms', room.id), {
+            memberIds: updatedMembers,
+            updatedAt: now
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `community_rooms/${room.id}`);
+        }
+        setCommunityRooms(prev =>
+          prev.map(r => (r.id === room.id ? { ...r, memberIds: updatedMembers, updatedAt: now } : r))
+        );
+      } else {
+        const res = await fetch(`/api/community/rooms/${encodeURIComponent(room.id)}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: uid })
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.rooms)) {
+          setCommunityRooms(data.rooms);
+        }
+      }
+      setRoomActionNotice(`Joined "${room.name}"!`);
+      setTimeout(() => setRoomActionNotice(''), 3000);
+    } catch {
+      setRoomActionError('Could not join room right now. Please sign in or check your connection.');
+    } finally {
+      setJoiningRoomId(null);
+    }
+  };
+
+  const handleLeaveRoom = async (room: CommunityRoomItem) => {
+    const uid = auth.currentUser?.uid || effectiveUserId;
+    if (room.creatorId === uid) {
+      setRoomActionError('As the creator, you can delete this room instead of leaving.');
+      return;
+    }
+    setRoomActionError('');
+    setJoiningRoomId(room.id);
+    try {
+      const updatedMembers = room.memberIds.filter(id => id !== uid);
+      const now = new Date().toISOString();
+      if (auth.currentUser) {
+        try {
+          await updateDoc(doc(db, 'community_rooms', room.id), {
+            memberIds: updatedMembers,
+            updatedAt: now
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.UPDATE, `community_rooms/${room.id}`);
+        }
+        setCommunityRooms(prev =>
+          prev.map(r => (r.id === room.id ? { ...r, memberIds: updatedMembers, updatedAt: now } : r))
+        );
+      } else {
+        const res = await fetch(`/api/community/rooms/${encodeURIComponent(room.id)}/leave`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: uid })
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.rooms)) {
+          setCommunityRooms(data.rooms);
+        }
+      }
+      setRoomActionNotice(`Left "${room.name}".`);
+      setTimeout(() => setRoomActionNotice(''), 2500);
+    } catch {
+      setRoomActionError('Could not leave room. Please try again.');
+    } finally {
+      setJoiningRoomId(null);
+    }
+  };
+
+  const handleCreateRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRoomActionError('');
+    const cleanName = newRoomName.trim();
+    const cleanDesc = newRoomDescription.trim();
+    if (cleanName.length < 2) {
+      setRoomActionError('Please enter a room name (at least 2 characters).');
+      return;
+    }
+    if (!cleanDesc) {
+      setRoomActionError('Please enter a short description so others know what the room is about.');
+      return;
+    }
+
+    setIsCreatingRoom(true);
+    try {
+      const mod = await runModerationCheck({
+        type: 'chat',
+        title: cleanName,
+        text: cleanDesc
+      });
+      if (!mod.allowed) {
+        setRoomActionError(mod.error || 'Room details were blocked by community safety moderation.');
+        return;
+      }
+
+      const uid = (auth.currentUser?.uid || effectiveUserId).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 128);
+      const roomId = `room-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const now = new Date().toISOString();
+      const newRoom: CommunityRoomItem = {
+        id: roomId,
+        name: cleanName.slice(0, 80),
+        topic: (newRoomTopic || 'General Parenting').slice(0, 60),
+        description: cleanDesc.slice(0, 300),
+        creatorId: uid,
+        creatorName: (myDisplayName.trim() || parentName || 'Parent').slice(0, 80),
+        creatorRole: (myRole || 'Parent').slice(0, 80),
+        memberIds: [uid],
+        isPublic: true,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, 'community_rooms', roomId), newRoom);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, `community_rooms/${roomId}`);
+        }
+        setCommunityRooms(prev => [newRoom, ...prev.filter(r => r.id !== roomId)]);
+      } else {
+        const res = await fetch('/api/community/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newRoom)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setRoomActionError(data.error || 'Could not create room.');
+          return;
+        }
+        if (Array.isArray(data.rooms)) {
+          setCommunityRooms(data.rooms);
+        } else if (data.room) {
+          setCommunityRooms(prev => [data.room, ...prev]);
+        }
+      }
+
+      setRoomDirectoryTab('member');
+      setActiveRoomId(roomId);
+      setNewRoomName('');
+      setNewRoomTopic('General Parenting');
+      setNewRoomDescription('');
+      setIsCreateRoomModalOpen(false);
+      setRoomActionNotice(`Room "${newRoom.name}" created and open for members!`);
+      setTimeout(() => setRoomActionNotice(''), 5000);
+    } catch {
+      setRoomActionError('Could not create room. Please sign in or check your connection.');
+    } finally {
+      setIsCreatingRoom(false);
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    const uid = auth.currentUser?.uid || effectiveUserId;
+    setRoomActionError('');
+    try {
+      if (auth.currentUser) {
+        try {
+          await deleteDoc(doc(db, 'community_rooms', roomId));
+        } catch (err) {
+          handleFirestoreError(err, OperationType.DELETE, `community_rooms/${roomId}`);
+        }
+        setCommunityRooms(prev => prev.filter(r => r.id !== roomId));
+      } else {
+        const res = await fetch(`/api/community/rooms/${encodeURIComponent(roomId)}?userId=${encodeURIComponent(uid)}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.rooms)) {
+          setCommunityRooms(data.rooms);
+        } else {
+          setCommunityRooms(prev => prev.filter(r => r.id !== roomId));
+        }
+      }
+      if (activeRoomId === roomId) {
+        setActiveRoomId('general-parenting');
+      }
+      setConfirmDeleteRoomId(null);
+      setRoomActionNotice('Room deleted.');
+      setTimeout(() => setRoomActionNotice(''), 2500);
+    } catch {
+      setRoomActionError('Could not delete room.');
+    }
+  };
+
+  const handleCopyRoomInvite = (room: CommunityRoomItem) => {
+    const shareUrl = `${window.location.origin}/?screen=community&room=${encodeURIComponent(room.id)}`;
+    const shareText = `Join "${room.name}" on Ama Baby: ${shareUrl}`;
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(shareText).catch(() => {});
+    }
+    setCopiedKey(`room-${room.id}`);
+    setTimeout(() => setCopiedKey(null), 2500);
+  };
+
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -1320,6 +1651,31 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
       }
 
       const uid = auth.currentUser?.uid || effectiveUserId;
+
+      // Auto-join user if sending in a custom room they haven't joined yet
+      const targetCustomRoom = communityRooms.find(r => r.id === activeRoomId);
+      if (targetCustomRoom && !targetCustomRoom.memberIds.includes(uid) && targetCustomRoom.memberIds.length < 200) {
+        const updatedMembers = [...targetCustomRoom.memberIds, uid];
+        const nowTs = new Date().toISOString();
+        if (auth.currentUser) {
+          try {
+            await updateDoc(doc(db, 'community_rooms', targetCustomRoom.id), {
+              memberIds: updatedMembers,
+              updatedAt: nowTs
+            });
+          } catch {}
+        } else {
+          fetch(`/api/community/rooms/${encodeURIComponent(targetCustomRoom.id)}/join`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: uid })
+          }).catch(() => {});
+        }
+        setCommunityRooms(prev =>
+          prev.map(r => (r.id === targetCustomRoom.id ? { ...r, memberIds: updatedMembers, updatedAt: nowTs } : r))
+        );
+      }
+
       const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const newMsg: CommunityChatMessageItem & { isPublic: boolean } = {
         id: msgId,
@@ -1793,7 +2149,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     setPmError('');
 
     if (myPaymentMethods.length >= 5) {
-      setPmError('You can store up to 5 verified external payment methods.');
+      setPmError('You can store up to 5 saved external payment methods.');
       return;
     }
 
@@ -1921,7 +2277,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         })
       });
 
-      setKycNotice('KYC verification cleared! Verified Badge active, daily transaction limits lifted.');
+      setKycNotice('Profile confirmation saved! Confirmed Badge active and daily order limits updated.');
       setTimeout(() => {
         setIsKycModalOpen(false);
         setKycNotice('');
@@ -1944,13 +2300,13 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
 
     try {
       if (isLocallyBanned || marketplaceBans.some(b => (deviceId && b.targetDeviceId === deviceId) || b.targetUserId === effectiveUserId)) {
-        setLockOrderError('This device has been permanently banned from marketplace transactions for verified violations.');
+        setLockOrderError('This browser session has been restricted from marketplace orders due to a policy violation.');
         return;
       }
 
       const userEmail = auth.currentUser?.email || localStorage.getItem('ama_comm_email') || '';
       if (!userEmail) {
-        setLockOrderError('A verified email address is required to initiate marketplace orders. Please update your profile or sign in.');
+        setLockOrderError('An email address is required to initiate marketplace orders. Please update your profile or sign in.');
         return;
       }
 
@@ -1960,14 +2316,14 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         return;
       }
 
-      // Check unverified tier limits (max 3/day and <= £50 / ~$65 / ~₦95,000 equivalent)
+      // Check standard tier limits (max 3/day and <= £50 / ~$65 / ~₦95,000 equivalent)
       if (!isMyKycVerified) {
         const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
         const myTodayOrders = marketplaceOrders.filter(
           o => o.buyerId === effectiveUserId && new Date(o.createdAt).getTime() > oneDayAgo
         );
         if (myTodayOrders.length >= 3) {
-          setLockOrderError('Unverified Tier Limit: You may only initiate up to 3 transactions per day. Complete KYC verification for unlimited bookings.');
+          setLockOrderError('Standard Tier Limit: You may initiate up to 3 orders per day. Complete profile confirmation for higher limits.');
           return;
         }
 
@@ -1978,7 +2334,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
           (lockOrderCurrency === 'NGN' && amountNum > 95000);
 
         if (isOverLimit) {
-          setLockOrderError(`Unverified Tier Limit: Single transaction cannot exceed £50 equivalent (${lockOrderCurrency} ${amountNum}). Complete KYC verification to proceed.`);
+          setLockOrderError(`Standard Tier Limit: Single order cannot exceed £50 equivalent (${lockOrderCurrency} ${amountNum}). Complete profile confirmation to proceed.`);
           return;
         }
       }
@@ -1989,10 +2345,10 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         ((providerMember?.completedInPersonDealsCount || 0) >= 5 || (providerMember?.providerLevel || 0) >= 2)
       );
 
-      // Block remote shipping for unproven providers (Level 1)
+      // Block remote shipping for Level 1 providers
       if (lockOrderHandoverType === 'shipping' && !isProviderLevel2) {
         setLockOrderError(
-          'Remote Shipping Blocked: This provider is Level 1 (Local Handover Only). Remote shipping requires KYC verification and 5+ completed in-person handovers.'
+          'Remote Shipping Unavailable: This provider is Level 1 (Local Handover Only). Remote shipping requires profile confirmation and 5+ completed in-person handovers.'
         );
         return;
       }
@@ -2494,7 +2850,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
             })
           );
           setMarketplaceNotice(
-            'Dispute resolved: Delivery verified authentic. Consumer penalized with dispute strike; Provider awarded Protected Provider Badge.'
+            'Dispute resolved: Delivery record confirmed. Consumer issued a dispute note; Provider awarded Community Trust Badge.'
           );
         } else {
           setMembers(prev =>
@@ -2505,7 +2861,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               return m;
             })
           );
-          setMarketplaceNotice('Dispute resolved: Provider defaulted on delivery proof. Provider storefront frozen and listings hidden.');
+          setMarketplaceNotice('Dispute resolved: Provider defaulted on delivery proof. Provider storefront paused and listings hidden.');
         }
 
         setSelectedOrderForResolution(null);
@@ -2525,7 +2881,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     e.preventDefault();
     if (!selectedOrderForDenial) return;
     if (!denialStatementDoc.trim()) {
-      setDenialError('Uploading an official single-day bank/app statement showing no incoming transfer is mandatory.');
+      setDenialError('Uploading an external single-day bank/app statement showing no incoming transfer is required.');
       return;
     }
 
@@ -2562,7 +2918,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         setMarketplaceOrders(prev => prev.map(o => (o.id === selectedOrderForDenial.id ? data.order : o)));
         setSelectedOrderForDenial(null);
         setDenialStatementDoc('');
-        setMarketplaceNotice('Receipt denied with official bank statement. Either party can download the Dispute Evidence Pack.');
+        setMarketplaceNotice('Receipt denial recorded with statement link. Either party can download the Dispute Summary Pack.');
       } else {
         setDenialError(data.error || 'Failed to record denial.');
       }
@@ -2573,12 +2929,15 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
     }
   };
 
-  // Fraud Ban Action (Permanent account + Device ID block)
-  const handleBanFraudster = async (targetUserId: string, targetDeviceId: string, reason: string, orderId?: string) => {
-    const confirmed = window.confirm(
-      'Permanent Fraud Ban: This will permanently blacklist this user and their physical phone Device ID from all marketplace transactions. Proceed?'
-    );
-    if (!confirmed) return;
+  // Marketplace Policy Restriction Action (Opens in-app confirmation modal)
+  const handleBanFraudster = (targetUserId: string, targetDeviceId: string, reason: string, orderId?: string) => {
+    setPendingRestrictionTarget({ targetUserId, targetDeviceId, reason, orderId });
+  };
+
+  const confirmMarketplaceRestriction = async () => {
+    if (!pendingRestrictionTarget) return;
+    const { targetUserId, targetDeviceId, reason, orderId } = pendingRestrictionTarget;
+    setIsApplyingRestriction(true);
 
     try {
       const banRecord: MarketplaceBanRecord = {
@@ -2610,9 +2969,12 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         setIsLocallyBanned(true);
       }
 
-      setMarketplaceNotice(`Fraud sanction applied: Account and device ${targetDeviceId.slice(0, 16)}... are permanently blocked.`);
+      setMarketplaceNotice(`Policy restriction applied: Account and session ${targetDeviceId.slice(0, 16)}... have been restricted from marketplace orders.`);
+      setPendingRestrictionTarget(null);
     } catch (err: any) {
-      setMarketplaceNotice(`Sanction error: ${err.message || 'Failed to file ban.'}`);
+      setMarketplaceNotice(`Restriction error: ${err.message || 'Failed to record restriction.'}`);
+    } finally {
+      setIsApplyingRestriction(false);
     }
   };
 
@@ -3327,26 +3689,287 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
       {activeTab === 'chat' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Channels Sidebar */}
-          <div className="lg:col-span-4 bg-white rounded-[32px] p-4 border border-gray-100 shadow-xs space-y-2 h-fit">
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2 py-1">
-              Community Live Rooms
-            </p>
-            {CHAT_ROOMS.map(room => (
+          <div className="lg:col-span-4 bg-white rounded-[32px] p-4 border border-gray-100 shadow-xs space-y-4 h-fit">
+            {/* Create Room CTA */}
+            <div className="flex items-center justify-between gap-2 px-1">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  Community Live Rooms
+                </p>
+                <p className="text-xs font-bold text-gray-700">
+                  Join a village channel or start your own
+                </p>
+              </div>
               <button
-                key={room.id}
-                onClick={() => setActiveRoomId(room.id)}
-                className={`w-full p-3 rounded-2xl text-left border transition-all cursor-pointer ${
-                  activeRoomId === room.id
-                    ? 'bg-primary text-white border-primary shadow-xs'
-                    : 'bg-gray-50 hover:bg-gray-100 text-gray-800 border-gray-100'
+                type="button"
+                onClick={() => {
+                  setRoomActionError('');
+                  setIsCreateRoomModalOpen(true);
+                }}
+                className="px-3.5 py-2 rounded-2xl bg-primary hover:bg-primary/90 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 border-none cursor-pointer shadow-xs shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Create Room</span>
+              </button>
+            </div>
+
+            {roomActionNotice && (
+              <div className="p-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between gap-2">
+                <span>✓ {roomActionNotice}</span>
+                <button
+                  type="button"
+                  onClick={() => setRoomActionNotice('')}
+                  className="text-emerald-600 bg-transparent border-none cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {roomActionError && (
+              <div className="p-2.5 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center justify-between gap-2">
+                <span>{roomActionError}</span>
+                <button
+                  type="button"
+                  onClick={() => setRoomActionError('')}
+                  className="text-red-500 bg-transparent border-none cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Dedicated Room Type Switcher: Official Topic Channels vs Member-Created Rooms */}
+            <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-100 border border-slate-200/70">
+              <button
+                type="button"
+                onClick={() => setRoomDirectoryTab('official')}
+                className={`py-2 px-2.5 rounded-xl text-[11px] font-black transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${
+                  roomDirectoryTab === 'official'
+                    ? 'bg-white text-gray-900 shadow-xs'
+                    : 'bg-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
-                <p className="text-xs font-black">{room.name}</p>
-                <p className={`text-[10px] mt-0.5 ${activeRoomId === room.id ? 'text-white/80' : 'text-gray-500'}`}>
-                  {room.desc}
-                </p>
+                <span>Official Channels</span>
+                <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-[9px] font-black text-gray-600">
+                  {CHAT_ROOMS.length}
+                </span>
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setRoomDirectoryTab('member')}
+                className={`py-2 px-2.5 rounded-xl text-[11px] font-black transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${
+                  roomDirectoryTab === 'member'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <span>Member Rooms</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-black ${
+                  roomDirectoryTab === 'member' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {communityRooms.length}
+                </span>
+              </button>
+            </div>
+
+            {roomDirectoryTab === 'official' ? (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Official Topic Channels
+                  </p>
+                  <span className="text-[9px] font-bold text-slate-400">Open to all</span>
+                </div>
+                <div className="space-y-2">
+                  {CHAT_ROOMS.map(room => (
+                    <button
+                      key={room.id}
+                      onClick={() => setActiveRoomId(room.id)}
+                      className={`w-full p-3.5 rounded-2xl text-left border transition-all cursor-pointer ${
+                        activeRoomId === room.id
+                          ? 'bg-primary text-white border-primary shadow-xs'
+                          : 'bg-slate-50/70 hover:bg-slate-100 text-gray-800 border-slate-200/70'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-black">{room.name}</p>
+                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
+                          activeRoomId === room.id ? 'bg-white/20 text-white' : 'bg-white text-slate-500 border border-slate-200'
+                        }`}>
+                          Official
+                        </span>
+                      </div>
+                      <p className={`text-[10px] mt-1 ${activeRoomId === room.id ? 'text-white/85' : 'text-gray-500'}`}>
+                        {room.desc}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                    Member-Created Rooms ({communityRooms.length})
+                  </p>
+                  <span className="text-[9px] font-bold text-emerald-600">Tap to join</span>
+                </div>
+
+                {communityRooms.length > 3 && (
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={roomSearchQuery}
+                      onChange={e => setRoomSearchQuery(e.target.value)}
+                      placeholder="Search member rooms or topics..."
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-8 pr-3 py-1.5 text-xs text-gray-800 outline-none focus:border-primary"
+                    />
+                  </div>
+                )}
+
+                {filteredCommunityRooms.length === 0 ? (
+                  <div className="p-4 rounded-2xl bg-emerald-50/60 border border-dashed border-emerald-200 text-center space-y-2">
+                    <p className="text-xs font-bold text-emerald-950">
+                      {roomSearchQuery ? 'No member rooms match your search' : 'No member-created rooms yet'}
+                    </p>
+                    <p className="text-[11px] text-emerald-800/80">
+                      Start a room for local playdates, sleep support, or twin parents — anyone can join with one tap.
+                    </p>
+                    {!roomSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRoomActionError('');
+                          setIsCreateRoomModalOpen(true);
+                        }}
+                        className="mt-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black uppercase tracking-wider border-none cursor-pointer"
+                      >
+                        + Start a Member Room
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[340px] overflow-y-auto pr-0.5">
+                    {filteredCommunityRooms.map(room => {
+                      const isSelected = activeRoomId === room.id;
+                      const isCreator = room.creatorId === (auth.currentUser?.uid || effectiveUserId);
+                      const isMember = room.memberIds.includes(auth.currentUser?.uid || effectiveUserId);
+                      return (
+                        <div
+                          key={room.id}
+                          className={`p-3 rounded-2xl border transition-all ${
+                            isSelected
+                              ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                              : 'bg-emerald-50/40 hover:bg-emerald-50 text-gray-800 border-emerald-200/80'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setActiveRoomId(room.id)}
+                            className="w-full text-left bg-transparent border-none p-0 cursor-pointer text-inherit"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-xs font-black leading-snug"># {room.name}</p>
+                              <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase shrink-0 ${
+                                isSelected ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                              }`}>
+                                {room.memberIds.length} joined
+                              </span>
+                            </div>
+                            <p className={`text-[10px] mt-0.5 line-clamp-2 ${isSelected ? 'text-white/85' : 'text-gray-600'}`}>
+                              {room.description}
+                            </p>
+                            <div className={`flex items-center justify-between gap-2 mt-1.5 text-[10px] font-semibold ${
+                              isSelected ? 'text-white/80' : 'text-gray-500'
+                            }`}>
+                              <span>{room.topic} • Hosted by {room.creatorName}</span>
+                            </div>
+                          </button>
+
+                          <div className="flex items-center justify-between gap-1.5 mt-2 pt-2 border-t border-black/10">
+                            {isMember ? (
+                              <span className={`text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                                isSelected ? 'text-white' : 'text-emerald-700'
+                              }`}>
+                                <Check className="w-3 h-3" /> {isCreator ? 'Host' : 'Joined'}
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={joiningRoomId === room.id}
+                                onClick={() => handleJoinRoom(room)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border-none cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-white text-emerald-800'
+                                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                }`}
+                              >
+                                {joiningRoomId === room.id ? 'Joining...' : '+ Join Room'}
+                              </button>
+                            )}
+
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleCopyRoomInvite(room)}
+                                className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 border-none cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-white/20 text-white hover:bg-white/30'
+                                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                                }`}
+                                title="Copy direct room link"
+                              >
+                                {copiedKey === `room-${room.id}` ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                <span>{copiedKey === `room-${room.id}` ? 'Copied' : 'Share'}</span>
+                              </button>
+                              {isCreator ? (
+                                confirmDeleteRoomId === room.id ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRoom(room.id)}
+                                    className="px-2 py-1 rounded-lg bg-red-600 text-white text-[10px] font-black border-none cursor-pointer"
+                                  >
+                                    Confirm
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteRoomId(room.id)}
+                                    className={`p-1 rounded-lg border-none cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-white/20 text-white hover:bg-red-500'
+                                        : 'bg-red-50 text-red-600 hover:bg-red-100'
+                                    }`}
+                                    title="Delete room"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )
+                              ) : isMember ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleLeaveRoom(room)}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-bold border-none cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-white/20 text-white hover:bg-white/30'
+                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  }`}
+                                  title="Leave room"
+                                >
+                                  Leave
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {customDmRoom && (
               <div className="pt-2 border-t border-gray-100">
@@ -3368,25 +3991,76 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
           </div>
 
           {/* Active Chat Stream */}
-          <div className="lg:col-span-8 bg-white rounded-[32px] border border-gray-100 shadow-sm flex flex-col h-[520px] overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-card/40">
-              <div>
-                <h3 className="text-sm sm:text-base font-serif font-black text-gray-900">
-                  {customDmRoom && activeRoomId === customDmRoom.id
-                    ? customDmRoom.name
-                    : CHAT_ROOMS.find(r => r.id === activeRoomId)?.name || '# Live Room'}
-                </h3>
+          <div className="lg:col-span-8 bg-white rounded-[32px] border border-gray-100 shadow-sm flex flex-col h-[560px] overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-card/40">
+              <div className="space-y-0.5 min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-serif font-black text-gray-900 truncate">
+                    {customDmRoom && activeRoomId === customDmRoom.id
+                      ? customDmRoom.name
+                      : activeCustomRoom
+                      ? `# ${activeCustomRoom.name}`
+                      : CHAT_ROOMS.find(r => r.id === activeRoomId)?.name || '# Live Room'}
+                  </h3>
+                  {activeCustomRoom && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                      {activeCustomRoom.topic}
+                    </span>
+                  )}
+                </div>
                 <p className="text-[11px] text-gray-500">
-                  Real-time persistent room • Chatting as <strong>{myDisplayName}</strong> ({myRole})
+                  {activeCustomRoom
+                    ? `Member-Created Room • Hosted by ${activeCustomRoom.creatorName} • ${activeCustomRoom.memberIds.length} member${activeCustomRoom.memberIds.length === 1 ? '' : 's'}`
+                    : `Official Topic Channel • Chatting as ${myDisplayName} (${myRole})`}
                 </p>
               </div>
-              <button
-                onClick={fetchCommunityState}
-                className="p-2 rounded-xl bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 cursor-pointer"
-                title="Refresh messages"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {activeCustomRoom && (() => {
+                  const uid = auth.currentUser?.uid || effectiveUserId;
+                  const isCreator = activeCustomRoom.creatorId === uid;
+                  const isMember = activeCustomRoom.memberIds.includes(uid);
+                  return (
+                    <>
+                      {!isMember ? (
+                        <button
+                          type="button"
+                          disabled={joiningRoomId === activeCustomRoom.id}
+                          onClick={() => handleJoinRoom(activeCustomRoom)}
+                          className="px-3.5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 border-none cursor-pointer"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>{joiningRoomId === activeCustomRoom.id ? 'Joining...' : 'Join Room'}</span>
+                        </button>
+                      ) : !isCreator ? (
+                        <button
+                          type="button"
+                          onClick={() => handleLeaveRoom(activeCustomRoom)}
+                          className="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 border-none cursor-pointer"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>Leave</span>
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => handleCopyRoomInvite(activeCustomRoom)}
+                        className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1.5 border border-emerald-200 cursor-pointer"
+                      >
+                        {copiedKey === `room-${activeCustomRoom.id}` ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedKey === `room-${activeCustomRoom.id}` ? 'Link Copied' : 'Share Room'}</span>
+                      </button>
+                    </>
+                  );
+                })()}
+                <button
+                  onClick={fetchCommunityState}
+                  className="p-2 rounded-xl bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 cursor-pointer"
+                  title="Refresh messages"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-3 bg-gray-50/40">
@@ -3483,14 +4157,14 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   Village Care &amp; Goods Ecosystem
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-sky-100 border border-white/10">
-                  Verified Settlement &amp; Courier Cleared
+                  Locked Order Summaries &amp; Courier Tracking
                 </span>
               </div>
               <h2 className="text-xl sm:text-2xl font-serif font-black text-sky-100">
                 Care Services, Baby Goods &amp; Free Gifts Marketplace
               </h2>
               <p className="text-xs sm:text-sm text-sky-100/85 leading-relaxed font-normal">
-                Discover local care providers, trade maternal &amp; baby goods, exchange free community gifts, and settle transactions safely with locked reference codes and trackable courier shipping.
+                Discover local care providers, trade maternal &amp; baby goods, exchange free community gifts, and coordinate external settlements with locked reference codes and trackable courier shipping.
               </p>
             </div>
             <div className="absolute right-4 bottom-2 text-7xl opacity-10 select-none pointer-events-none">
@@ -3505,7 +4179,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 <ShieldCheck className="w-3.5 h-3.5 text-sky-600" /> Trust &amp; Safety:
               </span>
               {[
-                { id: 'fraud', label: 'Anti-Fraud & Settlement Rules', icon: ShieldAlert },
+                { id: 'fraud', label: 'Order Safety & Payment Rules', icon: ShieldAlert },
                 { id: 'gifts', label: 'Free Gift Village Guide', icon: Gift },
                 { id: 'tiers', label: 'Provider Tiers (Level 1 vs Level 2 Courier)', icon: Truck }
               ].map(item => {
@@ -3553,10 +4227,10 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                       <div className="space-y-2 pr-8">
                         <div className="flex items-center gap-2">
                           <ShieldAlert className="w-4 h-4 text-amber-600" />
-                          <h4 className="font-bold text-gray-900 text-sm">Anti-Fraud &amp; Zero-Tolerance Payment Rules</h4>
+                          <h4 className="font-bold text-gray-900 text-sm">Order Safety &amp; Direct Settlement Guidelines</h4>
                         </div>
                         <p className="leading-relaxed text-gray-700">
-                          Never remit funds to unverified bank details sent in private chat or complete remote transactions without locking terms. Always lock agreed pricing into an official order (<strong className="text-gray-900 font-mono">ORD-XXXX</strong>) with attached immutable provider receiving details. Unverified consumers are limited to 3 daily orders below £50 equivalent. Submitting fake Transaction IDs or falsely claiming delivery failure triggers permanent device hardware ban.
+                          Avoid sending funds to unfamiliar bank details shared in private chat or completing remote orders without locking terms first. Lock agreed pricing into an order summary (<strong className="text-gray-900 font-mono">ORD-XXXX</strong>) with captured provider receiving details. Standard-tier accounts are limited to 3 daily orders below £50 equivalent. Submitting false Transaction IDs or false delivery disputes may trigger marketplace access restrictions.
                         </p>
                       </div>
                     )}
@@ -3577,19 +4251,19 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                       <div className="space-y-2 pr-8">
                         <div className="flex items-center gap-2">
                           <Truck className="w-4 h-4 text-sky-700" />
-                          <h4 className="font-bold text-gray-900 text-sm">Provider Trust Tiers &amp; Remote Shipping Clearance</h4>
+                          <h4 className="font-bold text-gray-900 text-sm">Provider Trust Tiers &amp; Remote Shipping Access</h4>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                           <div className="p-3 rounded-2xl bg-white border border-slate-200">
                             <span className="font-black text-slate-900 text-xs block">Level 1 Provider (Local Handover Only)</span>
                             <p className="text-[11px] text-slate-600 mt-1 leading-snug">
-                              New or unverified providers are restricted to in-person community handovers. Remote courier shipping is blocked until trust is established.
+                              New or unconfirmed providers are limited to in-person community handovers. Remote courier shipping unlocks after community history is built.
                             </p>
                           </div>
                           <div className="p-3 rounded-2xl bg-white border border-sky-200">
-                            <span className="font-black text-sky-950 text-xs block">Level 2 Provider (Remote Shipping Cleared)</span>
+                            <span className="font-black text-sky-950 text-xs block">Level 2 Provider (Remote Shipping Enabled)</span>
                             <p className="text-[11px] text-slate-600 mt-1 leading-snug">
-                              Unlocked after completing KYC verification and 5+ successful in-person handovers. Cleared to ship via trackable couriers (DHL, GIG Logistics, Royal Mail, FedEx, etc.) with 48h waybill upload enforcement.
+                              Unlocked after completing profile confirmation and 5+ completed in-person handovers. Enabled to ship via trackable couriers (DHL, GIG Logistics, Royal Mail, FedEx, etc.) with 48h waybill upload tracking.
                             </p>
                           </div>
                         </div>
@@ -3601,26 +4275,26 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
             </AnimatePresence>
           </div>
 
-          {/* KYC Status & Provider Receiving Accounts Strip */}
+          {/* Profile Confirmation & Provider Receiving Accounts Strip */}
           <div className="bg-white rounded-3xl p-4 border border-gray-100 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
             <div className="flex flex-wrap items-center gap-2.5">
               {isMyKycVerified ? (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100/90 text-emerald-900 font-black">
                   <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                  <span>KYC Verified Badge Active • Unlimited Transactions</span>
+                  <span>Profile Confirmed Badge • Higher Limits Active</span>
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-3 py-1.5 rounded-full bg-amber-100 text-amber-900 font-bold flex items-center gap-1">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Unverified Tier: Capped at 3 daily orders &lt; £50</span>
+                    <span>Standard Tier: Capped at 3 daily orders &lt; £50</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => setIsKycModalOpen(true)}
                     className="px-3 py-1 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-black uppercase text-[10px] tracking-wider border-none cursor-pointer"
                   >
-                    Verify KYC (Get Badge)
+                    Confirm Profile (Get Badge)
                   </button>
                 </div>
               )}
@@ -3639,7 +4313,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                       : 'bg-gray-100 text-gray-700 border-gray-200'
                   }`}>
                     <Truck className="w-3 h-3 text-sky-700" />
-                    <span>{isLevel2 ? 'Level 2: Remote Shipping Cleared' : 'Level 1: Local Handover Only'}</span>
+                    <span>{isLevel2 ? 'Level 2: Remote Shipping Enabled' : 'Level 1: Local Handover Only'}</span>
                   </span>
                 );
               })()}
@@ -3963,18 +4637,18 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                           {provMember?.isKycVerified ? (
                             <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase flex items-center gap-1">
                               <ShieldCheck className="w-3 h-3 text-emerald-700" />
-                              <span>KYC Verified Provider</span>
+                              <span>Profile Confirmed</span>
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold">
-                              Unverified Tier
+                              Standard Tier
                             </span>
                           )}
 
                           {isProvLevel2 ? (
                             <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-black flex items-center gap-1">
                               <Truck className="w-3 h-3 text-sky-700" />
-                              <span>Level 2: Trackable Courier Cleared</span>
+                              <span>Level 2: Trackable Courier Enabled</span>
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
@@ -4108,15 +4782,15 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-sky-700 flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5" />
-                  Official Transaction &amp; Escrow Verification Ledger
+                  Order Terms &amp; Settlement Log
                 </span>
                 <h3 className="text-base sm:text-lg font-serif font-black text-gray-900 mt-0.5">
-                  Locked Marketplace Orders &amp; Payment Verifications ({
+                  Locked Marketplace Orders &amp; Payment Confirmations ({
                     marketplaceOrders.filter(o => o.buyerId === effectiveUserId || o.sellerId === effectiveUserId).length
                   })
                 </h3>
                 <p className="text-xs text-gray-600 font-medium leading-relaxed">
-                  Agreed terms with immutable external banking instructions, consumer transfer proof, trackable courier waybill verification, and official dispute evidence packs.
+                  Agreed terms with locked external transfer details, payment reference logs, trackable courier waybill tracking, and downloadable dispute summary packs.
                 </p>
               </div>
             </div>
@@ -4126,7 +4800,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 <Lock className="w-7 h-7 text-gray-400 mx-auto" />
                 <p className="text-xs font-bold text-gray-700">No locked orders recorded yet</p>
                 <p className="text-[11px] text-gray-500 max-w-md mx-auto leading-relaxed">
-                  When purchasing goods or hiring services, tap &quot;Lock Order &amp; Pay&quot; on any listing to freeze terms into an immutable reference code (<strong className="text-gray-700">ORD-XXXX</strong>) before sending external payments.
+                  When purchasing goods or hiring services, tap &quot;Lock Order &amp; Pay&quot; on any listing to capture agreed terms under a reference code (<strong className="text-gray-700">ORD-XXXX</strong>) before sending external payments.
                 </p>
               </div>
             ) : (
@@ -4220,17 +4894,17 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                             <span className="text-[10px] font-black uppercase text-gray-400 block">Provider / Recipient</span>
                             <p className="font-black text-gray-900 flex items-center gap-1.5 flex-wrap">
                               <span>{order.sellerName}</span>
-                              {order.sellerKycVerified && <span className="text-emerald-700 font-bold">✓ KYC Verified</span>}
+                              {order.sellerKycVerified && <span className="text-emerald-700 font-bold">✓ Profile Confirmed</span>}
                               {providerMem?.hasProviderProtectionBadge && (
                                 <span className="text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded text-[10px] font-black flex items-center gap-0.5 border border-indigo-200">
-                                  <Award className="w-2.5 h-2.5" /> Protected Provider
+                                  <Award className="w-2.5 h-2.5" /> Community Trust Badge
                                 </span>
                               )}
                             </p>
                             <p className="text-gray-500">Phone: {order.sellerPhone || 'Registered in app'}</p>
                             {order.sellerProviderLevel && (
                               <p className="text-[10px] text-sky-800 font-bold">
-                                {order.sellerProviderLevel >= 2 ? 'Level 2: Remote Shipping Cleared' : 'Level 1: Local Handover'}
+                                {order.sellerProviderLevel >= 2 ? 'Level 2: Courier Enabled' : 'Level 1: Local Handover'}
                               </p>
                             )}
                           </div>
@@ -4238,10 +4912,10 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                             <span className="text-[10px] font-black uppercase text-gray-400 block">Consumer / Remitter</span>
                             <p className="font-black text-gray-900 flex items-center gap-1.5 flex-wrap">
                               <span>{order.buyerName}</span>
-                              {order.buyerKycVerified && <span className="text-emerald-700 font-bold">✓ KYC Verified</span>}
+                              {order.buyerKycVerified && <span className="text-emerald-700 font-bold">✓ Profile Confirmed</span>}
                               {(consumerMem?.disputeStrikes || 0) > 0 && (
                                 <span className="text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded text-[10px] font-black border border-amber-200">
-                                  ⚠️ Strike Count: {consumerMem?.disputeStrikes}
+                                  ⚠️ Dispute Note Count: {consumerMem?.disputeStrikes}
                                 </span>
                               )}
                             </p>
@@ -4249,12 +4923,12 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                           </div>
                         </div>
 
-                        {/* Immutably Locked Payment Instructions */}
+                        {/* Locked Payment Instructions */}
                         <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-3.5 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1">
                               <Lock className="w-3 h-3 text-amber-700" />
-                              Locked Provider Receiving Account (Immutability Lock Active)
+                              Locked Provider Receiving Account (Order Snapshot Active)
                             </span>
                             <span className="text-[10px] font-bold text-amber-800">
                               {order.isInternational ? '48h International Settlement' : '24h Local Banking'}
@@ -4529,7 +5203,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                             </p>
                             {order.denialStatementUrl && (
                               <p className="text-[10px] text-red-800 pt-0.5">
-                                Single-day official bank/app statement has been uploaded for fraud inspection.
+                                Single-day bank/app statement link has been uploaded for order review.
                               </p>
                             )}
                           </div>
@@ -4669,22 +5343,22 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                               <span>Download Dispute Evidence Pack (PDF)</span>
                             </button>
 
-                            {/* Fraud Report & Ban */}
+                            {/* Policy Report & Restrict */}
                             <button
                               type="button"
                               onClick={() => {
                                 const targetId = isConsumer ? order.sellerId : order.buyerId;
-                                const targetDevId = isConsumer ? (order.sellerDeviceId || 'unknown-device') : (order.buyerDeviceId || 'unknown-device');
+                                const targetDevId = isConsumer ? (order.sellerDeviceId || 'unknown-session') : (order.buyerDeviceId || 'unknown-session');
                                 const roleText = isConsumer ? 'Provider' : 'Consumer';
                                 handleBanFraudster(
                                   targetId,
                                   targetDevId,
-                                  `Verified fraud claim in order ${order.orderCode} by ${roleText}`,
+                                  `Order dispute report in ${order.orderCode} by ${roleText}`,
                                   order.id
                                 );
                               }}
                               className="p-2 rounded-xl text-red-600 hover:bg-red-100 bg-red-50 border border-red-200 cursor-pointer"
-                              title="Report verified fraud and black-list phone device hardware"
+                              title="Report order issue and restrict counterparty marketplace access"
                             >
                               <Ban className="w-3.5 h-3.5" />
                             </button>
@@ -5327,20 +6001,20 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 </button>
               </div>
 
-              {/* Identity & Device Trust Status Bar */}
+              {/* Profile Status Bar */}
               <div className="p-3 bg-gray-50 border border-gray-200 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase tracking-wider text-gray-500">
-                    Identity Status
+                    Profile Status
                   </span>
                   {isMyKycVerified ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                      <ShieldCheck className="w-3.5 h-3.5" /> KYC Verified Badge
+                      <ShieldCheck className="w-3.5 h-3.5" /> Profile Confirmed Badge
                     </span>
                   ) : (
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
-                        Unverified Tier (Max £50/order, 3/day)
+                        Standard Tier (Max £50/order, 3/day)
                       </span>
                       <button
                         type="button"
@@ -5350,15 +6024,15 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                         }}
                         className="text-[10px] font-black text-white bg-amber-700 hover:bg-amber-800 px-2 py-0.5 rounded-lg border-none cursor-pointer"
                       >
-                        Verify Now
+                        Confirm Profile
                       </button>
                     </div>
                   )}
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-gray-500 font-medium pt-1 border-t border-gray-200/70">
-                  <span>Hardware Device Fingerprint:</span>
+                  <span>Local Browser Session ID:</span>
                   <code className="font-mono text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
-                    {deviceId ? `${deviceId.slice(0, 16)}...` : 'Detecting...'}
+                    {deviceId ? `${deviceId.slice(0, 16)}...` : 'Initializing...'}
                   </code>
                 </div>
               </div>
@@ -5489,7 +6163,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     </div>
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-sky-700">
-                        Escrow Terms &amp; Anti-Fraud Lock
+                        Order Terms &amp; Summary Snapshot
                       </span>
                       <h2 className="text-xl font-serif font-black text-gray-900">
                         Lock Order Terms
@@ -5526,18 +6200,18 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                       <span>Provider: <strong>{lockOrderTarget.name}</strong></span>
                       {providerMember?.isKycVerified ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
-                          <ShieldCheck className="w-3 h-3" /> Verified Provider
+                          <ShieldCheck className="w-3 h-3" /> Profile Confirmed
                         </span>
                       ) : (
                         <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
-                          Unverified Provider
+                          Standard Provider
                         </span>
                       )}
                     </div>
                     <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
                       isProviderLevel2 ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-700'
                     }`}>
-                      {isProviderLevel2 ? 'Level 2 Cleared' : 'Level 1 Local'}
+                      {isProviderLevel2 ? 'Level 2 Courier' : 'Level 1 Local'}
                     </span>
                   </div>
                 </div>
@@ -5583,24 +6257,24 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                       </div>
                       <p className="text-[10px] text-gray-500 mt-1 leading-snug">
                         {isProviderLevel2
-                          ? 'Waybill tracking, 48h dispatch proof, & delivery window enforcement.'
-                          : '🔒 Requires Level 2 Provider (KYC + 5 in-person handovers).'}
+                          ? 'Waybill tracking, 48h dispatch proof, & delivery window tracking.'
+                          : '🔒 Requires Level 2 Provider (Profile Confirmation + 5 in-person handovers).'}
                       </p>
                     </button>
                   </div>
                 </div>
 
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 font-medium">
-                  <strong>🔒 Immutability Lock:</strong> Locking agreed terms generates a unique payment reference (e.g. <code>ORD-8492</code>) and captures an unalterable snapshot of the provider&apos;s verified bank/app details. You then pay externally using that reference code.
+                  <strong>🔒 Order Snapshot:</strong> Locking agreed terms generates a unique payment reference (e.g. <code>ORD-8492</code>) and saves a snapshot of the provider&apos;s bank/app details. You then pay externally using that reference code.
                 </div>
 
                 {!isMyKycVerified && (
                   <div className="p-3 bg-amber-50/80 border border-amber-300 rounded-2xl text-[11px] text-amber-800 space-y-1">
                     <div className="font-bold flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5" /> Unverified Consumer Restriction
+                      <AlertTriangle className="w-3.5 h-3.5" /> Standard Tier Limits
                     </div>
                     <div>
-                      Max limit: <strong>£50 equivalent (~$65 USD / ~€60 EUR / ~₦95,000 NGN)</strong> per transaction, maximum 3 transactions per day.
+                      Max limit: <strong>£50 equivalent (~$65 USD / ~€60 EUR / ~₦95,000 NGN)</strong> per order, up to 3 orders per day.
                     </div>
                   </div>
                 )}
@@ -5665,7 +6339,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                       if (pms.length === 0) {
                         return (
                           <div className="p-3 bg-gray-50 border border-dashed border-gray-300 rounded-2xl text-[11px] text-gray-600">
-                            Provider has default settlement registered on file. The locked order will record their verified name and phone.
+                            Provider has default settlement details on file. The locked order will record their saved name and phone.
                           </div>
                         );
                       }
@@ -5864,7 +6538,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-mono font-bold text-gray-900 outline-none focus:border-indigo-600"
                   />
                   <p className="text-[10px] text-gray-500 mt-1">
-                    Enter the exact transaction reference from your bank app. Submitting a fake Transaction ID results in a permanent device hardware ban.
+                    Enter the exact transaction reference from your bank app. Submitting false references may result in marketplace account restriction.
                   </p>
                 </div>
 
@@ -5908,7 +6582,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     disabled={isSubmittingProof}
                     className="px-6 py-2.5 rounded-2xl bg-indigo-700 hover:bg-indigo-800 text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
                   >
-                    {isSubmittingProof ? 'Submitting...' : 'Confirm & Start Provider Verification'}
+                    {isSubmittingProof ? 'Submitting...' : 'Confirm & Start Provider Review'}
                   </button>
                 </div>
               </form>
@@ -5934,7 +6608,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-red-700">
-                      Fraud Prevention &amp; Dispute
+                      Order Review &amp; Dispute
                     </span>
                     <h2 className="text-xl font-serif font-black text-gray-900">
                       Deny Payment Receipt
@@ -5970,18 +6644,18 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 </div>
               </div>
 
-              {/* Strict Fraud Warning */}
+              {/* Documentation Guidelines */}
               <div className="p-4 bg-red-50 border border-red-200 rounded-2xl space-y-2 text-xs text-red-900">
                 <div className="font-black flex items-center gap-1.5 uppercase text-[11px] tracking-wider text-red-800">
-                  <Ban className="w-4 h-4 text-red-700" /> Mandatory Evidence &amp; Anti-Perjury Rules
+                  <Ban className="w-4 h-4 text-red-700" /> Supporting Statement Guidelines
                 </div>
                 <p className="text-[11px] leading-relaxed">
-                  To prevent fraudulent denials, you <strong>must upload an official single-day PDF or banking statement link</strong> showing no incoming credit with that Transaction ID on that date.
+                  To keep order denials accurate, please <strong>upload a single-day PDF or banking statement link</strong> showing no incoming credit with that Transaction ID on that date.
                 </p>
                 <ul className="list-disc list-inside text-[10px] space-y-1 text-red-800 font-medium">
-                  <li>If funds actually arrived and you lied: <strong>Permanent account &amp; phone Device ID ban</strong>.</li>
-                  <li>If consumer submitted a fake Transaction ID: <strong>Consumer is permanently banned</strong>.</li>
-                  <li>If it is a banking network clearing delay: Download the <strong>Dispute Evidence Pack</strong> to settle with providers.</li>
+                  <li>Submitting inaccurate denial claims may result in marketplace restriction.</li>
+                  <li>Submitting inaccurate payment proofs may result in marketplace restriction.</li>
+                  <li>If a banking clearing delay is suspected, download the <strong>Dispute Summary Pack</strong> to review with your bank.</li>
                 </ul>
               </div>
 
@@ -5994,18 +6668,18 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               <form onSubmit={handleDenyPaymentReceipt} className="space-y-4 text-xs">
                 <div>
                   <label className="font-bold text-gray-700 block mb-1">
-                    Official Single-Day Bank / App Statement URL *
+                    Single-Day Bank / App Statement URL *
                   </label>
                   <input
                     type="url"
                     required
                     value={denialStatementDoc}
                     onChange={e => setDenialStatementDoc(e.target.value)}
-                    placeholder="https://... link to official single-day statement PDF showing zero credit"
+                    placeholder="https://... link to single-day statement PDF showing zero credit"
                     className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-900 outline-none focus:border-red-600"
                   />
                   <p className="text-[10px] text-gray-500 mt-1">
-                    Upload your single-day bank statement export (PDF or verified image) to Cloud/Drive and paste the document URL.
+                    Upload your single-day bank statement export (PDF or image) to Cloud/Drive and paste the document URL.
                   </p>
                 </div>
 
@@ -6273,7 +6947,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   <ShieldAlert className="w-3.5 h-3.5 text-red-600" /> Evidence Attachment Mandatory
                 </div>
                 <p className="text-[11px] leading-relaxed">
-                  To prevent fraudulent freezes, you <strong>must attach evidence</strong> (e.g. unfulfilled courier tracking screenshot, rider cancellation, or unanswered chat screenshot past ETA). Filing false claims triggers <strong>Strike 1 warning</strong> or <strong>Strike 2 permanent Device ID ban</strong>.
+                  To avoid unfair freezes, please <strong>attach supporting evidence</strong> (e.g. unfulfilled courier tracking screenshot, rider cancellation, or unanswered chat screenshot past ETA). Filing false reports triggers <strong>Strike 1 warning</strong> or <strong>Strike 2 marketplace access restriction</strong>.
                 </p>
               </div>
 
@@ -6295,7 +6969,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     <option value="Courier tracking number is invalid or not registered">Courier tracking number is invalid or not registered</option>
                     <option value="Rider cancelled dispatch and provider is unresponsive">Rider cancelled dispatch and provider is unresponsive</option>
                     <option value="Package marked delivered to wrong address/recipient">Package marked delivered to wrong address/recipient</option>
-                    <option value="Other verified dispatch failure">Other verified dispatch failure</option>
+                    <option value="Other dispatch issue">Other dispatch issue</option>
                   </select>
                 </div>
 
@@ -6533,7 +7207,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                         Rule in Provider&apos;s Favor (Consumer False Claim Strike)
                       </div>
                       <p className="text-[11px] text-emerald-900 mt-0.5 leading-snug">
-                        Delivery proof is verified authentic. Consumer is issued a dispute strike (Strike 1 warning, or Strike 2 permanent device ban). Any freeze on Provider is lifted, and Provider is awarded the <strong>Protected Provider Badge</strong>.
+                        Delivery proof reviewed. Consumer is issued a dispute note (Strike 1 warning, or Strike 2 marketplace restriction). Any pause on Provider is lifted, and Provider receives the <strong>Community Trust Badge</strong>.
                       </p>
                     </div>
                   </label>
@@ -6633,7 +7307,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               {/* Saved Methods List */}
               <div className="space-y-2">
                 <div className="text-[10px] font-black uppercase tracking-wider text-gray-500">
-                  Your Saved Verified Accounts ({myPaymentMethods.length}/5)
+                  Your Saved Receiving Accounts ({myPaymentMethods.length}/5)
                 </div>
                 {myPaymentMethods.length === 0 ? (
                   <div className="p-4 bg-gray-50 border border-dashed border-gray-200 rounded-2xl text-center text-xs text-gray-500">
@@ -6828,7 +7502,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                 </div>
               ) : (
                 <div className="p-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs text-gray-600 text-center font-bold">
-                  Maximum of 5 verified external receiving methods reached. Delete an existing method to add a new one.
+                  Maximum of 5 saved external receiving methods reached. Delete an existing method to add a new one.
                 </div>
               )}
 
@@ -6846,7 +7520,7 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
         )}
       </AnimatePresence>
 
-      {/* MODAL: KYC Identity Verification */}
+      {/* MODAL: Profile Confirmation */}
       <AnimatePresence>
         {isKycModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
@@ -6863,10 +7537,10 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
-                      Identity &amp; Anti-Fraud
+                      Community Profile &amp; Order Safety
                     </span>
                     <h2 className="text-xl font-serif font-black text-gray-900">
-                      KYC Verification
+                      Profile Confirmation
                     </h2>
                   </div>
                 </div>
@@ -6885,12 +7559,12 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
               {/* Benefits */}
               <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-1.5 text-xs text-emerald-950">
                 <div className="font-black text-emerald-900 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> What Verification Unlocks:
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> What Confirmation Unlocks:
                 </div>
                 <ul className="list-disc list-inside space-y-0.5 text-[11px] text-emerald-900 font-medium">
-                  <li><strong>Verified Badge</strong> displayed on your profile and marketplace listings.</li>
-                  <li>Lifts the <strong>£50 transaction limit</strong> and daily booking caps.</li>
-                  <li>Builds trust for high-value caregiver bookings and family goods.</li>
+                  <li><strong>Profile Confirmed Badge</strong> displayed on your profile and marketplace listings.</li>
+                  <li>Raises the <strong>£50 order limit</strong> and daily booking caps.</li>
+                  <li>Helps build community accountability for bookings and shared goods.</li>
                 </ul>
               </div>
 
@@ -6902,33 +7576,33 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
 
               <form onSubmit={handleCompleteKyc} className="space-y-4 text-xs">
                 <div>
-                  <label className="font-bold text-gray-700 block mb-1">Legal Full Name *</label>
+                  <label className="font-bold text-gray-700 block mb-1">Full Name *</label>
                   <input
                     type="text"
                     required
                     value={kycLegalName}
                     onChange={e => setKycLegalName(e.target.value)}
-                    placeholder="Must match government ID and bank account name"
+                    placeholder="Matches your receiving account name"
                     className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-semibold text-gray-900"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="font-bold text-gray-700 block mb-1">ID Document Type *</label>
+                    <label className="font-bold text-gray-700 block mb-1">Reference ID Type *</label>
                     <select
                       value={kycIdType}
                       onChange={e => setKycIdType(e.target.value)}
                       className="w-full p-2.5 rounded-xl bg-gray-50 border border-gray-200 font-bold text-gray-900"
                     >
-                      <option value="National ID (NIN / SSN / National Card)">National ID (NIN / SSN)</option>
+                      <option value="National ID (NIN / SSN / National Card)">National ID</option>
                       <option value="International Passport">International Passport</option>
                       <option value="Driver's License">Driver&apos;s License</option>
-                      <option value="Voter's Card">Voter&apos;s Card</option>
+                      <option value="Voter's Card">Community / Local ID</option>
                     </select>
                   </div>
                   <div>
-                    <label className="font-bold text-gray-700 block mb-1">ID Number (Last 4 Digits) *</label>
+                    <label className="font-bold text-gray-700 block mb-1">Reference Code (Last 4 Digits) *</label>
                     <input
                       type="text"
                       maxLength={8}
@@ -6941,24 +7615,24 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                   </div>
                 </div>
 
-                {/* Device Hardware Fingerprint */}
+                {/* Local Session Identifier */}
                 <div className="p-3 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] text-gray-600 space-y-1">
                   <div className="flex items-center justify-between font-bold text-gray-800">
-                    <span>Cryptographic Device Binding</span>
+                    <span>Local Session Identifier</span>
                     <span className="text-emerald-700 font-black">Active</span>
                   </div>
                   <div className="font-mono text-[10px] text-gray-500 break-all">
-                    {deviceId || 'Detecting hardware fingerprint...'}
+                    {deviceId || 'Initializing session identifier...'}
                   </div>
                   <p className="text-[10px] text-gray-400">
-                    Your phone&apos;s hardware signature is bound to this profile to prevent banned scammers from creating fresh accounts on the same device.
+                    Your browser session identifier is linked to this profile to help support marketplace accountability.
                   </p>
                 </div>
 
                 <label className="flex items-start gap-2 p-3 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer">
                   <input type="checkbox" required className="mt-0.5 rounded text-emerald-600 focus:ring-0 w-4 h-4" />
                   <span className="text-[11px] text-gray-700 font-medium">
-                    I attest under penalty of permanent hardware blacklisting that these details are authentic and match my personal banking information.
+                    I confirm that these details are accurate and match my personal receiving information.
                   </span>
                 </label>
 
@@ -6978,10 +7652,184 @@ export const CommunitySupportScreen: React.FC<CommunitySupportScreenProps> = ({
                     disabled={isSubmittingKyc}
                     className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
                   >
-                    {isSubmittingKyc ? 'Verifying...' : 'Submit & Unlock Verified Badge'}
+                    {isSubmittingKyc ? 'Saving...' : 'Submit & Unlock Profile Badge'}
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Create Community Live Room */}
+      <AnimatePresence>
+        {isCreateRoomModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border border-emerald-100 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Hash className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                      Community Live Rooms
+                    </span>
+                    <h2 className="text-xl font-serif font-black text-gray-900">
+                      Create a New Room
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreateRoomModalOpen(false);
+                    setRoomActionError('');
+                  }}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Start a public community chat room around a shared parenting topic, baby age group, or neighborhood meetup. Others can browse and join directly from <strong>Member Rooms</strong> with one click.
+              </p>
+
+              {roomActionError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-bold">
+                  {roomActionError}
+                </div>
+              )}
+
+              <form onSubmit={handleCreateRoom} className="space-y-4 text-xs">
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Room Name *</label>
+                  <input
+                    type="text"
+                    required
+                    minLength={2}
+                    maxLength={80}
+                    value={newRoomName}
+                    onChange={e => setNewRoomName(e.target.value)}
+                    placeholder="e.g. Twin Parents Night Support or Lagos Mom Meetups"
+                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-200 font-semibold text-gray-900 outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Topic Category *</label>
+                  <select
+                    value={newRoomTopic}
+                    onChange={e => setNewRoomTopic(e.target.value)}
+                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-200 font-bold text-gray-900 outline-none focus:border-primary"
+                  >
+                    {ROOM_TOPICS.map(topic => (
+                      <option key={topic} value={topic}>{topic}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Room Description *</label>
+                  <textarea
+                    required
+                    rows={3}
+                    maxLength={300}
+                    value={newRoomDescription}
+                    onChange={e => setNewRoomDescription(e.target.value)}
+                    placeholder="Describe who this room is for and what you'd love to discuss..."
+                    className="w-full p-3 rounded-xl bg-gray-50 border border-gray-200 font-medium text-gray-900 outline-none focus:border-primary resize-none"
+                  />
+                  <div className="text-[10px] text-gray-400 text-right mt-1">
+                    {newRoomDescription.length}/300
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreateRoomModalOpen(false);
+                      setRoomActionError('');
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-gray-100 text-gray-700 font-bold border-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingRoom}
+                    className="px-6 py-2.5 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-wider border-none cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    {isCreatingRoom ? 'Creating...' : 'Create & Open Room'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Confirm Policy Restriction (replaces window.confirm) */}
+      <AnimatePresence>
+        {pendingRestrictionTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[32px] p-6 max-w-md w-full border border-red-200 shadow-2xl space-y-4 text-left"
+            >
+              <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-2xl bg-red-50 text-red-700 flex items-center justify-center shrink-0">
+                    <ShieldAlert className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-red-700">
+                      Marketplace Policy Review
+                    </span>
+                    <h2 className="text-lg font-serif font-black text-gray-900">
+                      Restrict Counterparty Access?
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPendingRestrictionTarget(null)}
+                  className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-700 leading-relaxed">
+                This will restrict this user and their linked session from initiating new marketplace orders based on your report: <strong>{pendingRestrictionTarget.reason}</strong>. Proceed?
+              </p>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPendingRestrictionTarget(null)}
+                  className="px-4 py-2.5 rounded-2xl bg-gray-100 text-gray-700 text-xs font-bold border-none cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isApplyingRestriction}
+                  onClick={confirmMarketplaceRestriction}
+                  className="px-5 py-2.5 rounded-2xl bg-red-700 hover:bg-red-800 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer shadow-sm disabled:opacity-50"
+                >
+                  {isApplyingRestriction ? 'Applying...' : 'Confirm Restriction'}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

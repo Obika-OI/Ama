@@ -195,7 +195,7 @@ export const FlexibleScheduleBuilder: React.FC<FlexibleScheduleBuilderProps> = (
             <input type="number" min="1" max="24" value={prnConfig.minIntervalHours} onChange={e => onChangePRNConfig({ ...prnConfig, minIntervalHours: parseInt(e.target.value) || 4 })} className="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-sm outline-none" />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Max Doses / 24h</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Max Entries / 24h</label>
             <input type="number" min="1" max="12" value={prnConfig.maxDosesPer24h} onChange={e => onChangePRNConfig({ ...prnConfig, maxDosesPer24h: parseInt(e.target.value) || 4 })} className="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-sm outline-none" />
           </div>
         </div>
@@ -203,10 +203,10 @@ export const FlexibleScheduleBuilder: React.FC<FlexibleScheduleBuilderProps> = (
 
       {onChangeDosage && (
         <div>
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Dosage / Amount</label>
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Amount / Label Note</label>
           <input
             type="text"
-            placeholder="e.g. 5ml, 2 drops, 1 serving"
+            placeholder="e.g. 5ml, 2 drops, 1 serving (per label)"
             value={dosage}
             onChange={e => onChangeDosage(e.target.value)}
             className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium outline-none text-gray-700"

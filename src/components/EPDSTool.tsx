@@ -138,31 +138,31 @@ export const EPDSTool: React.FC<{ parentName?: string }> = ({ parentName = 'Mom'
     setCurrentStep(1);
   };
 
-  // Interpretation tier
+  // Reflection summary tier
   const getInterpretation = () => {
     if (totalScore <= 9) {
       return {
-        level: 'Low Risk / Typical Postpartum Fluctuations',
+        level: 'Lower Score / Everyday Postpartum Fluctuations',
         color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
         badge: 'Score 0-9',
-        summary: 'Your responses indicate mild or routine emotional changes common in the fourth trimester. Hormone shifts, irregular sleep, and fatigue can cause normal emotional fatigue.',
-        recommendation: 'Continue prioritizing restful 4-hour sleep blocks, balanced warm nutrition, and compassionate sharing with your partner and family circle.'
+        summary: 'Your responses reflect mild or everyday emotional changes common in the fourth trimester. Sleep loss, shifting schedules, and fatigue can affect daily mood.',
+        recommendation: 'Continue prioritizing rest blocks, warm nourishing meals, and open sharing with your partner and family circle.'
       };
     } else if (totalScore <= 12) {
       return {
-        level: 'Borderline / Moderate Distress Symptoms',
+        level: 'Moderate Emotional Strain Reported',
         color: 'text-sky-800 bg-sky-50 border-sky-200',
         badge: 'Score 10-12',
-        summary: 'Your score indicates presence of noticeable emotional strain, anxiety, or low mood. These symptoms are very common and highly treatable.',
-        recommendation: 'We recommend discussing these feelings with your obstetrician, midwife, or primary healthcare provider. Consider screening again in 1 to 2 weeks.'
+        summary: 'Your responses reflect noticeable emotional strain, worry, or low mood. These feelings are common after welcoming a baby, and support makes a real difference.',
+        recommendation: 'Consider sharing these feelings with your obstetrician, midwife, or healthcare provider, and checking in again in 1 to 2 weeks.'
       };
     } else {
       return {
-        level: 'Elevated Postpartum Depression Symptoms',
+        level: 'Higher Emotional Distress Reported',
         color: 'text-sky-800 bg-sky-50 border-sky-200',
         badge: 'Score 13-30',
-        summary: 'Your score suggests significant perinatal emotional distress or postpartum depression. Please remember: this is a neurochemical medical condition, NOT a personal flaw or weakness.',
-        recommendation: 'Please schedule a compassionate consultation with your doctor, obstetrician, or a mental health professional specializing in maternal health.'
+        summary: 'Your responses suggest you may be carrying significant emotional heaviness or strain right now. You are not alone, and talking openly with a supportive healthcare provider can help.',
+        recommendation: 'Please consider sharing these notes with your doctor, obstetrician, midwife, or a maternal mental health specialist.'
       };
     }
   };
@@ -180,14 +180,14 @@ export const EPDSTool: React.FC<{ parentName?: string }> = ({ parentName = 'Mom'
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                Validated Clinical Screening
+                Personal Self-Reflection
               </span>
               <span className="text-[10px] font-bold text-gray-400">
-                Cox et al., 1987
+                7-Day Check-In
               </span>
             </div>
             <h3 className="text-xl font-serif font-black text-gray-900 mt-0.5">
-              The Edinburgh Postnatal Depression Scale (EPDS)
+              Postpartum Mood Self-Reflection Check-In
             </h3>
           </div>
         </div>
@@ -198,13 +198,13 @@ export const EPDSTool: React.FC<{ parentName?: string }> = ({ parentName = 'Mom'
               onClick={() => setIsCompleted(true)}
               className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs uppercase tracking-wider cursor-pointer border-none shadow-md"
             >
-              View Full Analysis
+              View Summary
             </button>
           )}
           <button
             onClick={handleReset}
             className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors cursor-pointer border-none"
-            title="Reset Screening"
+            title="Reset Check-In"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -214,12 +214,12 @@ export const EPDSTool: React.FC<{ parentName?: string }> = ({ parentName = 'Mom'
       {/* Description & Privacy Notice */}
       <div className="space-y-2 text-xs text-gray-600 leading-relaxed font-medium">
         <p>
-          The Edinburgh Postnatal Depression Scale is an internationally recognized 10-item self-report questionnaire used by healthcare providers during postpartum checkups. It evaluates how you have felt in the past 7 days.
+          This 10-question self-reflection tool helps you notice how you have felt over the past 7 days and organize notes to share with a healthcare provider if you wish. It is for personal reflection only and is not a medical diagnosis.
         </p>
         <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-emerald-800 flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>
-            <strong>100% Private & Device-Isolated:</strong> Your answers are calculated strictly on your personal device and never uploaded to public servers or shared with advertisers.
+            <strong>Stored Locally on Your Device:</strong> Your answers are calculated directly in your browser and are not uploaded for advertising.
           </span>
         </div>
       </div>
@@ -372,7 +372,7 @@ export const EPDSTool: React.FC<{ parentName?: string }> = ({ parentName = 'Mom'
 
           <div className="p-4 bg-white/80 rounded-2xl border border-current/20 text-xs leading-relaxed space-y-2">
             <strong className="block text-gray-900 font-bold uppercase tracking-wider text-[10px]">
-              Recommended Clinical Next Steps:
+              Suggested Supportive Next Steps:
             </strong>
             <p className="text-gray-700">
               {interpretation.recommendation}
@@ -381,7 +381,7 @@ export const EPDSTool: React.FC<{ parentName?: string }> = ({ parentName = 'Mom'
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-current/20">
             <span className="text-[10px] text-gray-500 font-semibold">
-              Screening Date: {new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+              Check-In Date: {new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
             </span>
             <div className="flex gap-2">
               <button
@@ -392,19 +392,19 @@ export const EPDSTool: React.FC<{ parentName?: string }> = ({ parentName = 'Mom'
                 className="px-4 py-2 bg-white text-gray-800 text-xs font-bold rounded-xl border border-gray-200 hover:bg-gray-50 shadow-xs cursor-pointer flex items-center gap-1.5"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Print / Save for Doctor</span>
+                <span>Print / Save Notes</span>
               </button>
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* Global Clinical Helplines Directory */}
+      {/* Global Support Helplines Directory */}
       <div className="p-6 bg-slate-900 text-white rounded-[32px] space-y-4">
         <div className="flex items-center gap-2 text-teal-300">
           <PhoneCall className="w-5 h-5 shrink-0" />
           <h4 className="text-xs font-black uppercase tracking-widest">
-            Perinatal Mental Health Helplines (Free & Confidential)
+            Maternal Support & Crisis Helplines (Free & Confidential)
           </h4>
         </div>
         <p className="text-xs text-slate-300 leading-relaxed">

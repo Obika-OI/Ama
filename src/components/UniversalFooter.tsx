@@ -143,7 +143,7 @@ export const UniversalFooter: React.FC<UniversalFooterProps> = ({
         <div className="space-y-2">
           <h4 className="text-white font-bold uppercase tracking-wider text-[11px]">Health Notice</h4>
           <p className="text-[10px] text-slate-400 leading-relaxed">
-            Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace doctor or substitute professional healthcare advice, diagnosis, or treatment. Always follow regional child health guidelines.
+            Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace or substitute professional healthcare advice, diagnosis, or treatment. Always follow regional child health guidelines.
           </p>
         </div>
       </div>

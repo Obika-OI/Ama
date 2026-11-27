@@ -22,7 +22,7 @@ export const LegalTermsScreen = ({
     robots: 'index, follow',
     ogType: 'article',
     ogTitle: 'Privacy Policy & Terms of Service - Ama Baby',
-    ogDescription: 'COPPA-compliant, GDPR-friendly privacy policies and safety disclaimers for Ama Baby app. Built to protect baby tracking logs.',
+    ogDescription: 'Privacy policies, child privacy practices, and informational disclaimers for Ama Baby app. Built to protect baby tracking logs.',
     publishedTime: '2026-09-19T12:00:00Z',
     author: 'Ama Legal Department'
   });
@@ -56,7 +56,7 @@ export const LegalTermsScreen = ({
               Privacy Policy & Terms of Service
             </h1>
             <p className="text-xs sm:text-sm text-gray-500 font-medium">
-              Transparent, COPPA & GDPR-compliant terms designed to protect family data and child privacy.
+              Clear, family-first privacy practices and informational terms designed to protect household records.
             </p>
           </div>
         </div>
@@ -68,7 +68,7 @@ export const LegalTermsScreen = ({
           { id: 'privacy', label: 'Privacy Policy', icon: Lock },
           { id: 'terms', label: 'Terms of Use', icon: Scale },
           { id: 'disclaimer', label: 'Medical Disclaimer', icon: Shield },
-          { id: 'compliance', label: 'COPPA & Sovereignty', icon: Globe },
+          { id: 'compliance', label: 'Child Privacy & Data Control', icon: Globe },
         ].map(tab => {
           const Icon = tab.icon;
           return (
@@ -103,10 +103,10 @@ export const LegalTermsScreen = ({
         {activeTab === 'privacy' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-serif font-black text-gray-900 mb-2">1. Privacy Policy & Secure Sandbox Protocol</h2>
+              <h2 className="text-xl font-serif font-black text-gray-900 mb-2">1. Privacy Policy & Local-First Storage</h2>
               <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-4">Last Updated: October 2026</p>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Ama Baby operates under a strict, non-negotiable family-first privacy protocol. We believe that your baby’s developmental details, feeding logs, diaper photos, and physical growth histories belong entirely to your household. Traditional infant tracking applications are often built as corporate marketing funnels, quietly gathering your baby's records, milestones, and medical notes in order to package and sell them to third-party ad brokers. This data is then utilized to target you with emotionally manipulative advertising for infant formula, toys, and private health schemes. We reject this commercial exploitation completely. Our software employs a local-first, zero-telemetry database sandbox that ensures all records stay safely on your own device.
+                Ama Baby operates under a clear family-first privacy approach. Your baby’s developmental details, feeding logs, diaper notes, and physical growth histories belong to your household. Our software employs a local-first storage model designed to keep your saved records on your own device unless you choose to sync them with your family village.
               </p>
             </div>
 
@@ -126,7 +126,7 @@ export const LegalTermsScreen = ({
                 AdSense Standards & Contextual Ads
               </h3>
               <p className="text-xs text-gray-600 leading-relaxed">
-                To keep our services completely free and sustainable, we display highly vetted, non-personalized contextual advertisements via Google AdSense. We strictly adhere to Google’s Families Policy and the Children’s Online Privacy Protection Act. This means that we do not pass any infant tracking logs, names, ages, or parental profiles to ad networks. Advertisements displayed on our platform are selected based purely on general context, ensuring a clean, family-friendly, and completely safe browsing environment for all visitors. We approach our privacy architecture with maximum caution, protecting your household's dignity at every turn.
+                To keep our services free and sustainable, we may display non-personalized contextual advertisements via Google AdSense, aligned with Google’s Families Policy and child privacy principles. We do not pass infant tracking logs, names, ages, or parental profiles to ad networks. Advertisements are selected based on general context to keep the browsing environment family-friendly.
               </p>
             </div>
           </div>
@@ -144,14 +144,14 @@ export const LegalTermsScreen = ({
             <div className="space-y-3 bg-white p-5 rounded-2xl border border-gray-100">
               <h3 className="font-bold text-gray-900 text-base">Child Caregiver Access Limits</h3>
               <p className="text-xs text-gray-600 leading-relaxed">
-                Our system features an intuitive role-based permission framework. When you invite a nanny, relative, or temporary caregiver to coordinate on your baby's routine, you can assign them a restricted viewer profile. This logically prevents secondary users from editing core birthdates, purging the database history, or accessing private journal entries and subscription details. We advise parents to exercise caution and periodically review who has digital access to their shared sync codes, ensuring that child-care coordination remains highly secure and aligned with parental wishes.
+                Our system features a role-based permission framework. When you invite a nanny, relative, or caregiver to coordinate on your baby's routine, you can assign them an appropriate role. This prevents secondary users from editing core birthdates, clearing saved history, or accessing private journal entries and account settings. We advise parents to periodically review who has access to their shared baby profiles so coordination remains aligned with parental wishes.
               </p>
             </div>
 
             <div className="space-y-3 bg-white p-5 rounded-2xl border border-gray-100">
-              <h3 className="font-bold text-gray-900 text-base">Subscription and Premium Curation</h3>
+              <h3 className="font-bold text-gray-900 text-base">Open Access Parenting Utilities</h3>
               <p className="text-xs text-gray-600 leading-relaxed">
-                All essential parenting utilities, including breastfeeding timers, vaccine checksheets, local food preparation guides, and offline diaries, are completely free of charge. We offer optional, highly innovative premium tools (such as our smart diaper image analyzer and custom children's storybook generator) to help fund our ongoing digital development. These transactions are processed securely and transparently through Paystack. We maintain a clear refund policy, and parents can cancel or adjust their account standing at any time from the app's settings menu, with zero hidden fees or automatic billing traps.
+                All parenting utilities—including breastfeeding timers, vaccine checksheets, local food preparation guides, AI meal planning, acoustic cry analysis, village cloud sync, and offline diaries—are currently open and completely free to use with zero hidden fees or billing traps.
               </p>
             </div>
           </div>
@@ -171,7 +171,7 @@ export const LegalTermsScreen = ({
                 <span>⚠️</span> Urgent Infant Safety Protocol
               </p>
               <p className="leading-relaxed">
-                If your child exhibits serious physical symptoms (such as rapid or labored breathing, continuous high fever, lethargy, blue lips, severe vomiting, dehydration, or an immediate allergic reaction following food exposure), please do not open this application to log the event. Immediately contact your local community health station, emergency services, or proceed directly to the nearest primary healthcare clinic or hospital. Your baby's immediate safety is the absolute priority, and digital trackers should only be consulted once the child is in a stable, professionally managed physical condition.
+                If your child exhibits serious physical symptoms (such as rapid or labored breathing, continuous high fever, lethargy, blue lips, severe vomiting, dehydration, or an immediate allergic reaction following food exposure), please do not open this application to log the event. Immediately contact your local community health station, emergency services, or proceed directly to the nearest primary healthcare clinic or hospital. Your baby's immediate safety comes first, and digital trackers should only be consulted once the child is in a stable, professionally managed physical condition.
               </p>
               <p className="leading-relaxed">
                 When tracking food exposures or testing for common dairy intolerances, always introduce new foods slowly, in tiny amounts, and during daylight hours so you can carefully observe your baby's reaction. Our logs are designed to help you document and analyze these observations logically, but they are not a substitute for professional allergy evaluations or in-person nursing care.
@@ -183,16 +183,16 @@ export const LegalTermsScreen = ({
         {activeTab === 'compliance' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-serif font-black text-gray-900 mb-2">4. COPPA Compliance & Data Sovereignty</h2>
+              <h2 className="text-xl font-serif font-black text-gray-900 mb-2">4. Child Privacy & Data Control</h2>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Our platform maintains strict, logical compliance with the Children's Online Privacy Protection Act and international child data protection principles. Because our tracking tools are engineered to record infant feeding schedules and physical growth markers, we place supreme priority on protecting this sensitive information from predatory digital collection. We do not allow children under the age of thirteen to create accounts, and our marketing materials are designed entirely for adult parents and authorized family caregivers.
+                Our platform is designed with child data protection principles in mind. Because our tracking tools record infant feeding schedules and physical growth markers, we prioritize protecting this sensitive information from unnecessary collection. Accounts and child tracking profiles are intended for adult parents and authorized family caregivers.
               </p>
             </div>
 
             <div className="space-y-3 bg-white p-5 rounded-2xl border border-gray-100 text-xs text-gray-600 leading-relaxed">
-              <p className="font-bold text-gray-900 text-sm">Right to Absolute Erasure</p>
+              <p className="font-bold text-gray-900 text-sm">Deleting Stored Records</p>
               <p>
-                We believe in absolute data sovereignty, meaning you have complete ownership and control over your family's records. If you decide that you no longer wish to use Ama Baby, we make it incredibly easy to reclaim your digital privacy. You do not need to submit complicated request tickets or wait for administrator approval. Simply open the app's settings screen and tap the database purge button. This will immediately and permanently erase all infant logs, feeding histories, diaper details, and profile data from both your local browser cache and any optional cloud sync buckets, leaving zero digital footprints behind.
+                We believe you should control your family's saved records. If you decide that you no longer wish to use Ama Baby, open Settings and tap the clear-data option to remove locally saved logs and request deletion of your synced workspace records.
               </p>
             </div>
 
@@ -275,7 +275,7 @@ export const LegalTermsScreen = ({
           <div className="space-y-2">
             <h4 className="text-white font-bold uppercase tracking-wider text-[11px]">Health Notice</h4>
             <p className="text-[10px] text-slate-400 leading-relaxed">
-              Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace doctor or substitute professional healthcare advice, diagnosis, or treatment. Always follow regional child health guidelines.
+              Ama Baby app content is for educational, tracking and record-keeping purposes only and does not replace or substitute professional healthcare advice, diagnosis, or treatment. Always follow regional child health guidelines.
             </p>
           </div>
         </div>

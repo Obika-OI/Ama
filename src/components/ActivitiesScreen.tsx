@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MOCK_ACTIVITIES, THEME } from '../constants';
 import { Activity } from '../types';
 
+import { Trash2 } from 'lucide-react';
+
 export const ActivitiesScreen = ({ 
   onBack,
   growthLogs,
@@ -16,7 +18,20 @@ export const ActivitiesScreen = ({
   lastStreakDate,
   allTimePoints,
   setAllTimePoints,
-  onToggleActivity
+  onToggleActivity,
+  checkedMilestones: propCheckedMilestones,
+  setCheckedMilestones: propSetCheckedMilestones,
+  questTimeToday: propQuestTimeToday,
+  setQuestTimeToday: propSetQuestTimeToday,
+  questLogs: propQuestLogs,
+  setQuestLogs: propSetQuestLogs,
+  readingLogs: propReadingLogs,
+  setReadingLogs: propSetReadingLogs,
+  babyName = 'Baby',
+  babyAge = '6 Months',
+  parentName = 'Parent',
+  currentUser,
+  userRole = 'admin'
 }: { 
   onBack: () => void;
   growthLogs: any[];
@@ -28,10 +43,35 @@ export const ActivitiesScreen = ({
   allTimePoints: number;
   setAllTimePoints?: React.Dispatch<React.SetStateAction<number>>;
   onToggleActivity: (id: string) => void;
+  checkedMilestones?: string[];
+  setCheckedMilestones?: React.Dispatch<React.SetStateAction<string[]>>;
+  questTimeToday?: number;
+  setQuestTimeToday?: React.Dispatch<React.SetStateAction<number>>;
+  questLogs?: any[];
+  setQuestLogs?: React.Dispatch<React.SetStateAction<any[]>>;
+  readingLogs?: any[];
+  setReadingLogs?: React.Dispatch<React.SetStateAction<any[]>>;
+  babyName?: string;
+  babyAge?: string;
+  parentName?: string;
+  currentUser?: any;
+  userRole?: 'admin' | 'family' | 'nanny';
 }) => {
   const [timeLeft, setTimeLeft] = useState('24h 00m 00s');
   const [isRerolling, setIsRerolling] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [toastMsg, setToastMsg] = useState('');
+
+  const showActivityToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 3500);
+  };
+
+  const getNowDateTimeLocal = () => {
+    const d = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
 
   const [isPredictingGrowth, setIsPredictingGrowth] = useState(false);
   const [predictedLogs, setPredictedLogs] = useState<any[]>([]);
@@ -43,7 +83,7 @@ export const ActivitiesScreen = ({
       const response = await fetch("/api/ai/growth-prediction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ babyName: "Baby", growthLogs })
+        body: JSON.stringify({ babyName: babyName || "Baby", growthLogs })
       });
       const data = await response.json();
       if (data && data.predictions) {
@@ -101,23 +141,31 @@ export const ActivitiesScreen = ({
 
   // Developmental Milestones State
   const [milestoneAge, setMilestoneAge] = useState<'2 Months' | '4 Months' | '6 Months' | '9 Months' | '12 Months'>('2 Months');
-  const [checkedMilestones, setCheckedMilestones] = useState<string[]>(() => {
+  const [localCheckedMilestones, setLocalCheckedMilestones] = useState<string[]>(() => {
     const saved = localStorage.getItem('child_milestones') || localStorage.getItem('cdc_milestones');
     return saved ? JSON.parse(saved) : [];
   });
+  const checkedMilestones = propCheckedMilestones !== undefined ? propCheckedMilestones : localCheckedMilestones;
+  const setCheckedMilestones = propSetCheckedMilestones || setLocalCheckedMilestones;
 
   useEffect(() => {
-    localStorage.setItem('child_milestones', JSON.stringify(checkedMilestones));
-  }, [checkedMilestones]);
+    if (propCheckedMilestones === undefined) {
+      localStorage.setItem('child_milestones', JSON.stringify(checkedMilestones));
+    }
+  }, [checkedMilestones, propCheckedMilestones]);
 
   const handleToggleMilestone = (id: string, name: string) => {
+    if (userRole === 'nanny') {
+      showActivityToast('View-Only: Only Parents and Family can update developmental milestones.');
+      return;
+    }
     const isChecking = !checkedMilestones.includes(id);
     if (isChecking) {
       setCheckedMilestones([...checkedMilestones, id]);
       if (setAllTimePoints) {
         setAllTimePoints((prev: any) => prev + 15);
       }
-      alert(`Milestone completed! +15 XP awarded! 🎉`);
+      showActivityToast('Milestone completed! +15 XP awarded! 🎉');
     } else {
       setCheckedMilestones(checkedMilestones.filter(mId => mId !== id));
       if (setAllTimePoints) {
@@ -128,29 +176,37 @@ export const ActivitiesScreen = ({
 
   // --- Sub-module States ---
   // 1. Daily Quest Tracker
-  const [questTimeToday, setQuestTimeToday] = useState<number>(() => parseFloat(localStorage.getItem('quest_today') || '0'));
+  const [localQuestTimeToday, setLocalQuestTimeToday] = useState<number>(() => parseFloat(localStorage.getItem('quest_today') || '0'));
+  const questTimeToday = propQuestTimeToday !== undefined ? propQuestTimeToday : localQuestTimeToday;
+  const setQuestTimeToday = propSetQuestTimeToday || setLocalQuestTimeToday;
   const [questGoal] = useState<number>(20);
   const [qtTimerActive, setQtTimerActive] = useState(false);
   const [qtSeconds, setQtSeconds] = useState(0);
   const [questName, setQuestName] = useState<string>('Sensory Play');
-  const [questLogs, setQuestLogs] = useState<any[]>(() => JSON.parse(localStorage.getItem('quest_logs') || '[]'));
+  const [localQuestLogs, setLocalQuestLogs] = useState<any[]>(() => JSON.parse(localStorage.getItem('quest_logs') || '[]'));
+  const questLogs = propQuestLogs !== undefined ? propQuestLogs : localQuestLogs;
+  const setQuestLogs = propSetQuestLogs || setLocalQuestLogs;
 
   // 2. Reading & Language Exposure
-  const [readingLogs, setReadingLogs] = useState<any[]>(() => JSON.parse(localStorage.getItem('reading_logs') || '[]'));
+  const [localReadingLogs, setLocalReadingLogs] = useState<any[]>(() => JSON.parse(localStorage.getItem('reading_logs') || '[]'));
+  const readingLogs = propReadingLogs !== undefined ? propReadingLogs : localReadingLogs;
+  const setReadingLogs = propSetReadingLogs || setLocalReadingLogs;
   const [newBookTitle, setNewBookTitle] = useState('');
   const [newBookMin, setNewBookMin] = useState('10');
   const [newBookReaction, setNewBookReaction] = useState('🤩 Attentive');
 
-  // 3. Growth tracker
+  // 3. Growth tracker (saved by Journal date & time)
+  const [growthDateTime, setGrowthDateTime] = useState<string>(() => getNowDateTimeLocal());
   const [newMonth, setNewMonth] = useState('');
   const [newWeight, setNewWeight] = useState('');
   const [newHeight, setNewHeight] = useState('');
   const [newHead, setNewHead] = useState('');
+  const [growthNotes, setGrowthNotes] = useState('');
 
-  // Local Sync Effects
-  useEffect(() => { localStorage.setItem('quest_today', questTimeToday.toString()); }, [questTimeToday]);
-  useEffect(() => { localStorage.setItem('quest_logs', JSON.stringify(questLogs)); }, [questLogs]);
-  useEffect(() => { localStorage.setItem('reading_logs', JSON.stringify(readingLogs)); }, [readingLogs]);
+  // Local Sync Effects (when using standalone fallback states)
+  useEffect(() => { if (propQuestTimeToday === undefined) localStorage.setItem('quest_today', questTimeToday.toString()); }, [questTimeToday, propQuestTimeToday]);
+  useEffect(() => { if (propQuestLogs === undefined) localStorage.setItem('quest_logs', JSON.stringify(questLogs)); }, [questLogs, propQuestLogs]);
+  useEffect(() => { if (propReadingLogs === undefined) localStorage.setItem('reading_logs', JSON.stringify(readingLogs)); }, [readingLogs, propReadingLogs]);
 
   // General Timer for Quests reset
   useEffect(() => {
@@ -225,38 +281,79 @@ export const ActivitiesScreen = ({
 
   const handleAddReadingLog = () => {
     if (!newBookTitle) {
-      alert("Please enter a book title to log your Reading & Language Session!");
+      showActivityToast("Please enter a book title to log your Reading & Language Session.");
       return;
     }
     if (setAllTimePoints) {
       setAllTimePoints((prev: any) => prev + 25);
     }
     const log = {
+      id: `read-${Date.now()}`,
       title: newBookTitle,
       minutes: parseInt(newBookMin) || 10,
       reaction: newBookReaction,
-      date: new Date().toLocaleDateString()
+      date: new Date().toISOString()
     };
-    setReadingLogs([log, ...readingLogs].slice(0, 5));
+    setReadingLogs([log, ...readingLogs].slice(0, 20));
     setNewBookTitle('');
-    alert(`Reading Session logged! +25 XP awarded towards rewards and progression! 📚✨`);
+    showActivityToast('Reading session logged! +25 XP awarded 📚✨');
   };
 
+  const sortedGrowthLogs = [...(growthLogs || [])]
+    .map((g: any, idx: number) => ({
+      ...g,
+      _sortIdx: idx,
+      head: g.head ?? g.headCircumference,
+      headCircumference: g.headCircumference ?? g.head
+    }))
+    .sort((a: any, b: any) => {
+      const ta = a.date ? new Date(a.date).getTime() : 0;
+      const tb = b.date ? new Date(b.date).getTime() : 0;
+      if (ta && tb && ta !== tb) return ta - tb;
+      return a._sortIdx - b._sortIdx;
+    });
+
   const handleLogGrowth = () => {
-    if (newMonth && newWeight && newHeight) {
-      if (setAllTimePoints) setAllTimePoints((prev: any) => prev + 30);
-      const log = {
-        month: newMonth,
-        weight: parseFloat(newWeight),
-        height: parseFloat(newHeight),
-        head: newHead ? parseFloat(newHead) : undefined
-      };
-      setGrowthLogs([...growthLogs, log]);
-      setNewMonth('');
-      setNewWeight('');
-      setNewHeight('');
-      setNewHead('');
+    if (userRole === 'nanny') {
+      showActivityToast('View-Only: Only Parents and Family can log growth measurements.');
+      return;
     }
+    if (!newWeight || !newHeight) {
+      showActivityToast('Please enter both Weight (kg) and Height (cm) to log growth.');
+      return;
+    }
+    const parsedDt = growthDateTime ? new Date(growthDateTime) : new Date();
+    const validDt = Number.isNaN(parsedDt.getTime()) ? new Date() : parsedDt;
+    const timeStr = validDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (setAllTimePoints) setAllTimePoints((prev: any) => prev + 30);
+    const log = {
+      id: `growth-${Date.now()}`,
+      date: validDt.toISOString(),
+      timestamp: timeStr,
+      time: timeStr,
+      month: newMonth.trim() || babyAge || validDt.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+      weight: parseFloat(newWeight) || 0,
+      height: parseFloat(newHeight) || 0,
+      ...(newHead ? { head: parseFloat(newHead), headCircumference: parseFloat(newHead) } : {}),
+      ...(growthNotes.trim() ? { notes: growthNotes.trim() } : {}),
+      ...(currentUser?.uid ? { authorId: currentUser.uid } : {}),
+      authorName: (currentUser?.displayName || parentName || 'Parent').slice(0, 80)
+    };
+    setGrowthLogs([...(growthLogs || []), log]);
+    setNewMonth('');
+    setNewWeight('');
+    setNewHeight('');
+    setNewHead('');
+    setGrowthNotes('');
+    setGrowthDateTime(getNowDateTimeLocal());
+    showActivityToast(`Growth entry logged for ${validDt.toLocaleDateString()} at ${timeStr} & synced to Journal! (+30 pts)`);
+  };
+
+  const handleDeleteGrowthLog = (targetLog: any) => {
+    if (userRole === 'nanny') return;
+    setGrowthLogs((growthLogs || []).filter((g: any) => g !== targetLog && (targetLog.id ? g.id !== targetLog.id : true)));
+    showActivityToast('Growth entry removed.');
   };
 
   const level = Math.floor(allTimePoints / 100) + 1;
@@ -293,6 +390,13 @@ export const ActivitiesScreen = ({
             <Trophy className="w-6 h-6" />
           </div>
         </header>
+
+        {toastMsg && (
+          <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl text-xs font-bold shadow-xs flex items-center justify-between gap-2">
+            <span>{toastMsg}</span>
+            <button onClick={() => setToastMsg('')} className="text-emerald-700 bg-transparent border-none cursor-pointer font-black">✕</button>
+          </div>
+        )}
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
           {/* Level Progress & Daily Streak Stats Cards */}
@@ -464,12 +568,19 @@ export const ActivitiesScreen = ({
 
           {/* Developmental Milestones Checklist Card */}
           <div className="bg-white rounded-[40px] border border-solid border-white p-6 space-y-6 shadow-sm text-left">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🌱</div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-800">Developmental Milestones</h3>
-                <p className="text-[10px] text-gray-400">Child development age standards (gamified +15 XP)</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🌱</div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800">Developmental Milestones</h3>
+                  <p className="text-[10px] text-gray-400">Child development age standards (gamified +15 XP)</p>
+                </div>
               </div>
+              {userRole === 'nanny' && (
+                <span className="text-[9px] font-black uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full shrink-0">
+                  👁️ View-Only
+                </span>
+              )}
             </div>
 
             {/* Age selectors */}
@@ -559,13 +670,14 @@ export const ActivitiesScreen = ({
                             setAllTimePoints((prev: any) => prev + quest.points);
                           }
                           const log = {
+                            id: `read-${Date.now()}`,
                             title: `${quest.icon} ${quest.name}`,
                             minutes: quest.suggestedMin,
                             reaction: '🤩 Attentive',
-                            date: new Date().toLocaleDateString()
+                            date: new Date().toISOString()
                           };
-                          setReadingLogs([log, ...readingLogs].slice(0, 5));
-                          alert(`Quest Complete! "${quest.name}" logged. +${quest.points} XP awarded towards rewards and progression! 📚🏆✨`);
+                          setReadingLogs([log, ...readingLogs].slice(0, 20));
+                          showActivityToast(`Quest Complete! "${quest.name}" logged (+${quest.points} XP) 📚🏆`);
                         }}
                         className="px-3 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white border-none text-[8px] font-black uppercase tracking-widest cursor-pointer shadow-xs transition-all"
                       >
@@ -651,16 +763,16 @@ export const ActivitiesScreen = ({
             
     </div>
 
-          {/* Growth Tracker & Chart moved to Quests Tab with matching color palette */}
-          <div className="bg-white p-6 rounded-[40px] border border-solid border-white shadow-sm space-y-6">
-            <div className="flex justify-between items-center">
+          {/* Baby Growth Curve & Journal-Synced Logger */}
+          <div className="bg-white p-6 rounded-[40px] border border-solid border-white shadow-sm space-y-6 text-left">
+            <div className="flex justify-between items-center gap-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-800">Baby Growth Curve</h2>
-                <p className="text-[10px] text-gray-400">Weight, Height & Head Circumference</p>
+                <p className="text-[10px] text-gray-400">Weight, Height &amp; Head Circumference • Saved by Journal Date &amp; Time</p>
               </div>
               <button
                 onClick={predictGrowth}
-                disabled={isPredictingGrowth || growthLogs.length === 0}
+                disabled={isPredictingGrowth || sortedGrowthLogs.length === 0}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-[9px] font-black uppercase tracking-widest cursor-pointer hover:bg-primary/20 transition-colors disabled:opacity-50 border border-solid border-primary/20"
               >
                 <span>✨</span> {isPredictingGrowth ? 'Predicting...' : 'AI Forecast'}
@@ -673,7 +785,7 @@ export const ActivitiesScreen = ({
             
             <div className="h-52 w-full pr-4">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={[...growthLogs, ...predictedLogs]}>
+                <LineChart data={[...sortedGrowthLogs, ...predictedLogs]}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#9ca3af' }} />
                   <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#9ca3af' }} />
@@ -686,31 +798,119 @@ export const ActivitiesScreen = ({
               </ResponsiveContainer>
             </div>
 
-            {/* Growth Logger inputs */}
-            <div className="bg-gray-50/50 p-4 rounded-3xl border border-solid border-gray-100 space-y-3">
-              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">Add New Growth Log</span>
-              <div className="grid grid-cols-4 gap-2">
-                <div>
-                  <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Age</label>
-                  <input type="text" value={newMonth} onChange={e => setNewMonth(e.target.value)} placeholder="e.g. 7m" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
+            {/* Growth Logger inputs (Parents & Family only; Nanny is view-only) */}
+            {userRole === 'nanny' ? (
+              <div className="bg-amber-50/70 p-4 rounded-3xl border border-amber-200 text-xs text-amber-900 font-bold flex items-center gap-2">
+                <span>👁️</span>
+                <span>Caregiver View-Only: Growth measurements logged by parents or family appear above and in Daily Journal reports.</span>
+              </div>
+            ) : (
+              <div className="bg-gray-50/50 p-4 rounded-3xl border border-solid border-gray-100 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Log Growth to Curve &amp; Journal</span>
+                  <button
+                    type="button"
+                    onClick={() => setGrowthDateTime(getNowDateTimeLocal())}
+                    className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full border-none cursor-pointer hover:bg-primary/20"
+                  >
+                    Use Current Time
+                  </button>
                 </div>
-                <div>
-                  <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Wt (kg)</label>
-                  <input type="number" step="0.1" value={newWeight} onChange={e => setNewWeight(e.target.value)} placeholder="e.g. 8.2" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Journal Date &amp; Time *</label>
+                    <input
+                      type="datetime-local"
+                      value={growthDateTime}
+                      onChange={e => setGrowthDateTime(e.target.value)}
+                      className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Age / Stage Label</label>
+                    <input
+                      type="text"
+                      value={newMonth}
+                      onChange={e => setNewMonth(e.target.value)}
+                      placeholder={babyAge || 'e.g. 7m'}
+                      className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Ht (cm)</label>
-                  <input type="number" step="0.5" value={newHeight} onChange={e => setNewHeight(e.target.value)} placeholder="e.g. 68" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Wt (kg) *</label>
+                    <input type="number" step="0.1" value={newWeight} onChange={e => setNewWeight(e.target.value)} placeholder="e.g. 8.2" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Ht (cm) *</label>
+                    <input type="number" step="0.5" value={newHeight} onChange={e => setNewHeight(e.target.value)} placeholder="e.g. 68" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Head (cm)</label>
+                    <input type="number" step="0.5" value={newHead} onChange={e => setNewHead(e.target.value)} placeholder="e.g. 43" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
+                  </div>
                 </div>
+
                 <div>
-                  <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Head (cm)</label>
-                  <input type="number" step="0.5" value={newHead} onChange={e => setNewHead(e.target.value)} placeholder="e.g. 43" className="w-full bg-white border border-solid border-gray-100 rounded-xl px-2.5 py-2 text-xs font-bold text-gray-800 focus:outline-none" />
+                  <label className="text-[8px] font-black text-gray-400 uppercase block mb-1">Clinical / Home Checkup Notes (Optional)</label>
+                  <input
+                    type="text"
+                    value={growthNotes}
+                    onChange={e => setGrowthNotes(e.target.value)}
+                    placeholder="e.g. Pediatric checkup before morning nap"
+                    className="w-full bg-white border border-solid border-gray-100 rounded-xl px-3 py-2 text-xs font-medium text-gray-800 focus:outline-none"
+                  />
+                </div>
+
+                <button onClick={handleLogGrowth} className="w-full bg-primary text-white py-3 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-primary-dark shadow-sm transition-all flex items-center justify-center gap-1 border-none cursor-pointer">
+                  <PlusCircle className="w-4 h-4" /> Save to Growth Curve &amp; Journal (+30 pts)
+                </button>
+              </div>
+            )}
+
+            {sortedGrowthLogs.length > 0 && (
+              <div className="space-y-2.5 pt-2">
+                <p className="text-[9px] font-black text-primary uppercase tracking-widest pl-1">
+                  Growth Curve History ({sortedGrowthLogs.length})
+                </p>
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {[...sortedGrowthLogs].reverse().map((g: any, i: number) => {
+                    const formattedDate = g.date ? new Date(g.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : 'Saved Entry';
+                    const formattedTime = g.time || g.timestamp || (g.date ? new Date(g.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+                    const headVal = g.head ?? g.headCircumference;
+                    return (
+                      <div key={g.id || i} className="bg-slate-50/80 p-3.5 rounded-2xl border border-gray-100 flex items-start justify-between gap-3 text-xs">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-black text-gray-800">{g.month || 'Growth Entry'}</span>
+                            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                              {formattedDate}{formattedTime ? ` · ${formattedTime}` : ''}
+                            </span>
+                          </div>
+                          <p className="text-[11px] font-bold text-gray-700">
+                            ⚖️ {g.weight} kg · 📏 {g.height} cm{headVal ? ` · 🔵 Head ${headVal} cm` : ''}
+                          </p>
+                          {g.notes && <p className="text-[10px] text-gray-500 italic">{g.notes}</p>}
+                        </div>
+                        {userRole !== 'nanny' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteGrowthLog(g)}
+                            title="Delete growth measurement"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 bg-transparent border-none cursor-pointer shrink-0"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              <button onClick={handleLogGrowth} className="w-full bg-primary text-white py-3 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-primary-dark shadow-sm transition-all flex items-center justify-center gap-1 border-none cursor-pointer">
-                <PlusCircle className="w-4 h-4" /> Save Growth Entry (+30 pts)
-              </button>
-            </div>
+            )}
           </div>
 
           {/* Rewards Drawer */}

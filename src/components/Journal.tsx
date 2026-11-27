@@ -61,7 +61,9 @@ export const Journal = ({  isPremium,
   setGrowthLogs,
   userRole = 'admin',
   setUserRole,
-  currentUser
+  currentUser,
+  feedingLogs,
+  setFeedingLogs
 }: { 
   currentUser?: any,
   isPremium: boolean,
@@ -111,7 +113,9 @@ export const Journal = ({  isPremium,
   userRole?: 'admin' | 'family' | 'nanny',
   setUserRole?: React.Dispatch<React.SetStateAction<'admin' | 'family' | 'nanny'>>,
   reminders?: Reminder[],
-  setReminders?: React.Dispatch<React.SetStateAction<Reminder[]>>
+  setReminders?: React.Dispatch<React.SetStateAction<Reminder[]>>,
+  feedingLogs?: any[],
+  setFeedingLogs?: React.Dispatch<React.SetStateAction<any[]>>
 }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(selectedDate.getMonth());
@@ -271,7 +275,7 @@ export const Journal = ({  isPremium,
         reflection: diaryReflection.trim(),
         category: diaryCategory,
         audioDataUrl: diaryAudioDataUrl || undefined,
-        authorName: userRole === 'family' ? 'Grandma / Elder' : userRole === 'nanny' ? 'Caregiver / Nanny' : parentName || 'Mom',
+        authorName: userRole === 'family' ? (resolvedAccountCaregiver || 'Granny') : userRole === 'nanny' ? 'Caregiver / Nanny' : parentName || 'Parent',
         authorRole: userRole,
         isPublic: userRole === 'nanny' ? true : isPublicDiaryEntry,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -288,7 +292,7 @@ export const Journal = ({  isPremium,
             title: newEntry.title,
             category: 'Blessing & Prayer',
             authorName: newEntry.authorName,
-            authorRole: userRole === 'family' ? 'Grandma' : userRole === 'nanny' ? 'Caregiver' : 'Mom',
+            authorRole: userRole === 'family' ? 'Granny' : userRole === 'nanny' ? 'Caregiver' : 'Parent',
             storyText: newEntry.notes || newEntry.reflection || newEntry.title,
             audioDataUrl: diaryAudioDataUrl || undefined
           })
@@ -470,34 +474,6 @@ export const Journal = ({  isPremium,
 
   // Expandable log card state
   const [expandedLogIndex, setExpandedLogIndex] = useState<number | null>(null);
-
-  // Growth Logger State
-  const [showGrowthLogger, setShowGrowthLogger] = useState(false);
-  const [growthWeight, setGrowthWeight] = useState('');
-  const [growthHeight, setGrowthHeight] = useState('');
-  const [growthHeadCirc, setGrowthHeadCirc] = useState('');
-  const [growthNotes, setGrowthNotes] = useState('');
-
-  const handleSaveGrowth = () => {
-    if (!growthWeight && !growthHeight) return;
-    const newLog = {
-      id: `growth-${Date.now()}`,
-      date: selectedDate.toISOString(),
-      weight: parseFloat(growthWeight) || 0,
-      height: parseFloat(growthHeight) || 0,
-      headCircumference: parseFloat(growthHeadCirc) || 0,
-      notes: growthNotes,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    setGrowthLogs([...(growthLogs || []), newLog]);
-    setGrowthWeight('');
-    setGrowthHeight('');
-    setGrowthHeadCirc('');
-    setGrowthNotes('');
-    setShowGrowthLogger(false);
-    setToastMsg('Growth metrics saved! 📈');
-    setTimeout(() => setToastMsg(''), 3000);
-  };
   
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
@@ -664,23 +640,30 @@ export const Journal = ({  isPremium,
     }
   });
 
+  const resolvedFeedingLogs = feedingLogs !== undefined ? feedingLogs : localFeedingLogs;
+
   useEffect(() => {
+    if (feedingLogs !== undefined) return;
     try {
       const logs = JSON.parse(localStorage.getItem('local_feeding_logs') || '[]');
       setLocalFeedingLogs(logs);
     } catch {}
-  }, [selectedDate, activeTab]);
+  }, [selectedDate, activeTab, feedingLogs]);
 
   const deleteLoggedMeal = (timestampOrId: string) => {
     setLoggedMeals(loggedMeals.filter(m => m.timestamp !== timestampOrId && m.id !== timestampOrId));
-    // Also remove from local_feeding_logs if present
+    // Also remove from feedingLogs / local_feeding_logs if present
+    const matchesTarget = (f: any) =>
+      f.id !== timestampOrId &&
+      f.exactTime !== timestampOrId &&
+      (f.date + (f.timestamp ? ` ${f.timestamp}` : '')) !== timestampOrId;
+
+    if (setFeedingLogs) {
+      setFeedingLogs(prev => prev.filter(matchesTarget));
+    }
     try {
       const existing = JSON.parse(localStorage.getItem('local_feeding_logs') || '[]');
-      const filtered = existing.filter((f: any) => 
-        f.id !== timestampOrId && 
-        f.exactTime !== timestampOrId && 
-        (f.date + (f.timestamp ? ` ${f.timestamp}` : '')) !== timestampOrId
-      );
+      const filtered = existing.filter(matchesTarget);
       localStorage.setItem('local_feeding_logs', JSON.stringify(filtered));
       setLocalFeedingLogs(filtered);
     } catch {}
@@ -715,7 +698,7 @@ export const Journal = ({  isPremium,
         };
       });
 
-    const milkFeeds = (localFeedingLogs || [])
+    const milkFeeds = (resolvedFeedingLogs || [])
       .filter(f => {
         if (!f) return false;
 
@@ -834,17 +817,17 @@ export const Journal = ({  isPremium,
       const timeB = new Date(b.timestamp || 0).getTime();
       return timeB - timeA;
     });
-  }, [loggedMeals, localFeedingLogs, selectedDate]);
+  }, [loggedMeals, resolvedFeedingLogs, selectedDate]);
 
-  // --- Bristol Stool Scale Descriptions ---
+  // --- General Stool Appearance Guide ---
   const BRISTOL_SCALE = [
-    { type: 1, name: 'Separate Hard Lumps', desc: '🧱 Severe constipation. Hard, painful lumps like pebbles.', icon: '🧱', danger: true },
-    { type: 2, name: 'Sausage-Shaped, Lumpy', desc: '🥜 Mild constipation. Sausage-like, but lumpy.', icon: '🥜', danger: false },
-    { type: 3, name: 'Sausage, Cracked Surface', desc: '🌭 Normal/Healthy. Smooth shape with small cracks.', icon: '🌭', danger: false },
-    { type: 4, name: 'Smooth & Soft Sausage', desc: '🍌 Optimal. Soft, smooth, and easily passed.', icon: '🍌', danger: false },
-    { type: 5, name: 'Soft Blobs, Clear Edges', desc: '🥞 Lacking Fiber. Slightly soft chunks, easily passed.', icon: '🥞', danger: false },
-    { type: 6, name: 'Mushy, Fluffy Pieces', desc: '🥣 Mild Diarrhea. Mushy, fluffy consistency with ragged edges.', icon: '🥣', danger: false },
-    { type: 7, name: 'Watery, No Solid Pieces', desc: '💧 Severe Diarrhea. Entirely liquid stool.', icon: '💧', danger: true }
+    { type: 1, name: 'Separate Hard Lumps', desc: '🧱 Very firm, hard lumps.', icon: '🧱', danger: true },
+    { type: 2, name: 'Sausage-Shaped, Lumpy', desc: '🥜 Firm, bumpy texture.', icon: '🥜', danger: false },
+    { type: 3, name: 'Sausage, Cracked Surface', desc: '🌭 Soft-formed with small surface cracks.', icon: '🌭', danger: false },
+    { type: 4, name: 'Smooth & Soft Sausage', desc: '🍌 Soft, smooth consistency.', icon: '🍌', danger: false },
+    { type: 5, name: 'Soft Blobs, Clear Edges', desc: '🥞 Very soft, easy-to-pass blobs.', icon: '🥞', danger: false },
+    { type: 6, name: 'Mushy, Fluffy Pieces', desc: '🥣 Mushy, loose texture.', icon: '🥣', danger: false },
+    { type: 7, name: 'Watery, No Solid Pieces', desc: '💧 Liquid/watery consistency.', icon: '💧', danger: true }
   ];
 
   // Helper to log diaper
@@ -971,12 +954,28 @@ export const Journal = ({  isPremium,
     }
   };
 
-  // --- Summary Report Stats Calculations ---
-  const latestGrowthLog = growthLogs && growthLogs.length > 0 ? growthLogs[growthLogs.length - 1] : null;
+  // --- Summary Report & Selected Date Growth Logs ---
+  const sortedGrowthLogs = useMemo(() => {
+    return [...(growthLogs || [])].sort(
+      (a, b) => new Date(a?.date || a?.createdAt || 0).getTime() - new Date(b?.date || b?.createdAt || 0).getTime()
+    );
+  }, [growthLogs]);
+
+  const dayGrowthLogs = useMemo(() => {
+    return sortedGrowthLogs
+      .filter((g) => {
+        if (!g?.date) return false;
+        const parsed = new Date(g.date);
+        return !isNaN(parsed.getTime()) && isSameDay(parsed, selectedDate);
+      })
+      .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+  }, [sortedGrowthLogs, selectedDate]);
+
+  const latestGrowthLog = sortedGrowthLogs.length > 0 ? sortedGrowthLogs[sortedGrowthLogs.length - 1] : null;
   const getLatestWeightPercentile = (w: number) => Math.min(99, Math.max(1, Math.round((w / 8.2) * 50)));
   const getLatestHeightPercentile = (h: number) => Math.min(99, Math.max(1, Math.round((h / 67.5) * 50)));
 
-  const clearedAllergensList = (allergenMatrix || []).filter(a => a.status === 'Cleared');
+  const clearedAllergensList = (allergenMatrix || []).filter(a => a.status === 'Cleared' || a.status === '3-Day Log Complete');
   const suspectedAllergensList = (allergenMatrix || []).filter(a => a.status === 'Suspected Reaction');
   const reactionMealsList = loggedMeals.filter(m => m.allergyReaction);
 
@@ -1001,116 +1000,14 @@ export const Journal = ({  isPremium,
         <h1 className="text-2xl font-serif font-black text-gray-800">Journal</h1>
         <div className="flex gap-2">
           <button 
-            onClick={() => setShowGrowthLogger(true)}
-            className="flex items-center gap-1.5 bg-sky-600 text-white border-none px-4 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-md shadow-sky-200 hover:scale-105 active:scale-95"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Log Growth</span>
-          </button>
-          <button 
             onClick={() => setShowReport(true)}
             className="flex items-center gap-1.5 bg-primary text-white border-none px-4 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-md shadow-primary/25 hover:scale-105 active:scale-95"
           >
             <FileText className="w-3.5 h-3.5" />
             <span>View Report</span>
           </button>
-          
-    </div>
+        </div>
       </header>
-
-      {/* Growth Logger Modal */}
-      <AnimatePresence>
-        {showGrowthLogger && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-[40px] p-6 max-w-sm w-full border border-solid border-gray-100 shadow-2xl space-y-6 relative text-left"
-            >
-              <div className="flex justify-between items-start">
-                <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-2xl shadow-xs">
-                  📈
-                </div>
-                <button 
-                  onClick={() => setShowGrowthLogger(false)}
-                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-400 flex items-center justify-center border-none cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div>
-                <h3 className="text-xl font-serif font-black text-gray-800">Log Growth</h3>
-                <p className="text-xs text-gray-400 font-medium leading-relaxed">
-                  Track {babyName}'s physical development and percentiles.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Weight (kg)</label>
-                    <input 
-                      type="number" 
-                      step="0.01"
-                      placeholder="8.2"
-                      value={growthWeight}
-                      onChange={e => setGrowthWeight(e.target.value)}
-                      className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold focus:outline-none focus:border-sky-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Height (cm)</label>
-                    <input 
-                      type="number" 
-                      step="0.1"
-                      placeholder="67.5"
-                      value={growthHeight}
-                      onChange={e => setGrowthHeight(e.target.value)}
-                      className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold focus:outline-none focus:border-sky-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Head Circumference (cm)</label>
-                  <input 
-                    type="number" 
-                    step="0.1"
-                    placeholder="42.5"
-                    value={growthHeadCirc}
-                    onChange={e => setGrowthHeadCirc(e.target.value)}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold focus:outline-none focus:border-sky-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Observations / Notes</label>
-                  <textarea 
-                    placeholder="Steady growth, healthy appetite..."
-                    value={growthNotes}
-                    onChange={e => setGrowthNotes(e.target.value)}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold focus:outline-none focus:border-sky-500 min-h-[80px] resize-none"
-                  />
-                </div>
-              </div>
-
-              <button 
-                onClick={handleSaveGrowth}
-                disabled={!growthWeight && !growthHeight}
-                className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg border-none cursor-pointer ${
-                  !growthWeight && !growthHeight 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                    : 'bg-sky-600 hover:bg-sky-700 text-white shadow-sky-200'
-                }`}
-              >
-                Save Growth Record
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Clean Slate Confirmation Modal */}
       <AnimatePresence>
@@ -1181,8 +1078,8 @@ export const Journal = ({  isPremium,
             activeTab === 'diary' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'
           }`}
         >
-          <span>{!isPremium ? '🔒 Daily Diary' : 'Daily Diary ✍️'}</span>
-          {isPremium && todayDiaryEntries.length > 0 && (
+          <span>Daily Diary ✍️</span>
+          {todayDiaryEntries.length > 0 && (
             <span className={`w-2 h-2 rounded-full ${activeTab === 'diary' ? 'bg-white' : 'bg-primary'}`} />
           )}
         </button>
@@ -1192,7 +1089,7 @@ export const Journal = ({  isPremium,
             activeTab === 'weekly' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'
           }`}
         >
-          <span>{!isPremium ? '🔒 Weekly Menu' : 'Weekly Menu 🛒'}</span>
+          <span>Weekly Menu 🛒</span>
         </button>
         
     </div>
@@ -1327,8 +1224,8 @@ export const Journal = ({  isPremium,
                   
     </div>
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Dosage</label>
-                  <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium outline-none text-gray-700" placeholder="e.g. 1 drop, 5ml" value={newMedDosage} onChange={e => setNewMedDosage(e.target.value)} />
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Amount / Serving Note</label>
+                  <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-3 text-sm font-medium outline-none text-gray-700" placeholder="e.g. 1 drop, 5ml (per doctor label)" value={newMedDosage} onChange={e => setNewMedDosage(e.target.value)} />
                   
     </div>
               </>
@@ -1609,7 +1506,8 @@ export const Journal = ({  isPremium,
                   setStoolType(stoolType);
                   setPoopColor(poopColor);
                   if (symptoms) {
-                    alert('AI Analysis Flag: ' + symptoms);
+                    setToastMsg('AI Analysis Flag: ' + symptoms);
+                    setTimeout(() => setToastMsg(''), 4000);
                   }
                 }} />
 
@@ -1669,11 +1567,11 @@ export const Journal = ({  isPremium,
                     </motion.div>
                   )}
 
-                  {/* Dirty specific inputs (Bristol Stool Scale!) */}
+                  {/* Dirty specific inputs (General Stool Appearance Guide) */}
                   {diaperType !== 'Wet' && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                       <div>
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Bristol Baby Stool Scale</label>
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">General Stool Appearance Guide</label>
                         <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                           {BRISTOL_SCALE.map(scale => (
                             <button 
@@ -1790,7 +1688,7 @@ export const Journal = ({  isPremium,
                         <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-1">
                           {diaper.type !== 'Dirty' && `${diaper.wetIntensity} Wetness (${diaper.wetWeight}g)`}
                           {diaper.type === 'Both' && ' • '}
-                          {diaper.type !== 'Wet' && `Bristol Type ${diaper.stoolType}`}
+                          {diaper.type !== 'Wet' && `Appearance Category ${diaper.stoolType}`}
                         </p>
                         
     </div>
@@ -1887,7 +1785,7 @@ export const Journal = ({  isPremium,
             className="px-3.5 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all cursor-pointer border border-primary/20 flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Log Dose / Vaccine</span>
+            <span>+ Log Entry / Vaccine</span>
           </button>
         </div>
 
@@ -1915,7 +1813,7 @@ export const Journal = ({  isPremium,
                             </div>
                             <div>
                               <p className="text-xs font-black text-gray-800">{m.name || m.title || 'Medication'}</p>
-                              {m.dosage && <p className="text-[10px] text-gray-500 font-medium">Dosage: {m.dosage}</p>}
+                              {m.dosage && <p className="text-[10px] text-gray-500 font-medium">Amount / Serving: {m.dosage}</p>}
                               {m.notes && <p className="text-[10px] text-gray-400 italic">"{m.notes}"</p>}
                             </div>
                           </div>
@@ -1995,7 +1893,7 @@ export const Journal = ({  isPremium,
                         className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-2xl text-xs font-black uppercase tracking-wider shadow-sm cursor-pointer border-none flex items-center gap-1.5"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        <span>+ Log Dose or Vaccine</span>
+                        <span>+ Log Entry or Vaccine</span>
                       </button>
                     </div>
                   </div>
@@ -2006,13 +1904,13 @@ export const Journal = ({  isPremium,
         </div>
       </div>
 
-      {/* Quick Unified Modal: Log Medication Dose or Immunization */}
+      {/* Quick Unified Modal: Log Medication Entry or Immunization */}
       <AnimatePresence>
         {showMedVacLogModal && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 text-left">
               <div className="flex justify-between items-center">
-                <h3 className="text-base font-serif font-black text-gray-800">Log Dose or Immunization 💊💉</h3>
+                <h3 className="text-base font-serif font-black text-gray-800">Log Entry or Immunization 💊💉</h3>
                 <button onClick={() => setShowMedVacLogModal(false)} className="text-xs font-bold text-gray-400 border-none bg-transparent cursor-pointer">✕</button>
               </div>
 
@@ -2023,7 +1921,7 @@ export const Journal = ({  isPremium,
                   onClick={() => setMedVacLogType('medication')}
                   className={`flex-1 py-2 rounded-xl text-xs font-black transition-all border-none cursor-pointer flex items-center justify-center gap-1.5 ${medVacLogType === 'medication' ? 'bg-white text-gray-800 shadow-xs' : 'text-gray-500 hover:text-gray-800'}`}
                 >
-                  💊 Medication Dose
+                  💊 Medication / Vitamin
                 </button>
                 <button
                   type="button"
@@ -2037,7 +1935,7 @@ export const Journal = ({  isPremium,
               {medVacLogType === 'medication' ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Medication Name</label>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Medication / Vitamin Name</label>
                     <input 
                       type="text" 
                       placeholder="e.g. Paracetamol, Ibuprofen, Vitamin D" 
@@ -2048,10 +1946,10 @@ export const Journal = ({  isPremium,
                   </div>
 
                   <div>
-                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Dosage</label>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Amount / Serving Note</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. 2.5 ml, 1 drop, 100 mg" 
+                      placeholder="e.g. 2.5 ml, 1 drop (follow doctor label)" 
                       value={logMedDosage} 
                       onChange={e => setLogMedDosage(e.target.value)} 
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-bold text-gray-800 outline-none focus:border-primary"
@@ -2154,6 +2052,73 @@ export const Journal = ({  isPremium,
         )}
       </AnimatePresence>
 
+      {/* Growth Curve Measurements for Selected Date (Logged via Growth Activities -> Baby Growth Curve) */}
+      <div className="space-y-6">
+        <div className="flex justify-between items-center px-2">
+          <h2 className="text-xl font-serif font-black text-gray-800 text-left flex items-center gap-2">
+            Growth Curve Measurements 📈
+          </h2>
+          <button
+            type="button"
+            onClick={() => onNavigate('activities')}
+            className="px-3.5 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all cursor-pointer border border-primary/20 flex items-center gap-1.5"
+          >
+            <span>📈 Open Growth Curve</span>
+          </button>
+        </div>
+
+        <div className="bg-card rounded-[48px] shadow-xl shadow-card/20 border border-white p-6 sm:p-8 text-left space-y-4">
+          {dayGrowthLogs.length > 0 ? (
+            <div className="space-y-3">
+              {dayGrowthLogs.map((g, idx) => {
+                const headVal = g.head ?? g.headCircumference;
+                const displayTime = g.time || g.timestamp || (g.date ? new Date(g.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+                return (
+                  <div key={g.id || idx} className="bg-white p-4 rounded-3xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                          {g.month || 'Growth Check'}
+                        </span>
+                        {displayTime && (
+                          <span className="text-[10px] font-bold text-gray-500">
+                            {displayTime}
+                          </span>
+                        )}
+                        {g.authorName && (
+                          <span className="text-[10px] text-gray-400 font-medium">
+                            by {g.authorName}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-black text-gray-800">
+                        Weight: {g.weight ?? '—'} kg • Height: {g.height ?? '—'} cm{headVal ? ` • Head: ${headVal} cm` : ''}
+                      </p>
+                      {g.notes && (
+                        <p className="text-xs text-gray-500 italic">"{g.notes}"</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-6 space-y-2">
+              <p className="text-xs text-gray-500 font-medium">
+                No growth measurements logged for {selectedDateLabel}.
+              </p>
+              <button
+                type="button"
+                onClick={() => onNavigate('activities')}
+                className="text-[10px] text-primary font-black uppercase tracking-widest underline cursor-pointer border-none bg-transparent"
+              >
+                Log Growth on Growth Curve →
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Read-Only Caregiver Shift & Handover History for Parents & Family */}
       {(userRole === 'admin' || userRole === 'family') && (
         <CaregiverShiftHistoryView
@@ -2197,7 +2162,7 @@ export const Journal = ({  isPremium,
                     <span>Diary Writing & Audio Recording Enabled • Family Reflections Shielded</span>
                   </div>
                 </div>
-              ) : isPremium ? (
+              ) : (
                 <StorybookGenerator 
                   diaryEntries={observationLogs.filter(o => o.type === 'diary' || o.mood || o.notes || o.reflection)} 
                   babyName={babyName}
@@ -2206,29 +2171,6 @@ export const Journal = ({  isPremium,
                   growthLogs={growthLogs}
                   vaccineSchedule={vaccineSchedule}
                 />
-              ) : (
-                <div className="bg-card p-6 sm:p-7 rounded-[36px] border border-white shadow-xl shadow-card/15 space-y-4 text-left flex flex-col justify-between">
-                  <div className="space-y-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-3xl">✨</span>
-                      <div>
-                        <h3 className="font-serif font-black text-gray-800 text-base">AI Milestone Biographer</h3>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
-                          👑 Premium Feature
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 leading-relaxed">
-                      Transform recorded parenting notes, first tastes, laughs, and emotional memory fragments into illustrated AI keepsake storybooks with Ama Premium.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsSubscriptionModalOpen(true)}
-                    className="w-full py-3 px-4 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-md shadow-primary/20 hover:bg-primary/90 transition-all cursor-pointer border-none flex items-center justify-center gap-2"
-                  >
-                    <span>👑 Unlock AI Milestone Biographer</span>
-                  </button>
-                </div>
               )}
               <MemorySlideshow memories={memories} babyName={babyName} onAddMemory={setMemories ? (m) => setMemories([...memories, m]) : undefined} />
             </div>
@@ -2457,7 +2399,7 @@ export const Journal = ({  isPremium,
                 </p>
               </div>
 
-              {/* 3. Voice Blessing or Lullaby Recorder (Open to Anybody: Mom, Dad, Grandma, Caregiver, Nanny) */}
+              {/* 3. Voice Blessing or Lullaby Recorder (Open to Anybody: Parents, Grandparents, Elders, Caregivers, Nannies) */}
               <div className="bg-sky-50/70 p-4 rounded-2xl border border-sky-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-0.5">
                   <span className="text-[10px] font-black uppercase tracking-widest text-sky-900 block flex items-center gap-1.5">
@@ -2467,7 +2409,7 @@ export const Journal = ({  isPremium,
                   <p className="text-[11px] text-sky-800">
                     {diaryAudioDataUrl
                       ? '✓ Voice blessing attached! Ready to save to baby’s diary and play via Activity Monitor speaker.'
-                      : 'Anyone (Mom, Dad, Grandma, Caregiver, or Nanny) can record a blessing, song, or comforting lullaby.'}
+                      : 'Anyone (Parents, Grandparents, Elders, Caregivers, or Nannies) can record a blessing, song, or comforting lullaby.'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -2785,11 +2727,11 @@ export const Journal = ({  isPremium,
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => isPremium ? onNavigate('ai-meal-planner') : setIsSubscriptionModalOpen(true)}
+                    onClick={() => onNavigate('ai-meal-planner')}
                     className="px-3.5 py-1.5 rounded-full bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border-none font-bold flex items-center gap-1 shadow-sm"
                   >
                     <Utensils className="w-3 h-3" />
-                    <span>{isPremium ? 'AI Generate Plan' : '👑 AI Generate Plan'}</span>
+                    <span>AI Generate Plan</span>
                   </button>
                   <button 
                     onClick={handleResetWeeklyPlanner}
@@ -2809,20 +2751,15 @@ export const Journal = ({  isPremium,
                   <div>
                     <div className="flex items-center gap-1.5">
                       <p className="text-xs font-bold text-gray-800">Need an Age-Optimized Solid Food Plan?</p>
-                      {!isPremium && (
-                        <span className="text-[8px] font-black uppercase tracking-wider text-primary bg-primary/15 px-1.5 py-0.5 rounded-full">
-                          👑 AI
-                        </span>
-                      )}
                     </div>
                     <p className="text-[10px] text-gray-500 font-medium">Auto-generate 7 days of nutrient-targeted meals + localized grocery list</p>
                   </div>
                 </div>
                 <button
-                  onClick={() => isPremium ? onNavigate('ai-meal-planner') : setIsSubscriptionModalOpen(true)}
+                  onClick={() => onNavigate('ai-meal-planner')}
                   className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-2xl cursor-pointer border-none transition-transform active:scale-95 whitespace-nowrap self-stretch sm:self-auto flex items-center justify-center gap-1"
                 >
-                  <span>{isPremium ? 'Generate 7-Day Plan →' : '👑 Unlock AI Planner'}</span>
+                  <span>Generate 7-Day Plan →</span>
                 </button>
               </div>
 
@@ -2978,10 +2915,6 @@ export const Journal = ({  isPremium,
               </button>
               <button 
                 onClick={async () => {
-                  if (!isPremium) {
-                    setIsSubscriptionModalOpen(true);
-                    return;
-                  }
                   const element = document.getElementById('print-report-content');
                   if (!element) return;
                   try {
@@ -3069,7 +3002,7 @@ export const Journal = ({  isPremium,
                 <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest border-l-4 border-primary pl-2 leading-none">Nutritional Milestones</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 space-y-2">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Newly Cleared Allergens</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Observed Foods (3-Day Log Complete)</p>
                     {clearedAllergensList.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {clearedAllergensList.map((a, i) => (
@@ -3079,7 +3012,7 @@ export const Journal = ({  isPremium,
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[11px] text-gray-400 italic">No allergens cleared yet.</p>
+                      <p className="text-[11px] text-gray-400 italic">No 3-day food introductions completed yet.</p>
                     )}
                   </div>
                   <div className="bg-gray-50/50 p-4 rounded-2xl border border-solid border-gray-100 space-y-2">
@@ -3124,16 +3057,16 @@ export const Journal = ({  isPremium,
                       <p className="font-bold text-gray-800 text-sm">{totalDirtyDiapers} Logged</p>
                     </div>
                     <div className="leading-none space-y-1">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Average Stool Type</p>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Typical Stool Note</p>
                       <p className="font-bold text-gray-800 text-sm">
-                        Type {avgStoolType} - {avgStoolType === 4 ? 'Optimal Smooth' : avgStoolType > 4 ? 'Loose' : 'Hard'}
+                        Category {avgStoolType} - {avgStoolType === 4 ? 'Soft Smooth' : avgStoolType > 4 ? 'Loose' : 'Firm'}
                       </p>
                     </div>
                   </div>
 
                   {reactionMealsList.length > 0 && (
                     <div className="bg-primary/5 border border-solid border-primary/20 p-3 rounded-xl space-y-1">
-                      <p className="text-[9px] font-black text-primary uppercase tracking-widest">Recent Symptoms/Reactions under doctor audit:</p>
+                      <p className="text-[9px] font-black text-primary uppercase tracking-widest">Recent Symptoms/Reactions to Share with Your Doctor:</p>
                       <ul className="list-disc pl-4 text-[11px] font-bold text-gray-700 space-y-0.5">
                         {reactionMealsList.map((m, idx) => (
                           <li key={idx}>

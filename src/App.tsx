@@ -24,7 +24,6 @@ import { LegalTermsScreen } from './components/LegalTermsScreen';
 import { LandingPage } from './components/LandingPage';
 import { AiMealPlanner } from './components/AiMealPlanner';
 import { BabyCryAnalyzer } from './components/BabyCryAnalyzer';
-import { SubscriptionModal } from './components/SubscriptionModal';
 import { AuthModal } from './components/AuthModal';
 import { BabyMonitor } from './components/BabyMonitor';
 import { Dashboard } from './components/Dashboard';
@@ -57,128 +56,48 @@ import {
   doc, setDoc, getDoc, onSnapshot, FirebaseUser, model,
   handleFirestoreError, OperationType
 } from './firebase';
+import {
+  parseVillageInviteFromUrl,
+  extractVillageInviteFromInput,
+  getStoredVillageToken,
+  ensureVillageToken,
+  clearStoredVillageConnection,
+  ensureVillageConnection,
+  updateVillageMemberAccess,
+  propagateVillagePermissions,
+  upsertVillageBabyLog,
+  upsertVillageFamilyDiaryEntry,
+  pushSharedLogsSnapshot,
+  pushFamilyDiarySnapshot,
+  updateVillageHubMetadata,
+  getStableLogId,
+  mergeLogArraysByIdentity,
+  subscribeToVillageRealtime,
+  loadVillageConnections,
+  saveVillageConnections,
+  upsertVillageConnectionEntry,
+  removeVillageConnectionEntry,
+  saveVillageLocalCache,
+  loadVillageLocalCache,
+  generateNewVillageToken,
+  type VillageConnectionEntry,
+  type VillageLocalCacheSnapshot,
+  type VillageMemberRecord,
+  type VillageRole
+} from './utils/villageSync';
 
 export default function App() {
-  const [isPremium, setIsPremium] = useState<boolean>(() => localStorage.getItem("ama_premium") === "true");
-  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  // Subscriptions and paywalls disabled — all features open to families
+  const isPremium = true;
+  const setIsSubscriptionModalOpen = (_open: boolean) => {};
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [dismissedAnonPrompt, setDismissedAnonPrompt] = useState(() => sessionStorage.getItem('ama_dismissed_anon_prompt') === 'true');
+  const [dismissedGuestPrompt, setDismissedGuestPrompt] = useState(() => sessionStorage.getItem('ama_dismissed_guest_prompt') === 'true');
   const [appToast, setAppToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const showAppToast = (message: string, type: 'success' | 'error' = 'success') => {
     setAppToast({ type, message });
     setTimeout(() => setAppToast(null), 5000);
   };
-
-  const handleSubscribe = async (priceId: string, currency: 'NGN' | 'USD' | 'GBP' = 'NGN', billingEmail?: string) => {
-    const livePublicKey = "pk_live_d2b967eddda456841f504b85549767fc33cc9fd4";
-    const userEmail = (billingEmail || currentUser?.email || 'parent@ama-care.app').trim();
-
-    // Amount calculation for Paystack Inline JS (in smallest currency unit: kobo/cents/pence)
-    let amountKobo = 450000; // Default Monthly Pro in NGN (₦4,500)
-    if (priceId === 'price_annual') {
-      amountKobo = currency === 'USD' ? 3500 : currency === 'GBP' ? 2800 : 2950000;
-    } else if (priceId === 'price_prepaid') {
-      amountKobo = currency === 'USD' ? 1200 : currency === 'GBP' ? 1000 : 950000;
-    } else {
-      amountKobo = currency === 'USD' ? 500 : currency === 'GBP' ? 400 : 450000;
-    }
-
-    // Try official Paystack Inline Pop Modal first if available
-    if (typeof window !== 'undefined' && (window as any).PaystackPop) {
-      try {
-        const handler = (window as any).PaystackPop.setup({
-          key: livePublicKey,
-          email: userEmail,
-          amount: amountKobo,
-          currency: currency,
-          ref: `pstk_${priceId}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-          metadata: {
-            custom_fields: [
-              { display_name: "Plan", variable_name: "price_id", value: priceId },
-              { display_name: "Account UID", variable_name: "uid", value: currentUser?.uid || "guest" }
-            ]
-          },
-          onClose: () => {
-            console.log("Paystack checkout modal closed by user.");
-          },
-          callback: (response: any) => {
-            const ref = response.reference || response.trxref;
-            fetch(`/api/paystack/verify/${encodeURIComponent(ref)}`)
-              .then(res => res.json())
-              .then(() => {
-                setIsPremium(true);
-                localStorage.setItem("ama_premium", "true");
-                setIsSubscriptionModalOpen(false);
-                showAppToast("Payment authorized via Paystack! Welcome to Ama Premium. All AI and Village Sync features are now unlocked.", "success");
-              })
-              .catch(() => {
-                setIsPremium(true);
-                localStorage.setItem("ama_premium", "true");
-                setIsSubscriptionModalOpen(false);
-                showAppToast("Payment authorized via Paystack! Ama Premium is now active.", "success");
-              });
-          }
-        });
-        handler.openIframe();
-        return;
-      } catch (err) {
-        console.warn("Paystack Inline Popup fallback to server endpoint:", err);
-      }
-    }
-
-    // Fallback to Server API checkout initialization
-    try {
-      const response = await fetch("/api/paystack/initialize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          priceId, 
-          currency,
-          email: userEmail
-        })
-      });
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        showAppToast(data.error || "Failed to initiate Paystack checkout.", "error");
-        setIsSubscriptionModalOpen(false);
-      }
-    } catch (e) {
-      showAppToast("Paystack billing service is currently unavailable. Please check your connection.", "error");
-      setIsSubscriptionModalOpen(false);
-    }
-  };
-
-  // Listen for Paystack redirect callback
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const paystackRef = urlParams.get('paystack_ref') || urlParams.get('reference') || urlParams.get('trxref');
-    const isPaystackSuccess = urlParams.get('paystack_success') === 'true';
-
-    if (paystackRef || isPaystackSuccess) {
-      const ref = paystackRef || 'pstk_demo';
-      fetch(`/api/paystack/verify/${encodeURIComponent(ref)}`)
-        .then(res => res.json())
-        .then(result => {
-          if (result.verified || result.status === 'success' || isPaystackSuccess) {
-            setIsPremium(true);
-            localStorage.setItem("ama_premium", "true");
-            alert("🎉 Payment Successful via Paystack! Welcome to Ama Premium. All AI features are now unlocked.");
-          }
-        })
-        .catch(() => {
-          if (isPaystackSuccess) {
-            setIsPremium(true);
-            localStorage.setItem("ama_premium", "true");
-          }
-        })
-        .finally(() => {
-          window.history.replaceState({}, document.title, window.location.pathname);
-        });
-    }
-  }, []);
 
   const [selectedBlogArticle, setSelectedBlogArticle] = useState<BlogArticle | null>(() => {
     const hash = window.location.hash;
@@ -235,7 +154,7 @@ export default function App() {
     if (hash === '#contact' || screenParam === 'contact' || pathname === '/contact') {
       return 'contact';
     }
-    if (hash === '#community' || screenParam === 'community' || pathname === '/community') {
+    if (hash === '#community' || hash.startsWith('#community?') || hash.startsWith('#community&') || screenParam === 'community' || pathname === '/community') {
       return 'community';
     }
     if (hash === '#local-directories' || hash === '#directories' || screenParam === 'local-directories' || pathname === '/directories') {
@@ -244,7 +163,22 @@ export default function App() {
     if (hash === '#baby-names' || screenParam === 'baby-names' || pathname === '/baby-names') {
       return 'baby-names';
     }
-    if (hash === '#grandma-mode' || screenParam === 'grandma-mode' || pathname === '/grandma-mode') {
+    const initialInvite = parseVillageInviteFromUrl();
+    if (initialInvite.villageToken) {
+      try {
+        localStorage.setItem('ama_village_sync_token', initialInvite.villageToken);
+        if (initialInvite.role) {
+          localStorage.setItem('ama_pending_village_role', initialInvite.role);
+          localStorage.setItem('userRole', initialInvite.role);
+        }
+      } catch {}
+      return 'home';
+    }
+    if (
+      hash === '#granny-mode' || hash === '#elder-mode' || hash === '#family-mode' || hash === '#grandma-mode' ||
+      screenParam === 'granny-mode' || screenParam === 'elder-mode' || screenParam === 'family-mode' || screenParam === 'grandma-mode' ||
+      pathname === '/granny-mode' || pathname === '/elder-mode' || pathname === '/family-mode' || pathname === '/grandma-mode'
+    ) {
       localStorage.setItem('ama_user_role', 'family');
       return 'home';
     }
@@ -282,13 +216,27 @@ export default function App() {
         articleSlug = pathname.split('/')[2] || null;
       }
 
-      const rawHash = window.location.hash || '';
-      const villageMatch = rawHash.match(/village=([a-zA-Z0-9_-]+)/i);
-      if (villageMatch && villageMatch[1]) {
-        localStorage.setItem('ama_village_sync_token', villageMatch[1]);
-      }
-      if (searchParams.get('village') && /^[a-zA-Z0-9_-]+$/.test(searchParams.get('village')!)) {
-        localStorage.setItem('ama_village_sync_token', searchParams.get('village')!);
+      const parsedInvite = parseVillageInviteFromUrl();
+      if (parsedInvite.villageToken) {
+        connectedSessionKeyRef.current = '';
+        const targetRole: VillageRole = parsedInvite.role || 'family';
+        localStorage.setItem('ama_village_sync_token', parsedInvite.villageToken);
+        localStorage.setItem('ama_pending_village_role', targetRole);
+        localStorage.setItem('ama_onboarding_account_type', 'village_member');
+        setActiveVillageToken(parsedInvite.villageToken);
+        setUserRole(targetRole);
+        setOnboardingAccountType('village_member');
+        setOnboardingVillageRole(targetRole === 'nanny' ? 'nanny' : 'family');
+        setOnboardingVillageInviteInput(parsedInvite.villageToken);
+        if (parsedInvite.babyName) {
+          setBabyName(parsedInvite.babyName);
+        }
+        if (activeScreen === 'landing') {
+          setActiveScreen('home');
+        }
+      } else if (parsedInvite.role) {
+        localStorage.setItem('ama_pending_village_role', parsedInvite.role);
+        setUserRole(parsedInvite.role);
       }
 
       if (articleSlug) {
@@ -329,7 +277,7 @@ export default function App() {
         setActiveScreen('feeding');
         return;
       }
-      if (hash === '#community' || searchParams.get('screen') === 'community' || pathname === '/community') {
+      if (hash === '#community' || hash.startsWith('#community?') || hash.startsWith('#community&') || searchParams.get('screen') === 'community' || pathname === '/community') {
         setActiveScreen('community');
         return;
       }
@@ -341,7 +289,11 @@ export default function App() {
         setActiveScreen('baby-names');
         return;
       }
-      if (hash === '#grandma-mode' || searchParams.get('screen') === 'grandma-mode' || pathname === '/grandma-mode') {
+      if (
+        hash === '#granny-mode' || hash === '#elder-mode' || hash === '#family-mode' || hash === '#grandma-mode' ||
+        searchParams.get('screen') === 'granny-mode' || searchParams.get('screen') === 'elder-mode' || searchParams.get('screen') === 'family-mode' || searchParams.get('screen') === 'grandma-mode' ||
+        pathname === '/granny-mode' || pathname === '/elder-mode' || pathname === '/family-mode' || pathname === '/grandma-mode'
+      ) {
         setUserRole('family');
         setActiveScreen('home');
         return;
@@ -355,9 +307,15 @@ export default function App() {
     window.addEventListener('hashchange', handleHashChange);
     window.addEventListener('popstate', handleHashChange);
 
-    const initialVillageMatch = (window.location.hash || '').match(/village=([a-zA-Z0-9_-]+)/i);
-    if (initialVillageMatch && initialVillageMatch[1]) {
-      localStorage.setItem('ama_village_sync_token', initialVillageMatch[1]);
+    const initialInvite = parseVillageInviteFromUrl();
+    if (initialInvite.villageToken) {
+      localStorage.setItem('ama_village_sync_token', initialInvite.villageToken);
+      if (initialInvite.babyName && !localStorage.getItem('babyName')) {
+        setBabyName(initialInvite.babyName);
+      }
+    }
+    if (initialInvite.role) {
+      localStorage.setItem('ama_pending_village_role', initialInvite.role);
     }
 
     return () => {
@@ -490,25 +448,25 @@ export default function App() {
       {
         id: 'init-1',
         timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-        action: 'Security Audit Log Initialized',
-        details: 'System-wide secure ledger booted. Security and privacy ledger active.',
-        userEmail: 'Anonymous Guest',
+        action: 'Activity Log Initialized',
+        details: 'Local care activity log initialized for this browser session.',
+        userEmail: 'Guest Session',
         category: 'SECURITY'
       },
       {
         id: 'init-2',
         timestamp: new Date(Date.now() - 3600000).toISOString(),
-        action: 'Local Database Verified',
-        details: 'Checked integrity of local WebSQL/IndexedDB cache. Cryptographic keys verified.',
-        userEmail: 'Anonymous Guest',
+        action: 'Local Storage Ready',
+        details: 'Browser local storage ready for care tracking.',
+        userEmail: 'Guest Session',
         category: 'DATA_ACCESS'
       },
       {
         id: 'init-3',
         timestamp: new Date().toISOString(),
-        action: 'Zero Tracking Verified',
-        details: 'No third-party trackers detected. Offline-first local sandboxing verified.',
-        userEmail: 'Anonymous Guest',
+        action: 'Privacy Preferences Loaded',
+        details: 'No third-party trackers active in this local-first session.',
+        userEmail: 'Guest Session',
         category: 'SECURITY'
       }
     ];
@@ -520,7 +478,7 @@ export default function App() {
       timestamp: new Date().toISOString(),
       action,
       details,
-      userEmail: auth.currentUser?.email || (auth.currentUser?.isAnonymous ? 'Anonymous Guest' : 'Unauthenticated'),
+      userEmail: auth.currentUser?.email || (auth.currentUser?.isAnonymous ? 'Guest Session' : 'Unauthenticated'),
       category
     };
     setAuditLogs(prev => {
@@ -539,6 +497,25 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     return !localStorage.getItem('ama_onboarded');
   });
+  const [onboardingAccountType, setOnboardingAccountType] = useState<'parent' | 'village_member'>(() => {
+    const invite = parseVillageInviteFromUrl();
+    if (invite.villageToken || invite.role === 'family' || invite.role === 'nanny') {
+      return 'village_member';
+    }
+    return localStorage.getItem('ama_onboarding_account_type') === 'village_member' ? 'village_member' : 'parent';
+  });
+  const [onboardingVillageRole, setOnboardingVillageRole] = useState<'family' | 'nanny'>(() => {
+    const invite = parseVillageInviteFromUrl();
+    if (invite.role === 'nanny') return 'nanny';
+    if (invite.role === 'family') return 'family';
+    return localStorage.getItem('ama_pending_village_role') === 'nanny' ? 'nanny' : 'family';
+  });
+  const [onboardingVillageInviteInput, setOnboardingVillageInviteInput] = useState<string>(() => {
+    const invite = parseVillageInviteFromUrl();
+    return invite.villageToken || localStorage.getItem('ama_village_sync_token') || '';
+  });
+  const [qrPasteInput, setQrPasteInput] = useState('');
+  const [bannerVillageInput, setBannerVillageInput] = useState('');
   const [onboardingBabyName, setOnboardingBabyName] = useState(localStorage.getItem('babyName') || '');
   const [onboardingParentName, setOnboardingParentName] = useState(localStorage.getItem('parentName') || '');
   const [onboardingBabyDob, setOnboardingBabyDob] = useState(() => {
@@ -551,13 +528,13 @@ export default function App() {
       if (calculated) return calculated;
     }
     const saved = localStorage.getItem('babyAge');
-    return saved ? saved.replace(' Old', '') : '6 Months';
+    return saved ? saved.replace(' Old', '') : '';
   });
 
   const [onboardingMicStatus, setOnboardingMicStatus] = useState<'idle' | 'granted' | 'denied'>('idle');
   const [isOnboardingMicTesting, setIsOnboardingMicTesting] = useState(false);
 
-  // Onboarding Authentication Form States (Email/Password, Google, or Anonymous)
+  // Onboarding Authentication Form States (Email/Password, Google, or Guest)
   const [onboardingAuthMode, setOnboardingAuthMode] = useState<'signup' | 'signin'>('signup');
   const [onboardingEmail, setOnboardingEmail] = useState('');
   const [onboardingPassword, setOnboardingPassword] = useState('');
@@ -570,7 +547,7 @@ export default function App() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setOnboardingMicStatus('granted');
-      addAuditLog('Microphone Permission Verified', 'Audio hardware & web permissions verified during onboarding test.', 'SECURITY');
+      addAuditLog('Microphone Permission Granted', 'Audio permission granted during onboarding test.', 'SECURITY');
       stream.getTracks().forEach(track => track.stop());
     } catch (err) {
       console.warn("Microphone test permission blocked:", err);
@@ -711,47 +688,135 @@ export default function App() {
   const validateOnboardingDetails = (overrideName?: string): boolean => {
     const resolvedName = (overrideName ?? onboardingParentName).trim();
     if (!resolvedName) {
-      setAgeGateError("Please enter your user name / parent or guardian name.");
+      setAgeGateError(
+        onboardingAccountType === 'village_member'
+          ? 'Please enter your name so your baby’s care circle knows who is contributing.'
+          : 'Please enter your name (Parent or Guardian).'
+      );
       return false;
     }
     if (!onboardingParentDob) {
-      setAgeGateError("Regulatory requirement: Please provide your Date of Birth to verify you are an adult parent or guardian.");
+      setAgeGateError(
+        onboardingAccountType === 'village_member'
+          ? 'Age Confirmation (18+): Please enter your Date of Birth to confirm adult caregiver or family access.'
+          : 'Age Confirmation Required: Please provide your Date of Birth to confirm you are an adult parent or guardian.'
+      );
       return false;
     }
     const age = calculateAge(onboardingParentDob);
     if (age < 18) {
-      setAgeGateError("Guardian Verification Required: This child tracking workspace must be created and managed by an adult parent or legal guardian (18 years or older).");
+      setAgeGateError(
+        onboardingAccountType === 'village_member'
+          ? 'Adult Access Only (18+): Village members and caregivers must be 18 years or older.'
+          : 'Adult Access Only (18+): Child tracking workspaces must be created and managed by an adult parent or guardian (18 years or older).'
+      );
       return false;
+    }
+    if (onboardingAccountType === 'village_member' && onboardingVillageInviteInput.trim()) {
+      const parsed = extractVillageInviteFromInput(onboardingVillageInviteInput);
+      if (!parsed.villageToken) {
+        setAgeGateError('That Village invite link or token does not look valid. Leave it blank to add later, or paste the full invite link from the parent.');
+        return false;
+      }
     }
     setAgeGateError('');
     return true;
   };
 
   const commitOnboardingLocalState = (overrideName?: string) => {
-    const finalParentName = (overrideName || onboardingParentName).trim() || 'Mom';
-    const finalBabyName = onboardingBabyName.trim() || 'Baby';
-    const finalBabyAge = onboardingBabyAge.trim() || '6 Months';
+    const finalParentName = (overrideName || onboardingParentName).trim() || (onboardingAccountType === 'village_member' ? 'Caregiver' : 'Mom');
     const age = onboardingParentDob ? calculateAge(onboardingParentDob) : 18;
 
     localStorage.setItem('parentName', finalParentName);
     if (onboardingParentDob) localStorage.setItem('parentDob', onboardingParentDob);
+    localStorage.setItem('ama_onboarding_account_type', onboardingAccountType);
+    localStorage.setItem('ama_onboarded', 'true');
+    setParentName(finalParentName);
+    if (onboardingParentDob) setParentDob(onboardingParentDob);
+
+    if (onboardingAccountType === 'village_member') {
+      const parsedFromInput = onboardingVillageInviteInput.trim()
+        ? extractVillageInviteFromInput(onboardingVillageInviteInput)
+        : { villageToken: null, role: null, babyName: null };
+      const urlInvite = parseVillageInviteFromUrl();
+      const chosenToken = parsedFromInput.villageToken || urlInvite.villageToken || '';
+      const chosenRole: VillageRole =
+        parsedFromInput.role || urlInvite.role || onboardingVillageRole || 'family';
+      const invitedBabyName = parsedFromInput.babyName || urlInvite.babyName || '';
+
+      setUserRole(chosenRole);
+      localStorage.setItem('userRole', chosenRole);
+      localStorage.setItem('ama_user_role', chosenRole);
+      localStorage.setItem('ama_pending_village_role', chosenRole);
+
+      if (chosenToken) {
+        connectedSessionKeyRef.current = '';
+        localStorage.setItem('ama_village_sync_token', chosenToken);
+        setActiveVillageToken(chosenToken);
+        const updatedConns = upsertVillageConnectionEntry({
+          villageToken: chosenToken,
+          villageOwnerId: '',
+          babyName: invitedBabyName || 'Baby',
+          role: chosenRole,
+          isOwnChild: false,
+          addedAt: new Date().toISOString()
+        });
+        setVillageConnections(updatedConns);
+      } else {
+        clearStoredVillageConnection();
+        setActiveVillageToken('');
+        setVillageOwnerId('');
+      }
+
+      if (invitedBabyName) {
+        setBabyName(invitedBabyName);
+        localStorage.setItem('babyName', invitedBabyName);
+      } else if (!localStorage.getItem('babyName')) {
+        setBabyName('Baby');
+      }
+
+      setShowOnboarding(false);
+      addAuditLog('Village Member Onboarding Completed', `Joined as ${chosenRole} (no child profile required). Confirmed adult age: ${age} years.`, 'ACCOUNT');
+      return;
+    }
+
+    const finalBabyName = onboardingBabyName.trim() || 'Baby';
+    const finalBabyAge = onboardingBabyAge.trim() || '6 Months';
+
+    setUserRole('admin');
+    localStorage.setItem('userRole', 'admin');
+    localStorage.setItem('ama_user_role', 'admin');
+    localStorage.removeItem('ama_pending_village_role');
     localStorage.setItem('babyName', finalBabyName);
     localStorage.setItem('babyAge', finalBabyAge);
     localStorage.setItem('babyDob', onboardingBabyDob);
-    localStorage.setItem('ama_onboarded', 'true');
 
-    setParentName(finalParentName);
-    if (onboardingParentDob) setParentDob(onboardingParentDob);
     setBabyName(finalBabyName);
     setBabyAge(finalBabyAge);
     setBabyDob(onboardingBabyDob);
+
+    const ownToken = ensureVillageToken(finalBabyName, currentUser?.uid);
+    if (ownToken) {
+      setActiveVillageToken(ownToken);
+      const updatedConns = upsertVillageConnectionEntry({
+        villageToken: ownToken,
+        villageOwnerId: currentUser?.uid || '',
+        babyName: finalBabyName,
+        babyAge: finalBabyAge,
+        babyDob: onboardingBabyDob,
+        role: 'admin',
+        isOwnChild: true,
+        addedAt: new Date().toISOString()
+      });
+      setVillageConnections(updatedConns);
+    }
 
     const currentLogs = [...growthLogs];
     setGrowthLogs(currentLogs);
     localStorage.setItem('growthLogs', JSON.stringify(currentLogs));
 
     setShowOnboarding(false);
-    addAuditLog('Onboarding Completed', 'Account initialized with Parent DOB validation. Verified age: ' + age + ' years.', 'ACCOUNT');
+    addAuditLog('Onboarding Completed', 'Account initialized with adult age confirmation (' + age + ' years).', 'ACCOUNT');
   };
 
   const handleFinishOnboarding = () => {
@@ -770,10 +835,10 @@ export default function App() {
       return 'Invalid email or password. Please check your credentials and try again.';
     }
     if (code === 'auth/operation-not-allowed') {
-      return 'Email/Password sign-in is not enabled yet in Firebase Console. Enable it under Authentication -> Sign-in method, or choose Google / Anonymous Sign-In.';
+      return 'Email/Password sign-in is not enabled yet in Firebase Console. Enable it under Authentication -> Sign-in method, or choose Google / Guest Sign-In.';
     }
     if (code === 'auth/admin-restricted-operation') {
-      return 'Anonymous Sign-In is disabled in Firebase Console. Enable Anonymous sign-in in Authentication -> Sign-in method, or sign in with Email/Password or Google.';
+      return 'Guest Sign-In is currently disabled in Firebase Console. Enable it under Authentication -> Sign-in method, or sign in with Email/Password or Google.';
     }
     if (code === 'auth/unauthorized-domain') {
       return 'This domain is not authorized in Firebase Console. Add it under Authentication -> Settings -> Authorized domains.';
@@ -856,7 +921,7 @@ export default function App() {
           if (signedUser.displayName && !onboardingParentName.trim()) {
             setOnboardingParentName(signedUser.displayName);
           }
-          setOnboardingAuthStatus('Signed in! Please confirm your User Name and 18+ Guardian Date of Birth above to finish setup.');
+          setOnboardingAuthStatus('Signed in! Please confirm your Name and 18+ Date of Birth above to finish setup.');
         }
       }
     } catch (err: any) {
@@ -885,23 +950,31 @@ export default function App() {
         return;
       }
 
-      try {
-        const snap = await getDoc(doc(db, 'users', signedUser.uid));
-        if (snap.exists()) {
-          const cloudData = processCloudData(snap.data());
-          if (cloudData?.parentDob && calculateAge(cloudData.parentDob) >= 18) {
-            localStorage.setItem('ama_onboarded', 'true');
-            setShowOnboarding(false);
-            showAppToast('Google account signed in & backup restored!', 'success');
-            return;
+      // Skip restoring own old child profile if currently accepting a Village invite
+      const pendingUrlInvite = parseVillageInviteFromUrl();
+      if (!pendingUrlInvite.villageToken && onboardingAccountType !== 'village_member') {
+        try {
+          const snap = await getDoc(doc(db, 'users', signedUser.uid));
+          if (snap.exists()) {
+            const cloudData = processCloudData(snap.data());
+            if (cloudData?.parentDob && calculateAge(cloudData.parentDob) >= 18) {
+              localStorage.setItem('ama_onboarded', 'true');
+              setShowOnboarding(false);
+              showAppToast('Google account signed in & backup restored!', 'success');
+              return;
+            }
           }
-        }
-      } catch {}
+        } catch {}
+      }
 
       if (resolvedName && !onboardingParentName.trim()) {
         setOnboardingParentName(resolvedName);
       }
-      setOnboardingAuthStatus('Google account connected! Enter your 18+ Guardian Date of Birth and baby details above, then tap Complete Setup.');
+      setOnboardingAuthStatus(
+        onboardingAccountType === 'village_member'
+          ? 'Google account connected! Enter your 18+ Date of Birth above, then tap Complete Setup to join your Village.'
+          : 'Google account connected! Enter your 18+ Date of Birth and baby details above, then tap Complete Setup.'
+      );
     } catch (err: any) {
       setAgeGateError(formatOnboardingAuthError(err));
     } finally {
@@ -909,7 +982,7 @@ export default function App() {
     }
   };
 
-  const handleOnboardingAnonymousAuth = async () => {
+  const handleOnboardingGuestAuth = async () => {
     setAgeGateError('');
     setOnboardingAuthStatus('');
     if (!validateOnboardingDetails()) return;
@@ -928,7 +1001,7 @@ export default function App() {
       }
       setCurrentUser(guestUser);
       commitOnboardingLocalState(onboardingParentName.trim());
-      showAppToast('Continuing as anonymous guest session.', 'success');
+      showAppToast('Continuing as guest session.', 'success');
     } catch (err: any) {
       setAgeGateError(formatOnboardingAuthError(err));
     } finally {
@@ -1322,11 +1395,9 @@ export default function App() {
   }, [vaccineSchedule]);
 
   const [userRole, setUserRole] = useState<'admin' | 'family' | 'nanny'>(() => {
-    if (typeof window !== 'undefined' && window.location.hash) {
-      if (window.location.hash.includes('role=nanny')) return 'nanny';
-      if (window.location.hash.includes('role=family')) return 'family';
-      if (window.location.hash.includes('role=admin')) return 'admin';
-    }
+    const invite = parseVillageInviteFromUrl();
+    if (invite.role) return invite.role;
+    if (invite.villageToken) return 'family';
     return (localStorage.getItem('userRole') as any) || 'admin';
   });
 
@@ -1335,15 +1406,84 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  useEffect(() => {
-    localStorage.setItem('userRole', userRole);
-  }, [userRole]);
+  // Lifted Baby Care Logs so all tabs & Village members share live Firestore state
+  const [feedingLogs, setFeedingLogs] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('local_feeding_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [sleepLogs, setSleepLogs] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('sleep_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [hygieneLog, setHygieneLog] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('hygiene_log');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [sunlightToday, setSunlightToday] = useState<number>(() => {
+    return parseInt(localStorage.getItem('sun_today') || '0', 10) || 0;
+  });
+  const [teethingMap, setTeethingMap] = useState<Record<string, { emerged: boolean; date?: string; symptoms?: string[]; remedies?: string[] }>>(() => {
+    try {
+      const saved = localStorage.getItem('teething_map');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [checkedMilestones, setCheckedMilestones] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('child_milestones') || localStorage.getItem('cdc_milestones');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [questTimeToday, setQuestTimeToday] = useState<number>(() => {
+    return parseFloat(localStorage.getItem('quest_today') || '0') || 0;
+  });
+  const [questLogs, setQuestLogs] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('quest_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [readingLogs, setReadingLogs] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('reading_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
 
-  useEffect(() => {
-    localStorage.setItem('memories', JSON.stringify(memories));
-  }, [memories]);
+  // Real-Time Village Connection State (supports multiple babies & distinct roles per hub)
+  const [activeVillageToken, setActiveVillageToken] = useState<string>(() => {
+    const invite = parseVillageInviteFromUrl();
+    return invite.villageToken || getStoredVillageToken();
+  });
+  const [villageOwnerId, setVillageOwnerId] = useState<string>(() => localStorage.getItem('ama_village_owner_id') || '');
+  const [villageMembers, setVillageMembers] = useState<VillageMemberRecord[]>([]);
+  const [villageConnections, setVillageConnections] = useState<VillageConnectionEntry[]>(() => loadVillageConnections());
+
+  useEffect(() => { localStorage.setItem('userRole', userRole); }, [userRole]);
+  useEffect(() => { localStorage.setItem('memories', JSON.stringify(memories)); }, [memories]);
+  useEffect(() => { localStorage.setItem('local_feeding_logs', JSON.stringify(feedingLogs)); }, [feedingLogs]);
+  useEffect(() => { localStorage.setItem('sleep_logs', JSON.stringify(sleepLogs)); }, [sleepLogs]);
+  useEffect(() => { localStorage.setItem('hygiene_log', JSON.stringify(hygieneLog)); }, [hygieneLog]);
+  useEffect(() => { localStorage.setItem('sun_today', String(sunlightToday)); }, [sunlightToday]);
+  useEffect(() => { localStorage.setItem('teething_map', JSON.stringify(teethingMap)); }, [teethingMap]);
+  useEffect(() => { localStorage.setItem('child_milestones', JSON.stringify(checkedMilestones)); }, [checkedMilestones]);
+  useEffect(() => { localStorage.setItem('quest_today', String(questTimeToday)); }, [questTimeToday]);
+  useEffect(() => { localStorage.setItem('quest_logs', JSON.stringify(questLogs)); }, [questLogs]);
+  useEffect(() => { localStorage.setItem('reading_logs', JSON.stringify(readingLogs)); }, [readingLogs]);
 
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const isViewingRemoteVillage = Boolean(
+    activeVillageToken &&
+    currentUser &&
+    villageOwnerId &&
+    villageOwnerId !== currentUser.uid
+  );
   const [isSyncing, setIsSyncing] = useState(false);
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -1396,7 +1536,16 @@ export default function App() {
     scheduledActivities,
     scheduledMeds,
     reminders,
-    vaccineSchedule
+    vaccineSchedule,
+    feedingLogs,
+    sleepLogs,
+    hygieneLog,
+    sunlightToday,
+    teethingMap,
+    checkedMilestones,
+    questTimeToday,
+    questLogs,
+    readingLogs
   ]);
 
   // --- Google Sign-In, Account Linking, and Sign-Out Handlers ---
@@ -1404,7 +1553,7 @@ export default function App() {
     try {
       setIsSyncing(true);
       if (auth.currentUser && auth.currentUser.isAnonymous) {
-        // Link the temporary anonymous user ID to their Google account
+        // Link the temporary guest user ID to their Google account
         await linkWithPopup(auth.currentUser, googleProvider);
         
         // Notify the user of successful linkage
@@ -1426,20 +1575,17 @@ export default function App() {
     } catch (err: any) {
       console.error("Authentication / Linking failed:", err);
       if (err.code === 'auth/credential-already-in-use') {
-        const confirmMerge = window.confirm(
-          "This Google Account already has existing backup records. Do you want to sign in to that backup instead? Your local data will be safely merged."
-        );
-        if (confirmMerge) {
-          try {
-            await signInWithPopup(auth, googleProvider);
-          } catch (signInErr) {
-            console.error("Standard Google Sign-In failed:", signInErr);
-          }
+        try {
+          await signInWithPopup(auth, googleProvider);
+          showAppToast('Signed in to your existing Google backup!', 'success');
+        } catch (signInErr) {
+          console.error("Standard Google Sign-In failed:", signInErr);
+          showAppToast('Could not switch to existing Google account.', 'error');
         }
       } else if (err.code === 'auth/unauthorized-domain') {
-        alert("Firebase Auth error: This domain is not authorized. Please go to your Firebase Console -> Authentication -> Settings -> Authorized domains and add this app's URL to the list.");
+        showAppToast("This domain isn't authorized in Firebase Console -> Authentication -> Authorized domains.", 'error');
       } else {
-        alert("Failed to back up account: " + (err.message || err));
+        showAppToast("Failed to connect account: " + (err.message || err), 'error');
       }
     } finally {
       setIsSyncing(false);
@@ -1510,6 +1656,21 @@ export default function App() {
     setScheduledMeds([]);
     setReminders([]);
     setVaccineSchedule([]);
+    setFeedingLogs([]);
+    setSleepLogs([]);
+    setHygieneLog({});
+    setSunlightToday(0);
+    setTeethingMap({});
+    setCheckedMilestones([]);
+    setQuestTimeToday(0);
+    setQuestLogs([]);
+    setReadingLogs([]);
+    setActiveVillageToken('');
+    setVillageOwnerId('');
+    setVillageMembers([]);
+    setVillageConnections([]);
+    clearStoredVillageConnection();
+    try { localStorage.removeItem('ama_village_connections'); } catch {}
 
     // Turn onboarding back on without creating any guest account automatically
     setShowOnboarding(true);
@@ -1542,6 +1703,13 @@ export default function App() {
             handleFirestoreError(err, OperationType.GET, `users/${user.uid}`);
             return;
           }
+          const activeInviteToken = parseVillageInviteFromUrl().villageToken || getStoredVillageToken();
+          const storedOwner = localStorage.getItem('ama_village_owner_id') || '';
+          const isJoinedRemoteVillage =
+            !!activeInviteToken &&
+            ((!!storedOwner && storedOwner !== user.uid) ||
+              localStorage.getItem('ama_onboarding_account_type') === 'village_member');
+
           if (docSnap.exists()) {
             const rawData = docSnap.data();
             const data = processCloudData(rawData);
@@ -1552,12 +1720,11 @@ export default function App() {
             const localTime = localSaved ? parseInt(localSaved, 10) : 0;
 
             if (cloudTime >= localTime) {
-              // Cloud has newer data: update local states with cloud data
-              if (data.babyName !== undefined) setBabyName(data.babyName);
+              // Cloud has newer data: update local states, but preserve remote Village workspace if joining someone else's village
+              if (!isJoinedRemoteVillage && data.babyName !== undefined) setBabyName(data.babyName);
               if (data.parentName !== undefined) setParentName(data.parentName);
               if (data.parentDob !== undefined) {
                 setParentDob(data.parentDob);
-                // Also update onboarding state and bypass if they meet age requirement
                 if (data.parentDob) {
                   const age = calculateAge(data.parentDob);
                   if (age >= 18) {
@@ -1568,81 +1735,98 @@ export default function App() {
                 }
               }
               if (data.parentName !== undefined) setOnboardingParentName(data.parentName);
-              
-              if (data.allergenMatrix !== undefined) setAllergenMatrix(data.allergenMatrix);
-              if (data.weeklyPlan !== undefined) setWeeklyPlan(data.weeklyPlan);
-              if (data.groceryChecked !== undefined) setGroceryChecked(data.groceryChecked);
-              if (data.diaperLogs !== undefined) setDiaperLogs(data.diaperLogs);
-              if (data.notifications !== undefined) setNotifications(data.notifications);
-              if (data.growthLogs !== undefined) setGrowthLogs(data.growthLogs);
-              if (data.allTimePoints !== undefined) setAllTimePoints(data.allTimePoints);
-              if (data.dailyStreak !== undefined) setDailyStreak(data.dailyStreak);
-              if (data.lastQuestDate !== undefined) setLastQuestDate(data.lastQuestDate);
-              if (data.lastStreakDate !== undefined) setLastStreakDate(data.lastStreakDate);
-              if (data.activities !== undefined) setActivities(data.activities);
-              if (data.fluidMl !== undefined) setFluidMl(data.fluidMl);
-              if (data.fluidTarget !== undefined) setFluidTarget(data.fluidTarget);
-              if (data.loggedMeals !== undefined) setLoggedMeals(data.loggedMeals);
-              if (data.observationLogs !== undefined) setObservationLogs(data.observationLogs);
-              if (data.loggedMoods !== undefined) setLoggedMoods(data.loggedMoods);
-              if (data.personalRecipes !== undefined) setPersonalRecipes(data.personalRecipes);
-              if (data.scheduledMeals !== undefined) setScheduledMeals(data.scheduledMeals);
-              if (data.scheduledActivities !== undefined) setScheduledActivities(data.scheduledActivities);
-              if (data.scheduledMeds !== undefined) setScheduledMeds(data.scheduledMeds);
-              if (data.reminders !== undefined) setReminders(data.reminders);
-              if (data.vaccineSchedule !== undefined) setVaccineSchedule(sanitizeVaccineSchedule(data.vaccineSchedule));
-              if (data.userRole !== undefined) setUserRole(data.userRole);
-              if (data.memories !== undefined) setMemories(data.memories);
+
+              if (Array.isArray(data.villageConnections) && data.villageConnections.length > 0) {
+                const localConns = loadVillageConnections();
+                const mergedMap = new Map<string, VillageConnectionEntry>();
+                localConns.forEach((c) => mergedMap.set(c.villageToken, c));
+                data.villageConnections.forEach((c: VillageConnectionEntry) => {
+                  if (c && c.villageToken && !mergedMap.has(c.villageToken)) mergedMap.set(c.villageToken, c);
+                });
+                const mergedList = Array.from(mergedMap.values());
+                saveVillageConnections(mergedList);
+                setVillageConnections(mergedList);
+              }
+
+              if (!isJoinedRemoteVillage) {
+                if (data.allergenMatrix !== undefined) setAllergenMatrix(data.allergenMatrix);
+                if (data.weeklyPlan !== undefined) setWeeklyPlan(data.weeklyPlan);
+                if (data.groceryChecked !== undefined) setGroceryChecked(data.groceryChecked);
+                if (data.diaperLogs !== undefined) setDiaperLogs(data.diaperLogs);
+                if (data.notifications !== undefined) setNotifications(data.notifications);
+                if (data.growthLogs !== undefined) setGrowthLogs(data.growthLogs);
+                if (data.allTimePoints !== undefined) setAllTimePoints(data.allTimePoints);
+                if (data.dailyStreak !== undefined) setDailyStreak(data.dailyStreak);
+                if (data.lastQuestDate !== undefined) setLastQuestDate(data.lastQuestDate);
+                if (data.lastStreakDate !== undefined) setLastStreakDate(data.lastStreakDate);
+                if (data.activities !== undefined) setActivities(data.activities);
+                if (data.fluidMl !== undefined) setFluidMl(data.fluidMl);
+                if (data.fluidTarget !== undefined) setFluidTarget(data.fluidTarget);
+                if (data.loggedMeals !== undefined) setLoggedMeals(data.loggedMeals);
+                if (data.observationLogs !== undefined) setObservationLogs(data.observationLogs);
+                if (data.loggedMoods !== undefined) setLoggedMoods(data.loggedMoods);
+                if (data.personalRecipes !== undefined) setPersonalRecipes(data.personalRecipes);
+                if (data.scheduledMeals !== undefined) setScheduledMeals(data.scheduledMeals);
+                if (data.scheduledActivities !== undefined) setScheduledActivities(data.scheduledActivities);
+                if (data.scheduledMeds !== undefined) setScheduledMeds(data.scheduledMeds);
+                if (data.reminders !== undefined) setReminders(data.reminders);
+                if (data.vaccineSchedule !== undefined) setVaccineSchedule(sanitizeVaccineSchedule(data.vaccineSchedule));
+                if (data.userRole !== undefined) setUserRole(data.userRole);
+                if (data.memories !== undefined) setMemories(data.memories);
+              }
 
               setLastLocalUpdate(cloudTime);
               localStorage.setItem('lastLocalUpdate', cloudTime.toString());
               addAuditLog('Database Loaded', 'End-to-end encrypted backup loaded and decrypted locally.', 'DATA_ACCESS');
             } else {
-              // Local changes are newer: push to cloud to resolve conflict
-              const statePayload = {
-                isPremium,
-                babyName,
-                parentName,
-                parentDob,
-                allergenMatrix,
-                weeklyPlan,
-                groceryChecked,
-                diaperLogs,
-                notifications,
-                growthLogs,
-                allTimePoints,
-                dailyStreak,
-                lastQuestDate,
-                lastStreakDate,
-                activities,
-                fluidMl,
-                fluidTarget,
-                loggedMeals,
-                observationLogs,
-                loggedMoods,
-                personalRecipes,
-                scheduledMeals,
-                scheduledActivities,
-                scheduledMeds,
-                reminders,
-                vaccineSchedule,
-                userRole,
-                memories
-              };
-              const encryptedPayload = encryptString(JSON.stringify(statePayload));
-              try {
-                await setDoc(userDocRef, {
-                  userId: user.uid,
-                  encryptedPayload,
-                  updatedAt: new Date(localTime).toISOString()
-                });
-              } catch (err) {
-                handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
+              // Local changes are newer: push to cloud to resolve conflict (skip personal child logs if currently viewing another baby's village)
+              if (!isJoinedRemoteVillage) {
+                const statePayload = {
+                  isPremium,
+                  babyName,
+                  parentName,
+                  parentDob,
+                  villageConnections: loadVillageConnections(),
+                  allergenMatrix,
+                  weeklyPlan,
+                  groceryChecked,
+                  diaperLogs,
+                  notifications,
+                  growthLogs,
+                  allTimePoints,
+                  dailyStreak,
+                  lastQuestDate,
+                  lastStreakDate,
+                  activities,
+                  fluidMl,
+                  fluidTarget,
+                  loggedMeals,
+                  observationLogs,
+                  loggedMoods,
+                  personalRecipes,
+                  scheduledMeals,
+                  scheduledActivities,
+                  scheduledMeds,
+                  reminders,
+                  vaccineSchedule,
+                  userRole,
+                  memories
+                };
+                const encryptedPayload = encryptString(JSON.stringify(statePayload));
+                try {
+                  await setDoc(userDocRef, {
+                    userId: user.uid,
+                    encryptedPayload,
+                    updatedAt: new Date(localTime).toISOString()
+                  });
+                } catch (err) {
+                  handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
+                }
+                addAuditLog('Database Synced', 'Local newer changes encrypted and synchronized to cloud.', 'DATA_ACCESS');
               }
-              addAuditLog('Database Synced', 'Local newer changes encrypted and synchronized to cloud.', 'DATA_ACCESS');
             }
-          } else {
-            // No Cloud document exists: push local data to Cloud
+          } else if (!isJoinedRemoteVillage) {
+            // No Cloud document exists: push local data to Cloud for own parent workspace
             const localSaved = localStorage.getItem('lastLocalUpdate');
             const localTime = localSaved ? parseInt(localSaved, 10) : Date.now();
             const statePayload = {
@@ -1650,6 +1834,7 @@ export default function App() {
               babyName,
               parentName,
               parentDob,
+              villageConnections: loadVillageConnections(),
               allergenMatrix,
               weeklyPlan,
               groceryChecked,
@@ -1693,8 +1878,8 @@ export default function App() {
           setIsInitialLoadComplete(true);
         }
       } else {
-        // Do NOT auto-register anonymous accounts on boot; guest/anonymous sign-in happens only when
-        // the user opens the onboarding form, fills details, and chooses Anonymous Sign-In.
+        // Do NOT auto-register guest accounts on boot; guest sign-in happens only when
+        // the user opens the onboarding form, fills details, and chooses Continue as Guest.
         setCurrentUser(null);
         setIsInitialLoadComplete(true);
       }
@@ -1719,33 +1904,46 @@ export default function App() {
           setLastLocalUpdate(currentLocalTime => {
             if (cloudTime > currentLocalTime) {
               setIsSyncing(true);
-              if (cloudData.babyName !== undefined) setBabyName(cloudData.babyName);
               if (cloudData.parentName !== undefined) setParentName(cloudData.parentName);
               if (cloudData.parentDob !== undefined) setParentDob(cloudData.parentDob);
-              if (cloudData.allergenMatrix !== undefined) setAllergenMatrix(cloudData.allergenMatrix);
-              if (cloudData.weeklyPlan !== undefined) setWeeklyPlan(cloudData.weeklyPlan);
-              if (cloudData.groceryChecked !== undefined) setGroceryChecked(cloudData.groceryChecked);
-              if (cloudData.diaperLogs !== undefined) setDiaperLogs(cloudData.diaperLogs);
-              if (cloudData.notifications !== undefined) setNotifications(cloudData.notifications);
-              if (cloudData.growthLogs !== undefined) setGrowthLogs(cloudData.growthLogs);
-              if (cloudData.allTimePoints !== undefined) setAllTimePoints(cloudData.allTimePoints);
-              if (cloudData.dailyStreak !== undefined) setDailyStreak(cloudData.dailyStreak);
-              if (cloudData.lastQuestDate !== undefined) setLastQuestDate(cloudData.lastQuestDate);
-              if (cloudData.lastStreakDate !== undefined) setLastStreakDate(cloudData.lastStreakDate);
-              if (cloudData.activities !== undefined) setActivities(cloudData.activities);
-              if (cloudData.fluidMl !== undefined) setFluidMl(cloudData.fluidMl);
-              if (cloudData.fluidTarget !== undefined) setFluidTarget(cloudData.fluidTarget);
-              if (cloudData.loggedMeals !== undefined) setLoggedMeals(cloudData.loggedMeals);
-              if (cloudData.observationLogs !== undefined) setObservationLogs(cloudData.observationLogs);
-              if (cloudData.loggedMoods !== undefined) setLoggedMoods(cloudData.loggedMoods);
-              if (cloudData.personalRecipes !== undefined) setPersonalRecipes(cloudData.personalRecipes);
-              if (cloudData.scheduledMeals !== undefined) setScheduledMeals(cloudData.scheduledMeals);
-              if (cloudData.scheduledActivities !== undefined) setScheduledActivities(cloudData.scheduledActivities);
-              if (cloudData.scheduledMeds !== undefined) setScheduledMeds(cloudData.scheduledMeds);
-              if (cloudData.reminders !== undefined) setReminders(cloudData.reminders);
-              if (cloudData.vaccineSchedule !== undefined) setVaccineSchedule(sanitizeVaccineSchedule(cloudData.vaccineSchedule));
-              if (cloudData.userRole !== undefined) setUserRole(cloudData.userRole);
-              if (cloudData.memories !== undefined) setMemories(cloudData.memories);
+              if (Array.isArray(cloudData.villageConnections) && cloudData.villageConnections.length > 0) {
+                const localConns = loadVillageConnections();
+                const mergedMap = new Map<string, VillageConnectionEntry>();
+                localConns.forEach((c) => mergedMap.set(c.villageToken, c));
+                cloudData.villageConnections.forEach((c: VillageConnectionEntry) => {
+                  if (c && c.villageToken && !mergedMap.has(c.villageToken)) mergedMap.set(c.villageToken, c);
+                });
+                const mergedList = Array.from(mergedMap.values());
+                saveVillageConnections(mergedList);
+                setVillageConnections(mergedList);
+              }
+              if (!isViewingRemoteVillage) {
+                if (cloudData.babyName !== undefined) setBabyName(cloudData.babyName);
+                if (cloudData.allergenMatrix !== undefined) setAllergenMatrix(cloudData.allergenMatrix);
+                if (cloudData.weeklyPlan !== undefined) setWeeklyPlan(cloudData.weeklyPlan);
+                if (cloudData.groceryChecked !== undefined) setGroceryChecked(cloudData.groceryChecked);
+                if (cloudData.diaperLogs !== undefined) setDiaperLogs(cloudData.diaperLogs);
+                if (cloudData.notifications !== undefined) setNotifications(cloudData.notifications);
+                if (cloudData.growthLogs !== undefined) setGrowthLogs(cloudData.growthLogs);
+                if (cloudData.allTimePoints !== undefined) setAllTimePoints(cloudData.allTimePoints);
+                if (cloudData.dailyStreak !== undefined) setDailyStreak(cloudData.dailyStreak);
+                if (cloudData.lastQuestDate !== undefined) setLastQuestDate(cloudData.lastQuestDate);
+                if (cloudData.lastStreakDate !== undefined) setLastStreakDate(cloudData.lastStreakDate);
+                if (cloudData.activities !== undefined) setActivities(cloudData.activities);
+                if (cloudData.fluidMl !== undefined) setFluidMl(cloudData.fluidMl);
+                if (cloudData.fluidTarget !== undefined) setFluidTarget(cloudData.fluidTarget);
+                if (cloudData.loggedMeals !== undefined) setLoggedMeals(cloudData.loggedMeals);
+                if (cloudData.observationLogs !== undefined) setObservationLogs(cloudData.observationLogs);
+                if (cloudData.loggedMoods !== undefined) setLoggedMoods(cloudData.loggedMoods);
+                if (cloudData.personalRecipes !== undefined) setPersonalRecipes(cloudData.personalRecipes);
+                if (cloudData.scheduledMeals !== undefined) setScheduledMeals(cloudData.scheduledMeals);
+                if (cloudData.scheduledActivities !== undefined) setScheduledActivities(cloudData.scheduledActivities);
+                if (cloudData.scheduledMeds !== undefined) setScheduledMeds(cloudData.scheduledMeds);
+                if (cloudData.reminders !== undefined) setReminders(cloudData.reminders);
+                if (cloudData.vaccineSchedule !== undefined) setVaccineSchedule(sanitizeVaccineSchedule(cloudData.vaccineSchedule));
+                if (cloudData.userRole !== undefined) setUserRole(cloudData.userRole);
+                if (cloudData.memories !== undefined) setMemories(cloudData.memories);
+              }
               
               localStorage.setItem('lastLocalUpdate', cloudTime.toString());
               
@@ -1762,14 +1960,15 @@ export default function App() {
     );
 
     return () => unsubscribe();
-  }, [currentUser, isInitialLoadComplete, isOnline, showOnboarding]);
+  }, [currentUser, isInitialLoadComplete, isOnline, showOnboarding, isViewingRemoteVillage]);
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto Cloud Sync Effect with network state check and conflict resolution
+  // Guarded so viewing someone else's baby village NEVER overwrites personal /users/{uid} child logs
   useEffect(() => {
     const isOnboarded = localStorage.getItem('ama_onboarded') === 'true';
-    if (!currentUser || !isInitialLoadComplete || !isOnline || !isOnboarded || showOnboarding) return;
+    if (!currentUser || !isInitialLoadComplete || !isOnline || !isOnboarded || showOnboarding || isViewingRemoteVillage) return;
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
@@ -1834,6 +2033,7 @@ export default function App() {
             babyName,
             parentName,
             parentDob,
+            villageConnections: loadVillageConnections(),
             allergenMatrix,
             weeklyPlan,
             groceryChecked,
@@ -1912,8 +2112,1127 @@ export default function App() {
     scheduledMeds,
     reminders,
     vaccineSchedule,
+    feedingLogs,
+    sleepLogs,
+    hygieneLog,
+    sunlightToday,
+    teethingMap,
+    checkedMilestones,
+    questTimeToday,
+    questLogs,
+    readingLogs,
     showOnboarding
   ]);
+
+  // =========================================================================
+  // REAL-TIME FIRESTORE VILLAGE CONNECTION & ROLE-AWARE SYNC
+  // =========================================================================
+  const connectedSessionKeyRef = useRef<string>('');
+  const isApplyingRemoteVillageRef = useRef<boolean>(false);
+  const remoteVillageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pushedLogSignaturesRef = useRef<Map<string, string>>(new Map());
+  const lastSharedBundleHashRef = useRef<string>('');
+  const lastFamilyDiaryHashRef = useRef<string>('');
+  const lastHubHashRef = useRef<string>('');
+  const lastPropagatedPermKeyRef = useRef<string>('');
+  const villagePushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const markApplyingRemoteVillage = () => {
+    isApplyingRemoteVillageRef.current = true;
+    if (remoteVillageTimerRef.current) clearTimeout(remoteVillageTimerRef.current);
+    remoteVillageTimerRef.current = setTimeout(() => {
+      isApplyingRemoteVillageRef.current = false;
+    }, 900);
+  };
+
+  // Connect current signed-in user to active Village hub and apply dynamic member accessType
+  useEffect(() => {
+    const isOnboarded = localStorage.getItem('ama_onboarded') === 'true';
+    if (!isOnboarded || showOnboarding) return;
+
+    const pendingInvite = parseVillageInviteFromUrl();
+    const isVillageMemberAccount = localStorage.getItem('ama_onboarding_account_type') === 'village_member';
+    const pendingRoleRaw = localStorage.getItem('ama_pending_village_role');
+    const requestedRole: VillageRole | null =
+      pendingInvite.role ||
+      (pendingRoleRaw === 'admin' || pendingRoleRaw === 'family' || pendingRoleRaw === 'nanny'
+        ? pendingRoleRaw
+        : null);
+
+    // Only auto-generate a new personal Village hub for Primary Parents (admin)
+    const shouldAutoProvisionHub =
+      Boolean(currentUser) &&
+      !isVillageMemberAccount &&
+      userRole === 'admin' &&
+      requestedRole !== 'family' &&
+      requestedRole !== 'nanny';
+
+    const resolvedToken =
+      pendingInvite.villageToken ||
+      activeVillageToken ||
+      getStoredVillageToken() ||
+      (shouldAutoProvisionHub && currentUser ? ensureVillageToken(babyName, currentUser.uid) : '');
+
+    if (!resolvedToken) return;
+    if (resolvedToken !== activeVillageToken) {
+      setActiveVillageToken(resolvedToken);
+    }
+
+    // If user is not signed in yet, still hydrate any server backup snapshot and invite them to sign in
+    if (!currentUser) {
+      if (pendingInvite.villageToken) {
+        (async () => {
+          try {
+            const res = await fetch(`/api/sync/restore/${encodeURIComponent(resolvedToken)}`);
+            if (res.ok) {
+              const result = await res.json();
+              if (result?.data) {
+                markApplyingRemoteVillage();
+                if (result.data.babyName) setBabyName(result.data.babyName);
+                if (result.data.babyDob) setBabyDob(result.data.babyDob);
+                if (result.data.babyAge) setBabyAge(result.data.babyAge);
+                if (Array.isArray(result.data.sleepLogs)) setSleepLogs(result.data.sleepLogs);
+                if (Array.isArray(result.data.feedingLogs)) setFeedingLogs(result.data.feedingLogs);
+                if (Array.isArray(result.data.diaperLogs)) setDiaperLogs(result.data.diaperLogs);
+                if (Array.isArray(result.data.growthLogs)) setGrowthLogs(result.data.growthLogs);
+              }
+            }
+          } catch {}
+          showAppToast('Sign in to connect live to this Baby Village!', 'success');
+        })();
+      }
+      return;
+    }
+
+    if (!isInitialLoadComplete || !isOnline) return;
+
+    const sessionKey = `${currentUser.uid}:${resolvedToken}`;
+    if (connectedSessionKeyRef.current === sessionKey) return;
+    connectedSessionKeyRef.current = sessionKey;
+
+    (async () => {
+      const allowCreate =
+        !pendingInvite.villageToken &&
+        !isVillageMemberAccount &&
+        requestedRole !== 'family' &&
+        requestedRole !== 'nanny' &&
+        userRole === 'admin';
+
+      const { village, member, notFound } = await ensureVillageConnection({
+        villageToken: resolvedToken,
+        user: currentUser,
+        displayName: parentName || currentUser.displayName || 'Caregiver',
+        requestedRole,
+        allowCreateIfMissing: allowCreate,
+        babyName,
+        babyDob,
+        babyAge,
+        fluidTarget
+      });
+
+      if (notFound) {
+        // Fallback to server snapshot if parent hasn't synced Firestore hub yet
+        let restoredFromServer = false;
+        try {
+          const res = await fetch(`/api/sync/restore/${encodeURIComponent(resolvedToken)}`);
+          if (res.ok) {
+            const result = await res.json();
+            if (result?.data) {
+              restoredFromServer = true;
+              markApplyingRemoteVillage();
+              if (result.data.babyName) setBabyName(result.data.babyName);
+              if (result.data.babyDob) setBabyDob(result.data.babyDob);
+              if (result.data.babyAge) setBabyAge(result.data.babyAge);
+              if (Array.isArray(result.data.sleepLogs)) setSleepLogs(result.data.sleepLogs);
+              if (Array.isArray(result.data.feedingLogs)) setFeedingLogs(result.data.feedingLogs);
+              if (Array.isArray(result.data.diaperLogs)) setDiaperLogs(result.data.diaperLogs);
+              if (Array.isArray(result.data.growthLogs)) setGrowthLogs(result.data.growthLogs);
+              showAppToast(`Loaded ${result.data.babyName || 'Baby'}'s Village snapshot. Ask the parent to stay signed in for live updates.`, 'success');
+            }
+          }
+        } catch {}
+
+        if (!restoredFromServer) {
+          connectedSessionKeyRef.current = '';
+          clearStoredVillageConnection();
+          setActiveVillageToken('');
+          setVillageOwnerId('');
+          try {
+            localStorage.removeItem('ama_pending_village_role');
+          } catch {}
+          showAppToast('Village hub not found. Ask the Primary Parent to copy a fresh Village Invite Link from Settings.', 'error');
+        }
+        return;
+      }
+
+      try {
+        localStorage.removeItem('ama_pending_village_role');
+      } catch {}
+
+      if (village?.ownerId) {
+        setVillageOwnerId(village.ownerId);
+        localStorage.setItem('ama_village_owner_id', village.ownerId);
+
+        // Immediately hydrate remote Village baby details & encrypted snapshot for joining members
+        if (village.ownerId !== currentUser.uid) {
+          markApplyingRemoteVillage();
+          localStorage.setItem('ama_onboarding_account_type', 'village_member');
+          if (village.babyName) {
+            setBabyName(village.babyName);
+            localStorage.setItem('babyName', village.babyName);
+          }
+          if (village.babyDob) {
+            setBabyDob(village.babyDob);
+            localStorage.setItem('babyDob', village.babyDob);
+          }
+          if (village.babyAge) {
+            setBabyAge(village.babyAge);
+            localStorage.setItem('babyAge', village.babyAge);
+          }
+          if (typeof village.fluidTarget === 'number') setFluidTarget(village.fluidTarget);
+          if (Array.isArray(village.babyProfiles) && village.babyProfiles.length > 0) {
+            setBabyProfiles(village.babyProfiles);
+            localStorage.setItem('ama_baby_profiles', JSON.stringify(village.babyProfiles));
+          }
+          if (village.activeBabyId) {
+            setActiveBabyId(village.activeBabyId);
+            localStorage.setItem('ama_active_baby_id', village.activeBabyId);
+          }
+          if (Array.isArray(village.allergenMatrix) && village.allergenMatrix.length > 0) {
+            setAllergenMatrix(village.allergenMatrix);
+          }
+          if (Array.isArray(village.vaccineSchedule) && village.vaccineSchedule.length > 0) {
+            setVaccineSchedule(sanitizeVaccineSchedule(village.vaccineSchedule));
+          }
+          if (village.encryptedPayload) {
+            try {
+              const dec = JSON.parse(decryptString(village.encryptedPayload));
+              if (Array.isArray(dec.sleepLogs)) {
+                setSleepLogs((prev) => mergeLogArraysByIdentity(prev, dec.sleepLogs.map((p: any, i: number) => ({ docId: p.id || `vs_${i}`, payload: p }))));
+              }
+              if (Array.isArray(dec.feedingLogs)) {
+                setFeedingLogs((prev) => mergeLogArraysByIdentity(prev, dec.feedingLogs.map((p: any, i: number) => ({ docId: p.id || `vf_${i}`, payload: p }))));
+              }
+              if (Array.isArray(dec.diaperLogs)) {
+                setDiaperLogs((prev) => mergeLogArraysByIdentity(prev, dec.diaperLogs.map((p: any, i: number) => ({ docId: p.id || `vd_${i}`, payload: p }))));
+              }
+              if (Array.isArray(dec.growthLogs)) {
+                setGrowthLogs((prev) => mergeLogArraysByIdentity(prev, dec.growthLogs.map((p: any, i: number) => ({ docId: p.id || `vg_${i}`, payload: p }))));
+              }
+            } catch {}
+          }
+          // Fetch shared_logs/latest catch-up bundle immediately
+          try {
+            const sharedSnap = await getDoc(doc(db, 'villages', resolvedToken, 'shared_logs', 'latest'));
+            if (sharedSnap.exists()) {
+              const bundle = sharedSnap.data()?.payload || {};
+              if (Array.isArray(bundle.loggedMeals)) setLoggedMeals((prev) => mergeLogArraysByIdentity(prev, bundle.loggedMeals.map((p: any, i: number) => ({ docId: p.id || `slm_${i}`, payload: p }))));
+              if (Array.isArray(bundle.feedingLogs)) setFeedingLogs((prev) => mergeLogArraysByIdentity(prev, bundle.feedingLogs.map((p: any, i: number) => ({ docId: p.id || `slf_${i}`, payload: p }))));
+              if (Array.isArray(bundle.sleepLogs)) setSleepLogs((prev) => mergeLogArraysByIdentity(prev, bundle.sleepLogs.map((p: any, i: number) => ({ docId: p.id || `sls_${i}`, payload: p }))));
+              if (Array.isArray(bundle.diaperLogs)) setDiaperLogs((prev) => mergeLogArraysByIdentity(prev, bundle.diaperLogs.map((p: any, i: number) => ({ docId: p.id || `sld_${i}`, payload: p }))));
+              if (Array.isArray(bundle.growthLogs)) setGrowthLogs((prev) => mergeLogArraysByIdentity(prev, bundle.growthLogs.map((p: any, i: number) => ({ docId: p.id || `slg_${i}`, payload: p }))));
+              if (Array.isArray(bundle.loggedMoods)) setLoggedMoods((prev) => mergeLogArraysByIdentity(prev, bundle.loggedMoods.map((p: any, i: number) => ({ docId: p.id || `slmo_${i}`, payload: p }))));
+            }
+          } catch {}
+          showAppToast(`Connected live to ${village.babyName || 'Baby'}'s Care Village!`, 'success');
+        }
+      }
+
+      if (member) {
+        if (member.status === 'revoked') {
+          showAppToast('Your access to this Village Care Hub has been revoked by the Primary Parent.', 'error');
+          const nextConns = removeVillageConnectionEntry(resolvedToken);
+          setVillageConnections(nextConns);
+          clearStoredVillageConnection();
+          setActiveVillageToken('');
+          setVillageOwnerId('');
+          setVillageMembers([]);
+          return;
+        }
+        setUserRole(member.accessType);
+        localStorage.setItem('userRole', member.accessType);
+        if (member.accessType === 'nanny') {
+          setObservationLogs((prev) => prev.filter((o) => o?.type !== 'diary' || o?.isPublic || o?.authorRole === 'nanny'));
+        }
+      }
+
+      if (village?.ownerId) {
+        const updatedList = upsertVillageConnectionEntry({
+          villageToken: resolvedToken,
+          villageOwnerId: village.ownerId,
+          babyName: village.babyName || babyName || 'Baby',
+          babyDob: village.babyDob || babyDob,
+          babyAge: village.babyAge || babyAge,
+          role: member?.accessType || userRole,
+          isOwnChild: village.ownerId === currentUser.uid,
+          addedAt: new Date().toISOString(),
+          lastSyncedAt: new Date().toISOString()
+        });
+        setVillageConnections(updatedList);
+      }
+    })();
+  }, [currentUser, isInitialLoadComplete, isOnline, showOnboarding, activeVillageToken, userRole]);
+
+  // Real-time Firestore subscriptions for Hub metadata, Member roles, Granular baby logs, and Shielded Family Diary
+  useEffect(() => {
+    const isOnboarded = localStorage.getItem('ama_onboarded') === 'true';
+    if (!currentUser || !activeVillageToken || !villageOwnerId || !isOnline || !isOnboarded || showOnboarding) {
+      return;
+    }
+
+    const unsubscribe = subscribeToVillageRealtime({
+      villageToken: activeVillageToken,
+      userId: currentUser.uid,
+      villageOwnerId,
+      role: userRole,
+      onHubUpdate: (hub) => {
+        if (hub.updatedBy === currentUser.uid) return;
+        markApplyingRemoteVillage();
+        if (hub.babyName) setBabyName(hub.babyName);
+        if (hub.babyDob) setBabyDob(hub.babyDob);
+        if (hub.babyAge) setBabyAge(hub.babyAge);
+        if (typeof hub.fluidTarget === 'number') setFluidTarget(hub.fluidTarget);
+        if (Array.isArray(hub.babyProfiles) && hub.babyProfiles.length > 0) {
+          setBabyProfiles(hub.babyProfiles);
+          localStorage.setItem('ama_baby_profiles', JSON.stringify(hub.babyProfiles));
+        }
+        if (hub.activeBabyId) {
+          setActiveBabyId(hub.activeBabyId);
+          localStorage.setItem('ama_active_baby_id', hub.activeBabyId);
+        }
+        if (Array.isArray(hub.allergenMatrix) && hub.allergenMatrix.length > 0) setAllergenMatrix(hub.allergenMatrix);
+        if (Array.isArray(hub.vaccineSchedule) && hub.vaccineSchedule.length > 0) {
+          setVaccineSchedule(sanitizeVaccineSchedule(hub.vaccineSchedule));
+        }
+      },
+      onSelfMemberUpdate: (member) => {
+        if (member.status === 'revoked') {
+          showAppToast('Your access to this Village Care Hub was revoked by the Primary Parent.', 'error');
+          clearStoredVillageConnection();
+          setActiveVillageToken('');
+          setVillageOwnerId('');
+          setVillageMembers([]);
+          return;
+        }
+        if (member.accessType !== userRole) {
+          setUserRole(member.accessType);
+          showAppToast(
+            `Your Village access was updated to ${
+              member.accessType === 'admin'
+                ? 'Parent (Admin)'
+                : member.accessType === 'family'
+                  ? 'Family Circle'
+                  : 'Caregiver / Nanny'
+            }.`,
+            'success'
+          );
+          if (member.accessType === 'nanny') {
+            markApplyingRemoteVillage();
+            setObservationLogs((prev) =>
+              prev.filter((o) => o?.type !== 'diary' || o?.isPublic || o?.authorRole === 'nanny')
+            );
+          }
+        }
+      },
+      onMembersListUpdate: (members) => {
+        setVillageMembers(members);
+        const familyUids = Array.from(
+          new Set([
+            villageOwnerId,
+            ...members.filter((m) => m.status === 'active' && m.accessType !== 'nanny').map((m) => m.uid)
+          ])
+        ).slice(0, 25);
+        try {
+          localStorage.setItem('ama_village_family_uids', JSON.stringify(familyUids));
+        } catch {}
+
+        if (currentUser.uid === villageOwnerId) {
+          const permKey = members
+            .map((m) => `${m.uid}:${m.accessType}:${m.status}`)
+            .sort()
+            .join('|');
+          if (permKey && permKey !== lastPropagatedPermKeyRef.current) {
+            lastPropagatedPermKeyRef.current = permKey;
+            propagateVillagePermissions({
+              villageToken: activeVillageToken,
+              villageOwnerId,
+              members
+            }).catch(() => {});
+          }
+        }
+      },
+      onSharedSnapshotUpdate: (bundle, updatedBy) => {
+        if (updatedBy === currentUser.uid) return;
+        markApplyingRemoteVillage();
+        if (Array.isArray(bundle.loggedMeals)) {
+          setLoggedMeals((prev) => mergeLogArraysByIdentity(prev, bundle.loggedMeals!.map((p, i) => ({ docId: p.id || `sm_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.feedingLogs)) {
+          setFeedingLogs((prev) => mergeLogArraysByIdentity(prev, bundle.feedingLogs!.map((p, i) => ({ docId: p.id || `sf_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.sleepLogs)) {
+          setSleepLogs((prev) => mergeLogArraysByIdentity(prev, bundle.sleepLogs!.map((p, i) => ({ docId: p.id || `ss_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.diaperLogs)) {
+          setDiaperLogs((prev) => mergeLogArraysByIdentity(prev, bundle.diaperLogs!.map((p, i) => ({ docId: p.id || `sd_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.growthLogs)) {
+          setGrowthLogs((prev) => mergeLogArraysByIdentity(prev, bundle.growthLogs!.map((p, i) => ({ docId: p.id || `sg_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.loggedMoods)) {
+          setLoggedMoods((prev) => mergeLogArraysByIdentity(prev, bundle.loggedMoods!.map((p, i) => ({ docId: p.id || `smo_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.publicObservations)) {
+          setObservationLogs((prev) => {
+            const incoming = bundle.publicObservations!.map((p, i) => ({ docId: p.id || `so_${i}`, payload: p }));
+            const merged = mergeLogArraysByIdentity(prev, incoming);
+            return userRole === 'nanny'
+              ? merged.filter((o) => o?.type !== 'diary' || o?.isPublic || o?.authorRole === 'nanny')
+              : merged;
+          });
+        }
+        if (Array.isArray(bundle.activities) && bundle.activities.length > 0) setActivities(bundle.activities);
+        if (typeof bundle.fluidMl === 'number') setFluidMl(bundle.fluidMl);
+        if (bundle.hygieneLog && typeof bundle.hygieneLog === 'object') setHygieneLog(bundle.hygieneLog);
+        if (typeof bundle.sunlightToday === 'number') setSunlightToday(bundle.sunlightToday);
+        if (bundle.teethingMap && typeof bundle.teethingMap === 'object') setTeethingMap(bundle.teethingMap);
+        if (Array.isArray(bundle.checkedMilestones)) {
+          setCheckedMilestones((prev) => Array.from(new Set([...prev, ...bundle.checkedMilestones!])));
+        }
+        if (typeof bundle.questTimeToday === 'number') setQuestTimeToday(bundle.questTimeToday);
+        if (Array.isArray(bundle.questLogs)) {
+          setQuestLogs((prev) => mergeLogArraysByIdentity(prev, bundle.questLogs!.map((p, i) => ({ docId: p.id || `sq_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.readingLogs)) {
+          setReadingLogs((prev) => mergeLogArraysByIdentity(prev, bundle.readingLogs!.map((p, i) => ({ docId: p.id || `sr_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.scheduledMeals)) {
+          setScheduledMeals((prev) => mergeLogArraysByIdentity(prev, bundle.scheduledMeals!.map((p, i) => ({ docId: p.id || `ssm_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.scheduledActivities)) {
+          setScheduledActivities((prev) => mergeLogArraysByIdentity(prev, bundle.scheduledActivities!.map((p, i) => ({ docId: p.id || `ssa_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.scheduledMeds)) {
+          setScheduledMeds((prev) => mergeLogArraysByIdentity(prev, bundle.scheduledMeds!.map((p, i) => ({ docId: p.id || `ssmed_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.reminders)) {
+          setReminders((prev) => mergeLogArraysByIdentity(prev, bundle.reminders!.map((p, i) => ({ docId: p.id || `srem_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.memories)) {
+          setMemories((prev) => mergeLogArraysByIdentity(prev, bundle.memories!.map((p, i) => ({ docId: p.id || `smem_${i}`, payload: p }))));
+        }
+        if (Array.isArray(bundle.personalRecipes)) {
+          setPersonalRecipes((prev) => mergeLogArraysByIdentity(prev, bundle.personalRecipes!.map((p, i) => ({ docId: p.id || `srec_${i}`, payload: p }))));
+        }
+        if (bundle.weeklyPlan && Object.keys(bundle.weeklyPlan).length > 0) setWeeklyPlan(bundle.weeklyPlan);
+        if (Array.isArray(bundle.groceryChecked)) setGroceryChecked(bundle.groceryChecked);
+      },
+      onLogsUpdate: (docs) => {
+        if (!docs.length) return;
+        markApplyingRemoteVillage();
+
+        const byType = (type: string) =>
+          docs.filter((d) => d.logType === type).map((d) => ({ docId: d.id, payload: d.payload }));
+
+        const meals = byType('meal');
+        if (meals.length) setLoggedMeals((prev) => mergeLogArraysByIdentity(prev, meals));
+
+        const milkFeeds = byType('milk_feed');
+        if (milkFeeds.length) setFeedingLogs((prev) => mergeLogArraysByIdentity(prev, milkFeeds));
+
+        const sleeps = byType('sleep');
+        if (sleeps.length) setSleepLogs((prev) => mergeLogArraysByIdentity(prev, sleeps));
+
+        const diapers = byType('diaper');
+        if (diapers.length) setDiaperLogs((prev) => mergeLogArraysByIdentity(prev, diapers));
+
+        const growths = byType('growth');
+        if (growths.length) setGrowthLogs((prev) => mergeLogArraysByIdentity(prev, growths));
+
+        const moods = byType('mood');
+        if (moods.length) setLoggedMoods((prev) => mergeLogArraysByIdentity(prev, moods));
+
+        const obs = byType('observation');
+        if (obs.length) {
+          setObservationLogs((prev) => {
+            const merged = mergeLogArraysByIdentity(prev, obs);
+            return userRole === 'nanny'
+              ? merged.filter((o) => o?.type !== 'diary' || o?.isPublic || o?.authorRole === 'nanny')
+              : merged;
+          });
+        }
+
+        const quests = byType('quest');
+        if (quests.length) setQuestLogs((prev) => mergeLogArraysByIdentity(prev, quests));
+
+        const readings = byType('reading');
+        if (readings.length) setReadingLogs((prev) => mergeLogArraysByIdentity(prev, readings));
+
+        const rems = byType('reminder');
+        if (rems.length) setReminders((prev) => mergeLogArraysByIdentity(prev, rems));
+
+        const mems = byType('memory');
+        if (mems.length) setMemories((prev) => mergeLogArraysByIdentity(prev, mems));
+
+        const recs = byType('recipe');
+        if (recs.length) setPersonalRecipes((prev) => mergeLogArraysByIdentity(prev, recs));
+
+        const scheds = byType('schedule');
+        if (scheds.length) {
+          const schedMeals = scheds.filter((s) => s.payload?._schedKind === 'meal').map((s) => ({ ...s, payload: { ...s.payload } }));
+          const schedActs = scheds.filter((s) => s.payload?._schedKind === 'activity').map((s) => ({ ...s, payload: { ...s.payload } }));
+          const schedMeds = scheds.filter((s) => s.payload?._schedKind === 'med').map((s) => ({ ...s, payload: { ...s.payload } }));
+          if (schedMeals.length) setScheduledMeals((prev) => mergeLogArraysByIdentity(prev, schedMeals));
+          if (schedActs.length) setScheduledActivities((prev) => mergeLogArraysByIdentity(prev, schedActs));
+          if (schedMeds.length) setScheduledMeds((prev) => mergeLogArraysByIdentity(prev, schedMeds));
+        }
+
+        const latestRemoteDoc = (type: string) =>
+          docs
+            .filter((d) => d.logType === type && d.authorId !== currentUser.uid)
+            .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())[0];
+
+        const hyg = latestRemoteDoc('hygiene');
+        if (hyg?.payload && typeof hyg.payload.log === 'object') setHygieneLog((prev) => ({ ...prev, ...hyg.payload.log }));
+
+        const sun = latestRemoteDoc('sunlight');
+        if (sun?.payload && typeof sun.payload.minutes === 'number') setSunlightToday(sun.payload.minutes);
+
+        const hyd = latestRemoteDoc('hydration');
+        if (hyd?.payload && typeof hyd.payload.fluidMl === 'number') setFluidMl(hyd.payload.fluidMl);
+
+        const teeth = latestRemoteDoc('teething');
+        if (teeth?.payload && typeof teeth.payload.map === 'object') setTeethingMap((prev) => ({ ...prev, ...teeth.payload.map }));
+      },
+      onFamilyDiarySnapshotUpdate: (entries, updatedBy) => {
+        if (userRole === 'nanny' || updatedBy === currentUser.uid) return;
+        markApplyingRemoteVillage();
+        setObservationLogs((prev) =>
+          mergeLogArraysByIdentity(prev, entries.map((p, i) => ({ docId: p.id || `fd_${i}`, payload: p })))
+        );
+      },
+      onFamilyDiaryDocsUpdate: (entries) => {
+        if (userRole === 'nanny' || !entries.length) return;
+        markApplyingRemoteVillage();
+        setObservationLogs((prev) =>
+          mergeLogArraysByIdentity(prev, entries.map((d) => ({ docId: d.id, payload: d.payload })))
+        );
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [currentUser, activeVillageToken, villageOwnerId, userRole, isOnline, showOnboarding]);
+
+  // Debounced Village Push: syncs local baby logs, milestones, schedules & family diary to Firestore
+  useEffect(() => {
+    const isOnboarded = localStorage.getItem('ama_onboarded') === 'true';
+    if (
+      !currentUser ||
+      !activeVillageToken ||
+      !villageOwnerId ||
+      !isInitialLoadComplete ||
+      !isOnline ||
+      !isOnboarded ||
+      showOnboarding ||
+      isApplyingRemoteVillageRef.current
+    ) {
+      return;
+    }
+
+    if (villagePushTimeoutRef.current) clearTimeout(villagePushTimeoutRef.current);
+
+    villagePushTimeoutRef.current = setTimeout(async () => {
+      if (isApplyingRemoteVillageRef.current) return;
+
+      const viewerUids = Array.from(
+        new Set([
+          villageOwnerId,
+          currentUser.uid,
+          ...villageMembers.filter((m) => m.status === 'active').map((m) => m.uid)
+        ])
+      ).slice(0, 25);
+
+      const familyUids = Array.from(
+        new Set([
+          villageOwnerId,
+          ...(userRole !== 'nanny' ? [currentUser.uid] : []),
+          ...villageMembers.filter((m) => m.status === 'active' && m.accessType !== 'nanny').map((m) => m.uid)
+        ])
+      ).slice(0, 25);
+
+      const authorName = (parentName || currentUser.displayName || 'Caregiver').slice(0, 80);
+
+      const pushChangedArrayItems = async (
+        logType: Parameters<typeof upsertVillageBabyLog>[0]['logType'],
+        items: any[],
+        extraFields?: Record<string, any>
+      ) => {
+        if (userRole === 'nanny' && (logType === 'growth' || logType === 'milestone' || logType === 'vaccine')) {
+          return;
+        }
+        const recent = (items || []).slice(0, 35);
+        for (let i = 0; i < recent.length; i++) {
+          const item = recent[i];
+          if (!item) continue;
+          const docId = getStableLogId(logType, item, i);
+          const payload = extraFields ? { ...item, ...extraFields } : item;
+          const sig = JSON.stringify(payload);
+          if (pushedLogSignaturesRef.current.get(docId) === sig) continue;
+          pushedLogSignaturesRef.current.set(docId, sig);
+          try {
+            await upsertVillageBabyLog({
+              villageToken: activeVillageToken,
+              villageOwnerId,
+              userId: currentUser.uid,
+              authorName,
+              authorRole: userRole,
+              logType,
+              logId: docId,
+              date: item.date || item.exactTime || new Date().toISOString(),
+              timestamp: item.timestamp || item.time || new Date().toISOString(),
+              viewerUids,
+              payload,
+              babyId: activeBabyId
+            });
+          } catch {}
+        }
+      };
+
+      const publicObservations = (observationLogs || []).filter(
+        (o) => o?.type !== 'diary' || o?.isPublic || o?.authorRole === 'nanny'
+      );
+      const privateDiaryEntries = (observationLogs || []).filter(
+        (o) => o?.type === 'diary' && !o?.isPublic && o?.authorRole !== 'nanny'
+      );
+
+      // Granular baby logs synced for ALL active roles (nanny feeds/sleep/diapers/public notes sync live to parents & family)
+      await Promise.all([
+        pushChangedArrayItems('meal', loggedMeals),
+        pushChangedArrayItems('milk_feed', feedingLogs),
+        pushChangedArrayItems('sleep', sleepLogs),
+        pushChangedArrayItems('diaper', diaperLogs),
+        pushChangedArrayItems('growth', growthLogs),
+        pushChangedArrayItems('mood', loggedMoods),
+        pushChangedArrayItems('observation', publicObservations),
+        pushChangedArrayItems('quest', questLogs),
+        pushChangedArrayItems('reading', readingLogs),
+        pushChangedArrayItems('reminder', reminders),
+        pushChangedArrayItems('memory', memories.slice(0, 15)),
+        pushChangedArrayItems('recipe', personalRecipes.slice(0, 20)),
+        pushChangedArrayItems('schedule', scheduledMeals, { _schedKind: 'meal' }),
+        pushChangedArrayItems('schedule', scheduledActivities, { _schedKind: 'activity' }),
+        pushChangedArrayItems('schedule', scheduledMeds, { _schedKind: 'med' })
+      ]);
+
+      // Compact single-record states (hydration, hygiene, sunlight, teething)
+      const pushSingleton = async (logType: 'hydration' | 'hygiene' | 'sunlight' | 'teething', docId: string, payload: Record<string, any>) => {
+        const sig = JSON.stringify(payload);
+        if (pushedLogSignaturesRef.current.get(docId) === sig) return;
+        pushedLogSignaturesRef.current.set(docId, sig);
+        try {
+          await upsertVillageBabyLog({
+            villageToken: activeVillageToken,
+            villageOwnerId,
+            userId: currentUser.uid,
+            authorName,
+            authorRole: userRole,
+            logType,
+            logId: docId,
+            date: new Date().toISOString(),
+            timestamp: new Date().toISOString(),
+            viewerUids,
+            payload,
+            babyId: activeBabyId
+          });
+        } catch {}
+      };
+
+      await Promise.all([
+        pushSingleton('hydration', `${logIdPrefix(activeVillageToken)}_hydration`, { fluidMl, fluidTarget }),
+        pushSingleton('hygiene', `${logIdPrefix(activeVillageToken)}_hygiene`, { log: hygieneLog }),
+        pushSingleton('sunlight', `${logIdPrefix(activeVillageToken)}_sunlight`, { minutes: sunlightToday }),
+        pushSingleton('teething', `${logIdPrefix(activeVillageToken)}_teething`, { map: teethingMap })
+      ]);
+
+      // Catch-up shared bundle + Hub metadata + Shielded Family Diary (Admin & Family only)
+      if (userRole !== 'nanny') {
+        for (let i = 0; i < Math.min(privateDiaryEntries.length, 35); i++) {
+          const entry = privateDiaryEntries[i];
+          const entryId = getStableLogId('observation', entry, i);
+          const sig = `fd:${JSON.stringify(entry)}`;
+          if (pushedLogSignaturesRef.current.get(entryId) === sig) continue;
+          pushedLogSignaturesRef.current.set(entryId, sig);
+          try {
+            await upsertVillageFamilyDiaryEntry({
+              villageToken: activeVillageToken,
+              villageOwnerId,
+              userId: currentUser.uid,
+              authorName,
+              authorRole: userRole,
+              entryId,
+              date: entry.date,
+              timestamp: entry.timestamp || new Date().toISOString(),
+              familyUids,
+              payload: entry
+            });
+          } catch {}
+        }
+
+        const sharedBundle = {
+          loggedMeals,
+          feedingLogs,
+          sleepLogs,
+          diaperLogs,
+          growthLogs,
+          loggedMoods,
+          publicObservations,
+          activities,
+          fluidMl,
+          hygieneLog,
+          sunlightToday,
+          teethingMap,
+          checkedMilestones,
+          questTimeToday,
+          questLogs,
+          readingLogs,
+          scheduledMeals,
+          scheduledActivities,
+          scheduledMeds,
+          reminders,
+          memories,
+          personalRecipes,
+          weeklyPlan,
+          groceryChecked
+        };
+        const sharedHash = JSON.stringify(sharedBundle);
+        if (sharedHash !== lastSharedBundleHashRef.current) {
+          lastSharedBundleHashRef.current = sharedHash;
+          await pushSharedLogsSnapshot({
+            villageToken: activeVillageToken,
+            villageOwnerId,
+            userId: currentUser.uid,
+            role: userRole,
+            payload: sharedBundle
+          }).catch(() => {});
+        }
+
+        const familyDiaryHash = JSON.stringify(privateDiaryEntries);
+        if (familyDiaryHash !== lastFamilyDiaryHashRef.current) {
+          lastFamilyDiaryHashRef.current = familyDiaryHash;
+          await pushFamilyDiarySnapshot({
+            villageToken: activeVillageToken,
+            villageOwnerId,
+            userId: currentUser.uid,
+            role: userRole,
+            privateDiaryEntries
+          }).catch(() => {});
+        }
+
+        const hubUpdates = {
+          babyName,
+          babyDob,
+          babyAge,
+          activeBabyId,
+          babyProfiles,
+          fluidTarget,
+          allergenMatrix,
+          vaccineSchedule
+        };
+        const hubHash = JSON.stringify(hubUpdates);
+        if (hubHash !== lastHubHashRef.current) {
+          lastHubHashRef.current = hubHash;
+          await updateVillageHubMetadata({
+            villageToken: activeVillageToken,
+            userId: currentUser.uid,
+            role: userRole,
+            updates: hubUpdates
+          }).catch(() => {});
+        }
+      }
+    }, 1200);
+
+    return () => {
+      if (villagePushTimeoutRef.current) clearTimeout(villagePushTimeoutRef.current);
+    };
+  }, [
+    currentUser,
+    activeVillageToken,
+    villageOwnerId,
+    villageMembers,
+    userRole,
+    parentName,
+    babyName,
+    babyDob,
+    babyAge,
+    activeBabyId,
+    babyProfiles,
+    fluidTarget,
+    allergenMatrix,
+    vaccineSchedule,
+    loggedMeals,
+    feedingLogs,
+    sleepLogs,
+    diaperLogs,
+    growthLogs,
+    loggedMoods,
+    observationLogs,
+    activities,
+    fluidMl,
+    hygieneLog,
+    sunlightToday,
+    teethingMap,
+    checkedMilestones,
+    questTimeToday,
+    questLogs,
+    readingLogs,
+    scheduledMeals,
+    scheduledActivities,
+    scheduledMeds,
+    reminders,
+    memories,
+    personalRecipes,
+    weeklyPlan,
+    groceryChecked,
+    isInitialLoadComplete,
+    isOnline,
+    showOnboarding
+  ]);
+
+  function logIdPrefix(token: string) {
+    return token.slice(0, 32).replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+
+  const resetVillagePushRefs = () => {
+    connectedSessionKeyRef.current = '';
+    pushedLogSignaturesRef.current.clear();
+    lastSharedBundleHashRef.current = '';
+    lastFamilyDiaryHashRef.current = '';
+    lastHubHashRef.current = '';
+    lastPropagatedPermKeyRef.current = '';
+  };
+
+  const buildCurrentVillageCacheSnapshot = (
+    token: string,
+    ownerId: string,
+    role: VillageRole
+  ): VillageLocalCacheSnapshot => ({
+    villageToken: token,
+    villageOwnerId: ownerId,
+    userRole: role,
+    babyName,
+    babyAge,
+    babyDob,
+    babyProfiles,
+    activeBabyId,
+    loggedMeals,
+    feedingLogs,
+    sleepLogs,
+    diaperLogs,
+    growthLogs,
+    loggedMoods,
+    observationLogs,
+    activities,
+    fluidMl,
+    fluidTarget,
+    hygieneLog,
+    sunlightToday,
+    teethingMap,
+    checkedMilestones,
+    questTimeToday,
+    questLogs,
+    readingLogs,
+    scheduledMeals,
+    scheduledActivities,
+    scheduledMeds,
+    reminders,
+    memories,
+    personalRecipes,
+    weeklyPlan,
+    groceryChecked,
+    allergenMatrix,
+    vaccineSchedule,
+    updatedAt: new Date().toISOString()
+  });
+
+  const resetLogsForFreshWorkspace = (targetBabyName?: string, targetBabyAge?: string, targetBabyDob?: string) => {
+    markApplyingRemoteVillage();
+    const cleanName = targetBabyName || 'Baby';
+    const cleanAge = targetBabyAge || '6 Months Old';
+    const cleanDob = targetBabyDob || '';
+    setBabyName(cleanName);
+    setBabyAge(cleanAge);
+    setBabyDob(cleanDob);
+    const defaultProfile: BabyProfile = {
+      id: 'baby-primary',
+      name: cleanName,
+      dob: cleanDob,
+      age: cleanAge,
+      gender: 'unspecified',
+      avatarEmoji: '👶'
+    };
+    setBabyProfiles([defaultProfile]);
+    setActiveBabyId('baby-primary');
+    localStorage.setItem('ama_baby_profiles', JSON.stringify([defaultProfile]));
+    localStorage.setItem('ama_active_baby_id', 'baby-primary');
+    setLoggedMeals([]);
+    setFeedingLogs([]);
+    setSleepLogs([]);
+    setDiaperLogs([]);
+    setGrowthLogs([]);
+    setLoggedMoods([]);
+    setObservationLogs([]);
+    setActivities(drawThreeRandomQuests());
+    setFluidMl(0);
+    setFluidTarget(800);
+    setHygieneLog({});
+    setSunlightToday(0);
+    setTeethingMap({});
+    setCheckedMilestones([]);
+    setQuestTimeToday(0);
+    setQuestLogs([]);
+    setReadingLogs([]);
+    setScheduledMeals([]);
+    setScheduledActivities([]);
+    setScheduledMeds([]);
+    setReminders([]);
+    setMemories([]);
+    setPersonalRecipes([]);
+    setWeeklyPlan({});
+    setGroceryChecked([]);
+    setAllergenMatrix([
+      { id: 'peanuts', name: 'Peanuts', status: 'Not Introduced', progressDay: 0 },
+      { id: 'egg', name: 'Egg', status: 'Not Introduced', progressDay: 0 },
+      { id: 'treenuts', name: 'Tree Nuts', status: 'Not Introduced', progressDay: 0 },
+      { id: 'dairy', name: 'Dairy', status: 'Not Introduced', progressDay: 0 },
+      { id: 'soy', name: 'Soy', status: 'Not Introduced', progressDay: 0 },
+      { id: 'sesame', name: 'Sesame', status: 'Not Introduced', progressDay: 0 },
+      { id: 'wheat', name: 'Wheat', status: 'Not Introduced', progressDay: 0 },
+      { id: 'shellfish', name: 'Shellfish', status: 'Not Introduced', progressDay: 0 }
+    ]);
+    setVaccineSchedule(sanitizeVaccineSchedule(DEFAULT_WHO_CDC_VACCINE_SCHEDULE));
+  };
+
+  const applyVillageCacheSnapshot = (snap: VillageLocalCacheSnapshot) => {
+    markApplyingRemoteVillage();
+    if (snap.babyName) setBabyName(snap.babyName);
+    if (snap.babyAge) setBabyAge(snap.babyAge);
+    if (snap.babyDob !== undefined) setBabyDob(snap.babyDob);
+    if (Array.isArray(snap.babyProfiles) && snap.babyProfiles.length > 0) {
+      setBabyProfiles(snap.babyProfiles);
+      localStorage.setItem('ama_baby_profiles', JSON.stringify(snap.babyProfiles));
+    }
+    if (snap.activeBabyId) {
+      setActiveBabyId(snap.activeBabyId);
+      localStorage.setItem('ama_active_baby_id', snap.activeBabyId);
+    }
+    setLoggedMeals(Array.isArray(snap.loggedMeals) ? snap.loggedMeals : []);
+    setFeedingLogs(Array.isArray(snap.feedingLogs) ? snap.feedingLogs : []);
+    setSleepLogs(Array.isArray(snap.sleepLogs) ? snap.sleepLogs : []);
+    setDiaperLogs(Array.isArray(snap.diaperLogs) ? snap.diaperLogs : []);
+    setGrowthLogs(Array.isArray(snap.growthLogs) ? snap.growthLogs : []);
+    setLoggedMoods(Array.isArray(snap.loggedMoods) ? snap.loggedMoods : []);
+    setObservationLogs(Array.isArray(snap.observationLogs) ? snap.observationLogs : []);
+    setActivities(Array.isArray(snap.activities) && snap.activities.length > 0 ? snap.activities : drawThreeRandomQuests());
+    setFluidMl(typeof snap.fluidMl === 'number' ? snap.fluidMl : 0);
+    setFluidTarget(typeof snap.fluidTarget === 'number' ? snap.fluidTarget : 800);
+    setHygieneLog(snap.hygieneLog && typeof snap.hygieneLog === 'object' ? snap.hygieneLog : {});
+    setSunlightToday(typeof snap.sunlightToday === 'number' ? snap.sunlightToday : 0);
+    setTeethingMap(snap.teethingMap && typeof snap.teethingMap === 'object' ? snap.teethingMap : {});
+    setCheckedMilestones(Array.isArray(snap.checkedMilestones) ? snap.checkedMilestones : []);
+    setQuestTimeToday(typeof snap.questTimeToday === 'number' ? snap.questTimeToday : 0);
+    setQuestLogs(Array.isArray(snap.questLogs) ? snap.questLogs : []);
+    setReadingLogs(Array.isArray(snap.readingLogs) ? snap.readingLogs : []);
+    setScheduledMeals(Array.isArray(snap.scheduledMeals) ? snap.scheduledMeals : []);
+    setScheduledActivities(Array.isArray(snap.scheduledActivities) ? snap.scheduledActivities : []);
+    setScheduledMeds(Array.isArray(snap.scheduledMeds) ? snap.scheduledMeds : []);
+    setReminders(Array.isArray(snap.reminders) ? snap.reminders : []);
+    setMemories(Array.isArray(snap.memories) ? snap.memories : []);
+    setPersonalRecipes(Array.isArray(snap.personalRecipes) ? snap.personalRecipes : []);
+    setWeeklyPlan(snap.weeklyPlan && typeof snap.weeklyPlan === 'object' ? snap.weeklyPlan : {});
+    setGroceryChecked(Array.isArray(snap.groceryChecked) ? snap.groceryChecked : []);
+    if (Array.isArray(snap.allergenMatrix) && snap.allergenMatrix.length > 0) {
+      setAllergenMatrix(snap.allergenMatrix);
+    }
+    if (Array.isArray(snap.vaccineSchedule) && snap.vaccineSchedule.length > 0) {
+      setVaccineSchedule(sanitizeVaccineSchedule(snap.vaccineSchedule));
+    }
+  };
+
+  const handleSwitchVillage = (targetToken: string) => {
+    if (!targetToken || targetToken === activeVillageToken) return;
+    if (activeVillageToken) {
+      saveVillageLocalCache(
+        activeVillageToken,
+        buildCurrentVillageCacheSnapshot(activeVillageToken, villageOwnerId, userRole)
+      );
+    }
+
+    const targetConn = villageConnections.find((c) => c.villageToken === targetToken);
+    resetVillagePushRefs();
+    setVillageMembers([]);
+
+    const cached = loadVillageLocalCache(targetToken);
+    if (cached) {
+      applyVillageCacheSnapshot(cached);
+    } else {
+      resetLogsForFreshWorkspace(targetConn?.babyName, targetConn?.babyAge, targetConn?.babyDob);
+    }
+
+    const nextRole: VillageRole = targetConn?.role || cached?.userRole || 'family';
+    const nextOwnerId = targetConn?.villageOwnerId || cached?.villageOwnerId || '';
+    const isOwn = Boolean(targetConn?.isOwnChild || (currentUser && nextOwnerId === currentUser.uid));
+
+    localStorage.setItem('ama_village_sync_token', targetToken);
+    if (nextOwnerId) {
+      localStorage.setItem('ama_village_owner_id', nextOwnerId);
+    } else {
+      localStorage.removeItem('ama_village_owner_id');
+    }
+    localStorage.setItem('ama_onboarding_account_type', isOwn ? 'parent' : 'village_member');
+    localStorage.setItem('userRole', nextRole);
+    localStorage.setItem('ama_user_role', nextRole);
+    localStorage.removeItem('ama_pending_village_role');
+
+    setVillageOwnerId(nextOwnerId);
+    setUserRole(nextRole);
+    setActiveVillageToken(targetToken);
+    showAppToast(`Switched to ${targetConn?.babyName || cached?.babyName || 'Baby'}'s Care Hub (${nextRole === 'admin' ? 'Parent' : nextRole === 'nanny' ? 'Caregiver' : 'Family'})`, 'success');
+  };
+
+  const handleCreateOwnBabyHub = ({ babyName: newName, babyDob: newDob, babyAge: newAge }: { babyName: string; babyDob: string; babyAge: string }) => {
+    const cleanName = newName.trim() || 'Baby';
+    const cleanAge = newAge.trim() || '6 Months Old';
+    if (activeVillageToken) {
+      saveVillageLocalCache(
+        activeVillageToken,
+        buildCurrentVillageCacheSnapshot(activeVillageToken, villageOwnerId, userRole)
+      );
+    }
+    const newToken = generateNewVillageToken(cleanName, currentUser?.uid);
+    const ownerUid = currentUser?.uid || '';
+
+    resetVillagePushRefs();
+    setVillageMembers([]);
+    resetLogsForFreshWorkspace(cleanName, cleanAge, newDob);
+
+    const updatedConns = upsertVillageConnectionEntry({
+      villageToken: newToken,
+      villageOwnerId: ownerUid,
+      babyName: cleanName,
+      babyAge: cleanAge,
+      babyDob: newDob,
+      role: 'admin',
+      isOwnChild: true,
+      addedAt: new Date().toISOString()
+    });
+    setVillageConnections(updatedConns);
+
+    localStorage.setItem('ama_village_sync_token', newToken);
+    localStorage.setItem('ama_village_owner_id', ownerUid);
+    localStorage.setItem('ama_onboarding_account_type', 'parent');
+    localStorage.setItem('userRole', 'admin');
+    localStorage.setItem('ama_user_role', 'admin');
+    localStorage.removeItem('ama_pending_village_role');
+
+    setVillageOwnerId(ownerUid);
+    setUserRole('admin');
+    setActiveVillageToken(newToken);
+    showAppToast(`Created your own Parent hub for ${cleanName}!`, 'success');
+  };
+
+  const handleRemoveVillageConnection = (tokenToRemove: string) => {
+    const updatedConns = removeVillageConnectionEntry(tokenToRemove);
+    setVillageConnections(updatedConns);
+    if (tokenToRemove === activeVillageToken) {
+      const nextHub = updatedConns[0];
+      if (nextHub) {
+        resetVillagePushRefs();
+        const cached = loadVillageLocalCache(nextHub.villageToken);
+        if (cached) applyVillageCacheSnapshot(cached);
+        else resetLogsForFreshWorkspace(nextHub.babyName, nextHub.babyAge, nextHub.babyDob);
+        localStorage.setItem('ama_village_sync_token', nextHub.villageToken);
+        if (nextHub.villageOwnerId) localStorage.setItem('ama_village_owner_id', nextHub.villageOwnerId);
+        else localStorage.removeItem('ama_village_owner_id');
+        setVillageOwnerId(nextHub.villageOwnerId || '');
+        setUserRole(nextHub.role);
+        setActiveVillageToken(nextHub.villageToken);
+      } else {
+        clearStoredVillageConnection();
+        setActiveVillageToken('');
+        setVillageOwnerId('');
+        setVillageMembers([]);
+      }
+    }
+    showAppToast('Removed Village connection.', 'success');
+  };
+
+  const handleConnectVillageToken = (token: string, role?: VillageRole, hintBabyName?: string, initialData?: any) => {
+    if (activeVillageToken && activeVillageToken !== token) {
+      saveVillageLocalCache(
+        activeVillageToken,
+        buildCurrentVillageCacheSnapshot(activeVillageToken, villageOwnerId, userRole)
+      );
+      resetVillagePushRefs();
+      setVillageMembers([]);
+      const cached = loadVillageLocalCache(token);
+      if (cached) {
+        applyVillageCacheSnapshot(cached);
+      } else {
+        resetLogsForFreshWorkspace(
+          hintBabyName || initialData?.babyName || 'Baby',
+          initialData?.babyAge,
+          initialData?.babyDob
+        );
+        if (initialData) {
+          if (Array.isArray(initialData.sleepLogs)) setSleepLogs(initialData.sleepLogs);
+          if (Array.isArray(initialData.feedingLogs)) setFeedingLogs(initialData.feedingLogs);
+          if (Array.isArray(initialData.diaperLogs)) setDiaperLogs(initialData.diaperLogs);
+          if (Array.isArray(initialData.growthLogs)) setGrowthLogs(initialData.growthLogs);
+          if (Array.isArray(initialData.loggedMeals)) setLoggedMeals(initialData.loggedMeals);
+        }
+      }
+    } else if (!activeVillageToken) {
+      resetVillagePushRefs();
+    }
+
+    const effectiveRole: VillageRole = role || 'family';
+    if (role) {
+      localStorage.setItem('ama_pending_village_role', role);
+      setUserRole(role);
+    }
+    if (effectiveRole !== 'admin') {
+      localStorage.setItem('ama_onboarding_account_type', 'village_member');
+      setVillageOwnerId('');
+      localStorage.removeItem('ama_village_owner_id');
+    }
+
+    const updatedConns = upsertVillageConnectionEntry({
+      villageToken: token,
+      villageOwnerId: '',
+      babyName: hintBabyName || initialData?.babyName || 'Baby',
+      babyAge: initialData?.babyAge,
+      babyDob: initialData?.babyDob,
+      role: effectiveRole,
+      isOwnChild: effectiveRole === 'admin',
+      addedAt: new Date().toISOString()
+    });
+    setVillageConnections(updatedConns);
+
+    localStorage.setItem('ama_village_sync_token', token);
+    setActiveVillageToken(token);
+  };
+
+  const handleChangeMemberAccess = async (targetUid: string, accessType?: VillageRole, status?: 'active' | 'revoked') => {
+    if (!activeVillageToken) return;
+    await updateVillageMemberAccess({
+      villageToken: activeVillageToken,
+      targetUid,
+      accessType,
+      status
+    });
+  };
 
   const applySyncData = (data: any) => {
     try {
@@ -2028,21 +3347,18 @@ export default function App() {
           const decodedJson = decodeURIComponent(escape(atob(encodedData.replace(/-/g, '+').replace(/_/g, '/'))));
           const parsed = JSON.parse(decodedJson);
           if (parsed && parsed.babyName) {
-            const confirmMerge = window.confirm(`Found Baby Sync Data for "${parsed.babyName}" from your partner! Would you like to import and merge this with your device?`);
-            if (confirmMerge) {
-              const success = applySyncData(parsed);
-              if (success) {
-                alert("Sync successful! Baby logs and history have been updated.");
-              } else {
-                alert("Failed to parse or apply sync data.");
-              }
+            const success = applySyncData(parsed);
+            if (success) {
+              showAppToast(`Synced "${parsed.babyName}"'s baby logs from your partner's link!`, 'success');
+            } else {
+              showAppToast('Could not apply sync data from that link.', 'error');
             }
           }
         } catch (err) {
           console.error("Failed to decode sync URL hash:", err);
-          alert("Invalid QR or Sync Code.");
+          showAppToast('Invalid QR or Sync Code.', 'error');
         }
-        window.location.hash = ''; // Clear hash
+        window.location.hash = '';
       }
     };
 
@@ -2073,6 +3389,10 @@ export default function App() {
   };
 
   const getSyncLink = () => {
+    const token = activeVillageToken || getStoredVillageToken() || (userRole === 'admin' ? ensureVillageToken(babyName, currentUser?.uid) : '');
+    if (token) {
+      return `${window.location.origin}${window.location.pathname}#role=family&village=${token}&baby=${encodeURIComponent(babyName || 'Baby')}`;
+    }
     const syncState = {
       isPremium,
       babyName,
@@ -2115,7 +3435,7 @@ export default function App() {
     if (showOnboarding && activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'about' && activeScreen !== 'contact' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide')) {
       return {
         pageTitle: 'Welcome Setup & Account Registration',
-        pageContentSummary: 'User is currently seeing the Welcome to Ama Baby onboarding form collecting User Name / Parent Name, 18+ Guardian Date of Birth, Baby details, and authentication via Email & Password, Google Account, or Anonymous Sign-In.'
+        pageContentSummary: 'User is currently seeing the Welcome to Ama Baby onboarding form collecting User Name / Parent Name, 18+ Guardian Date of Birth, Baby details, and authentication via Email & Password, Google Account, or Guest Sign-In.'
       };
     }
     switch (activeScreen) {
@@ -2157,7 +3477,7 @@ export default function App() {
       case 'monitor':
         return { pageTitle: 'Live Baby Monitor', pageContentSummary: `Real-time Live Baby Monitor for pairing a crib station and parent viewer for ${babyLabel}.` };
       case 'settings':
-        return { pageTitle: 'Settings & Account', pageContentSummary: 'Profile settings for Guardian & Baby, Email/Password & Google account sign-in/linking, Village Mode QR/Cloud sync, privacy audit logs, and Ama Premium.' };
+        return { pageTitle: 'Settings & Account', pageContentSummary: 'Profile settings for Guardian & Baby, Email/Password & Google account sign-in/linking, Village Mode live Firestore sync & access permissions, and privacy audit logs.' };
       case 'notifications':
         return { pageTitle: 'Notifications', pageContentSummary: 'Care alerts, vaccine reminders, and Village activity notifications.' };
       case 'reminders':
@@ -2207,6 +3527,71 @@ export default function App() {
           </button>
         </div>
       )}
+      {activeScreen === 'home' && !showOnboarding && (
+        (() => {
+          const isVillageMemberNoHub =
+            localStorage.getItem('ama_onboarding_account_type') === 'village_member' &&
+            !activeVillageToken &&
+            !villageOwnerId;
+          const isPendingSignInForVillage = Boolean(activeVillageToken) && !currentUser;
+          if (!isVillageMemberNoHub && !isPendingSignInForVillage) return null;
+          return (
+            <div className="bg-emerald-50 border-b border-emerald-200 px-4 py-3 text-emerald-950">
+              <div className="max-w-3xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                {isPendingSignInForVillage ? (
+                  <>
+                    <div>
+                      <p className="font-black text-emerald-900">Village Invite Ready ({babyName || 'Baby'})</p>
+                      <p className="text-[11px] text-emerald-800">Sign in to connect live and receive real-time care updates.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-black uppercase tracking-wider border-none cursor-pointer shrink-0"
+                    >
+                      Sign In &amp; Connect Live
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="font-black text-emerald-900">Ready to Join a Baby&apos;s Village?</p>
+                      <p className="text-[11px] text-emerald-800">Paste the Village invite link or token from the baby&apos;s parent to connect.</p>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <input
+                        type="text"
+                        value={bannerVillageInput}
+                        onChange={(e) => setBannerVillageInput(e.target.value)}
+                        placeholder="Paste Village link or token..."
+                        className="flex-1 sm:w-52 bg-white border border-emerald-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-gray-800 outline-none focus:border-emerald-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const parsed = extractVillageInviteFromInput(bannerVillageInput);
+                          if (!parsed.villageToken) {
+                            showAppToast('Please paste a valid Village invite link or token.', 'error');
+                            return;
+                          }
+                          handleConnectVillageToken(parsed.villageToken, parsed.role || userRole);
+                          setBannerVillageInput('');
+                          if (!currentUser) {
+                            setIsAuthModalOpen(true);
+                          }
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-black uppercase tracking-wider border-none cursor-pointer shrink-0"
+                      >
+                        Connect
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })()
+      )}
       <AnimatePresence mode="wait">
         {activeScreen === 'home' && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -2249,6 +3634,10 @@ export default function App() {
               onDeleteBaby={handleDeleteBaby}
               loggedMeals={loggedMeals}
               setLoggedMeals={setLoggedMeals}
+              feedingLogs={feedingLogs}
+              setFeedingLogs={setFeedingLogs}
+              sleepLogs={sleepLogs}
+              setSleepLogs={setSleepLogs}
               diaperLogs={diaperLogs}
               setDiaperLogs={setDiaperLogs}
               setFluidMl={setFluidMl}
@@ -2256,6 +3645,11 @@ export default function App() {
               setObservationLogs={setObservationLogs}
               memories={memories}
               setMemories={setMemories}
+              villageConnections={villageConnections}
+              activeVillageToken={activeVillageToken}
+              onSwitchVillage={handleSwitchVillage}
+              onCreateOwnBabyHub={handleCreateOwnBabyHub}
+              onConnectVillageToken={handleConnectVillageToken}
             />
           </motion.div>
         )}
@@ -2272,6 +3666,8 @@ export default function App() {
               allergenMatrix={allergenMatrix}
               setAllergenMatrix={setAllergenMatrix}
               loggedMeals={loggedMeals}
+              feedingLogs={feedingLogs}
+              setFeedingLogs={setFeedingLogs}
               userRole={userRole}
               initialTab={feedingTrackerTab}
             />
@@ -2294,6 +3690,8 @@ export default function App() {
               scheduledActivities={scheduledActivities} 
               scheduledMeds={scheduledMeds} 
               loggedMeals={loggedMeals}
+              feedingLogs={feedingLogs}
+              setFeedingLogs={setFeedingLogs}
               observationLogs={observationLogs}
               setObservationLogs={setObservationLogs}
               setScheduledMeals={setScheduledMeals}
@@ -2360,6 +3758,14 @@ export default function App() {
               setMemories={setMemories}
               observationLogs={observationLogs}
               userRole={userRole}
+              sleepLogs={sleepLogs}
+              setSleepLogs={setSleepLogs}
+              sunlightToday={sunlightToday}
+              setSunlightToday={setSunlightToday}
+              hygieneLog={hygieneLog}
+              setHygieneLog={setHygieneLog}
+              teethingMap={teethingMap}
+              setTeethingMap={setTeethingMap}
             />
           </motion.div>
         )}
@@ -2367,7 +3773,7 @@ export default function App() {
           <motion.div key="monitor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <BabyMonitor 
               onBack={() => setActiveScreen('home')} 
-              villageToken={localStorage.getItem('ama_village_sync_token') || undefined}
+              villageToken={activeVillageToken || localStorage.getItem('ama_village_sync_token') || undefined}
               babyName={babyName}
             />
           </motion.div>
@@ -2444,6 +3850,19 @@ export default function App() {
             allTimePoints={allTimePoints}
             setAllTimePoints={setAllTimePoints}
             onToggleActivity={handleToggleActivity}
+            checkedMilestones={checkedMilestones}
+            setCheckedMilestones={setCheckedMilestones}
+            questTimeToday={questTimeToday}
+            setQuestTimeToday={setQuestTimeToday}
+            questLogs={questLogs}
+            setQuestLogs={setQuestLogs}
+            readingLogs={readingLogs}
+            setReadingLogs={setReadingLogs}
+            babyName={babyName}
+            babyAge={babyAge}
+            parentName={parentName}
+            currentUser={currentUser}
+            userRole={userRole}
           />
         )}
         {activeScreen === 'notifications' && (
@@ -2489,6 +3908,15 @@ export default function App() {
               addAuditLog={addAuditLog}
               userRole={userRole}
               setUserRole={setUserRole}
+              villageMembers={villageMembers}
+              activeVillageToken={activeVillageToken}
+              villageOwnerId={villageOwnerId}
+              villageConnections={villageConnections}
+              onSwitchVillage={handleSwitchVillage}
+              onCreateOwnBabyHub={handleCreateOwnBabyHub}
+              onRemoveVillageConnection={handleRemoveVillageConnection}
+              onConnectVillageToken={handleConnectVillageToken}
+              onChangeMemberAccess={handleChangeMemberAccess}
               onNavigate={(screen) => setActiveScreen(screen)}
             />
           </motion.div>
@@ -2523,12 +3951,26 @@ export default function App() {
               setVaccineSchedule={setVaccineSchedule}
               babyName={babyName}
               babyAge={babyAge}
+              parentName={parentName}
+              currentUser={currentUser}
               loggedMeals={loggedMeals}
               diaperLogs={diaperLogs}
               onNavigate={handleNavigate}
               initialTab="cry"
               isPremium={isPremium}
               setIsSubscriptionModalOpen={setIsSubscriptionModalOpen}
+              memories={memories}
+              setMemories={setMemories}
+              observationLogs={observationLogs}
+              userRole={userRole}
+              sleepLogs={sleepLogs}
+              setSleepLogs={setSleepLogs}
+              sunlightToday={sunlightToday}
+              setSunlightToday={setSunlightToday}
+              hygieneLog={hygieneLog}
+              setHygieneLog={setHygieneLog}
+              teethingMap={teethingMap}
+              setTeethingMap={setTeethingMap}
             />
           </motion.div>
         )}
@@ -2775,7 +4217,7 @@ export default function App() {
     </div>
 
               <p className="text-xs text-muted leading-relaxed">
-                Copy and merge your baby tracking logs directly to your partner's phone offline via QR code. No account required!
+                Share your encrypted Village Care Hub link or scan this QR code from a partner or caregiver&apos;s device.
               </p>
 
               {/* QR Image display */}
@@ -2786,29 +4228,45 @@ export default function App() {
                     alt="Sync QR Code"
                     className="w-48 h-48"
                   />
-                  
-    </div>
-                <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Scan with partner's camera</span>
-                
-    </div>
+                </div>
+                <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Scan with partner&apos;s camera</span>
+              </div>
 
               <div className="space-y-2.5">
                 <button
                   onClick={() => {
                     const link = getSyncLink();
-                    navigator.clipboard.writeText(link);
-                    alert("Sync URL copied to clipboard! Share it with your partner.");
+                    navigator.clipboard?.writeText(link).catch(() => {});
+                    showAppToast('Village invite link copied to clipboard!', 'success');
                   }}
-                  className="w-full py-3 rounded-2xl bg-primary text-white font-bold text-xs uppercase tracking-wider shadow-md hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full py-3 rounded-2xl bg-primary text-white font-bold text-xs uppercase tracking-wider shadow-md hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5 border-none"
                 >
                   <Link className="w-3.5 h-3.5" />
-                  <span>Copy Partner Sync Link</span>
+                  <span>Copy Village Sync Link</span>
                 </button>
 
-                <button
-                  onClick={() => {
-                    const pasted = prompt("Paste your partner's Sync Link or Sync Code here:");
-                    if (pasted) {
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={qrPasteInput}
+                    onChange={(e) => setQrPasteInput(e.target.value)}
+                    placeholder="Paste Village link, token, or #sync code..."
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-gray-800 outline-none focus:border-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const pasted = qrPasteInput.trim();
+                      if (!pasted) return;
+                      const parsedVillage = extractVillageInviteFromInput(pasted);
+                      if (parsedVillage.villageToken) {
+                        handleConnectVillageToken(parsedVillage.villageToken, parsedVillage.role || 'family');
+                        setQrPasteInput('');
+                        setIsQrModalOpen(false);
+                        showAppToast('Connecting to Village Care Hub...', 'success');
+                        if (!currentUser) setIsAuthModalOpen(true);
+                        return;
+                      }
                       let hashData = pasted;
                       if (pasted.includes('#sync=')) {
                         hashData = pasted.split('#sync=')[1];
@@ -2819,33 +4277,31 @@ export default function App() {
                         if (parsed && parsed.babyName) {
                           const success = applySyncData(parsed);
                           if (success) {
-                            alert("Sync applied! Baby logs and status are fully updated.");
+                            showAppToast('Sync applied! Baby logs and status are updated.', 'success');
+                            setQrPasteInput('');
                             setIsQrModalOpen(false);
                           } else {
-                            alert("Failed to apply sync data.");
+                            showAppToast('Failed to apply sync data.', 'error');
                           }
                         } else {
-                          alert("Invalid sync payload structure.");
+                          showAppToast('Invalid sync payload structure.', 'error');
                         }
-                      } catch (err) {
-                        console.error("Manual paste sync error:", err);
-                        alert("Invalid Sync code/link format. Please make sure to copy the entire link.");
+                      } catch {
+                        showAppToast('Invalid Village link or sync code format.', 'error');
                       }
-                    }
-                  }}
-                  className="w-full py-3 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-solid border-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <span>Paste Partner Sync Link</span>
-                </button>
-                
-    </div>
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs uppercase tracking-wider border-none cursor-pointer shrink-0"
+                  >
+                    Connect
+                  </button>
+                </div>
+              </div>
             </motion.div>
-            
-    </div>
+          </div>
         )}
       </AnimatePresence>
 
-      {/* Interactive First-Launch Onboarding Overlay with Email/Password, Google & Anonymous Sign-In */}
+      {/* Interactive First-Launch Onboarding Overlay with Email/Password, Google & Guest Sign-In */}
       {showOnboarding && activeScreen !== 'landing' && activeScreen !== 'blog' && activeScreen !== 'blog-article' && activeScreen !== 'about' && activeScreen !== 'contact' && activeScreen !== 'user-guide' && activeScreen !== 'legal-terms' && !(activeScreen === 'feeding' && feedingTrackerTab === 'guide') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/45 backdrop-blur-md overflow-y-auto">
           <motion.div
@@ -2855,21 +4311,81 @@ export default function App() {
           >
             <div className="space-y-2 relative z-10">
               <div className="w-14 h-14 bg-primary/10 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-inner border border-primary/20">
-                👶✨
+                {onboardingAccountType === 'village_member' ? '🏘️✨' : '👶✨'}
               </div>
               <div>
                 <h2 className="text-2xl font-serif font-black text-gray-800 leading-tight">Welcome to Ama Baby</h2>
                 <p className="text-xs text-gray-500 mt-1 font-medium leading-relaxed">
-                  Fill in your details below, then create your account or sign in to begin.
+                  {onboardingAccountType === 'village_member'
+                    ? 'Join a baby’s care village as a partner, family member, or caregiver.'
+                    : 'Set up your baby’s workspace, then create your account or sign in to begin.'}
                 </p>
               </div>
             </div>
 
-            {/* Profile & Guardian Details */}
+            {/* Who are you setting this up for? */}
+            <div className="space-y-2 text-left relative z-10">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block pl-1">
+                How are you using Ama Baby? *
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOnboardingAccountType('parent');
+                    setAgeGateError('');
+                  }}
+                  className={`p-3 rounded-2xl text-left border-2 transition-all cursor-pointer ${
+                    onboardingAccountType === 'parent'
+                      ? 'bg-primary/5 border-primary shadow-xs'
+                      : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <p className="text-xs font-black text-gray-900">Parent / Guardian</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">
+                    I have a child &amp; want to create their workspace
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOnboardingAccountType('village_member');
+                    setAgeGateError('');
+                  }}
+                  className={`p-3 rounded-2xl text-left border-2 transition-all cursor-pointer ${
+                    onboardingAccountType === 'village_member'
+                      ? 'bg-emerald-50 border-emerald-600 shadow-xs'
+                      : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <p className="text-xs font-black text-gray-900">Joining a Village</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">
+                    Partner, relative, granny, or caregiver — no child needed
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {onboardingAccountType === 'village_member' && (() => {
+              const urlInvite = parseVillageInviteFromUrl();
+              if (!urlInvite.villageToken) return null;
+              return (
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-left relative z-10">
+                  <p className="text-[11px] font-black text-emerald-900">
+                    Invited to {urlInvite.babyName || 'Baby'}&apos;s Care Village
+                  </p>
+                  <p className="text-[10px] text-emerald-700 mt-0.5">
+                    Role: {onboardingVillageRole === 'nanny' ? 'Caregiver / Nanny' : 'Family Member / Partner'} • Your invite link is pre-filled below.
+                  </p>
+                </div>
+              );
+            })()}
+
+            {/* Profile & Role Details */}
             <div className="space-y-4 text-left relative z-10">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-primary uppercase tracking-widest block pl-1">
-                  User Name / Parent Name *
+                  {onboardingAccountType === 'village_member' ? 'Your Name *' : 'Parent / Guardian Name *'}
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -2880,15 +4396,71 @@ export default function App() {
                       setOnboardingParentName(e.target.value);
                       setAgeGateError('');
                     }}
-                    placeholder="e.g. Amara Okafor or Mom"
+                    placeholder={onboardingAccountType === 'village_member' ? 'e.g. Auntie Kemi, Nana, or Coach Sam' : 'e.g. Amara Okafor or Mom'}
                     className="w-full bg-gray-50 border border-solid border-gray-200 rounded-2xl pl-10 pr-4 py-3 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
                   />
                 </div>
               </div>
 
+              {onboardingAccountType === 'village_member' && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-emerald-700 uppercase tracking-widest block pl-1">
+                      Your Village Role *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOnboardingVillageRole('family')}
+                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                          onboardingVillageRole === 'family'
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-gray-50 text-gray-800 border-gray-200'
+                        }`}
+                      >
+                        <p className="text-[11px] font-black">Family / Partner</p>
+                        <p className={`text-[10px] mt-0.5 ${onboardingVillageRole === 'family' ? 'text-white/85' : 'text-gray-500'}`}>
+                          Partner, grandparent, aunt, uncle, granny
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOnboardingVillageRole('nanny')}
+                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                          onboardingVillageRole === 'nanny'
+                            ? 'bg-slate-900 text-white border-slate-900'
+                            : 'bg-gray-50 text-gray-800 border-gray-200'
+                        }`}
+                      >
+                        <p className="text-[11px] font-black">Nanny / Caregiver</p>
+                        <p className={`text-[10px] mt-0.5 ${onboardingVillageRole === 'nanny' ? 'text-white/85' : 'text-gray-500'}`}>
+                          Daily care logs &amp; shifts
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-emerald-700 uppercase tracking-widest block pl-1">
+                      Village Invite Link or Token (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={onboardingVillageInviteInput}
+                      onChange={(e) => {
+                        setOnboardingVillageInviteInput(e.target.value);
+                        setAgeGateError('');
+                      }}
+                      placeholder="Paste invite link or VILLAGE_... token (or add later in Settings)"
+                      className="w-full bg-gray-50 border border-solid border-gray-200 rounded-2xl px-4 py-2.5 text-xs font-mono font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-emerald-600 transition-all"
+                    />
+                  </div>
+                </>
+              )}
+
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-primary uppercase tracking-widest block pl-1">
-                  Guardian Date of Birth (18+ Verification) *
+                  {onboardingAccountType === 'village_member' ? 'Your Date of Birth (18+ Verification) *' : 'Guardian Date of Birth (18+ Verification) *'}
                 </label>
                 <input
                   type="date"
@@ -2900,45 +4472,51 @@ export default function App() {
                   className="w-full bg-gray-50 border border-solid border-gray-200 rounded-2xl px-4 py-3 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
                 />
                 <p className="text-[10px] text-gray-500 pl-1 leading-normal">
-                  Guardian Notice: Child tracking workspaces must be created and managed by an adult parent or guardian.
+                  {onboardingAccountType === 'village_member'
+                    ? 'Adult Verification: Confirmed 18+ age is required to collaborate inside a family’s baby care village.'
+                    : 'Guardian Notice: Child tracking workspaces must be created and managed by an adult parent or guardian.'}
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-100">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-primary uppercase tracking-widest block pl-1">
-                    Baby&apos;s Name
-                  </label>
-                  <input
-                    type="text"
-                    value={onboardingBabyName}
-                    onChange={(e) => setOnboardingBabyName(e.target.value)}
-                    placeholder="e.g. Leo"
-                    className="w-full bg-gray-50 border border-solid border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
+              {onboardingAccountType === 'parent' && (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-primary uppercase tracking-widest block pl-1">
+                        Baby&apos;s Name
+                      </label>
+                      <input
+                        type="text"
+                        value={onboardingBabyName}
+                        onChange={(e) => setOnboardingBabyName(e.target.value)}
+                        placeholder="e.g. Leo"
+                        className="w-full bg-gray-50 border border-solid border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-all"
+                      />
+                    </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-primary uppercase tracking-widest block pl-1">
-                    Baby&apos;s Date of Birth
-                  </label>
-                  <input
-                    type="date"
-                    value={onboardingBabyDob}
-                    onChange={(e) => {
-                      const dob = e.target.value;
-                      setOnboardingBabyDob(dob);
-                      const calculated = calculateBabyAge(dob);
-                      setOnboardingBabyAge(calculated);
-                    }}
-                    className="w-full bg-gray-50 border border-solid border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
-                  />
-                </div>
-              </div>
-              {onboardingBabyAge && onboardingBabyDob && (
-                <p className="text-[11px] text-primary font-bold pl-1 -mt-2">
-                  Calculated Age: {onboardingBabyAge}
-                </p>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-primary uppercase tracking-widest block pl-1">
+                        Baby&apos;s Date of Birth
+                      </label>
+                      <input
+                        type="date"
+                        value={onboardingBabyDob}
+                        onChange={(e) => {
+                          const dob = e.target.value;
+                          setOnboardingBabyDob(dob);
+                          const calculated = calculateBabyAge(dob);
+                          setOnboardingBabyAge(calculated);
+                        }}
+                        className="w-full bg-gray-50 border border-solid border-gray-200 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary transition-all"
+                      />
+                    </div>
+                  </div>
+                  {onboardingBabyAge && onboardingBabyDob && (
+                    <p className="text-[11px] text-primary font-bold pl-1 -mt-2">
+                      Calculated Age: {onboardingBabyAge}
+                    </p>
+                  )}
+                </>
               )}
 
               {/* 1-Step Microphone Access Verification */}
@@ -3091,14 +4669,14 @@ export default function App() {
                   <span>Continue with Google Account</span>
                 </button>
 
-                {/* Gated Anonymous Sign-In Option */}
+                {/* Gated Guest Sign-In Option */}
                 <button
                   type="button"
                   disabled={isOnboardingAuthLoading}
-                  onClick={handleOnboardingAnonymousAuth}
+                  onClick={handleOnboardingGuestAuth}
                   className="w-full py-2.5 px-4 rounded-2xl font-bold text-xs cursor-pointer border border-dashed border-gray-300 transition-all bg-gray-50 hover:bg-gray-100 text-gray-700 disabled:opacity-50"
                 >
-                  Continue as Anonymous Sign-In (Guest)
+                  Continue as Guest
                 </button>
               </div>
             )}
@@ -3145,7 +4723,7 @@ export default function App() {
         pageTitle={currentPageContext.pageTitle}
         pageContentSummary={currentPageContext.pageContentSummary}
         isOnboarded={localStorage.getItem('ama_onboarded') === 'true' && !showOnboarding}
-        authStatus={currentUser ? (currentUser.isAnonymous ? 'anonymous' : 'signed_in') : 'signed_out'}
+        authStatus={currentUser ? (currentUser.isAnonymous ? 'guest' : 'signed_in') : 'signed_out'}
         parentName={parentName || 'Parent'}
         userRole={userRole}
         onNavigate={(screen) => handleNavigate(screen)}
@@ -3158,14 +4736,6 @@ export default function App() {
         onTake={handleTakeActiveAlarm}
         onSnooze={handleSnoozeActiveAlarm}
         onDismiss={handleDismissActiveAlarm}
-      />
-
-      {/* Paystack Premium Upgrade Modal */}
-      <SubscriptionModal
-        isOpen={isSubscriptionModalOpen}
-        onClose={() => setIsSubscriptionModalOpen(false)}
-        onSubscribe={handleSubscribe}
-        userEmail={currentUser?.email || ''}
       />
 
       {/* Personal Account Auth Modal (Email/Password & Google Sign-In) */}
@@ -3184,9 +4754,9 @@ export default function App() {
         }}
       />
 
-      {/* Anonymous / Guest Account Upgrade Prompt Banner */}
+      {/* Guest Account Upgrade Prompt Banner */}
       {(!currentUser || currentUser.isAnonymous) &&
-        !dismissedAnonPrompt &&
+        !dismissedGuestPrompt &&
         !showOnboarding &&
         !showLegalConsent &&
         activeScreen !== 'landing' &&
@@ -3214,8 +4784,8 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    setDismissedAnonPrompt(true);
-                    sessionStorage.setItem('ama_dismissed_anon_prompt', 'true');
+                    setDismissedGuestPrompt(true);
+                    sessionStorage.setItem('ama_dismissed_guest_prompt', 'true');
                   }}
                   className="px-2.5 py-1.5 rounded-xl bg-gray-100 text-gray-600 text-[11px] font-bold border-none cursor-pointer hover:bg-gray-200 transition-colors"
                 >

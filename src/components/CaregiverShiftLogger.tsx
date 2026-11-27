@@ -29,6 +29,7 @@ import {
 } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { encryptString, decryptString } from '../utils/helpers';
+import { upsertVillageBabyLog } from '../utils/villageSync';
 
 export interface CaregiverShiftRecord {
   id: string;
@@ -40,6 +41,7 @@ export interface CaregiverShiftRecord {
   notes?: string;
   villageToken?: string;
   villageOwnerId?: string;
+  viewerUids?: string[];
   createdAt: string;
 }
 
@@ -241,6 +243,18 @@ const NannyShiftLoggerInner: React.FC<CaregiverShiftLoggerProps> = ({
 
     const validVillageOwnerId = /^[a-zA-Z0-9_-]{1,128}$/.test(villageOwnerRaw) ? villageOwnerRaw : '';
 
+    let cachedFamilyUids: string[] = [];
+    try {
+      const parsedUids = JSON.parse(localStorage.getItem('ama_village_family_uids') || '[]');
+      if (Array.isArray(parsedUids)) {
+        cachedFamilyUids = parsedUids.filter((u) => typeof u === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(u));
+      }
+    } catch {}
+
+    const viewerUids = Array.from(
+      new Set([activeUser.uid, validVillageOwnerId, ...cachedFamilyUids].filter((u) => /^[a-zA-Z0-9_-]{1,128}$/.test(u)))
+    ).slice(0, 25);
+
     const record: CaregiverShiftRecord = {
       id: shiftId,
       caregiverId: activeUser.uid,
@@ -251,13 +265,33 @@ const NannyShiftLoggerInner: React.FC<CaregiverShiftLoggerProps> = ({
       ...(shiftNotes.trim() ? { notes: shiftNotes.trim().slice(0, 1000) } : {}),
       ...(validVillageToken ? { villageToken: validVillageToken } : {}),
       ...(validVillageOwnerId ? { villageOwnerId: validVillageOwnerId } : {}),
+      viewerUids,
       createdAt: new Date().toISOString()
     };
 
     try {
       await setDoc(doc(db, 'caregiver_shifts', shiftId), record);
 
-      // Mirror shift record into encrypted Village snapshot so multi-device Family & Parent devices receive updates
+      // Mirror shift record into village granular logs collection so Parents & Family receive live updates
+      if (validVillageToken && validVillageOwnerId) {
+        try {
+          await upsertVillageBabyLog({
+            villageToken: validVillageToken,
+            villageOwnerId: validVillageOwnerId,
+            userId: activeUser.uid,
+            authorName: record.caregiverName,
+            authorRole: 'nanny',
+            logType: 'caregiver_shift',
+            logId: shiftId,
+            date: record.endTime,
+            timestamp: record.createdAt,
+            viewerUids,
+            payload: record
+          });
+        } catch {}
+      }
+
+      // Mirror shift record into encrypted Village snapshot as secondary fallback
       if (validVillageToken) {
         try {
           const vRef = doc(db, 'villages', validVillageToken);
@@ -532,7 +566,7 @@ const NannyShiftLoggerInner: React.FC<CaregiverShiftLoggerProps> = ({
                     required
                     value={handedOverTo}
                     onChange={(e) => setHandedOverTo(e.target.value)}
-                    placeholder="e.g. Mom (Primary Parent), Dad, Grandma Grace, Relief Nanny"
+                    placeholder="e.g. Mom (Primary Parent), Dad, Granny, Relief Nanny"
                     className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 outline-none focus:border-primary"
                   />
                 </div>
@@ -599,15 +633,21 @@ const CaregiverShiftHistoryInner: React.FC<CaregiverShiftHistoryViewProps> = ({
   useEffect(() => {
     let unsubOwn: (() => void) | null = null;
     let unsubVillageOwner: (() => void) | null = null;
+    let unsubViewer: (() => void) | null = null;
+    let unsubVillageLogs: (() => void) | null = null;
     let unsubVillageDoc: (() => void) | null = null;
 
     let ownMap = new Map<string, CaregiverShiftRecord>();
     let villageOwnerMap = new Map<string, CaregiverShiftRecord>();
+    let viewerMap = new Map<string, CaregiverShiftRecord>();
+    let villageLogsMap = new Map<string, CaregiverShiftRecord>();
     let villageDocMap = new Map<string, CaregiverShiftRecord>();
 
     const mergeAndPublish = () => {
       const merged = new Map<string, CaregiverShiftRecord>();
       for (const [k, v] of villageDocMap.entries()) merged.set(k, v);
+      for (const [k, v] of villageLogsMap.entries()) merged.set(k, v);
+      for (const [k, v] of viewerMap.entries()) merged.set(k, v);
       for (const [k, v] of villageOwnerMap.entries()) merged.set(k, v);
       for (const [k, v] of ownMap.entries()) merged.set(k, v);
 
@@ -622,6 +662,8 @@ const CaregiverShiftHistoryInner: React.FC<CaregiverShiftHistoryViewProps> = ({
     const cleanupListeners = () => {
       if (unsubOwn) { unsubOwn(); unsubOwn = null; }
       if (unsubVillageOwner) { unsubVillageOwner(); unsubVillageOwner = null; }
+      if (unsubViewer) { unsubViewer(); unsubViewer = null; }
+      if (unsubVillageLogs) { unsubVillageLogs(); unsubVillageLogs = null; }
       if (unsubVillageDoc) { unsubVillageDoc(); unsubVillageDoc = null; }
     };
 
@@ -629,6 +671,8 @@ const CaregiverShiftHistoryInner: React.FC<CaregiverShiftHistoryViewProps> = ({
       cleanupListeners();
       ownMap = new Map();
       villageOwnerMap = new Map();
+      viewerMap = new Map();
+      villageLogsMap = new Map();
       villageDocMap = new Map();
       setAuthReadyUid(user?.uid || null);
 
@@ -651,6 +695,7 @@ const CaregiverShiftHistoryInner: React.FC<CaregiverShiftHistoryViewProps> = ({
             notes: data.notes || '',
             villageToken: data.villageToken,
             villageOwnerId: data.villageOwnerId,
+            viewerUids: data.viewerUids,
             createdAt: data.createdAt || ''
           });
         });
@@ -677,11 +722,33 @@ const CaregiverShiftHistoryInner: React.FC<CaregiverShiftHistoryViewProps> = ({
         }
       );
 
+      unsubViewer = onSnapshot(
+        query(collection(db, 'caregiver_shifts'), where('viewerUids', 'array-contains', user.uid), limit(50)),
+        (snap) => mapSnap(snap, viewerMap),
+        () => {}
+      );
+
       let token = '';
       try {
         token = localStorage.getItem('ama_village_sync_token') || '';
       } catch {}
       if (/^[a-zA-Z0-9_-]{1,128}$/.test(token)) {
+        unsubVillageLogs = onSnapshot(
+          query(collection(db, 'villages', token, 'logs'), where('viewerUids', 'array-contains', user.uid), limit(100)),
+          (snap) => {
+            villageLogsMap.clear();
+            snap.forEach((d: any) => {
+              const data = d.data();
+              if (data?.logType === 'caregiver_shift' && data?.payload) {
+                const s = data.payload as CaregiverShiftRecord;
+                if (s?.id) villageLogsMap.set(s.id, s);
+              }
+            });
+            mergeAndPublish();
+          },
+          () => {}
+        );
+
         unsubVillageDoc = onSnapshot(
           doc(db, 'villages', token),
           (vSnap) => {

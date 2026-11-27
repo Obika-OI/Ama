@@ -27,7 +27,7 @@
     },
     "VillageSync": {
       "title": "Village Cloud Sync",
-      "description": "Encrypted multi-device shared family care snapshot for Village Mode.",
+      "description": "Shared multi-device family care hub metadata and configuration for Village Mode.",
       "type": "object",
       "properties": {
         "villageToken": {
@@ -44,6 +44,33 @@
           "type": "string",
           "maxLength": 80
         },
+        "babyDob": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "babyAge": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "activeBabyId": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "babyProfiles": {
+          "type": "array",
+          "maxItems": 10
+        },
+        "fluidTarget": {
+          "type": "number"
+        },
+        "allergenMatrix": {
+          "type": "array",
+          "maxItems": 50
+        },
+        "vaccineSchedule": {
+          "type": "array",
+          "maxItems": 80
+        },
         "encryptedPayload": {
           "type": "string",
           "maxLength": 1048576
@@ -58,7 +85,82 @@
           "maxLength": 64
         }
       },
-      "required": ["villageToken", "ownerId", "encryptedPayload", "updatedAt"]
+      "required": ["villageToken", "ownerId", "updatedAt"]
+    },
+    "VillageMember": {
+      "title": "Village Member & Access Role",
+      "description": "Authorized member within a baby's village with dynamic role-based access control.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "uid": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "villageToken": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "villageOwnerId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "accessType": { "type": "string", "enum": ["admin", "family", "nanny"] },
+        "status": { "type": "string", "enum": ["active", "revoked"] },
+        "familyViewerUids": { "type": "array", "maxItems": 25 },
+        "joinedAt": { "type": "string", "format": "date-time", "maxLength": 64 },
+        "updatedAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": ["id", "uid", "villageToken", "villageOwnerId", "displayName", "accessType", "status", "joinedAt", "updatedAt"]
+    },
+    "VillageBabyLog": {
+      "title": "Synchronized Baby Log Entry",
+      "description": "Individual baby care log (feeding, sleep, diaper, growth, mood, milestone, routine, vaccine) stored dynamically per village.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "villageToken": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "villageOwnerId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "babyId": { "type": "string", "maxLength": 80 },
+        "logType": {
+          "type": "string",
+          "enum": ["meal", "milk_feed", "sleep", "diaper", "growth", "mood", "observation", "hygiene", "sunlight", "teething", "milestone", "quest", "reading", "activity", "hydration", "schedule", "vaccine", "reminder", "memory", "recipe", "caregiver_shift"]
+        },
+        "authorId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "authorRole": { "type": "string", "enum": ["admin", "family", "nanny"] },
+        "date": { "type": "string", "maxLength": 64 },
+        "timestamp": { "type": "string", "maxLength": 64 },
+        "viewerUids": { "type": "array", "maxItems": 25 },
+        "payload": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time", "maxLength": 64 },
+        "updatedAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": ["id", "villageToken", "villageOwnerId", "logType", "authorId", "authorName", "authorRole", "timestamp", "viewerUids", "payload", "createdAt", "updatedAt"]
+    },
+    "VillageFamilyDiary": {
+      "title": "Shielded Family Diary Entry",
+      "description": "Private parent and family reflections accessible only to admin and family access types.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "villageToken": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "villageOwnerId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "authorId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "familyUids": { "type": "array", "maxItems": 25 },
+        "date": { "type": "string", "maxLength": 64 },
+        "timestamp": { "type": "string", "maxLength": 64 },
+        "payload": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time", "maxLength": 64 },
+        "updatedAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": ["id", "villageToken", "villageOwnerId", "authorId", "authorName", "familyUids", "timestamp", "payload", "createdAt", "updatedAt"]
+    },
+    "VillageStateBundle": {
+      "title": "Village State Sync Bundle",
+      "description": "Synchronized catch-up snapshot for shared care logs or family-only diary entries.",
+      "type": "object",
+      "properties": {
+        "villageToken": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "villageOwnerId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "payload": { "type": "object" },
+        "updatedBy": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "updatedAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": ["villageToken", "villageOwnerId", "payload", "updatedBy", "updatedAt"]
     },
     "MonitorSession": {
       "title": "Monitor Session",
@@ -249,7 +351,7 @@
     },
     "CaregiverShift": {
       "title": "Nanny / Caregiver Shift Record",
-      "description": "Caregiver-only shift start/end times and baby care handover documentation.",
+      "description": "Caregiver shift start/end times and baby care handover documentation visible to authorized village family and parents.",
       "type": "object",
       "properties": {
         "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
@@ -261,6 +363,7 @@
         "notes": { "type": "string", "maxLength": 1000 },
         "villageToken": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
         "villageOwnerId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "viewerUids": { "type": "array", "maxItems": 25 },
         "createdAt": { "type": "string", "format": "date-time", "maxLength": 64 }
       },
       "required": ["id", "caregiverId", "caregiverName", "startTime", "endTime", "handedOverTo", "createdAt"]
@@ -360,6 +463,26 @@
         "bannedBy": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 }
       },
       "required": ["id", "targetUserId", "targetDeviceId", "reason", "bannedAt", "bannedBy"]
+    },
+    "CommunityRoom": {
+      "title": "Community Live Room",
+      "description": "User-created public community chat room that other users can discover, join, leave, and participate in.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "topic": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "creatorId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 128 },
+        "creatorName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "creatorRole": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "inviteCode": { "type": "string", "minLength": 4, "maxLength": 16 },
+        "memberIds": { "type": "array", "maxItems": 200 },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time", "maxLength": 64 },
+        "updatedAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+      },
+      "required": ["id", "name", "topic", "description", "creatorId", "creatorName", "creatorRole", "memberIds", "isPublic", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -369,7 +492,27 @@
     },
     "/villages/{villageToken}": {
       "schema": "VillageSync",
-      "description": "Encrypted multi-device Village Mode care snapshot."
+      "description": "Shared multi-device Village Mode household config and baby profile hub."
+    },
+    "/villages/{villageToken}/members/{memberId}": {
+      "schema": "VillageMember",
+      "description": "Role-based access membership records for a baby's village."
+    },
+    "/villages/{villageToken}/logs/{logId}": {
+      "schema": "VillageBabyLog",
+      "description": "Real-time shared baby logs synced dynamically across authorized village members."
+    },
+    "/villages/{villageToken}/shared_logs/{docId}": {
+      "schema": "VillageStateBundle",
+      "description": "Catch-up snapshot of shared care logs for active village members."
+    },
+    "/villages/{villageToken}/family_diary/{entryId}": {
+      "schema": "VillageFamilyDiary",
+      "description": "Shielded private family diary entries accessible only to admin and family access types."
+    },
+    "/villages/{villageToken}/family_state/{docId}": {
+      "schema": "VillageStateBundle",
+      "description": "Catch-up snapshot of shielded family diary entries for admin and family members."
     },
     "/monitors/{villageToken}": {
       "schema": "MonitorSession",
@@ -382,6 +525,10 @@
     "/community_posts/{postId}": {
       "schema": "CommunityPost",
       "description": "Public community forum posts with threaded replies and upvotes."
+    },
+    "/community_rooms/{roomId}": {
+      "schema": "CommunityRoom",
+      "description": "User-created community live chat rooms open for discovery and joining."
     },
     "/community_messages/{messageId}": {
       "schema": "CommunityMessage",

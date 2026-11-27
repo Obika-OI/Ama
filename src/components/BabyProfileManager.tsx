@@ -41,6 +41,7 @@ export const BabyProfileManager: React.FC<BabyProfileManagerProps> = ({
   const [avatarEmoji, setAvatarEmoji] = useState('👶');
   const [notes, setNotes] = useState('');
   const [formError, setFormError] = useState('');
+  const [confirmDeleteBaby, setConfirmDeleteBaby] = useState<BabyProfile | null>(null);
 
   const activeBaby = babyProfiles.find(b => b.id === activeBabyId) || babyProfiles[0] || {
     id: 'default',
@@ -232,11 +233,7 @@ export const BabyProfileManager: React.FC<BabyProfileManagerProps> = ({
                               </button>
                               {babyProfiles.length > 1 && onDeleteBaby && (
                                 <button
-                                  onClick={() => {
-                                    if (window.confirm(`Are you sure you want to remove ${baby.name}'s profile?`)) {
-                                      onDeleteBaby(baby.id);
-                                    }
-                                  }}
+                                  onClick={() => setConfirmDeleteBaby(baby)}
                                   className="w-8 h-8 rounded-xl bg-white hover:bg-sky-50 border border-gray-200 text-gray-400 hover:text-gray-700 flex items-center justify-center cursor-pointer shadow-2xs"
                                   title="Delete profile"
                                 >
@@ -249,6 +246,36 @@ export const BabyProfileManager: React.FC<BabyProfileManagerProps> = ({
                       );
                     })}
                   </div>
+
+                  {confirmDeleteBaby && onDeleteBaby && (
+                    <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 space-y-3">
+                      <p className="text-xs font-bold text-gray-800">
+                        Remove {confirmDeleteBaby.name}&apos;s profile?
+                      </p>
+                      <p className="text-[11px] text-gray-600">
+                        This will remove {confirmDeleteBaby.name} from your active profile switcher on this account.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteBaby(null)}
+                          className="flex-1 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-xs font-bold cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onDeleteBaby(confirmDeleteBaby.id);
+                            setConfirmDeleteBaby(null);
+                          }}
+                          className="flex-1 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold cursor-pointer border-none"
+                        >
+                          Remove Profile
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {userRole === 'admin' && (
                     <button

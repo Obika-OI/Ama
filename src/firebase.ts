@@ -161,7 +161,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
   // Log to console for developer visibility
   if (errInfo.error.includes('auth/admin-restricted-operation')) {
-    console.warn('Anonymous Authentication is disabled in Firebase Console; operating in local storage mode.');
+    console.warn('Guest Authentication is disabled in Firebase Console; operating in local storage mode.');
   }
 
   console.error('Firestore Error: ', JSON.stringify(errInfo));

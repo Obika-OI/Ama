@@ -257,12 +257,6 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
   };
 
   const startListening = async () => {
-    if (!isPremium) {
-      if (onOpenSubscriptionModal) onOpenSubscriptionModal();
-      setErrorMsg('🔒 Acoustic Cry Analysis is an Ama Premium feature. Please upgrade to unlock.');
-      return;
-    }
-
     setErrorMsg('');
     setRecordingSeconds(0);
     recordedAudioChunksRef.current = [];
@@ -473,15 +467,6 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                 Audio Acoustic AI
               </span>
-              {isPremium ? (
-                <span className="bg-primary text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                  <Crown className="w-2.5 h-2.5" /> PRO
-                </span>
-              ) : (
-                <span className="bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                  <Lock className="w-2.5 h-2.5" /> Premium Only
-                </span>
-              )}
               <span className="text-[9px] font-black text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                 {babyName} • {babyAge}
               </span>
@@ -501,35 +486,6 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
           </button>
         )}
       </div>
-
-      {/* Premium Locking Banner if not subscribed */}
-      {!isPremium && (
-        <div className="bg-primary/5 border-2 border-primary/20 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-primary text-white flex items-center justify-center shadow-md shrink-0">
-              <Lock className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h4 className="text-xs sm:text-sm font-bold text-gray-800">Acoustic Cry Analyzer is a Premium Feature</h4>
-                <span className="text-[9px] font-black uppercase bg-primary/10 text-primary px-2 py-0.5 rounded-full">Locked</span>
-              </div>
-              <p className="text-[11px] text-gray-600 font-medium mt-0.5">
-                Analyzes acoustic frequencies and Dunstan sound reflexes (Hunger, Sleep Pressure, Colic, Pain, and Burping).
-              </p>
-            </div>
-          </div>
-          {onOpenSubscriptionModal && (
-            <button
-              onClick={onOpenSubscriptionModal}
-              className="w-full sm:w-auto px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-md shadow-primary/20 shrink-0"
-            >
-              <Crown className="w-4 h-4" />
-              <span>Upgrade with Paystack</span>
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Core Principles & Medical Safety Information Card */}
       <div className="bg-white border-2 border-slate-100 rounded-3xl p-5 space-y-4 text-left shadow-2xs">
@@ -565,7 +521,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
               <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0">
                 🧠
               </span>
-              <h5 className="text-xs font-black text-slate-900">Need Prediction</h5>
+              <h5 className="text-xs font-black text-slate-900">Comfort Pattern Match</h5>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed">
               It compares the audio data against large databases of infant sounds to suggest if the baby is <strong>hungry</strong>, <strong>sleepy</strong>, or <strong>uncomfortable</strong>.
@@ -672,7 +628,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
                 className="px-8 py-4 rounded-full bg-primary hover:bg-primary/90 text-white font-black uppercase text-xs tracking-widest flex items-center gap-2.5 shadow-xl shadow-primary/30 border-none cursor-pointer hover:scale-105 active:scale-95 transition-all"
               >
                 <Mic className="w-5 h-5" />
-                <span>{isPremium ? 'Start Listening & Analyze Cry' : '🔒 Start Cry Analysis (Premium)'}</span>
+                <span>Start Listening &amp; Analyze Cry</span>
               </button>
             )}
           </div>
@@ -690,9 +646,9 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
           <p className="text-xs font-black uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-            <span>🔬</span> <span>Clinical Infant Sound Database Reference Patterns</span>
+            <span>🔬</span> <span>Infant Acoustic Reference Patterns</span>
           </p>
-          <span className="text-[10px] text-gray-400 font-mono">12-Category Pediatric Model</span>
+          <span className="text-[10px] text-gray-400 font-mono">Acoustic Pattern Model</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -804,7 +760,7 @@ export const BabyCryAnalyzer: React.FC<BabyCryAnalyzerProps> = ({
           {/* Soothing Steps */}
           {analysisResult.immediateSoothingSteps && (
             <div className="bg-white p-4 rounded-2xl border border-primary/10 space-y-2">
-              <p className="text-[10px] text-primary font-black uppercase tracking-wider">Recommended Soothing Protocol</p>
+              <p className="text-[10px] text-primary font-black uppercase tracking-wider">Suggested Soothing Ideas</p>
               <ul className="space-y-1.5 text-xs text-gray-700 font-medium">
                 {analysisResult.immediateSoothingSteps.map((step: string, idx: number) => (
                   <li key={idx} className="flex items-start gap-2">

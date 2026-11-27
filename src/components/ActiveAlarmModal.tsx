@@ -64,7 +64,7 @@ export const ActiveAlarmModal: React.FC<ActiveAlarmModalProps> = ({
           </h2>
           {reminder.dosage && (
             <p className="text-sm font-bold text-gray-600">
-              Dosage: <span className="text-primary">{reminder.dosage}</span>
+              Amount / Note: <span className="text-primary">{reminder.dosage}</span>
             </p>
           )}
           <p className="text-xs text-gray-500 max-w-xs mx-auto">

@@ -138,7 +138,7 @@ export function generateDisputeEvidencePdf(data: DisputePdfData): void {
     doc.setFontSize(isSubsequentPage ? 8 : 9);
     doc.setTextColor(226, 232, 240); // slate-200
     doc.text(
-      'OFFICIAL TRANSACTION, SHIPPING & DISPUTE EVIDENCE PACK (FRAUD RECALL RECORD)',
+      'ORDER, SHIPPING & DISPUTE SUMMARY RECORD',
       margin + 4,
       y + (isSubsequentPage ? 11 : 16)
     );
@@ -175,7 +175,7 @@ export function generateDisputeEvidencePdf(data: DisputePdfData): void {
       .reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0)
   ).toString(16).toUpperCase()}`;
 
-  doc.text(`Cryptographic Evidence Hash: ${verificationHash}`, margin + 95, y + 6);
+  doc.text(`Order Reference Hash: ${verificationHash}`, margin + 95, y + 6);
   doc.text(
     `Settlement: ${data.isInternational ? '48h International Settlement' : '24h Local Settlement'}`,
     margin + 95,
@@ -223,12 +223,12 @@ export function generateDisputeEvidencePdf(data: DisputePdfData): void {
 
   y += 26;
 
-  // 2. Verified Parties (Provider and Consumer with Device IDs & KYC)
+  // 2. Recorded Parties (Provider and Consumer Profile Details)
   checkPageBreak(45);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
-  doc.text('2. REGISTERED PARTIES & HARDWARE IDENTIFIERS', margin, y);
+  doc.text('2. RECORDED PARTIES & PROFILE DETAILS', margin, y);
   y += 5;
 
   const colWidth = (pageWidth - margin * 2 - 4) / 2;
@@ -244,9 +244,9 @@ export function generateDisputeEvidencePdf(data: DisputePdfData): void {
   doc.setFontSize(8);
   doc.text(`Name: ${data.sellerName}`, margin + 4, y + 12);
   doc.text(`Phone: ${data.sellerPhone || 'Not provided'}`, margin + 4, y + 17);
-  doc.text(`Email: ${data.sellerEmail || 'Not verified'}`, margin + 4, y + 22);
-  doc.text(`KYC Status: ${data.sellerKycVerified ? 'VERIFIED (Government ID Cleared)' : 'Unverified Tier'}`, margin + 4, y + 27);
-  doc.text(`Hardware Device ID:`, margin + 4, y + 32);
+  doc.text(`Email: ${data.sellerEmail || 'Not provided'}`, margin + 4, y + 22);
+  doc.text(`Profile Check: ${data.sellerKycVerified ? 'ID Info Submitted' : 'Standard Tier'}`, margin + 4, y + 27);
+  doc.text(`Session Device Ref:`, margin + 4, y + 32);
   doc.setFont('courier', 'normal');
   doc.setFontSize(7);
   doc.text(data.sellerDeviceId || 'Unknown', margin + 4, y + 36);
@@ -263,21 +263,21 @@ export function generateDisputeEvidencePdf(data: DisputePdfData): void {
   doc.setFontSize(8);
   doc.text(`Name: ${data.buyerName}`, margin + colWidth + 8, y + 12);
   doc.text(`Phone: ${data.buyerPhone || 'Not provided'}`, margin + colWidth + 8, y + 17);
-  doc.text(`Email: ${data.buyerEmail || 'Not verified'}`, margin + colWidth + 8, y + 22);
-  doc.text(`KYC Status: ${data.buyerKycVerified ? 'VERIFIED (Government ID Cleared)' : 'Unverified Tier'}`, margin + colWidth + 8, y + 27);
-  doc.text(`Hardware Device ID:`, margin + colWidth + 8, y + 32);
+  doc.text(`Email: ${data.buyerEmail || 'Not provided'}`, margin + colWidth + 8, y + 22);
+  doc.text(`Profile Check: ${data.buyerKycVerified ? 'ID Info Submitted' : 'Standard Tier'}`, margin + colWidth + 8, y + 27);
+  doc.text(`Session Device Ref:`, margin + colWidth + 8, y + 32);
   doc.setFont('courier', 'normal');
   doc.setFontSize(7);
   doc.text(data.buyerDeviceId || 'Unknown', margin + colWidth + 8, y + 36);
 
   y += 42;
 
-  // 3. Immutably Locked Provider Payment Details
+  // 3. Snapshot of Provider Payment Details
   checkPageBreak(35);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
-  doc.text('3. IMMUTABLY LOCKED PROVIDER PAYMENT INSTRUCTIONS', margin, y);
+  doc.text('3. RECORDED PROVIDER PAYMENT INSTRUCTIONS', margin, y);
   y += 5;
 
   doc.setFillColor(254, 243, 199); // amber-100
@@ -288,7 +288,7 @@ export function generateDisputeEvidencePdf(data: DisputePdfData): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(120, 53, 15); // amber-900
-  doc.text('IMMUTABILITY LOCK: Attached to order at creation. Provider cannot alter details mid-transaction.', margin + 4, y + 5.5);
+  doc.text('ORDER SNAPSHOT: Payment details captured when this order was created.', margin + 4, y + 5.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -383,8 +383,8 @@ export function generateDisputeEvidencePdf(data: DisputePdfData): void {
       doc.text(`Dispatched At: ${new Date(data.shippingProof.shippedAt).toLocaleString()}`, margin + 4, y + 18);
       doc.text(`Estimated Delivery Window (ETA): ${data.deliveryEta ? new Date(data.deliveryEta).toLocaleString() : 'Standard ETA'}`, margin + 4, y + 24);
 
-      doc.text(`Receipt Uploaded: ${data.shippingProof.receiptDocUrl ? 'Yes (Verified Courier Slip)' : 'Pending'}`, margin + 105, y + 6);
-      doc.text(`Packed Item Photo: ${data.shippingProof.packagePhotoUrl ? 'Yes (Verified Package Photo)' : 'Pending'}`, margin + 105, y + 12);
+      doc.text(`Receipt Uploaded: ${data.shippingProof.receiptDocUrl ? 'Yes (Courier Slip Uploaded)' : 'Pending'}`, margin + 105, y + 6);
+      doc.text(`Packed Item Photo: ${data.shippingProof.packagePhotoUrl ? 'Yes (Package Photo Uploaded)' : 'Pending'}`, margin + 105, y + 12);
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(7.5);
       doc.setTextColor(100, 116, 139);
@@ -491,16 +491,15 @@ export function generateDisputeEvidencePdf(data: DisputePdfData): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(15, 23, 42);
-  doc.text('OFFICIAL CERTIFICATION & FRAUD RECALL NOTICE', margin + 4, y + 5);
+  doc.text('ORDER & DISPUTE SUMMARY NOTICE', margin + 4, y + 5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(51, 65, 85);
   const legalText =
-    'This document is generated directly from the immutable transaction ledger and cryptographic records of the Ama Baby Care platform. ' +
-    'It contains the exact locked banking details, transaction identification numbers, courier waybills, hardware device fingerprints, and verified contact ' +
-    'information for the participating parties. You may submit this official document to your commercial bank, mobile money processor, ' +
-    'fintech platform (OPay, Revolut, PayPal, Wise, etc.), or law enforcement agency to process a fraud recall, investigation, or network dispute.';
+    'This summary document is compiled from user-submitted order records, timestamps, payment transfer notes, courier tracking inputs, ' +
+    'and marketplace chat history recorded on Ama Baby Care. It is provided for personal recordkeeping and reference when communicating ' +
+    'with participating parties or payment provider support teams. Ama Baby Care is not a bank, arbitrator, or law enforcement agency.';
 
   const splitNotice = doc.splitTextToSize(legalText, pageWidth - margin * 2 - 8);
   doc.text(splitNotice, margin + 4, y + 10);

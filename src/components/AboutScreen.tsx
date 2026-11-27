@@ -154,9 +154,9 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
                 <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center">
                   <Lock className="w-5 h-5" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900">4. Absolute Dignity in Data Privacy</h3>
+                <h3 className="text-base font-bold text-slate-900">4. Respectful Approach to Data Privacy</h3>
                 <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                  We believe personal baby journals must never be monetized. Free commercial tracking apps routinely sell infant milestones, weight trends, and feeding histories to advertising brokers. Ama operates with an isolated local-first sandbox: your records stay on your device and are never sold or shared with third-party marketers.
+                  We believe personal baby journals must never be monetized. Free commercial tracking apps routinely sell infant milestones, weight trends, and feeding histories to advertising brokers. Ama operates with a local-first storage model: your records stay on your device unless you choose to sync with your trusted village, and are never sold to third-party marketers.
                 </p>
               </div>
               <div className="pt-2 border-t border-gray-100 text-[11px] font-bold text-sky-800">
@@ -185,15 +185,15 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack, onNavigateApp 
             </div>
             <div className="flex items-start gap-2.5">
               <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              <span><strong>Safety-First Principles:</strong> Clear safety guidance for high-risk choking foods, infant botulism warnings, and safe sleep habits.</span>
+              <span><strong>Safety-First Principles:</strong> Clear safety guidance for high-risk choking foods, age-specific honey & food precautions, and safe sleep habits.</span>
             </div>
             <div className="flex items-start gap-2.5">
               <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              <span><strong>Maternal Wellness:</strong> Dedicated postpartum tools including the Edinburgh Postnatal Depression Scale and restorative self-care.</span>
+              <span><strong>Maternal Wellness:</strong> Dedicated postpartum tools including a postpartum mood self-reflection check-in and restorative self-care.</span>
             </div>
             <div className="flex items-start gap-2.5">
               <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              <span><strong>Village Collaboration:</strong> Secure caregiver invite links and QR syncing so partners and grandmas stay coordinated effortlessly.</span>
+              <span><strong>Village Collaboration:</strong> Secure caregiver invite links and QR syncing so partners, grandparents, and caregivers stay coordinated effortlessly.</span>
             </div>
           </div>
         </section>

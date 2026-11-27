@@ -63,11 +63,11 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       title: '1. Getting Started & Baby Profile Setup',
       category: 'BASICS',
       icon: '👶',
-      summary: 'Setting up your baby profile is the very first logical step on your parenting tracking journey. This section is designed to help you configure your dashboard with absolute ease and clarity, requiring no complex technical knowledge. To start, you will complete our friendly onboarding process by providing your baby’s name and date of birth, which helps the system customize developmental milestones and schedules. We also ask for your verified adult date of birth to ensure that the workspace is managed securely by an adult parent or guardian. You can easily choose your preferred measurement systems, such as ml or oz for fluids, and kg or lbs for weight. Your active dashboard acts as a central hub, presenting your daily growth quests, medication alerts, and quick tracking buttons in one beautiful, high-fidelity layout. By keeping your profile data isolated on your own device, Ama ensures that starting your baby care journal is completely safe, private, and under your control from day one.',
+      summary: 'Setting up your baby profile is the first step on your parenting tracking journey. To start, you will complete onboarding by providing your baby’s name and date of birth, which helps customize developmental milestones and schedules. We also ask for a parent or adult caregiver birth date to help confirm that the workspace is managed by an adult. You can choose your preferred measurement systems, such as ml or oz for fluids, and kg or lbs for weight. Your active dashboard acts as a central hub, presenting daily growth quests, schedule reminders, and quick tracking buttons in one organized layout.',
       steps: [
-        'Complete initial onboarding by providing the baby’s name, birth date, and your verified adult date of birth.',
+        'Complete initial onboarding by providing the baby’s name, birth date, and a parent or adult caregiver birth date.',
         'Choose your preferred measurement units in settings (ml or oz for fluids, kg or lbs for weight).',
-        'Review your dashboard to see daily growth quests, scheduled meal alarms, and quick action logs.'
+        'Review your dashboard to see daily growth quests, scheduled meal reminders, and quick action logs.'
       ],
       tips: [
         'Update your baby’s age milestone anytime in Settings or Growth Tracker to automatically adjust feeding recommendations.',
@@ -76,7 +76,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       faqs: [
         {
           question: 'Why do I need to enter my parent birthdate?',
-          answer: 'Parent or legal guardian authorization ensures secure, adult-managed child care workspaces.'
+          answer: 'Parent or adult caregiver confirmation helps ensure child care workspaces are managed by an adult.'
         }
       ]
     },
@@ -109,7 +109,7 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       ],
       tips: [
         'Always introduce new allergens in the morning so you can monitor your baby’s reactions throughout the day.',
-        'Once an ingredient is successfully cleared for three days with no symptoms, mark it as Cleared.'
+        'Once an ingredient has been logged for three days without noted reactions, mark it as 3-Day Log Complete.'
       ]
     },
     {
@@ -146,18 +146,18 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
     },
     {
       id: 'private-sandbox',
-      title: '6. Private Device-Only Database Sandbox',
+      title: '6. Local-First Browser Storage',
       category: 'SECURITY',
       icon: '🔒',
-      summary: 'Data dignity is a fundamental right, and Ama is designed to guard your family records with absolute security. Unlike typical free parenting applications that track your locations, log screen clicks, and sell baby growth curves to advertising networks, Ama uses a strict, zero-telemetry local-first sandbox model. All baby names, feeding patterns, sleep durations, and health records are saved exclusively within your browser’s private database. You do not need to create an online account or register an email address to start tracking, ensuring complete privacy.',
+      summary: 'Ama is designed around a local-first storage model so your baby names, feeding patterns, sleep durations, and care records are saved locally in your browser storage unless you choose to sync with your family village.',
       steps: [
-        'Verify that your baby logs are stored securely in your local browser sandbox.',
-        'Use the data export tool in Settings to download your complete tracking ledger as a structured file.',
-        'Tap the database purge button in settings to permanently wipe all local and cloud records.'
+        'Review how your baby logs are stored locally in your browser storage.',
+        'Use the data export tool in Settings to download your care history as a structured file.',
+        'Tap the clear-data button in Settings to clear stored local and synced records.'
       ],
       tips: [
         'Export your care ledger as a printable summary to share with your healthcare provider during visits.',
-        'Keep the Zero-Tracking option enabled in Settings for maximum privacy protection.'
+        'Manage local privacy preferences anytime in Settings.'
       ]
     },
     {
@@ -165,23 +165,23 @@ export const AppUserGuide: React.FC<AppUserGuideProps> = ({ onClose, onNavigateT
       title: '7. Acoustic Cry Analyzer & Core Safety Principles',
       category: 'HEALTH',
       icon: '🎙️',
-      summary: 'Infant cries are a natural biological communication, but deciphering what your baby needs during exhausting nights can be challenging. Ama incorporates smart acoustic frequency analysis to support parents. The system processes sound waves using two core principles: Frequency Matching (measuring pitch, rhythm, and intensity) and Need Prediction (comparing audio patterns against sound reflex patterns to suggest if the baby is hungry, sleepy, gassy, or uncomfortable). This tool is for educational parenting support and does not replace professional medical evaluations.',
+      summary: 'Infant cries are a natural biological communication, but figuring out soothing steps during exhausting nights can be challenging. Ama includes an acoustic pattern helper for educational parenting support: Frequency Matching (measuring pitch, rhythm, and intensity) and Comfort Pattern Match (suggesting soothing ideas for hunger, tiredness, burping, or discomfort). This tool is informational only and does not replace professional medical evaluations.',
       steps: [
         'Open the Cry Analyzer and hold your microphone near the baby in a quiet room for 6 seconds.',
         'Review Frequency Matching metrics including pitch (Hz), rhythm tempo, and intensity (dB).',
-        'Check the Need Prediction match and cross-reference with your baby’s recent feeding and diaper logs.',
+        'Check the Comfort Pattern Match and cross-reference with your baby’s recent feeding and diaper logs.',
         'Follow the gentle soothing steps suggested for hunger, tiredness, burping, or tummy comfort.'
       ],
       tips: [
         'Frequency Matching: The software measures the pitch, rhythm, and intensity of the sound.',
-        'Need Prediction: It compares audio data against common infant sound reflexes (such as hunger or burping cues).',
+        'Comfort Pattern Match: It compares audio features with general soothing categories (such as hunger or burping cues).',
         'Important Notice: Educational Support Only: This tool is not a medical device and provides supportive parenting guidance.',
         'Intuition First: Environmental noise may affect acoustic readings; always prioritize parental instincts and consult healthcare providers for illness.'
       ],
       faqs: [
         {
           question: 'Is the Cry Analyzer a substitute for a doctor or pediatrician?',
-          answer: 'No. The cry analyzer is not a medical device. It provides supportive acoustic pattern suggestions for everyday parenting routines. If your baby exhibits signs of fever, illness, severe colic, or distress, seek immediate medical care.'
+          answer: 'No. The cry analyzer is not a medical device. It provides supportive acoustic pattern suggestions for everyday soothing routines. If your baby exhibits signs of fever, illness, severe crying, or distress, seek immediate medical care.'
         },
         {
           question: 'How do I get the most accurate cry reading?',

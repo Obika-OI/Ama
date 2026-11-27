@@ -66,16 +66,10 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
   const [applySuccess, setApplySuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const clearedAllergens = allergenMatrix.filter(a => a.status === 'Cleared').map(a => a.name);
+  const clearedAllergens = allergenMatrix.filter(a => a.status === 'Cleared' || a.status === '3-Day Log Complete').map(a => a.name);
   const suspectedAllergens = allergenMatrix.filter(a => a.status === 'Suspected Reaction').map(a => a.name);
 
   const handleGeneratePlan = async () => {
-    if (!isPremium) {
-      if (onOpenSubscriptionModal) onOpenSubscriptionModal();
-      setErrorMsg('🔒 7-Day AI Meal & Localized Grocery Planner is an Ama Premium feature. Upgrade via Paystack to unlock.');
-      return;
-    }
-
     setIsGenerating(true);
     setErrorMsg('');
     try {
@@ -228,16 +222,6 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {isPremium ? (
-            <span className="bg-primary text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-full flex items-center gap-1">
-              <Crown className="w-3 h-3" /> PRO
-            </span>
-          ) : (
-            <span className="bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase px-2.5 py-1 rounded-full flex items-center gap-1">
-              <Lock className="w-3 h-3" /> Premium Only
-            </span>
-          )}
-
           {onClose && (
             <button
               onClick={onClose}
@@ -248,35 +232,6 @@ export const AiMealPlanner: React.FC<AiMealPlannerProps> = ({
           )}
         </div>
       </div>
-
-      {/* Premium Lock Banner if not subscribed */}
-      {!isPremium && (
-        <div className="bg-primary/5 border-2 border-primary/20 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-primary text-white flex items-center justify-center shadow-md shrink-0">
-              <Lock className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h4 className="text-xs sm:text-sm font-bold text-gray-800">7-Day AI Meal Planner is a Premium Feature</h4>
-                <span className="text-[9px] font-black uppercase bg-primary/10 text-primary px-2 py-0.5 rounded-full">Locked</span>
-              </div>
-              <p className="text-[11px] text-gray-600 font-medium mt-0.5">
-                Generate localized 7-day solid meal menus, allergen filters, and priced grocery market lists.
-              </p>
-            </div>
-          </div>
-          {onOpenSubscriptionModal && (
-            <button
-              onClick={onOpenSubscriptionModal}
-              className="w-full sm:w-auto px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-md shadow-primary/20 shrink-0"
-            >
-              <Crown className="w-4 h-4" />
-              <span>Upgrade with Paystack</span>
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Generator Controls Bar */}
       <div className="bg-slate-50 border border-slate-100 rounded-3xl p-4 sm:p-5 space-y-4">

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
+  auth,
   db, 
   doc, 
   setDoc, 
@@ -53,13 +54,18 @@ export const BabyMonitor: React.FC<BabyMonitorProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [connectionStatus, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'disconnected'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [cameraPermission, setCameraPermission] = useState<'granted' | 'prompt' | 'denied' | 'unknown'>('unknown');
+  const [isRequestingCamera, setIsRequestingCamera] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const localStream = useRef<MediaStream | null>(null);
+  const remoteStream = useRef<MediaStream | null>(null);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const recordedChunks = useRef<Blob[]>([]);
+  const snapshotUnsubsRef = useRef<Array<() => void>>([]);
+  const hasActiveSignalingRef = useRef<boolean>(false);
 
   const sessionDocRef = doc(db, 'monitors', villageToken);
 
@@ -70,44 +76,148 @@ export const BabyMonitor: React.FC<BabyMonitorProps> = ({
     ],
   };
 
+  const acquireCameraMediaStream = async (): Promise<MediaStream> => {
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      throw new Error('Camera access is not supported in this browser or context (requires HTTPS).');
+    }
+    try {
+      return await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true });
+    } catch (primaryErr: any) {
+      if (primaryErr?.name === 'NotAllowedError' || primaryErr?.name === 'PermissionDeniedError') {
+        throw primaryErr;
+      }
+      try {
+        return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      } catch (secondaryErr: any) {
+        if (secondaryErr?.name === 'NotAllowedError' || secondaryErr?.name === 'PermissionDeniedError') {
+          throw secondaryErr;
+        }
+        return await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+    }
+  };
+
+  const requestCameraPermissionPrompt = async (keepStream = false): Promise<MediaStream | null> => {
+    setIsRequestingCamera(true);
+    setErrorMsg('');
+    try {
+      const stream = keepStream
+        ? await acquireCameraMediaStream()
+        : await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      setCameraPermission('granted');
+      if (!keepStream) {
+        stream.getTracks().forEach(t => t.stop());
+        return null;
+      }
+      return stream;
+    } catch (err: any) {
+      const denied = err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError';
+      setCameraPermission(denied ? 'denied' : 'unknown');
+      setErrorMsg(
+        denied
+          ? 'Camera permission is currently blocked. Please allow camera access in your browser address bar settings and tap Retry.'
+          : err?.message || 'Could not access camera or microphone. Please check device permissions.'
+      );
+      return null;
+    } finally {
+      setIsRequestingCamera(false);
+    }
+  };
+
   useEffect(() => {
+    let active = true;
+    const checkAndPromptCameraPermission = async () => {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
+      try {
+        if (navigator.permissions?.query) {
+          const permStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+          if (!active) return;
+          setCameraPermission(permStatus.state as any);
+          permStatus.onchange = () => {
+            if (active) setCameraPermission(permStatus.state as any);
+          };
+          if (permStatus.state === 'prompt') {
+            await requestCameraPermissionPrompt(false);
+          } else if (permStatus.state === 'denied') {
+            setErrorMsg('Camera permission is blocked. Allow camera access in browser site settings to stream video.');
+          }
+          return;
+        }
+      } catch {
+        // Fallback for browsers without navigator.permissions.query('camera')
+      }
+      await requestCameraPermissionPrompt(false);
+    };
+
+    checkAndPromptCameraPermission();
     return () => {
+      active = false;
       stopSession();
     };
   }, []);
 
+  // Ensure mounted <video> elements always receive the active MediaStream
+  useEffect(() => {
+    if (mode === 'camera' && localVideoRef.current && localStream.current) {
+      if (localVideoRef.current.srcObject !== localStream.current) {
+        localVideoRef.current.srcObject = localStream.current;
+      }
+      localVideoRef.current.play().catch(() => {});
+    }
+    if (mode === 'monitor' && remoteVideoRef.current && remoteStream.current) {
+      if (remoteVideoRef.current.srcObject !== remoteStream.current) {
+        remoteVideoRef.current.srcObject = remoteStream.current;
+      }
+      remoteVideoRef.current.play().catch(() => {});
+    }
+  }, [mode, isActive, connectionStatus]);
+
   const stopSession = async () => {
     setIsActive(false);
     setStatus('idle');
-    
+
+    snapshotUnsubsRef.current.forEach(unsub => {
+      try { unsub(); } catch {}
+    });
+    snapshotUnsubsRef.current = [];
+
     if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
-      mediaRecorder.current.stop();
+      try { mediaRecorder.current.stop(); } catch {}
     }
 
     if (localStream.current) {
       localStream.current.getTracks().forEach(track => track.stop());
       localStream.current = null;
     }
+    remoteStream.current = null;
 
     if (peerConnection.current) {
       peerConnection.current.close();
       peerConnection.current = null;
     }
 
-    // Cleanup signaling
+    if (!hasActiveSignalingRef.current || !auth.currentUser) {
+      hasActiveSignalingRef.current = false;
+      return;
+    }
+    hasActiveSignalingRef.current = false;
+
+    // Cleanup signaling only if a signaling session was actually initialized
     try {
       await deleteDoc(sessionDocRef);
       const candidatesCol = collection(db, `monitors/${villageToken}/candidates`);
       const candidates = await getDocs(query(candidatesCol));
-      candidates.forEach(async (d) => {
-        try {
-          await deleteDoc(d.ref);
-        } catch (e) {
-          handleFirestoreError(e, OperationType.DELETE, `monitors/${villageToken}/candidates/${d.id}`);
-        }
-      });
+      await Promise.all(
+        candidates.docs.map(async (d) => {
+          try {
+            await deleteDoc(d.ref);
+          } catch (e) {
+            handleFirestoreError(e, OperationType.DELETE, `monitors/${villageToken}/candidates/${d.id}`);
+          }
+        })
+      );
     } catch (e) {
-      handleFirestoreError(e, OperationType.DELETE, `monitors/${villageToken}`);
+      console.warn('Monitor signaling cleanup notice:', e);
     }
   };
 
@@ -137,8 +247,13 @@ export const BabyMonitor: React.FC<BabyMonitorProps> = ({
 
     // Receive tracks
     peerConnection.current.ontrack = (event) => {
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
+      const stream = event.streams[0];
+      if (stream) {
+        remoteStream.current = stream;
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = stream;
+          remoteVideoRef.current.play().catch(() => {});
+        }
       }
     };
 
@@ -152,60 +267,57 @@ export const BabyMonitor: React.FC<BabyMonitorProps> = ({
 
   const startCameraMode = async () => {
     setErrorMsg('');
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localStream.current = stream;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
-      setMode('camera');
-      setIsActive(true);
-      setStatus('connecting');
+    const stream = await requestCameraPermissionPrompt(true);
+    if (!stream) return;
 
-      setupPeerConnection(false);
+    localStream.current = stream;
+    hasActiveSignalingRef.current = true;
+    setMode('camera');
+    setIsActive(true);
+    setStatus('connecting');
 
-      // Listen for offer from viewer
-      onSnapshot(sessionDocRef, async (snapshot) => {
-        const data = snapshot.data();
-        if (!peerConnection.current || peerConnection.current.signalingState !== 'stable') {
-          if (data?.offer && !peerConnection.current?.remoteDescription) {
-            try {
-              await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(data.offer));
-              const answer = await peerConnection.current?.createAnswer();
-              await peerConnection.current?.setLocalDescription(answer!);
-              await updateDoc(sessionDocRef, { answer: { type: answer!.type, sdp: answer!.sdp } });
-            } catch (e) {
-              handleFirestoreError(e, OperationType.UPDATE, `monitors/${villageToken}`);
-            }
+    setupPeerConnection(false);
+
+    // Listen for offer from viewer
+    const unsubSession = onSnapshot(sessionDocRef, async (snapshot) => {
+      const data = snapshot.data();
+      if (!peerConnection.current || peerConnection.current.signalingState !== 'stable') {
+        if (data?.offer && !peerConnection.current?.remoteDescription) {
+          try {
+            await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await peerConnection.current?.createAnswer();
+            await peerConnection.current?.setLocalDescription(answer!);
+            await updateDoc(sessionDocRef, { answer: { type: answer!.type, sdp: answer!.sdp }, updatedAt: Date.now() });
+          } catch (e) {
+            handleFirestoreError(e, OperationType.UPDATE, `monitors/${villageToken}`);
           }
         }
-      }, (e) => {
-        handleFirestoreError(e, OperationType.GET, `monitors/${villageToken}`);
-      });
+      }
+    }, (e) => {
+      handleFirestoreError(e, OperationType.GET, `monitors/${villageToken}`);
+    });
+    snapshotUnsubsRef.current.push(unsubSession);
 
-      // Listen for ICE candidates from viewer
-      const candidatesCol = collection(db, `monitors/${villageToken}/candidates`);
-      onSnapshot(query(candidatesCol), (snapshot) => {
-        snapshot.docChanges().forEach(async (change) => {
-          if (change.type === 'added') {
-            const data = change.doc.data();
-            if (data.from === 'viewer' && peerConnection.current?.remoteDescription) {
-              await peerConnection.current.addIceCandidate(new RTCIceCandidate(data));
-            }
+    // Listen for ICE candidates from viewer
+    const candidatesCol = collection(db, `monitors/${villageToken}/candidates`);
+    const unsubCandidates = onSnapshot(query(candidatesCol), (snapshot) => {
+      snapshot.docChanges().forEach(async (change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          if (data.from === 'viewer' && peerConnection.current?.remoteDescription) {
+            await peerConnection.current.addIceCandidate(new RTCIceCandidate(data));
           }
-        });
-      }, (e) => {
-        handleFirestoreError(e, OperationType.LIST, `monitors/${villageToken}/candidates`);
+        }
       });
-
-    } catch (err) {
-      console.error(err);
-      setErrorMsg('Could not access camera or microphone. Please check permissions.');
-    }
+    }, (e) => {
+      handleFirestoreError(e, OperationType.LIST, `monitors/${villageToken}/candidates`);
+    });
+    snapshotUnsubsRef.current.push(unsubCandidates);
   };
 
   const startMonitorMode = async () => {
     setErrorMsg('');
+    hasActiveSignalingRef.current = true;
     setMode('monitor');
     setIsActive(true);
     setStatus('connecting');
@@ -225,7 +337,7 @@ export const BabyMonitor: React.FC<BabyMonitorProps> = ({
     }
 
     // Listen for answer from camera
-    onSnapshot(sessionDocRef, async (snapshot) => {
+    const unsubSession = onSnapshot(sessionDocRef, async (snapshot) => {
       const data = snapshot.data();
       if (data?.answer && !peerConnection.current?.remoteDescription) {
         await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(data.answer));
@@ -233,10 +345,11 @@ export const BabyMonitor: React.FC<BabyMonitorProps> = ({
     }, (e) => {
       handleFirestoreError(e, OperationType.GET, `monitors/${villageToken}`);
     });
+    snapshotUnsubsRef.current.push(unsubSession);
 
     // Listen for ICE candidates from camera
     const candidatesCol = collection(db, `monitors/${villageToken}/candidates`);
-    onSnapshot(query(candidatesCol), (snapshot) => {
+    const unsubCandidates = onSnapshot(query(candidatesCol), (snapshot) => {
       snapshot.docChanges().forEach(async (change) => {
         if (change.type === 'added') {
           const data = change.doc.data();
@@ -248,6 +361,7 @@ export const BabyMonitor: React.FC<BabyMonitorProps> = ({
     }, (e) => {
       handleFirestoreError(e, OperationType.LIST, `monitors/${villageToken}/candidates`);
     });
+    snapshotUnsubsRef.current.push(unsubCandidates);
   };
 
   const toggleRecording = () => {
@@ -301,6 +415,27 @@ export const BabyMonitor: React.FC<BabyMonitorProps> = ({
           </div>
         )}
       </header>
+
+      {cameraPermission !== 'granted' && (
+        <div className="p-4 bg-white border border-sky-200 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+          <div className="flex items-center gap-3 text-gray-700">
+            <Camera className="w-5 h-5 text-sky-600 shrink-0" />
+            <span className="font-semibold">
+              {cameraPermission === 'denied'
+                ? 'Camera permission is blocked in browser settings.'
+                : 'Camera permission is required for nursery video feeds.'}
+            </span>
+          </div>
+          <button
+            type="button"
+            disabled={isRequestingCamera}
+            onClick={() => requestCameraPermissionPrompt(false)}
+            className="px-4 py-2 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-black uppercase tracking-wider text-[10px] border-none cursor-pointer shrink-0 disabled:opacity-60"
+          >
+            {isRequestingCamera ? 'Requesting...' : 'Allow Camera Access'}
+          </button>
+        </div>
+      )}
 
       {errorMsg && (
         <div className="p-4 bg-sky-50 border border-sky-100 rounded-3xl flex items-center gap-3 text-sky-900 text-xs font-bold shadow-sm">

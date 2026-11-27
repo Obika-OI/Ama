@@ -26,6 +26,7 @@ import { BabyProfile } from '../types';
 import { FirebaseUser, model } from '../firebase';
 import { GlobalLocation, GlobalLocationPickerModal, POPULAR_GLOBAL_LOCATIONS } from './GlobalLocationPickerModal';
 import { CaregiverShiftLogger } from './CaregiverShiftLogger';
+import { VillageConnectionEntry, VillageRole, extractVillageInviteFromInput } from '../utils/villageSync';
 
 export const Dashboard = ({ 
   onNavigate,
@@ -66,13 +67,22 @@ export const Dashboard = ({
   onDeleteBaby,
   loggedMeals = [],
   setLoggedMeals,
+  feedingLogs = [],
+  setFeedingLogs,
+  sleepLogs = [],
+  setSleepLogs,
   diaperLogs = [],
   setDiaperLogs,
   setFluidMl,
   observationLogs = [],
   setObservationLogs,
   memories = [],
-  setMemories
+  setMemories,
+  villageConnections = [],
+  activeVillageToken = '',
+  onSwitchVillage,
+  onCreateOwnBabyHub,
+  onConnectVillageToken
 }: { 
   onNavigate: (screen: string, data?: any, autoOpenLog?: boolean) => void; 
   isPremium: boolean;
@@ -112,6 +122,10 @@ export const Dashboard = ({
   onDeleteBaby?: (babyId: string) => void;
   loggedMeals?: any[];
   setLoggedMeals?: React.Dispatch<React.SetStateAction<any[]>>;
+  feedingLogs?: any[];
+  setFeedingLogs?: React.Dispatch<React.SetStateAction<any[]>>;
+  sleepLogs?: any[];
+  setSleepLogs?: React.Dispatch<React.SetStateAction<any[]>>;
   diaperLogs?: any[];
   setDiaperLogs?: React.Dispatch<React.SetStateAction<any[]>>;
   setFluidMl?: React.Dispatch<React.SetStateAction<number>>;
@@ -119,6 +133,11 @@ export const Dashboard = ({
   setObservationLogs?: React.Dispatch<React.SetStateAction<any[]>>;
   memories?: any[];
   setMemories?: React.Dispatch<React.SetStateAction<any[]>>;
+  villageConnections?: VillageConnectionEntry[];
+  activeVillageToken?: string;
+  onSwitchVillage?: (token: string) => void;
+  onCreateOwnBabyHub?: (params: { babyName: string; babyDob: string; babyAge: string; avatarEmoji?: string }) => void;
+  onConnectVillageToken?: (token: string, role?: VillageRole) => void;
 }) => {
   const fluidProgress = Math.min(100, (fluidMl / fluidTarget) * 100);
   
@@ -138,112 +157,281 @@ export const Dashboard = ({
   });
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
 
-  // Grandma Mode (Automatic with Village Family Member Access)
-  const [isGrandmaModeActive, setIsGrandmaModeActive] = useState(userRole === 'family');
-  const [grandmaVoiceListening, setGrandmaVoiceListening] = useState(false);
-  const [grandmaToast, setGrandmaToast] = useState('');
+  // Granny Mode (Gender-Neutral, Automatic with Family Circle Access & Full Live Sync)
+  const [isElderModeExpanded, setIsElderModeExpanded] = useState<boolean>(userRole === 'family');
+  const [elderModeEnabledForRole, setElderModeEnabledForRole] = useState<boolean>(userRole === 'family');
+  const [elderVoiceListening, setElderVoiceListening] = useState(false);
+  const [elderVoiceInput, setElderVoiceInput] = useState('');
+  const [isProcessingElderLog, setIsProcessingElderLog] = useState(false);
+  const [elderToast, setElderToast] = useState('');
+  const [elderNapStartMs, setElderNapStartMs] = useState<number | null>(() => {
+    try {
+      const saved = localStorage.getItem('ama_elder_nap_start');
+      const parsed = saved ? parseInt(saved, 10) : NaN;
+      return !isNaN(parsed) && parsed > 0 ? parsed : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Multi-Baby & Multi-Role Village Hub Switcher Modal
+  const [isVillageSwitcherOpen, setIsVillageSwitcherOpen] = useState(false);
+  const [joinVillageInput, setJoinVillageInput] = useState('');
+  const [newOwnBabyName, setNewOwnBabyName] = useState('');
+  const [newOwnBabyDob, setNewOwnBabyDob] = useState('');
+  const [villageModalMsg, setVillageModalMsg] = useState('');
 
   useEffect(() => {
     if (userRole === 'family') {
-      setIsGrandmaModeActive(true);
+      setElderModeEnabledForRole(true);
+      setIsElderModeExpanded(true);
+    } else {
+      setElderModeEnabledForRole(false);
     }
   }, [userRole]);
 
-  const handleGrandmaQuickFeed = () => {
-    if (setLoggedMeals) {
-      const newFeed = {
-        id: `grandma-feed-${Date.now()}`,
-        title: 'Bottle Feed (4 oz)',
-        type: 'bottle',
-        amount: 4,
-        unit: 'oz',
-        timestamp: new Date().toISOString(),
-        date: new Date().toISOString(),
-        loggedBy: 'Grandma / Elder'
-      };
-      setLoggedMeals([newFeed, ...(loggedMeals || [])]);
-    }
-    if (setFluidMl) setFluidMl(prev => prev + 120);
-    setGrandmaToast('🍼 Feed recorded: 4 oz bottle logged for baby!');
-    setTimeout(() => setGrandmaToast(''), 3000);
+  const elderDisplayName =
+    (currentUser && !currentUser.isAnonymous && (currentUser.displayName || currentUser.email?.split('@')[0])) ||
+    parentName ||
+    'Granny';
+
+  const showElderFeedback = (msg: string) => {
+    setElderToast(msg);
+    setTimeout(() => setElderToast(''), 4000);
   };
 
-  const handleGrandmaQuickNap = () => {
-    if (setScheduledActivities) {
-      const newNap = {
-        id: `grandma-nap-${Date.now()}`,
-        title: `Baby Nap (Logged by Grandma)`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isCompleted: true,
-        category: 'Sleep'
-      };
-      setScheduledActivities([newNap, ...(scheduledActivities || [])]);
+  const logSyncedFeed = (amountMl = 120, label = 'Bottle Feed (4 oz / 120 ml)') => {
+    const now = new Date();
+    const newFeed = {
+      id: `elder-bottle-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+      type: 'Bottle Feed',
+      bottleType: 'Milk / Formula',
+      title: label,
+      amount: amountMl,
+      unit: 'ml',
+      timestamp: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      date: now.toLocaleDateString(),
+      exactTime: now.toISOString(),
+      loggedBy: elderDisplayName
+    };
+    if (setFeedingLogs) {
+      setFeedingLogs(prev => [newFeed, ...(prev || [])]);
     }
-    setGrandmaToast('😴 Nap recorded: baby is sleeping peacefully!');
-    setTimeout(() => setGrandmaToast(''), 3000);
+    if (setFluidMl) {
+      setFluidMl(prev => Math.min((fluidTarget || 1000) + 500, prev + amountMl));
+    }
   };
 
-  const handleGrandmaQuickDiaper = () => {
+  const logSyncedSleep = (startMs: number, endMs: number, durationMinutes?: number) => {
+    const startDate = new Date(startMs);
+    const endDate = new Date(endMs);
+    const totalMins =
+      typeof durationMinutes === 'number' && durationMinutes > 0
+        ? Math.round(durationMinutes)
+        : Math.max(1, Math.round((endMs - startMs) / 60000));
+    const hrs = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    const newSleep = {
+      id: `elder-sleep-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+      start: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      end: endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      duration: hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`,
+      quality: '😴',
+      timestamp: endDate.toISOString(),
+      loggedBy: elderDisplayName
+    };
+    if (setSleepLogs) {
+      setSleepLogs(prev => [newSleep, ...(prev || [])]);
+    }
+  };
+
+  const logSyncedDiaper = (kind: 'Wet' | 'Dirty' | 'Both' = 'Wet', note?: string) => {
+    const now = new Date();
+    const newDiaper = {
+      id: `elder-diaper-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+      date: now.toISOString(),
+      type: kind,
+      wetIntensity: kind !== 'Dirty' ? 'Medium' : undefined,
+      notes: note || `Logged via Granny Mode by ${elderDisplayName}`,
+      loggedBy: elderDisplayName
+    };
     if (setDiaperLogs) {
-      const newDiaper = {
-        id: `grandma-diaper-${Date.now()}`,
-        type: 'Wet',
-        status: 'Normal',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        date: new Date().toISOString(),
-        loggedBy: 'Grandma / Elder'
-      };
-      setDiaperLogs([newDiaper, ...(diaperLogs || [])]);
+      setDiaperLogs(prev => [newDiaper, ...(prev || [])]);
     }
-    setGrandmaToast('🚼 Diaper change recorded!');
-    setTimeout(() => setGrandmaToast(''), 3000);
   };
 
-  const handleGrandmaVoiceLog = () => {
+  const logSyncedNote = (title: string, text: string) => {
+    const now = new Date();
+    const entry = {
+      id: `elder-note-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+      date: now.toISOString(),
+      title,
+      mood: '✨ Grateful',
+      notes: text,
+      category: 'Care Note',
+      authorName: elderDisplayName,
+      authorRole: userRole,
+      isPublic: true,
+      timestamp: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: 'diary'
+    };
+    if (setObservationLogs) {
+      setObservationLogs(prev => [entry, ...(prev || [])]);
+    }
+  };
+
+  const handleElderQuickFeed = () => {
+    logSyncedFeed(120, 'Bottle Feed (4 oz / 120 ml)');
+    showElderFeedback(`🍼 Feed logged & synced for ${babyName}: 120 ml (4 oz) bottle!`);
+  };
+
+  const handleElderQuickNap = () => {
+    if (!elderNapStartMs) {
+      const nowMs = Date.now();
+      setElderNapStartMs(nowMs);
+      try {
+        localStorage.setItem('ama_elder_nap_start', String(nowMs));
+      } catch {}
+      const startTimeStr = new Date(nowMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      showElderFeedback(`😴 Nap timer started for ${babyName} at ${startTimeStr}. Tap again when ${babyName} wakes up!`);
+    } else {
+      const nowMs = Date.now();
+      logSyncedSleep(elderNapStartMs, nowMs);
+      setElderNapStartMs(null);
+      try {
+        localStorage.removeItem('ama_elder_nap_start');
+      } catch {}
+      showElderFeedback(`😴 Nap ended & synced to ${babyName}'s Sleep Tracker!`);
+    }
+  };
+
+  const handleElderQuickDiaper = () => {
+    logSyncedDiaper('Wet');
+    showElderFeedback(`🚼 Fresh diaper change logged & synced for ${babyName}!`);
+  };
+
+  const processElderTranscript = async (transcriptText: string) => {
+    const clean = transcriptText.trim();
+    if (!clean) return;
+    setIsProcessingElderLog(true);
+    try {
+      const res = await fetch('/api/omugwo/voice-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transcript: clean,
+          babyName,
+          caregiverName: elderDisplayName
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const p = data?.parsed;
+        if (p) {
+          if (p.actionType === 'feed_bottle') {
+            logSyncedFeed(Number(p.amountMl) || 90, p.title || 'Bottle Feed');
+          } else if (p.actionType === 'feed_breast') {
+            const now = new Date();
+            if (setFeedingLogs) {
+              setFeedingLogs(prev => [
+                {
+                  id: `elder-nursing-${Date.now()}`,
+                  type: 'Nursing Session',
+                  leftDuration: (Number(p.durationMinutes) || 15) * 30,
+                  rightDuration: (Number(p.durationMinutes) || 15) * 30,
+                  timestamp: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                  date: now.toLocaleDateString(),
+                  exactTime: now.toISOString(),
+                  loggedBy: elderDisplayName
+                },
+                ...(prev || [])
+              ]);
+            }
+          } else if (p.actionType === 'sleep') {
+            const mins = Number(p.durationMinutes) || 45;
+            const endMs = Date.now();
+            logSyncedSleep(endMs - mins * 60000, endMs, mins);
+          } else if (p.actionType === 'diaper') {
+            const dtype = p.diaperType === 'dirty' ? 'Dirty' : p.diaperType === 'both' ? 'Both' : 'Wet';
+            logSyncedDiaper(dtype, p.summaryText || clean);
+          } else {
+            logSyncedNote(p.title || 'Granny Note', p.summaryText || clean);
+          }
+          setElderVoiceInput('');
+          showElderFeedback(`🎙️ ${p.spokenConfirmation || `Logged & synced: "${clean}"`}`);
+          return;
+        }
+      }
+    } catch {}
+    finally {
+      setIsProcessingElderLog(false);
+    }
+
+    // Deterministic offline fallback
+    const lower = clean.toLowerCase();
+    if (lower.includes('sleep') || lower.includes('nap') || lower.includes('asleep')) {
+      const minsMatch = lower.match(/(\d+)\s*(?:min|minute)/);
+      const mins = minsMatch ? parseInt(minsMatch[1], 10) : 45;
+      const endMs = Date.now();
+      logSyncedSleep(endMs - mins * 60000, endMs, mins);
+      showElderFeedback(`🎙️ Logged & synced ${mins}m sleep for ${babyName}!`);
+    } else if (lower.includes('feed') || lower.includes('milk') || lower.includes('bottle') || lower.includes('oz') || lower.includes('ml') || lower.includes('drank')) {
+      const ozMatch = lower.match(/(\d+(?:\.\d+)?)\s*(?:oz|ounce)/);
+      const mlMatch = lower.match(/(\d+)\s*ml/);
+      const ml = mlMatch ? parseInt(mlMatch[1], 10) : ozMatch ? Math.round(parseFloat(ozMatch[1]) * 30) : 90;
+      logSyncedFeed(ml, `Bottle Feed (${ml} ml)`);
+      showElderFeedback(`🎙️ Logged & synced ${ml} ml feed for ${babyName}!`);
+    } else if (lower.includes('diaper') || lower.includes('nappy') || lower.includes('wet') || lower.includes('poop')) {
+      const kind = lower.includes('poop') || lower.includes('dirty') ? 'Dirty' : 'Wet';
+      logSyncedDiaper(kind, clean);
+      showElderFeedback(`🎙️ Logged & synced ${kind.toLowerCase()} diaper change for ${babyName}!`);
+    } else {
+      logSyncedNote('Granny Note', clean);
+      showElderFeedback(`🎙️ Saved care note to ${babyName}'s journal!`);
+    }
+    setElderVoiceInput('');
+  };
+
+  const handleElderVoiceLog = () => {
     const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRec) {
       const rec = new SpeechRec();
       rec.continuous = false;
       rec.interimResults = false;
       rec.lang = 'en-US';
-      rec.onstart = () => setGrandmaVoiceListening(true);
-      rec.onend = () => setGrandmaVoiceListening(false);
+      rec.onstart = () => setElderVoiceListening(true);
+      rec.onend = () => setElderVoiceListening(false);
       rec.onerror = () => {
-        setGrandmaVoiceListening(false);
-        setGrandmaToast('Tap again to speak your log.');
-        setTimeout(() => setGrandmaToast(''), 2500);
+        setElderVoiceListening(false);
+        showElderFeedback('Microphone unavailable — type your log in the quick bar below.');
       };
       rec.onresult = (evt: any) => {
         const transcript = evt.results?.[0]?.[0]?.transcript || '';
-        setGrandmaVoiceListening(false);
-        if (!transcript) return;
-        const lower = transcript.toLowerCase();
-        if (lower.includes('sleep') || lower.includes('nap')) {
-          handleGrandmaQuickNap();
-          setGrandmaToast(`🎙️ Voice Logged: "${transcript}" → Nap recorded!`);
-        } else if (lower.includes('feed') || lower.includes('bottle') || lower.includes('milk') || lower.includes('drank') || lower.includes('oz')) {
-          handleGrandmaQuickFeed();
-          setGrandmaToast(`🎙️ Voice Logged: "${transcript}" → Feed recorded!`);
-        } else if (lower.includes('diaper') || lower.includes('wet') || lower.includes('change')) {
-          handleGrandmaQuickDiaper();
-          setGrandmaToast(`🎙️ Voice Logged: "${transcript}" → Diaper recorded!`);
-        } else {
-          setGrandmaToast(`🎙️ Heard: "${transcript}". Say "baby slept" or "baby drank milk".`);
+        setElderVoiceListening(false);
+        if (transcript) {
+          setElderVoiceInput(transcript);
+          processElderTranscript(transcript);
         }
-        setTimeout(() => setGrandmaToast(''), 3500);
       };
       rec.start();
     } else {
-      const phrase = prompt('Grandma Voice Quick Log: What did baby do? (e.g. "baby slept", "baby drank 3 oz", "clean diaper")');
-      if (phrase) {
-        const lower = phrase.toLowerCase();
-        if (lower.includes('sleep') || lower.includes('nap')) handleGrandmaQuickNap();
-        else if (lower.includes('feed') || lower.includes('milk') || lower.includes('bottle') || lower.includes('oz')) handleGrandmaQuickFeed();
-        else if (lower.includes('diaper')) handleGrandmaQuickDiaper();
-        else handleGrandmaQuickFeed();
-      }
+      showElderFeedback('Voice microphone is not supported in this browser — type your quick log below!');
     }
   };
+
+  // Synced today counts for Granny Mode live visibility
+  const elderTodayFeedsCount = (feedingLogs || []).filter((f) => {
+    const d = f?.exactTime ? new Date(f.exactTime) : null;
+    return d && !isNaN(d.getTime()) && isSameDay(d, new Date());
+  }).length;
+  const elderTodaySleepsCount = (sleepLogs || []).filter((s) => {
+    const d = s?.timestamp ? new Date(s.timestamp) : null;
+    return d && !isNaN(d.getTime()) && isSameDay(d, new Date());
+  }).length;
+  const elderTodayDiapersCount = (diaperLogs || []).filter((d) => {
+    const dt = d?.date ? new Date(d.date) : null;
+    return dt && !isNaN(dt.getTime()) && isSameDay(dt, new Date());
+  }).length;
 
   // Quick Inline Scheduler State inside Dashboard Modal
   const [scheduleCategory, setScheduleCategory] = useState<'meal' | 'activity' | 'med' | 'vaccine' | 'routine'>('meal');
@@ -373,6 +561,44 @@ export const Dashboard = ({
         </div>
 
         <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap pt-1">
+          {onSwitchVillage && (
+            <button
+              type="button"
+              onClick={() => {
+                setVillageModalMsg('');
+                setIsVillageSwitcherOpen(true);
+              }}
+              className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-full text-xs font-bold text-emerald-900 transition-all cursor-pointer shrink-0 shadow-2xs"
+              title="Switch between your children and joined baby villages"
+            >
+              <span>🏘️</span>
+              <span className="max-w-[110px] truncate">{babyName || 'Care Hub'}</span>
+              <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-white text-emerald-800 border border-emerald-200">
+                {userRole === 'admin' ? 'Parent' : userRole === 'family' ? 'Family' : 'Caregiver'}
+              </span>
+              {villageConnections.length > 1 && (
+                <span className="text-[9px] font-black bg-emerald-700 text-white px-1.5 py-0.5 rounded-full">
+                  {villageConnections.length}
+                </span>
+              )}
+            </button>
+          )}
+
+          {userRole !== 'family' && (
+            <button
+              type="button"
+              onClick={() => {
+                setElderModeEnabledForRole(true);
+                setIsElderModeExpanded(true);
+              }}
+              className="px-3 py-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-full text-[11px] font-bold text-sky-900 transition-all cursor-pointer shrink-0 hidden sm:flex items-center gap-1.5"
+              title="Open simplified one-touch Granny Mode"
+            >
+              <span>🏡</span>
+              <span>Granny Mode</span>
+            </button>
+          )}
+
           {babyProfiles && babyProfiles.length > 0 && onSelectBaby && onAddBaby && onUpdateBaby && (
             <BabyProfileManager
               babyProfiles={babyProfiles}
@@ -422,7 +648,7 @@ export const Dashboard = ({
               <button
                 onClick={onGoogleSignIn}
                 className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-primary to-accent text-white shadow-md hover:shadow-lg rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0"
-                title="Google Backup: Link your anonymous account to Cloud Storage"
+                title="Google Backup: Link your guest session to Cloud Storage"
               >
                 <Shield className="w-3.5 h-3.5 text-white animate-pulse" />
                 <span>Cloud Backup</span>
@@ -451,177 +677,260 @@ export const Dashboard = ({
     </div>
       </header>
 
-      {/* Grandma Mode (Automatic with Family Member Village Access) */}
-      {(userRole === 'family' || isGrandmaModeActive) && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-sky-50/80 p-6 sm:p-8 rounded-[36px] border-2 border-sky-300 shadow-lg shadow-sky-900/5 space-y-5 text-left"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-200/80 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-sky-200/80 text-sky-900 flex items-center justify-center text-2xl shadow-inner shrink-0">
-                👵
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-sky-200 text-sky-950 font-sans">
-                    Grandma Mode • Village Access
-                  </span>
-                  <span className="text-[10px] font-bold text-sky-800">
-                    High-Contrast One-Touch View
-                  </span>
+      {/* Granny Mode (Gender-Neutral, Automatic with Family Circle Access, Live Synced) */}
+      {(elderModeEnabledForRole || isElderModeExpanded) && (
+        isElderModeExpanded ? (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-sky-50/80 p-6 sm:p-8 rounded-[36px] border-2 border-sky-300 shadow-lg shadow-sky-900/5 space-y-5 text-left"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-200/80 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-sky-200/80 text-sky-900 flex items-center justify-center text-xl shadow-inner shrink-0">
+                  🏡
                 </div>
-                <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-900 mt-0.5">
-                  Welcome, Grandma / Family Elder!
-                </h2>
-                <p className="text-xs text-gray-700">
-                  Easy one-touch buttons and voice logging to help care for {babyName} without complicated settings.
-                </p>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-sky-200 text-sky-950 font-sans">
+                      Granny Mode • Village Access
+                    </span>
+                    <span className="text-[10px] font-bold text-sky-800">
+                      High-Contrast One-Touch Sync
+                    </span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-900 mt-0.5">
+                    Welcome, {elderDisplayName}!
+                  </h2>
+                  <p className="text-xs text-gray-700">
+                    Easy one-touch buttons and voice/text logging synced live with {babyName}&apos;s feeding, sleep, diaper, and journal trackers.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsElderModeExpanded(false);
+                    if (userRole !== 'family') setElderModeEnabledForRole(false);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-white hover:bg-sky-100/70 border border-sky-300 text-gray-700 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Switch to Standard View
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+            {/* Live Synced Today Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="px-3.5 py-2.5 rounded-2xl bg-white border border-sky-200/80 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-gray-600">🍼 Feeds Today</span>
+                <span className="text-sm font-black text-sky-900">{elderTodayFeedsCount}</span>
+              </div>
+              <div className="px-3.5 py-2.5 rounded-2xl bg-white border border-sky-200/80 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-gray-600">😴 Sleeps Today</span>
+                <span className="text-sm font-black text-sky-900">{elderTodaySleepsCount}</span>
+              </div>
+              <div className="px-3.5 py-2.5 rounded-2xl bg-white border border-sky-200/80 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-gray-600">🚼 Diapers Today</span>
+                <span className="text-sm font-black text-sky-900">{elderTodayDiapersCount}</span>
+              </div>
+              <div className="px-3.5 py-2.5 rounded-2xl bg-white border border-sky-200/80 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-gray-600">💧 Fluid Today</span>
+                <span className="text-sm font-black text-sky-900">{fluidMl} ml</span>
+              </div>
+            </div>
+
+            {elderToast && (
+              <div className="p-3.5 rounded-2xl bg-sky-600 text-white text-xs font-black flex items-center gap-2 shadow-md">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{elderToast}</span>
+              </div>
+            )}
+
+            {/* 4 Large One-Touch Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {/* Feed Button */}
               <button
-                onClick={() => setIsGrandmaModeActive(!isGrandmaModeActive)}
-                className="px-3.5 py-2 rounded-xl bg-white hover:bg-sky-100/70 border border-sky-300 text-gray-700 text-xs font-bold transition-all cursor-pointer"
+                type="button"
+                onClick={handleElderQuickFeed}
+                className="p-5 rounded-3xl bg-white hover:bg-sky-50/50 border-2 border-sky-200 hover:border-sky-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
               >
-                {isGrandmaModeActive ? 'Toggle Standard View' : 'Open Grandma Mode 👵'}
+                <div className="flex items-center justify-between">
+                  <span className="text-3xl">🍼</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
+                    +120 ml Sync
+                  </span>
+                </div>
+                <div>
+                  <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-sky-700">
+                    Log Milk Feed (4 oz)
+                  </p>
+                  <p className="text-xs text-gray-500 font-medium mt-0.5">
+                    Saves directly to Feeding Tracker &amp; Hydration
+                  </p>
+                </div>
+              </button>
+
+              {/* Nap Button (Start / End live sleep timer synced to SleepTracker) */}
+              <button
+                type="button"
+                onClick={handleElderQuickNap}
+                className={`p-5 rounded-3xl text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group border-2 ${
+                  elderNapStartMs
+                    ? 'bg-emerald-50 border-emerald-400 hover:bg-emerald-100/70'
+                    : 'bg-white hover:bg-sky-50/50 border-sky-200 hover:border-sky-400'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-3xl">😴</span>
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                    elderNapStartMs ? 'bg-emerald-600 text-white animate-pulse' : 'bg-sky-100 text-sky-800'
+                  }`}>
+                    {elderNapStartMs ? 'Nap Active' : 'Start Nap'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-sky-700">
+                    {elderNapStartMs ? `End ${babyName}'s Nap` : `${babyName} is Asleep`}
+                  </p>
+                  <p className="text-xs text-gray-500 font-medium mt-0.5">
+                    {elderNapStartMs
+                      ? `Started ${new Date(elderNapStartMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Tap to save sleep log`
+                      : 'Tap to start nap timer & sync sleep'}
+                  </p>
+                </div>
+              </button>
+
+              {/* Diaper Button */}
+              <button
+                type="button"
+                onClick={handleElderQuickDiaper}
+                className="p-5 rounded-3xl bg-white hover:bg-sky-50/50 border-2 border-sky-200 hover:border-sky-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-3xl">🚼</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
+                    One Touch
+                  </span>
+                </div>
+                <div>
+                  <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-sky-700">
+                    Diaper Changed
+                  </p>
+                  <p className="text-xs text-gray-500 font-medium mt-0.5">
+                    Saves fresh diaper log to Journal &amp; Village
+                  </p>
+                </div>
+              </button>
+
+              {/* Voice-Activated Quick Log */}
+              <button
+                type="button"
+                onClick={handleElderVoiceLog}
+                className={`p-5 rounded-3xl text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 border-2 ${
+                  elderVoiceListening
+                    ? 'bg-sky-600 text-white border-sky-600 animate-pulse'
+                    : 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-3xl">🎙️</span>
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                    elderVoiceListening ? 'bg-white text-sky-600' : 'bg-sky-400 text-slate-950'
+                  }`}>
+                    {elderVoiceListening ? 'Listening...' : 'Voice Log'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-base sm:text-lg font-black">
+                    {elderVoiceListening ? 'Speak Now...' : 'Tap to Speak Log'}
+                  </p>
+                  <p className={`text-xs ${elderVoiceListening ? 'text-white/90' : 'text-gray-300'} font-medium mt-0.5`}>
+                    Say: &quot;baby slept 45 mins&quot; or &quot;baby drank 3 oz&quot;
+                  </p>
+                </div>
               </button>
             </div>
-          </div>
 
-          {grandmaToast && (
-            <div className="p-3.5 rounded-2xl bg-sky-600 text-white text-xs font-black flex items-center gap-2 shadow-md animate-fade-in">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{grandmaToast}</span>
+            {/* Inline Quick Text / Voice Command Bar (Replaces blocked browser prompt) */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                processElderTranscript(elderVoiceInput);
+              }}
+              className="flex flex-col sm:flex-row gap-2 bg-white p-2.5 rounded-2xl border border-sky-200 shadow-2xs"
+            >
+              <input
+                type="text"
+                value={elderVoiceInput}
+                onChange={(e) => setElderVoiceInput(e.target.value)}
+                placeholder={`Or type a quick care update (e.g. "${babyName} drank 3 oz", "${babyName} slept 40 mins", "dirty diaper")...`}
+                className="flex-1 bg-sky-50/40 border border-sky-100 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-800 placeholder-gray-400 outline-none focus:border-sky-400"
+              />
+              <button
+                type="submit"
+                disabled={!elderVoiceInput.trim() || isProcessingElderLog}
+                className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer disabled:opacity-40 shrink-0"
+              >
+                {isProcessingElderLog ? 'Logging...' : 'Log & Sync'}
+              </button>
+            </form>
+
+            {/* Secondary Quick Action Row: Monitor (Settings Locked) + Record Blessing */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => onNavigate('monitor')}
+                className="p-4 rounded-2xl bg-white hover:bg-gray-50 border border-sky-200 text-gray-900 text-xs font-bold flex items-center justify-between cursor-pointer shadow-2xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Video className="w-5 h-5 text-sky-600" />
+                  <div className="text-left">
+                    <p className="font-black text-gray-900">Smart Video Monitor (Settings Locked)</p>
+                    <p className="text-[10px] text-gray-500">Safely watch {babyName} without changing camera settings</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onNavigate('journal', { tab: 'diary' })}
+                className="p-4 rounded-2xl bg-white hover:bg-gray-50 border border-sky-200 text-gray-900 text-xs font-bold flex items-center justify-between cursor-pointer shadow-2xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Volume2 className="w-5 h-5 text-sky-700" />
+                  <div className="text-left">
+                    <p className="font-black text-gray-900">Record Voice Blessing or Lullaby</p>
+                    <p className="text-[10px] text-gray-500">Record traditional prayers or songs for {babyName}</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </button>
             </div>
-          )}
-
-          {/* 4 Large One-Touch Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {/* Feed Button */}
-            <button
-              onClick={handleGrandmaQuickFeed}
-              className="p-5 rounded-3xl bg-white hover:bg-sky-50/50 border-2 border-sky-200 hover:border-sky-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-3xl">🍼</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
-                  One Touch
-                </span>
-              </div>
+          </motion.div>
+        ) : (
+          <div className="bg-sky-50/90 px-5 py-3 rounded-2xl border border-sky-200 flex items-center justify-between gap-3 text-left">
+            <div className="flex items-center gap-2.5 text-xs">
+              <span className="text-lg">🏡</span>
               <div>
-                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-sky-700">
-                  Log Feed (Bottle / Nursing)
-                </p>
-                <p className="text-xs text-gray-500 font-medium mt-0.5">
-                  Tap when {babyName} finishes drinking
+                <p className="font-black text-gray-900">Granny Mode • Standard View Active</p>
+                <p className="text-[11px] text-gray-600">
+                  Today for {babyName}: {elderTodayFeedsCount} feeds • {elderTodaySleepsCount} sleeps • {elderTodayDiapersCount} diapers
                 </p>
               </div>
-            </button>
-
-            {/* Nap Button */}
+            </div>
             <button
-              onClick={handleGrandmaQuickNap}
-              className="p-5 rounded-3xl bg-white hover:bg-sky-50/50 border-2 border-sky-200 hover:border-sky-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
+              type="button"
+              onClick={() => setIsElderModeExpanded(true)}
+              className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold border-none cursor-pointer shrink-0"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-3xl">😴</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
-                  One Touch
-                </span>
-              </div>
-              <div>
-                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-sky-700">
-                  {babyName} is Asleep
-                </p>
-                <p className="text-xs text-gray-500 font-medium mt-0.5">
-                  Tap to start nap recording
-                </p>
-              </div>
-            </button>
-
-            {/* Diaper Button */}
-            <button
-              onClick={handleGrandmaQuickDiaper}
-              className="p-5 rounded-3xl bg-white hover:bg-sky-50/50 border-2 border-sky-200 hover:border-sky-400 text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 group"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-3xl">🚼</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
-                  One Touch
-                </span>
-              </div>
-              <div>
-                <p className="text-base sm:text-lg font-black text-gray-900 group-hover:text-sky-700">
-                  Diaper Changed
-                </p>
-                <p className="text-xs text-gray-500 font-medium mt-0.5">
-                  Tap to record fresh diaper change
-                </p>
-              </div>
-            </button>
-
-            {/* Voice-Activated Quick Log */}
-            <button
-              onClick={handleGrandmaVoiceLog}
-              className={`p-5 rounded-3xl text-left transition-all active:scale-98 shadow-sm cursor-pointer flex flex-col justify-between gap-3 border-2 ${
-                grandmaVoiceListening
-                  ? 'bg-sky-600 text-white border-sky-600 animate-pulse'
-                  : 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-3xl">🎙️</span>
-                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                  grandmaVoiceListening ? 'bg-white text-sky-600' : 'bg-sky-400 text-slate-950'
-                }`}>
-                  {grandmaVoiceListening ? 'Listening...' : 'Voice Log'}
-                </span>
-              </div>
-              <div>
-                <p className="text-base sm:text-lg font-black">
-                  {grandmaVoiceListening ? 'Speak Now...' : 'Tap to Speak Log'}
-                </p>
-                <p className={`text-xs ${grandmaVoiceListening ? 'text-white/90' : 'text-gray-300'} font-medium mt-0.5`}>
-                  Say: "baby just slept" or "baby drank 3 oz"
-                </p>
-              </div>
+              Open Granny Mode
             </button>
           </div>
-
-          {/* Secondary Quick Action Row: Monitor (Settings Locked) + Record Blessing */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <button
-              onClick={() => onNavigate('monitor')}
-              className="p-4 rounded-2xl bg-white hover:bg-gray-50 border border-sky-200 text-gray-900 text-xs font-bold flex items-center justify-between cursor-pointer shadow-2xs"
-            >
-              <div className="flex items-center gap-2.5">
-                <Video className="w-5 h-5 text-sky-600" />
-                <div className="text-left">
-                  <p className="font-black text-gray-900">Smart Video Monitor (Settings Locked)</p>
-                  <p className="text-[10px] text-gray-500">Safely watch {babyName} without changing camera settings</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </button>
-
-            <button
-              onClick={() => onNavigate('journal')}
-              className="p-4 rounded-2xl bg-white hover:bg-gray-50 border border-sky-200 text-gray-900 text-xs font-bold flex items-center justify-between cursor-pointer shadow-2xs"
-            >
-              <div className="flex items-center gap-2.5">
-                <Volume2 className="w-5 h-5 text-sky-700" />
-                <div className="text-left">
-                  <p className="font-black text-gray-900">Record Voice Blessing or Lullaby</p>
-                  <p className="text-[10px] text-gray-500">Record traditional prayers or songs for {babyName}</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </button>
-          </div>
-        </motion.div>
+        )
       )}
 
       {/* Nanny / Caregiver Shift & Handover Logger (Caregiver role only) */}
@@ -759,7 +1068,7 @@ export const Dashboard = ({
           {/* Baby Cry Analyzer Card */}
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => isPremium ? onNavigate('sleep') : setIsSubscriptionModalOpen(true)}
+            onClick={() => onNavigate('sleep')}
             className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
@@ -785,7 +1094,7 @@ export const Dashboard = ({
           {/* AI Weekly Meal & Grocery Planner Card */}
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => isPremium ? onNavigate('ai-meal-planner') : setIsSubscriptionModalOpen(true)}
+            onClick={() => onNavigate('ai-meal-planner')}
             className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
@@ -813,7 +1122,7 @@ export const Dashboard = ({
           {/* Smart Baby Video Monitor Card */}
           <motion.div
             whileHover={{ y: -3 }}
-            onClick={() => isPremium ? onNavigate('monitor') : setIsSubscriptionModalOpen(true)}
+            onClick={() => onNavigate('monitor')}
             className="bg-card p-6 rounded-[36px] border border-white shadow-xl shadow-card/15 cursor-pointer group space-y-4 text-left relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
@@ -827,7 +1136,7 @@ export const Dashboard = ({
             <div className="space-y-1">
               <h3 className="text-base font-serif font-black text-gray-800">Smart Baby Video Monitor</h3>
               <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                Securely stream video and audio directly between village devices over local network or cloud. 100% private direct link.
+                Stream video and audio directly between village devices over local network or cloud via a private peer-to-peer link.
               </p>
             </div>
             <div className="pt-1 flex items-center justify-between text-xs font-bold text-primary group-hover:text-primary">
@@ -1572,10 +1881,10 @@ export const Dashboard = ({
                         
     </div>
                       <div>
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Dosage</label>
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Amount / Serving Note</label>
                         <input 
                           type="text" 
-                          placeholder="e.g. 1 drop, 5ml"
+                          placeholder="e.g. 1 drop, 5ml (per doctor label)"
                           className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs font-bold text-gray-800"
                           value={scheduleMedDosage}
                           onChange={e => setScheduleMedDosage(e.target.value)}
@@ -2038,6 +2347,186 @@ export const Dashboard = ({
                   </button>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Multi-Baby & Multi-Role Village Hub Switcher Modal */}
+      <AnimatePresence>
+        {isVillageSwitcherOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[36px] p-6 max-w-lg w-full border border-gray-100 shadow-2xl space-y-5 text-left relative max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl">
+                    🏘️
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-black text-gray-900 text-lg leading-tight">
+                      My Babies &amp; Connected Villages
+                    </h3>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                      Switch between your child &amp; babies you help care for
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsVillageSwitcherOpen(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center border-none cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {villageModalMsg && (
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold">
+                  {villageModalMsg}
+                </div>
+              )}
+
+              <div className="space-y-2.5">
+                {villageConnections.length === 0 ? (
+                  <p className="text-xs text-gray-500 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    No village hubs connected yet. Add your own child workspace or paste a parent&apos;s village invite link below.
+                  </p>
+                ) : (
+                  villageConnections.map((conn) => {
+                    const isActive = conn.villageToken === activeVillageToken;
+                    const roleBadge =
+                      conn.role === 'admin'
+                        ? 'Parent (Admin)'
+                        : conn.role === 'family'
+                          ? 'Granny / Family Circle'
+                          : 'Caregiver / Nanny';
+                    return (
+                      <button
+                        key={conn.villageToken}
+                        type="button"
+                        onClick={() => {
+                          onSwitchVillage?.(conn.villageToken);
+                          setIsVillageSwitcherOpen(false);
+                        }}
+                        className={`w-full p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                          isActive
+                            ? 'bg-emerald-50/80 border-emerald-500 shadow-xs'
+                            : 'bg-gray-50/70 border-gray-200 hover:bg-gray-100/70'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-black text-gray-900 truncate">
+                              {conn.isOwnChild ? '👶' : '🏘️'} {conn.babyName || 'Baby'}
+                            </span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              conn.role === 'admin'
+                                ? 'bg-primary/15 text-primary'
+                                : conn.role === 'family'
+                                  ? 'bg-sky-100 text-sky-900'
+                                  : 'bg-slate-200 text-slate-800'
+                            }`}>
+                              {roleBadge}
+                            </span>
+                            {isActive && (
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-600 text-white">
+                                Active
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-gray-500 font-mono mt-1 truncate">
+                            {conn.babyAge || 'Care Hub'} • {conn.villageToken}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Add Your Own Child Hub */}
+              {onCreateOwnBabyHub && (
+                <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-3">
+                  <p className="text-xs font-black text-gray-900">
+                    + Add My Own Baby Hub (Parent / Admin)
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={newOwnBabyName}
+                      onChange={(e) => setNewOwnBabyName(e.target.value)}
+                      placeholder="Your baby's name (e.g. Zuri)"
+                      className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 outline-none focus:border-primary"
+                    />
+                    <input
+                      type="date"
+                      value={newOwnBabyDob}
+                      onChange={(e) => setNewOwnBabyDob(e.target.value)}
+                      className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 outline-none focus:border-primary"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newOwnBabyName.trim()) {
+                        setVillageModalMsg('Please enter your baby’s name first.');
+                        return;
+                      }
+                      const calcAge = newOwnBabyDob ? calculateBabyAge(newOwnBabyDob) : 'Newborn';
+                      onCreateOwnBabyHub({
+                        babyName: newOwnBabyName.trim(),
+                        babyDob: newOwnBabyDob,
+                        babyAge: calcAge || 'Newborn'
+                      });
+                      setNewOwnBabyName('');
+                      setNewOwnBabyDob('');
+                      setIsVillageSwitcherOpen(false);
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer"
+                  >
+                    Create Own Child Hub
+                  </button>
+                </div>
+              )}
+
+              {/* Join Another Baby's Village */}
+              {onConnectVillageToken && (
+                <div className="p-4 rounded-2xl bg-slate-50 border border-gray-200 space-y-2.5">
+                  <p className="text-xs font-black text-gray-900">
+                    + Join Another Baby&apos;s Village
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={joinVillageInput}
+                      onChange={(e) => setJoinVillageInput(e.target.value)}
+                      placeholder="Paste invite link or VILLAGE_... token"
+                      className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono font-bold text-gray-800 outline-none focus:border-emerald-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const parsed = extractVillageInviteFromInput(joinVillageInput);
+                        if (!parsed.villageToken) {
+                          setVillageModalMsg('Invalid invite link or token.');
+                          return;
+                        }
+                        onConnectVillageToken(parsed.villageToken, parsed.role || 'family');
+                        setJoinVillageInput('');
+                        setIsVillageSwitcherOpen(false);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider border-none cursor-pointer shrink-0"
+                    >
+                      Join
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         )}

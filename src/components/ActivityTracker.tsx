@@ -22,14 +22,22 @@ export const ActivityTracker = ({
   diaperLogs = [],
   onNavigate,
   initialTab = 'sleep',
-  isPremium = false,
+  isPremium = true,
   setIsSubscriptionModalOpen,
   memories = [],
   setMemories,
   observationLogs = [],
   userRole = 'admin',
   parentName,
-  currentUser
+  currentUser,
+  sleepLogs: propSleepLogs,
+  setSleepLogs: propSetSleepLogs,
+  sunlightToday: propSunlightToday,
+  setSunlightToday: propSetSunlightToday,
+  hygieneLog: propHygieneLog,
+  setHygieneLog: propSetHygieneLog,
+  teethingMap: propTeethingMap,
+  setTeethingMap: propSetTeethingMap
 }: { 
   loggedMoods: any[]; 
   setLoggedMoods: (moods: any) => void;
@@ -51,20 +59,32 @@ export const ActivityTracker = ({
   setMemories?: React.Dispatch<React.SetStateAction<any[]>>;
   observationLogs?: any[];
   userRole?: 'admin' | 'family' | 'nanny';
+  sleepLogs?: any[];
+  setSleepLogs?: React.Dispatch<React.SetStateAction<any[]>>;
+  sunlightToday?: number;
+  setSunlightToday?: React.Dispatch<React.SetStateAction<number>>;
+  hygieneLog?: Record<string, string>;
+  setHygieneLog?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  teethingMap?: Record<string, { emerged: boolean; date?: string; symptoms?: string[]; remedies?: string[] }>;
+  setTeethingMap?: React.Dispatch<React.SetStateAction<Record<string, { emerged: boolean; date?: string; symptoms?: string[]; remedies?: string[] }>>>;
 }) => {
   const [timer, setTimer] = useState(0);
   const [isActive, setIsActive] = useState(false);
-  const [sleepLogs, setSleepLogs] = useState<any[]>(() => {
+  const [localSleepLogs, setLocalSleepLogs] = useState<any[]>(() => {
     const s = localStorage.getItem('sleep_logs');
     return s ? JSON.parse(s) : [];
   });
+  const sleepLogs = propSleepLogs !== undefined ? propSleepLogs : localSleepLogs;
+  const setSleepLogs = propSetSleepLogs || setLocalSleepLogs;
   const [playingLullaby, setPlayingLullaby] = useState<number | null>(null);
   const [sleepInsight, setSleepInsight] = useState<string | null>(null);
   const [isGeneratingInsight, setIsGeneratingInsight] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('sleep_logs', JSON.stringify(sleepLogs));
-  }, [sleepLogs]);
+    if (!propSleepLogs) {
+      localStorage.setItem('sleep_logs', JSON.stringify(sleepLogs));
+    }
+  }, [sleepLogs, propSleepLogs]);
 
   // Auto-start nap timer if triggered from "Start Sleep & Nap Timer" recommendations
   useEffect(() => {
@@ -92,7 +112,7 @@ export const ActivityTracker = ({
 
   const resolvedCaregiverRole = useMemo(() => {
     if (userRole === 'nanny') return 'Nanny';
-    if (userRole === 'family') return 'Grandma';
+    if (userRole === 'family') return 'Granny';
     return 'Mom';
   }, [userRole]);
 
@@ -111,6 +131,7 @@ export const ActivityTracker = ({
 
   // Smart Video Monitor & AI Generational Growth Capture
   const [videoMonitorActive, setVideoMonitorActive] = useState(false);
+  const [videoCameraPermission, setVideoCameraPermission] = useState<'granted' | 'prompt' | 'denied' | 'unknown'>('unknown');
   const [cameraSettingsLocked, setCameraSettingsLocked] = useState(true);
   const [isCapturingMoment, setIsCapturingMoment] = useState(false);
   const videoMonitorRef = useRef<HTMLVideoElement | null>(null);
@@ -126,6 +147,60 @@ export const ActivityTracker = ({
       })
       .catch(() => {});
   }, []);
+
+  // Track camera permission & stop video stream cleanly on unmount
+  useEffect(() => {
+    let active = true;
+    const inspectCameraPermission = async () => {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
+      try {
+        if (navigator.permissions?.query) {
+          const permStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+          if (!active) return;
+          setVideoCameraPermission(permStatus.state as any);
+          permStatus.onchange = () => {
+            if (active) setVideoCameraPermission(permStatus.state as any);
+          };
+          if (permStatus.state === 'prompt') {
+            try {
+              const probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+              if (!active) {
+                probe.getTracks().forEach(t => t.stop());
+                return;
+              }
+              setVideoCameraPermission('granted');
+              probe.getTracks().forEach(t => t.stop());
+            } catch (err: any) {
+              if (!active) return;
+              if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
+                setVideoCameraPermission('denied');
+              }
+            }
+          }
+        }
+      } catch {
+        // Ignore unsupported permissions.query('camera')
+      }
+    };
+    inspectCameraPermission();
+    return () => {
+      active = false;
+      if (videoStreamRef.current) {
+        videoStreamRef.current.getTracks().forEach(t => t.stop());
+        videoStreamRef.current = null;
+      }
+    };
+  }, []);
+
+  // Bind active MediaStream reliably after <video> mounts
+  useEffect(() => {
+    if (videoMonitorActive && videoMonitorRef.current && videoStreamRef.current) {
+      if (videoMonitorRef.current.srcObject !== videoStreamRef.current) {
+        videoMonitorRef.current.srcObject = videoStreamRef.current;
+      }
+      videoMonitorRef.current.play().catch(() => {});
+    }
+  }, [videoMonitorActive]);
 
   const remainingRemTime = useMemo(() => {
     if (!remSleepEndTime) return null;
@@ -156,18 +231,32 @@ export const ActivityTracker = ({
       setVideoMonitorActive(false);
       return;
     }
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      setMonitorAlert('Camera is not supported in this browser or requires a secure HTTPS context.');
+      return;
+    }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-      videoStreamRef.current = stream;
-      setVideoMonitorActive(true);
-      setTimeout(() => {
-        if (videoMonitorRef.current) {
-          videoMonitorRef.current.srcObject = stream;
-          videoMonitorRef.current.play().catch(() => {});
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      } catch (constraintErr: any) {
+        if (constraintErr?.name === 'NotAllowedError' || constraintErr?.name === 'PermissionDeniedError') {
+          throw constraintErr;
         }
-      }, 150);
-    } catch {
-      setMonitorAlert('Camera permission needed to start the Smart Video Baby Monitor.');
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+      videoStreamRef.current = stream;
+      setVideoCameraPermission('granted');
+      setMonitorAlert(null);
+      setVideoMonitorActive(true);
+    } catch (err: any) {
+      const denied = err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError';
+      if (denied) setVideoCameraPermission('denied');
+      setMonitorAlert(
+        denied
+          ? 'Camera permission is blocked. Please allow camera access in your browser site settings and tap Video Feed again.'
+          : 'Camera permission is required to start the Smart Video Baby Monitor.'
+      );
     }
   };
 
@@ -227,15 +316,15 @@ export const ActivityTracker = ({
       mergedMap.set(w.id, {
         id: w.id,
         title: w.title,
-        author: w.authorName || w.authorRole || 'Grandma',
+        author: w.authorName || w.authorRole || 'Granny',
         audioDataUrl: w.audioDataUrl
       });
     });
     fromJournal.forEach((o: any) => {
       mergedMap.set(o.id, {
         id: o.id,
-        title: o.title || 'Grandma Blessing & Lullaby',
-        author: o.authorName || 'Family Elder',
+        title: o.title || 'Granny Blessing & Lullaby',
+        author: o.authorName || 'Granny',
         audioDataUrl: o.audioDataUrl
       });
     });
@@ -243,10 +332,6 @@ export const ActivityTracker = ({
   }, [observationLogs, serverWisdomBlessings]);
 
   const generateSleepInsight = async () => {
-    if (!isPremium) {
-      if (setIsSubscriptionModalOpen) setIsSubscriptionModalOpen(true);
-      return;
-    }
     setIsGeneratingInsight(true);
     try {
       const response = await fetch("/api/ai/sleep-insights", {
@@ -321,7 +406,7 @@ export const ActivityTracker = ({
     { id: 2, name: 'Rock-a-bye Baby', duration: '3:00', isPremium: false },
     { id: 3, name: 'Brahms Lullaby (Cradle Song)', duration: '2:45', isPremium: false },
 
-    // 20 New Extra Premium Lullabies (Behind Paystack Paywall)
+    // Additional Lullabies (Free Access)
     { id: 4, name: 'Hush Little Baby (Mockingbird)', duration: '3:20', isPremium: true },
     { id: 5, name: 'Mozart Wiegenlied (Lullaby in F)', duration: '4:10', isPremium: true },
     { id: 6, name: 'Schubert Cradle Song', duration: '3:45', isPremium: true },
@@ -348,16 +433,22 @@ export const ActivityTracker = ({
   const [activeTab, setActiveTab] = useState<'sleep' | 'care' | 'cry'>(initialTab);
 
   // 1. Outdoor & Sunlight Exposure
-  const [sunlightToday, setSunlightToday] = useState<number>(() => parseFloat(localStorage.getItem('sun_today') || '0'));
+  const [localSunlightToday, setLocalSunlightToday] = useState<number>(() => parseFloat(localStorage.getItem('sun_today') || '0'));
+  const sunlightToday = propSunlightToday !== undefined ? propSunlightToday : localSunlightToday;
+  const setSunlightToday = propSetSunlightToday || setLocalSunlightToday;
   const [sunlightGoal] = useState<number>(15);
   const [sunTimerActive, setSunTimerActive] = useState(false);
   const [sunSeconds, setSunSeconds] = useState(0);
 
   // 2. Bath & Hygiene Routines
-  const [hygieneLog, setHygieneLog] = useState<Record<string, string>>(() => JSON.parse(localStorage.getItem('hygiene_log') || '{}'));
+  const [localHygieneLog, setLocalHygieneLog] = useState<Record<string, string>>(() => JSON.parse(localStorage.getItem('hygiene_log') || '{}'));
+  const hygieneLog = propHygieneLog !== undefined ? propHygieneLog : localHygieneLog;
+  const setHygieneLog = propSetHygieneLog || setLocalHygieneLog;
 
   // 3. Teething & Tooth Emergence Map
-  const [teethingMap, setTeethingMap] = useState<Record<string, { emerged: boolean; date?: string; symptoms?: string[]; remedies?: string[] }>>(() => JSON.parse(localStorage.getItem('teething_map') || '{}'));
+  const [localTeethingMap, setLocalTeethingMap] = useState<Record<string, { emerged: boolean; date?: string; symptoms?: string[]; remedies?: string[] }>>(() => JSON.parse(localStorage.getItem('teething_map') || '{}'));
+  const teethingMap = propTeethingMap !== undefined ? propTeethingMap : localTeethingMap;
+  const setTeethingMap = propSetTeethingMap || setLocalTeethingMap;
   const [selectedTooth, setSelectedTooth] = useState<string | null>(null);
   const [selectedToothEmerged, setSelectedToothEmerged] = useState(false);
   const [selectedToothDate, setSelectedToothDate] = useState(new Date().toISOString().split('T')[0]);
@@ -379,9 +470,9 @@ export const ActivityTracker = ({
   const lullabyIntervalRef = useRef<any>(null);
 
   // Sync to local storage
-  useEffect(() => { localStorage.setItem('sun_today', sunlightToday.toString()); }, [sunlightToday]);
-  useEffect(() => { localStorage.setItem('hygiene_log', JSON.stringify(hygieneLog)); }, [hygieneLog]);
-  useEffect(() => { localStorage.setItem('teething_map', JSON.stringify(teethingMap)); }, [teethingMap]);
+  useEffect(() => { if (propSunlightToday === undefined) localStorage.setItem('sun_today', sunlightToday.toString()); }, [sunlightToday, propSunlightToday]);
+  useEffect(() => { if (propHygieneLog === undefined) localStorage.setItem('hygiene_log', JSON.stringify(hygieneLog)); }, [hygieneLog, propHygieneLog]);
+  useEffect(() => { if (propTeethingMap === undefined) localStorage.setItem('teething_map', JSON.stringify(teethingMap)); }, [teethingMap, propTeethingMap]);
   useEffect(() => { localStorage.setItem('vaccine_schedule', JSON.stringify(vaccineSchedule)); }, [vaccineSchedule]);
 
   // Timers and Handlers
@@ -1202,7 +1293,7 @@ export const ActivityTracker = ({
               </div>
             </div>
 
-            {/* Smart Video Feed with Grandma Settings Lock & AI Generational Growth Auto-Capture */}
+            {/* Smart Video Feed with Granny Settings Lock & AI Generational Growth Auto-Capture */}
             {videoMonitorActive && (
               <div className="bg-slate-950 p-3.5 rounded-3xl space-y-3 text-white">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1212,7 +1303,7 @@ export const ActivityTracker = ({
                     className="px-2.5 py-1 rounded-full bg-slate-800 text-sky-300 text-[9px] font-black uppercase tracking-wider border border-sky-400/30 cursor-pointer flex items-center gap-1"
                   >
                     {cameraSettingsLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                    <span>{cameraSettingsLocked ? 'Grandma Settings Locked' : 'Settings Unlocked'}</span>
+                    <span>{cameraSettingsLocked ? 'Granny Settings Locked' : 'Settings Unlocked'}</span>
                   </button>
                   <button
                     type="button"
@@ -1260,7 +1351,7 @@ export const ActivityTracker = ({
               )}
 
               <p className="text-[10px] text-muted leading-relaxed font-medium">
-                Detects crying above 40dB to auto-log wake/mood, lets Grandma view the locked video feed safely, and uses AI to auto-capture grandparent bonding photos to Journal Memories.
+                Detects crying above 40dB to auto-log wake/mood, lets Granny &amp; family members view the locked video feed safely, and uses AI to auto-capture grandparent bonding photos to Journal Memories.
               </p>
             </div>
           </motion.div>
@@ -1458,7 +1549,7 @@ export const ActivityTracker = ({
                 </div>
               </div>
 
-              {/* Lullabies for Baby Embedded Section (Includes Recorded Grandma Blessings & Lullabies) */}
+              {/* Lullabies for Baby Embedded Section (Includes Recorded Granny Blessings & Lullabies) */}
               <div className="border-t border-gray-200/50 pt-4 mt-2 space-y-3">
                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Lullabies & Recorded Family Blessings</p>
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
@@ -1466,7 +1557,7 @@ export const ActivityTracker = ({
                     <div key={blessing.id} className="flex justify-between items-center p-3 bg-sky-50/70 rounded-2xl border border-sky-200 shadow-xs">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-xl bg-sky-400 text-white flex items-center justify-center shrink-0">
-                          👵
+                          🏡
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-gray-800 leading-tight truncate">{blessing.title}</p>
@@ -1501,31 +1592,21 @@ export const ActivityTracker = ({
                     </div>
                   ))}
                   {lullabies.map((lullaby) => {
-                    const isLocked = lullaby.isPremium && !isPremium;
                     return (
                       <div key={lullaby.id} className="flex justify-between items-center p-3 bg-white rounded-2xl border border-solid border-gray-100/50 shadow-xs hover:border-primary/20 transition-all">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${playingLullaby === lullaby.id ? 'bg-primary text-white' : isLocked ? 'bg-sky-100 text-sky-600 font-bold' : 'bg-primary/10 text-primary'}`}>
-                            {isLocked ? '🔒' : '🎵'}
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${playingLullaby === lullaby.id ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                            🎵
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <p className="text-xs font-bold text-gray-800 leading-tight truncate">{lullaby.name}</p>
-                              {lullaby.isPremium && (
-                                <span className="text-[8px] font-black uppercase tracking-wider text-sky-600 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-full shrink-0">
-                                  PRO
-                                </span>
-                              )}
                             </div>
                             <p className="text-[8px] font-black text-muted uppercase tracking-widest">{lullaby.duration}</p>
                           </div>
                         </div>
                         <button 
                           onClick={() => {
-                            if (isLocked) {
-                              if (setIsSubscriptionModalOpen) setIsSubscriptionModalOpen(true);
-                              return;
-                            }
                             if (playingLullaby === lullaby.id) {
                               setPlayingLullaby(null);
                               stopAllAudio();
@@ -1535,19 +1616,12 @@ export const ActivityTracker = ({
                             }
                           }}
                           className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all border-none cursor-pointer flex items-center gap-1 shrink-0 ${
-                            isLocked
-                              ? 'bg-primary hover:bg-primary/90 text-white shadow-xs'
-                              : playingLullaby === lullaby.id 
+                            playingLullaby === lullaby.id 
                               ? 'bg-primary/20 text-primary font-bold' 
                               : 'bg-primary/10 hover:bg-primary text-primary hover:text-white'
                           }`}
                         >
-                          {isLocked ? (
-                            <>
-                              <Lock className="w-3 h-3" />
-                              <span>Unlock</span>
-                            </>
-                          ) : playingLullaby === lullaby.id ? '■ Stop' : '▶ Play'}
+                          {playingLullaby === lullaby.id ? '■ Stop' : '▶ Play'}
                         </button>
                       </div>
                     );
@@ -1603,77 +1677,39 @@ export const ActivityTracker = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-serif font-black text-gray-800">AI Nap Insights</h3>
-                    {isPremium ? (
-                      <span className="bg-primary text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                        <Crown className="w-2.5 h-2.5" /> PRO
-                      </span>
-                    ) : (
-                      <span className="bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                        <Lock className="w-2.5 h-2.5" /> Premium Only
-                      </span>
-                    )}
                   </div>
                   <p className="text-[11px] text-gray-400 font-medium">Predicts optimal sleep windows & circadian patterns</p>
                 </div>
               </div>
-              {isPremium ? (
-                !sleepInsight && !isGeneratingInsight && (
-                  <button 
-                    onClick={generateSleepInsight}
-                    className="px-4 py-2 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-md hover:scale-105 transition-all border-none"
-                  >
-                    Analyze
-                  </button>
-                )
-              ) : (
+              {!sleepInsight && !isGeneratingInsight && (
                 <button 
-                  onClick={() => setIsSubscriptionModalOpen?.(true)}
-                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-md hover:scale-105 transition-all flex items-center gap-1 border-none"
+                  onClick={generateSleepInsight}
+                  className="px-4 py-2 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-md hover:scale-105 transition-all border-none"
                 >
-                  <Crown className="w-3 h-3" /> Upgrade
+                  Analyze
                 </button>
               )}
             </div>
 
-            {!isPremium ? (
-              <div className="bg-primary/5 rounded-3xl p-5 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="space-y-1 text-left">
-                  <p className="text-xs font-bold text-gray-800">AI Nap & Circadian Insights is locked to Premium</p>
-                  <p className="text-[11px] text-gray-600 font-medium">
-                    Analyzes your baby's historical sleep logs and wake windows to forecast sweet-spot nap times.
-                  </p>
+            {isGeneratingInsight && (
+              <div className="bg-primary/5 rounded-2xl p-6 text-center space-y-3 animate-pulse">
+                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Analyzing past 7 days...</p>
+              </div>
+            )}
+
+            {sleepInsight && !isGeneratingInsight && (
+              <div className="bg-primary/5 rounded-3xl p-5 border border-primary/20">
+                <div className="text-[11px] text-gray-800 leading-relaxed space-y-2 whitespace-pre-wrap">
+                  {sleepInsight}
                 </div>
-                <button
-                  onClick={() => setIsSubscriptionModalOpen?.(true)}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-md shrink-0"
+                <button 
+                  onClick={generateSleepInsight}
+                  className="mt-4 text-[9px] font-black text-primary uppercase tracking-widest hover:text-primary/80 transition-colors cursor-pointer border-none bg-transparent"
                 >
-                  <Crown className="w-4 h-4" />
-                  <span>Unlock AI Insights</span>
+                  ↻ Refresh Insights
                 </button>
               </div>
-            ) : (
-              <>
-                {isGeneratingInsight && (
-                  <div className="bg-primary/5 rounded-2xl p-6 text-center space-y-3 animate-pulse">
-                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-                    <p className="text-[10px] font-black text-primary uppercase tracking-widest">Analyzing past 7 days...</p>
-                  </div>
-                )}
-
-                {sleepInsight && !isGeneratingInsight && (
-                  <div className="bg-primary/5 rounded-3xl p-5 border border-primary/20">
-                    <div className="text-[11px] text-gray-800 leading-relaxed space-y-2 whitespace-pre-wrap">
-                      {sleepInsight}
-                    </div>
-                    <button 
-                      onClick={generateSleepInsight}
-                      className="mt-4 text-[9px] font-black text-primary uppercase tracking-widest hover:text-primary/80 transition-colors cursor-pointer border-none bg-transparent"
-                    >
-                      ↻ Refresh Insights
-                    </button>
-                  </div>
-                )}
-              </>
             )}
           </div>
 
@@ -1712,8 +1748,7 @@ export const ActivityTracker = ({
               diaperLogs={diaperLogs}
               sleepLogs={sleepLogs}
               onNavigate={onNavigate}
-              isPremium={isPremium}
-              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen?.(true)}
+              isPremium={true}
             />
             
     </div>

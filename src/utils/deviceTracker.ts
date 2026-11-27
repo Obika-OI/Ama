@@ -1,7 +1,6 @@
 /**
- * Device Tracker & Hardware Fingerprinting Utility for Ama Baby Marketplace
- * Generates and securely persists a cryptographic hardware device identifier.
- * Used to block fraudulent actors even if they swap SIM cards, emails, or phone numbers on the same phone.
+ * Device Session Helper for Ama Baby Marketplace
+ * Generates and persists a local browser session identifier for marketplace listings and order records.
  */
 
 const DEVICE_STORAGE_KEY = 'ama_device_hardware_id';

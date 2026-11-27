@@ -18,6 +18,8 @@ export const FeedingTracker = ({
   allergenMatrix,
   setAllergenMatrix,
   loggedMeals,
+  feedingLogs: propFeedingLogs,
+  setFeedingLogs: propSetFeedingLogs,
   userRole = 'admin',
   initialTab
 }: { 
@@ -31,6 +33,8 @@ export const FeedingTracker = ({
   allergenMatrix: any[];
   setAllergenMatrix: (matrix: any[]) => void;
   loggedMeals: any[];
+  feedingLogs?: any[];
+  setFeedingLogs?: React.Dispatch<React.SetStateAction<any[]>>;
   userRole?: string;
   initialTab?: 'today' | 'allergen' | 'guide';
 }) => {
@@ -57,15 +61,19 @@ export const FeedingTracker = ({
   const [bottleInput, setBottleInput] = useState('');
   const [bottleType, setBottleType] = useState<'Pumped' | 'Formula'>('Pumped');
 
-  // Local feeding history logs with exact timestamps
-  const [feedingLogs, setFeedingLogs] = useState<any[]>(() => {
+  // Local feeding history logs with exact timestamps (or lifted App state synced to Firestore)
+  const [localFeedingLogs, setLocalFeedingLogs] = useState<any[]>(() => {
     const saved = localStorage.getItem('local_feeding_logs');
     return saved ? JSON.parse(saved) : [];
   });
+  const feedingLogs = propFeedingLogs !== undefined ? propFeedingLogs : localFeedingLogs;
+  const setFeedingLogs = propSetFeedingLogs || setLocalFeedingLogs;
 
   useEffect(() => {
-    localStorage.setItem('local_feeding_logs', JSON.stringify(feedingLogs));
-  }, [feedingLogs]);
+    if (propFeedingLogs === undefined) {
+      localStorage.setItem('local_feeding_logs', JSON.stringify(feedingLogs));
+    }
+  }, [feedingLogs, propFeedingLogs]);
 
   // Breastfeeding timer effects
   useEffect(() => {
@@ -195,7 +203,7 @@ export const FeedingTracker = ({
         return {
           ...item,
           status: editStatus,
-          day: editStatus === 'In Progress' ? editDay : (editStatus === 'Cleared' ? 3 : 0),
+          day: editStatus === 'In Progress' ? editDay : ((editStatus === 'Cleared' || editStatus === '3-Day Log Complete') ? 3 : 0),
           notes: editNotes
         };
       }
@@ -829,9 +837,9 @@ export const FeedingTracker = ({
               <div className="flex items-start gap-3">
                 <Shield className="w-8 h-8 text-primary shrink-0" />
                 <div>
-                  <h3 className="font-serif font-black text-gray-800 text-lg">Allergen Clearance Matrix</h3>
+                  <h3 className="font-serif font-black text-gray-800 text-lg">Allergen Introduction Matrix</h3>
                   <p className="text-xs text-muted leading-relaxed font-medium">
-                    Follow safe guidelines to introduce high-risk allergens individually. Log 3 full days of exposure with no symptoms to mark as Cleared.
+                    Introduce potential allergens individually with guidance from your pediatrician, and log 3 observation days to mark as 3-Day Log Complete.
                   </p>
                   
     </div>
@@ -842,9 +850,11 @@ export const FeedingTracker = ({
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {(allergenMatrix || []).map(allergen => {
+                const isCompletedLog = allergen.status === 'Cleared' || allergen.status === '3-Day Log Complete';
                 const statusColors = {
                   'Not Introduced': 'bg-white text-gray-500 border-gray-100',
                   'In Progress': 'bg-primary/5 text-primary border-primary/20',
+                  '3-Day Log Complete': 'bg-primary/10 text-primary border-primary/30',
                   'Cleared': 'bg-primary/10 text-primary border-primary/30',
                   'Suspected Reaction': 'bg-sky-50 text-gray-800 border-sky-200'
                 }[allergen.status as string] || 'bg-white';
@@ -858,11 +868,11 @@ export const FeedingTracker = ({
                     <div className="flex justify-between items-start w-full">
                       <span className="text-3xl">{getAllergenEmoji(allergen.name)}</span>
                       <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full ${
-                        allergen.status === 'Cleared' ? 'bg-primary/10 text-primary' :
+                        isCompletedLog ? 'bg-primary/10 text-primary' :
                         allergen.status === 'In Progress' ? 'bg-primary/15 text-primary' :
                         allergen.status === 'Suspected Reaction' ? 'bg-sky-100 text-gray-800' : 'bg-gray-100 text-gray-500'
                       }`}>
-                        {allergen.status === 'In Progress' ? `Day ${allergen.day}/3` : allergen.status}
+                        {allergen.status === 'In Progress' ? `Day ${allergen.day}/3` : isCompletedLog ? '3-Day Log Complete' : allergen.status}
                       </span>
                     </div>
                     <div className="space-y-1">
@@ -1067,7 +1077,7 @@ export const FeedingTracker = ({
                       Infant Safety Hub: First Aid & Emergency Guidelines
                     </h3>
                     <p className="text-xs text-sky-100 opacity-95 leading-relaxed">
-                      Instant location-aware emergency numbers, pediatric hospital navigation, 4-step Heimlich maneuver for infants, safe sleep checklist, and home babyproofing.
+                      Instant location-aware emergency numbers, pediatric care navigation, 4-step infant choking airway support guide, safe sleep checklist, and home babyproofing.
                     </p>
                   </div>
                   <button
@@ -1110,15 +1120,15 @@ export const FeedingTracker = ({
                       ]
                     },
                     {
-                      id: 'alert-botulism',
-                      title: 'Honey & Infant Botulism Warning (Never Under 12 Months)',
+                      id: 'alert-honey',
+                      title: 'Honey Precaution (Avoid Under 12 Months)',
                       badge: 'Strict Avoidance',
                       badgeColor: 'bg-sky-50 text-sky-700 border-sky-200',
-                      summary: 'Raw honey, baked honey, and unpasteurized syrups contain bacterial spores that can cause severe infant botulism before 12 months.',
+                      summary: 'Raw honey, baked honey, and unpasteurized syrups can contain naturally occurring spores that immature infant digestion is not ready for before 12 months.',
                       inDepth: [
-                        'Honey may harbor dormant spores of Clostridium botulinum. While older digestive tracts neutralize these spores harmlessly, infant gut flora allows them to germinate and release dangerous toxins.',
-                        'Symptoms of infant botulism include constipation, limp muscle tone, head lag, weak crying, and difficulty feeding.',
-                        'Baking or boiling honey in porridges or baked goods does NOT reliably neutralize the heat-resistant spores.',
+                        'Honey may contain dormant bacterial spores that older digestive tracts handle easily, whereas an infant’s developing gut cannot safely process them.',
+                        'Watch for constipation, unusual drowsiness, weak feeding, or reduced muscle tone after accidental exposure and seek prompt pediatric evaluation.',
+                        'Baking or boiling honey in porridges or baked goods does NOT reliably remove these heat-resistant spores.',
                         'Wait until after baby’s first birthday before introducing any honey or foods prepared with honey.'
                       ]
                     },
@@ -1356,19 +1366,22 @@ export const FeedingTracker = ({
                 <div>
                   <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2">Introduction Status</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {['Not Introduced', 'In Progress', 'Cleared', 'Suspected Reaction'].map(status => (
-                      <button 
-                        key={status}
-                        onClick={() => setEditStatus(status)}
-                        className={`py-2.5 px-3 rounded-2xl text-[10px] font-bold uppercase tracking-wider border cursor-pointer transition-all ${
-                          editStatus === status 
-                            ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20' 
-                            : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'
-                        }`}
-                      >
-                        {status}
-                      </button>
-                    ))}
+                    {['Not Introduced', 'In Progress', '3-Day Log Complete', 'Suspected Reaction'].map(status => {
+                      const isActive = editStatus === status || (status === '3-Day Log Complete' && editStatus === 'Cleared');
+                      return (
+                        <button 
+                          key={status}
+                          onClick={() => setEditStatus(status)}
+                          className={`py-2.5 px-3 rounded-2xl text-[10px] font-bold uppercase tracking-wider border cursor-pointer transition-all ${
+                            isActive 
+                              ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20' 
+                              : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'
+                          }`}
+                        >
+                          {status}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1396,7 +1409,7 @@ export const FeedingTracker = ({
                   <textarea 
                     value={editNotes} 
                     onChange={e => setEditNotes(e.target.value)}
-                    placeholder="Log any small details, mild skin rashes, stool abnormalities or successful cleared days..."
+                    placeholder="Log any small details, mild skin rashes, tummy notes, or completed observation days..."
                     className="w-full bg-gray-50 rounded-2xl p-3 text-xs font-medium border-none outline-none h-20 text-gray-700"
                   />
                 </div>

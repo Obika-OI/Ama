@@ -60,7 +60,7 @@ export const PRNSafetyCard: React.FC<PRNSafetyCardProps> = ({
               <Lock className="w-4 h-4 text-primary animate-pulse" />
             )}
             <span className="text-xs font-bold text-gray-800">
-              {safety.isSafe ? 'Safe to Take Now' : `Safety Lock: ${safety.remainingFormatted}`}
+              {safety.isSafe ? 'Interval Elapsed' : `Timer: ${safety.remainingFormatted}`}
             </span>
           </div>
           <span className="text-[10px] font-mono font-bold text-gray-500">
@@ -88,16 +88,16 @@ export const PRNSafetyCard: React.FC<PRNSafetyCardProps> = ({
               <span>{reminder.title}</span>
               {safety.isSafe ? (
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                  Ready
+                  Interval Elapsed
                 </span>
               ) : (
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                  Safety Locked
+                  Timer Active
                 </span>
               )}
             </h3>
             <p className="text-[11px] text-gray-500">
-              {reminder.prnConfig?.instructions || `Minimum ${safety.minIntervalHours}h interval • Max ${safety.maxDoses} doses/24h`}
+              {reminder.prnConfig?.instructions || `Logged ${safety.minIntervalHours}h interval • Up to ${safety.maxDoses} entries/24h (follow product label)`}
             </p>
           </div>
         </div>
@@ -108,7 +108,7 @@ export const PRNSafetyCard: React.FC<PRNSafetyCardProps> = ({
             24h Window
           </span>
           <span className="text-xs font-mono font-black text-gray-800">
-            {safety.dosesInLast24h} of {safety.maxDoses} Doses
+            {safety.dosesInLast24h} of {safety.maxDoses} Logged
           </span>
         </div>
       </div>
@@ -120,7 +120,7 @@ export const PRNSafetyCard: React.FC<PRNSafetyCardProps> = ({
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary" />
               <span className="text-xs font-bold text-gray-700">
-                {safety.lockReason === 'max_doses' ? '24h Limit Reached' : 'Interval Lock Active'}
+                {safety.lockReason === 'max_doses' ? '24h Log Limit Reached' : 'Waiting Interval Active'}
               </span>
             </div>
             <span className="font-mono font-black text-base text-primary tracking-wider">
@@ -137,7 +137,7 @@ export const PRNSafetyCard: React.FC<PRNSafetyCardProps> = ({
           </div>
 
           <p className="text-[11px] text-gray-500 flex items-center justify-between">
-            <span>Next safe administration:</span>
+            <span>Earliest logged interval:</span>
             <span className="font-bold text-gray-800">
               {safety.nextSafeTime
                 ? safety.nextSafeTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -150,7 +150,7 @@ export const PRNSafetyCard: React.FC<PRNSafetyCardProps> = ({
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-primary" />
             <span className="text-xs font-bold text-gray-800">
-              Safe to administer dosage ({reminder.dosage || '1 dose'})
+              Logged interval elapsed ({reminder.dosage || 'per label'})
             </span>
           </div>
           <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
@@ -171,7 +171,7 @@ export const PRNSafetyCard: React.FC<PRNSafetyCardProps> = ({
           }`}
         >
           <Plus className="w-4 h-4" />
-          <span>{safety.isSafe ? 'Log Dose Now' : 'Override & Log Dose'}</span>
+          <span>{safety.isSafe ? 'Log Entry Now' : 'Log Entry Early'}</span>
         </button>
 
         <button
@@ -197,7 +197,7 @@ export const PRNSafetyCard: React.FC<PRNSafetyCardProps> = ({
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                Past Administration History
+                Past Log History
               </span>
               <span className="text-[10px] text-gray-500">
                 Sorted most recent first
@@ -248,7 +248,7 @@ export const PRNSafetyCard: React.FC<PRNSafetyCardProps> = ({
               </div>
             ) : (
               <p className="text-xs text-gray-400 italic py-2 text-center">
-                No previous doses logged yet.
+                No previous entries logged yet.
               </p>
             )}
           </motion.div>
@@ -270,7 +270,7 @@ export const PRNSafetyCard: React.FC<PRNSafetyCardProps> = ({
                   <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                     <Clock className="w-4 h-4" />
                   </div>
-                  <h3 className="font-bold text-base text-gray-900">Log Dose Intake</h3>
+                  <h3 className="font-bold text-base text-gray-900">Log Time Entry</h3>
                 </div>
                 <button
                   onClick={() => setShowLogModal(false)}
@@ -284,15 +284,15 @@ export const PRNSafetyCard: React.FC<PRNSafetyCardProps> = ({
                 <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex items-start gap-2 text-xs text-gray-800">
                   <AlertTriangle className="w-4 h-4 shrink-0 text-primary mt-0.5" />
                   <div>
-                    <span className="font-bold block">Safety Alert:</span>
-                    Minimum interval has not elapsed yet ({safety.remainingFormatted} remaining). Ensure healthcare provider guidance before administering early.
+                    <span className="font-bold block">Interval Reminder:</span>
+                    Your configured waiting interval has not elapsed yet ({safety.remainingFormatted} remaining). Check your doctor&apos;s or product label instructions before logging early.
                   </div>
                 </div>
               )}
 
               <div>
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">
-                  Dosage Amount
+                  Amount / Label Note
                 </label>
                 <input
                   type="text"

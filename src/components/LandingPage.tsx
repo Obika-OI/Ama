@@ -125,7 +125,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8 border-t border-white/60 text-xs font-semibold text-gray-700 max-w-3xl mx-auto">
           <div className="flex items-center justify-center gap-2 bg-white/80 backdrop-blur-xs p-3 rounded-2xl border border-white shadow-xs">
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>100% Private Device-Only Sandbox</span>
+            <span>Private Local-First Workspace</span>
           </div>
           <div className="flex items-center justify-center gap-2 bg-white/80 backdrop-blur-xs p-3 rounded-2xl border border-white shadow-xs">
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -142,15 +142,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
           <div className="space-y-4">
             <h2 className="text-2xl sm:text-3xl font-serif font-black text-gray-900">Why Ama Baby is the Logical Choice for Modern Families</h2>
             <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
-              In a digital world crowded with applications designed to harvest user data and promote consumerism, Ama Baby stands as a fortress of privacy and resourcefulness. We believe that parenting is a fundamental human experience that shouldn't be gated by expensive subscriptions or exploited by advertising networks. Our philosophy is rooted in three core pillars: <span className="font-bold text-gray-900">Sovereignty, Simplicity, and Safety.</span>
+              In a digital world crowded with applications designed to harvest user data and promote consumerism, Ama Baby prioritizes privacy and practical resourcefulness. We believe that parenting is a fundamental human experience that shouldn't be gated by expensive subscriptions or exploited by advertising networks. Our philosophy is rooted in three core pillars: <span className="font-bold text-gray-900">Ownership, Simplicity, and Safety.</span>
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="space-y-3">
-              <h3 className="font-black text-primary uppercase tracking-wider text-xs">Data Sovereignty</h3>
+              <h3 className="font-black text-primary uppercase tracking-wider text-xs">Data Ownership</h3>
               <p className="text-xs text-gray-600 leading-relaxed">
-                Most "free" apps are actually selling your baby's digital identity. Ama is different. By using a local-first sandbox architecture, your baby's weight, feeding times, and health logs never leave your device unless you explicitly choose to backup. This ensures that your family's most intimate moments remain exactly where they belong: in your hands.
+                Most "free" apps are actually selling your baby's digital identity. Ama is different. By using a local-first storage model, your baby's weight, feeding times, and health logs stay on your device unless you explicitly choose to sync them. This helps keep your family's daily notes right where they belong: in your hands.
               </p>
             </div>
             <div className="space-y-3">
@@ -224,7 +224,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
               </div>
             </div>
 
-            {/* High-Fidelity Content Card 3: Immunization Calendars, Reminders & Paracetamol Dosing */}
+            {/* High-Fidelity Content Card 3: Immunization Calendars & Medication Time Logs */}
             <div className="bg-white/90 backdrop-blur-xs p-8 rounded-[36px] border border-white shadow-xl shadow-card/10 space-y-4 flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-bold">
@@ -232,13 +232,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
                 </div>
                 <h3 className="font-serif font-black text-lg text-gray-900">Immunization Calendars & Offline Alarms</h3>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Managing a rural or suburban household is a mentally taxing process where clinic cards easily get misplaced and doctor instructions are forgotten. Ama safeguards your baby's health by placing structured immunization checklists and fever dose recorders directly in your hands. We provide detailed vaccine timelines pre-aligned with national public health schedules, helping you track critical doses from birth up to twelve months.
+                  Managing a rural or suburban household is a mentally taxing process where clinic cards easily get misplaced and doctor instructions are forgotten. Ama supports your family by placing structured immunization checklists and medication time logs directly in your hands. We provide vaccine timelines aligned with standard public health schedules, helping you keep track of visits from birth up to twelve months.
                 </p>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Mothers can set custom, gentle offline alarms that do not consume mobile data or require active cellular networks. These notifications ensure that you never miss a life-saving clinic visit, keeping your baby protected from preventable childhood illnesses. If a baby does require medication, our cautious dosage log records exactly when a dose was given, showing you a logical countdown before the next paracetamol or vitamin administration is safe.
+                  Mothers can set custom, gentle offline alarms that do not consume mobile data or require active cellular networks. These reminders help you remember clinic visits on time. When recording routine vitamins or doctor-prescribed medicine, our medication &amp; vitamin time log helps parents record when an item was given and set reminders based on their doctor's or product label instructions.
                 </p>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  This precise logging utility is designed to prevent accidental medication mistakes, which are a major risk when parents are sleep-deprived and under high pressure. Ama also provides a dedicated offline diary to write down the exact healthcare advice and recommendations received from community midwives, creating a permanent, easily accessible digital health history right inside your shared mobile browser.
+                  This clear logging utility helps sleep-deprived parents remember when the last item was logged so caregivers stay coordinated. Ama also provides a dedicated offline diary to write down the exact healthcare advice and recommendations received from community midwives, creating an organized personal health history right inside your mobile browser.
                 </p>
               </div>
             </div>
@@ -249,15 +249,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
                 <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-bold">
                   🔒
                 </div>
-                <h3 className="font-serif font-black text-lg text-gray-900">Private Device-Only Sandbox Protection</h3>
+                <h3 className="font-serif font-black text-lg text-gray-900">Private Local-First Storage</h3>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Your family's privacy and data sovereignty are our absolute priority. Unlike commercial tracking applications that exploit your child's milestones, weight charts, and diaper logs for behavioral ad targeting, Ama is engineered around a strict local-first architecture. All records (including names, feeding times, growth percentiles, and diaper consistency notes) are saved exclusively in your browser's secure local sandbox.
+                  Your family's privacy and data ownership are a top priority. Unlike commercial tracking applications that exploit your child's milestones, weight charts, and diaper logs for behavioral ad targeting, Ama is engineered around a local-first architecture. All records (including names, feeding times, growth notes, and diaper consistency notes) are saved in your browser's local storage.
                 </p>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  You do not need to register an account, sign up with an email, or connect social media profiles to start logging your baby's day. If you choose to coordinate care with your husband, relative, or nanny, our secure sync feature generates encrypted tokens that let you merge logs safely across shared family devices. Nanny profiles can be set with restricted permissions, protecting your private diary entries and settings from secondary users.
+                  You do not need to register an account, sign up with an email, or connect social media profiles to start logging your baby's day. If you choose to coordinate care with your partner, relative, or nanny, our village invite feature lets you share logs across family devices. Caregiver profiles can be set with tailored permissions, protecting your private diary entries and settings.
                 </p>
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  We also provide direct data portability tools, allowing mothers to export their complete tracking journals as structured files or print them as clean, simple progress reports. These summaries can be shown to local nurses during routine infant health checks, ensuring collaborative care. Our settings screen features an instant database purge button, allowing you to wipe your local database completely with a single tap, leaving zero digital trails.
+                  We also provide direct data portability tools, allowing mothers to export their tracking journals as structured files or print them as clean, simple progress reports. These summaries can be shown to local nurses during routine infant health checks. Our settings screen features a clear-data button, allowing you to clear saved local browser storage at any time.
                 </p>
               </div>
             </div>
@@ -323,7 +323,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
                 We focus on simple, observable actions that require zero complex testing. At two months, you can easily check if your baby smiles back when you speak to them, coos when you hold them, and attempts to look at your face. By six months, you can track if they recognize familiar faces, laugh during peek-a-boo, roll over, and sit up with light support. At twelve months, you can record milestones like pulling up to stand, waving goodbye, calling you Mama or Dada, and grabbing small pieces of roasted food with their fingers.
               </p>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                When you observe these sweet moments, you can tap to record them in your secure browser sandbox, earning digital milestone stars. We make it easy to review this progress over time, so you can share a clear, confident record of your baby’s milestones with your community health nurse or family physician during routine immunization visits. Ama ensures you celebrate your baby's growth with complete peace of mind.
+                When you observe these sweet moments, you can tap to record them in your local browser storage, earning digital milestone stars. We make it easy to review this progress over time, so you can share a clear record of your baby’s milestones with your community health nurse or family physician during routine visits. Ama helps you celebrate your baby's growth with greater peace of mind.
               </p>
             </div>
 
@@ -367,7 +367,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onNaviga
                 By logging at least one event every single day, whether it's starting a quick nursing timer, writing down a diaper change, checking off a daily play quest, or adding a weight number, you keep your habit flame active on your dashboard. This visual habit flame acts as a gentle, non-stressful prompt that encourages mothers to stay engaged with their infant's daily care patterns. 
               </p>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Keeping your daily streak active rewards you with free quest rerolls and reveals special custom milestones in your progress center. Over time, this consistent logging helps sleep-deprived mothers spot positive changes in their baby's routines, such as more predictable sleeping windows or fewer diaper rashes. This visual feedback reinforces parenting confidence, helping you manage infant wellness logically, resourcefully, and with absolute peace of mind.
+                Keeping your daily streak active rewards you with free quest rerolls and reveals special custom milestones in your progress center. Over time, this consistent logging helps sleep-deprived mothers spot positive patterns in their baby's routines, such as more predictable sleeping windows. This visual feedback supports parenting confidence, helping you manage daily routines with greater peace of mind.
               </p>
             </div>
 
